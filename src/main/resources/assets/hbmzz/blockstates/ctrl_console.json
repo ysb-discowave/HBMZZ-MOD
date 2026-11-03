@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "up=false,down=false,facing=north": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=false,facing=east": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=false,facing=south": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=false,facing=west": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=true,facing=north": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=true,facing=east": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=true,facing=south": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=false,down=true,facing=west": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=false,facing=north": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=false,facing=east": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=false,facing=south": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=false,facing=west": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=true,facing=north": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=true,facing=east": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=true,facing=south": {
+      "model": "hbmzz:ctrl_console_empty"
+    },
+    "up=true,down=true,facing=west": {
+      "model": "hbmzz:ctrl_console_empty"
+    }
+  }
+}

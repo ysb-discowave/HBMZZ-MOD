@@ -1,0 +1,21 @@
+{
+  "textures": {
+    "particle": "hbmzz:blocks/control_panel_front",
+    "front": "hbmzz:blocks/control_panel_front",
+    "back": "hbmzz:blocks/control_panel_side"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 3],
+      "faces": {
+        "south": { "texture": "#front", "uv": [0, 0, 16, 16] },
+        "north": { "texture": "#back" },
+        "east": { "texture": "#back" },
+        "west": { "texture": "#back" },
+        "up": { "texture": "#back" },
+        "down": { "texture": "#back" }
+      }
+    }
+  ]
+}

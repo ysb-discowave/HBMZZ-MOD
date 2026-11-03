@@ -1,0 +1,84 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = '2.2.1'
+group = 'com.hbmzz'
+archivesBaseName = 'hbmzz'
+
+sourceCompatibility = targetCompatibility = '1.8'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-proc:none'
+}
+
+minecraft {
+    version = '1.12.2-14.23.5.2847'
+    runDir = 'run'
+    mappings = 'snapshot_20171003'
+}
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    // ForgeGradle leaves its dev-only annotation caches in the classes dir;
+    // they have no business in a shipped jar.
+    exclude 'META-INF/fml_cache_annotation.json'
+    exclude 'META-INF/fml_cache_class_versions.json'
+    manifest {
+        attributes([
+            'Specification-Title'   : 'hbmzz',
+            'Specification-Vendor'  : 'hbmzz',
+            'Specification-Version' : '1',
+            'Implementation-Title'  : project.name,
+            'Implementation-Version': project.version
+        ])
+    }
+}
+
+// reobfJar re-adds the FML annotation caches after the jar task has run, so the
+// final artifact has to be rewritten once more before it is shipped.
+task stripDevCache {
+    dependsOn 'reobfJar'
+    doLast {
+        def target = file("${buildDir}/libs/${archivesBaseName}-${project.version}.jar")
+        if (!target.exists()) {
+            return
+        }
+        def tmp = new File(target.parentFile, target.name + '.tmp')
+        def zin = new java.util.zip.ZipFile(target)
+        def zout = new java.util.zip.ZipOutputStream(new FileOutputStream(tmp))
+        try {
+            for (def entry : zin.entries()) {
+                if (entry.name.startsWith('META-INF/fml_cache')) {
+                    continue
+                }
+                zout.putNextEntry(new java.util.zip.ZipEntry(entry.name))
+                if (!entry.isDirectory()) {
+                    zout.write(zin.getInputStream(entry).bytes)
+                }
+                zout.closeEntry()
+            }
+        } finally {
+            zout.close()
+            zin.close()
+        }
+        if (!target.delete()) {
+            throw new GradleException("could not replace ${target}")
+        }
+        tmp.renameTo(target)
+    }
+}
+
+assemble.dependsOn stripDevCache

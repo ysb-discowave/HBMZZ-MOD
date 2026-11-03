@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBMZZ 参考手册 — 控件 / 节点 / 配方 / 配置 / 构建</title>
+<meta name="description" content="HBMZZ 参考手册：25 种节点图控制台控件、13 种机器控制面板控件、32 类节点、方块与物品、工作台配方、config/hbmzz.cfg 配置项、辅助工具与从源码构建。查表用，教程见使用指南。">
+<meta name="theme-color" content="#0a0c0f">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ 参考手册">
+<meta property="og:description" content="控件、节点、配方、配置项、辅助工具与从源码构建的快速查表页。">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HEAD ================= -->
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 参考手册</div>
+      <h1>查表用的：控件、节点、配方、配置与构建</h1>
+      <p class="lead">
+        这页是<strong>查表页</strong>，不是教程。要学怎么放监控屏、怎么搭报警规则、怎么接机器，
+        去<a href="guide.html">使用指南</a>。这里只把 README 里写明的事实列成表：
+        控制台 25 种控件、机器控制面板 13 种控件、32 类节点、方块与物品、配方、
+        <code>config/hbmzz.cfg</code> 的全部键值，以及辅助工具和从源码构建。
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= 控件总表 ================= -->
+  <section class="section" id="controls">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 控件</div>
+        <h2>控件总表</h2>
+        <p>本模组有两类能摆在面板上的控件：节点图控制台的 25 种（其中 11 种移植自 Leafia 附属），以及机器控制面板的 13 种（本项目自己设计）。面板工坊另有一套 7 种自定义控件，见下方说明。</p>
+      </div>
+
+      <h3>节点图控制台 · 25 种控件</h3>
+      <p style="margin:0 0 10px;color:var(--text-dim);font-size:14px">前 14 种来自 CE 本体，后 11 种来自 CE Addon（Leafia），注册名保持附属原样，已装附属的面板存档读进来不会变成 <code>UnknownControl</code>。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>控件名</th>
+              <th>注册名</th>
+              <th>能读能写</th>
+              <th>用途 / 主要变量</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 按钮</td>
+              <td><code>button_push</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>点击触发后弹回；变量 <code>isPushed</code> / <code>isLit</code> / <code>color</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 急停按钮</td>
+              <td><code>button_emergency_push</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>拍下锁死并发 1，再点复位发 0；变量 <code>isPushed</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 防护按钮</td>
+              <td><code>button_encased_push</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>掀盖后按下；变量 <code>isPushed</code> / <code>isLit</code> / <code>isCoverOpen</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 拨动开关</td>
+              <td><code>switch_toggle</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>两态切换；变量 <code>isOn</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 旋转开关</td>
+              <td><code>switch_rotary_toggle</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>拨杆旋转切换；变量 <code>isOn</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 垂直滑条</td>
+              <td><code>slider_vertical</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>拖动取值；变量 <code>value</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 旋钮</td>
+              <td><code>knob_control</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>拖动并按档吸附；变量 <code>value</code>（档位数可配）</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 七段数码</td>
+              <td><code>display_7seg</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>七段数字读数；变量 <code>value</code>（位数、小数点可配）</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 文字屏</td>
+              <td><code>display_text</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>字符串或带单位的值；变量 <code>text</code> / <code>isLit</code> / <code>color</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 方形仪表</td>
+              <td><code>dial_square</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>方型刻度读数；变量 <code>value</code>（标签可改）</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 圆形仪表</td>
+              <td><code>dial_large</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>圆型刻度读数；变量 <code>value</code>（标签可改）</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 指示灯</td>
+              <td><code>indicator_lamp</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>布尔指示灯；变量 <code>isLit</code> / <code>color</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> RGB 指示灯</td>
+              <td><code>indicator_lamp_rgb</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>三色指示灯；变量 <code>red</code> / <code>green</code> / <code>blue</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本体</span> 标签</td>
+              <td><code>label</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>纯文字与缩放，无变量</td>
+            </tr>
+
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 辉光数码管</td>
+              <td><code>leafia_nixie</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>一位一位的 Nixie 管；变量 <code>value</code>（字符串，最多 6 位）</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 大型按钮</td>
+              <td><code>leafia_sbbutton</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>按下弹回带盖板；变量 <code>isPushed</code> / <code>isLit</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 大型拨杆开关</td>
+              <td><code>leafia_sbswitch</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>拖动 0–100 连续；变量 <code>position</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 水平拨杆</td>
+              <td><code>leafia_lever_h</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>左右推到底两态；变量 <code>isOn</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 竖直拨杆</td>
+              <td><code>leafia_lever_v</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>上下推到底两态；变量 <code>isOn</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 水平仪表</td>
+              <td><code>leafia_meter_h</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>横向条形 + 数字；变量 <code>value</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 竖直仪表</td>
+              <td><code>leafia_meter_v</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>指针式表盘（7 张针位贴图）；变量 <code>value</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> RBMK 阵列</td>
+              <td><code>leafia_rbmk</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>整片反应堆俯视图；直接读 CE 的 <code>RBMKColumn</code>（跨模组）</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 图表</td>
+              <td><code>leafia_graph</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>滚动曲线 + 上下界；变量 <code>minValue</code> / <code>maxValue</code> / <code>latest</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 文字指示牌</td>
+              <td><code>leafia_textindicator</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>发光文字；变量 <code>isLit</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--amber">Leafia</span> 方框标签</td>
+              <td><code>leafia_drawing_box</code></td>
+              <td><span class="tag tag--mint">只读</span></td>
+              <td>纯装饰框，可写文字，无变量</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:26px">机器控制面板 · 13 种控件</h3>
+      <p style="margin:0 0 10px;color:var(--text-dim);font-size:14px">这是<strong>机器控制面板</strong>（本项目自己设计的扁平面板），不是上面的控制台。分两族：显示件读机器、操作件写机器。注册名 README 未单列，故不填。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>控件名</th>
+              <th>注册名</th>
+              <th>能读能写</th>
+              <th>用途</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>标签</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>纯文字说明，不接机器</td></tr>
+            <tr><td>指示灯</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>数据非 0 就亮（灯罩 + 光晕）</td></tr>
+            <tr><td>三色指示灯</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>按数值分绿 / 琥珀 / 红</td></tr>
+            <tr><td>数码管</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>七段数字，适合读数</td></tr>
+            <tr><td>文本屏</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>字符串，或带单位的值</td></tr>
+            <tr><td>指针表盘</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>270° 刻度 + 指针，在量程内摆动</td></tr>
+            <tr><td>条图</td><td>—</td><td><span class="tag tag--mint">只读</span></td><td>横向进度条 + 右上角数值</td></tr>
+            <tr><td>按钮</td><td>—</td><td><span class="tag tag--amber">读写</span></td><td>按下发一次事件，帽盖自己弹回（瞬时）</td></tr>
+            <tr><td>急停按钮</td><td>—</td><td><span class="tag tag--amber">读写</span></td><td>拍下锁死并发 1，再点一次复位发 0</td></tr>
+            <tr><td>拨动开关</td><td>—</td><td><span class="tag tag--amber">读写</span></td><td>两态，发 0 / 1</td></tr>
+            <tr><td>旋钮开关</td><td>—</td><td><span class="tag tag--amber">读写</span></td><td>多档，按档位吸附后发值</td></tr>
+            <tr><td>旋钮</td><td>—</td><td><span class="tag tag--amber">读写</span></td><td>连续，按住左键拖，量程内取值</td></tr>
+            <tr><td>滑杆</td><td>—</td><td><span class="tag tag--amber">读写</span></td><td>上下推杆，量程内取值</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>面板工坊的 7 种自定义控件</h4>
+        <p style="margin:8px 0 0;color:var(--text-dim)">监控屏第四页「04 自定义」用的不是上面两套，而是面板工坊自带的 7 种控件：<strong>数值表、条形仪表、环形仪表、状态灯、文本标签、趋势曲线、报警横幅</strong>。它们的显示内容与报警规则由「当 + 若 + 则」积木定义，详细用法与通道清单见 <a href="guide.html#workshop">使用指南 · 面板工坊</a>。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 节点 ================= -->
+  <section class="section" id="nodes">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 节点图</div>
+        <h2>节点图里有什么</h2>
+        <p>节点图是控制台「每个控件一张电路图」的执行层：一个事件一张图，图里的节点算完把结果写回控件的 vars。当前共有 <span data-bind="auto.stats.nodeTypes">32</span> 种节点，按下面 8 类组织。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>分类</th>
+              <th>节点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>输入</td>
+              <td>事件数据、读取变量、查询方块、红石输入、批量查询、图表区间</td>
+            </tr>
+            <tr>
+              <td>输出</td>
+              <td>广播事件、取消当前事件、设置变量、红石输出、播放声音、写入图表</td>
+            </tr>
+            <tr>
+              <td>数学</td>
+              <td>加减乘除、取余、幂、对数、指数、平方根、绝对值、比较、限幅、最大最小、取整（20 种运算，一个节点切着用）</td>
+            </tr>
+            <tr>
+              <td>布尔</td>
+              <td>AND / OR / NOT / XOR / NAND / NOR / XNOR，外加脉冲、SR 锁存</td>
+            </tr>
+            <tr>
+              <td>逻辑</td>
+              <td>函数（自定义表达式）、缓冲器（延迟一拍）、条件（if）</td>
+            </tr>
+            <tr>
+              <td>数据包</td>
+              <td>读取数据包、写入数据包（复合类型打包 / 拆包）</td>
+            </tr>
+            <tr>
+              <td>文本</td>
+              <td>文本拼接、取子串、格式化、数值缩写</td>
+            </tr>
+            <tr>
+              <td>实用</td>
+              <td>缓存、时钟、随机整数、随机小数、汇总、文本转数字</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">广播事件（输出）</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">广播节点把事件交给 <code>ControlEventSystem</code>；本表只有控制台自己（只登记 <code>tick</code>），查不到就走 <code>compat/CPMachines</code>，把 CE 机器包成 <code>IControllable</code> 由 <code>ctrl/MachineBridge</code> 反射发出上游自己的 <code>ControlEvent</code>。<code>tools/linkercheck</code> 里有一条检查专门盯这条链路。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">数学与函数（逻辑）</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">数学类用一个节点切出 20 种运算（加减乘除、取余、幂、对数、指数、平方根、绝对值、比较、限幅、最大最小、取整）。函数节点用诅咒版表达式解析器，可写 <code>a*2+sin(b)</code> 这样的式子。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">变量（输入 / 输出）</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">变量分<strong>局部</strong>（只在这个控件里）与<strong>全局</strong>（整张面板共享）两栏；<code>读取变量</code> / <code>设置变量</code> 都带全局 / 局部下拉。控件与条件共用的通道不在这里，那是监控屏面板工坊的概念。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">红石输入 / 红石输出</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">红石输入能选六个面 + 六种读法（强度、弱充能值、强充能值、是否通电、是否弱充能、是否强充能）；红石输出能选六个面 + 弱 / 强充能，直接作为控制台方块的充能强度，六面都算。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">布尔逻辑门（布尔）</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">AND / OR / NOT / XOR / NAND / NOR / XNOR 六个基础门，外加脉冲、SR 锁存。条件（if）单独在逻辑类，做分支判断。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">条件与缓冲器（逻辑）</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">条件节点做分支（if）；缓冲器延迟一拍，用于把上游结果往后挪一个周期再参与计算。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 方块与物品 ================= -->
+  <section class="section" id="items">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 方块与物品</div>
+        <h2>方块与物品</h2>
+        <p>README 的「方块与物品」一节描述了这些方块 / 物品的行为。注册名 README 未单列，故本表不填（以 <code>—</code> 表示）。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>注册名</th>
+              <th>用途</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>DFC 监控屏</td>
+              <td>—</td>
+              <td>吊装式工业终端。方块本体不渲染（INVISIBLE + 空模型），整机由 TESR 画：外壳、前框、吊架、屏幕；倾角 0–60 度五档，壁挂或吊装。</td>
+            </tr>
+            <tr>
+              <td>屏幕占位格</td>
+              <td>—</td>
+              <td>面板除控制器外的格子，没有方块实体，只提供碰撞与「拆一格带走整屏」的入口。</td>
+            </tr>
+            <tr>
+              <td>机器控制面板</td>
+              <td>—</td>
+              <td>3/16 格厚的贴墙铁板，正面是屏幕 + 三色灯 + 旋钮拨杆贴图；没有 TESR，真面板放进右键打开的窗口里。</td>
+            </tr>
+            <tr>
+              <td>机器控制台</td>
+              <td>—</td>
+              <td>诅咒版控制台整体移植。方块本体不渲染（ENTITYBLOCK_ANIMATED + 空模型），整个板子连同控件由 TESR 画出，控件是真立体模型。</td>
+            </tr>
+            <tr>
+              <td>监控数据线</td>
+              <td>—</td>
+              <td>一个物品干两件事：记录 DFC 核心 / 功率计并绑定到监控屏；记录可控机器，并当控制台的配置工具用。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 配方 ================= -->
+  <section class="section" id="recipes">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 配方</div>
+        <h2>工作台配方</h2>
+        <p>以下是 README 列出的字符画配方（<code>.</code> 表示空格，即该格为空）。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="panel panel--quiet">
+          <h4>监控屏</h4>
+          <pre>铁锭  玻璃板  铁锭
+玻璃板 红石   玻璃板
+铁锭  比较器  铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>监控数据线</h4>
+          <pre> .   红石  金锭
+红石  末影珍珠 红石
+金锭  红石   .</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>机器控制面板</h4>
+          <pre>铁锭  红石   铁锭
+玻璃板 比较器 玻璃板
+铁锭  红石   铁锭</pre>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:18px">
+        <div>
+          <p>枪械与线圈 / 喷气背包的配方 README 只给了示意与字符串布局（如手枪 <code>"I I"/"III"/" RG"</code>、卡宾枪 <code>"III"/"IGI"/"IR "</code>、霰弹枪 <code>"III"/"GG "/"RR "</code>，弹药为无序合成），未给出与上面同格式的字符画，故此处只列监控相关三张。完整配方见 <code>ModContent.registerRecipes</code>。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 配置 ================= -->
+  <section class="section" id="config">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 配置</div>
+        <h2>配置项 <code>config/hbmzz.cfg</code></h2>
+        <p>下列为 README 列出的全部配置键与默认值。键名是协议字符串，不要翻译。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>键</th>
+              <th>默认值</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>monitor.scanRadius</code></td><td>16</td><td>自动搜索核心的半径</td></tr>
+            <tr><td><code>monitor.defaultWidth</code> / <code>defaultHeight</code></td><td>420 / 280</td><td>终端窗口默认尺寸</td></tr>
+            <tr><td><code>monitor.minWidth</code> / <code>minHeight</code></td><td>300 / 214</td><td>最小尺寸</td></tr>
+            <tr><td><code>monitor.maxWidth</code> / <code>maxHeight</code></td><td>1200 / 800</td><td>最大尺寸（实际另有「不超过屏幕」的硬顶）</td></tr>
+            <tr><td><code>monitor.updateInterval</code></td><td>10</td><td>终端主动请求数据的间隔（tick）</td></tr>
+            <tr><td><code>display.displayInterval</code></td><td>10</td><td>实时屏幕 / HUD 的推送间隔（tick）</td></tr>
+            <tr><td><code>display.displayRange</code></td><td>32</td><td>推送范围（格），范围内无玩家时跳过采样</td></tr>
+            <tr><td><code>display.liveScreen</code></td><td>true</td><td>是否在方块正面渲染面板</td></tr>
+            <tr><td><code>display.hudOverlay</code></td><td>true</td><td>准星指向时是否显示 HUD 读数卡</td></tr>
+            <tr><td><code>display.hudRange</code></td><td>16</td><td>HUD 出现的最大距离（格）</td></tr>
+            <tr><td><code>display.defaultScreenCols</code> / <code>Rows</code></td><td>2 / 2</td><td>新放置的墙屏跨几格</td></tr>
+            <tr><td><code>display.maxScreenCols</code> / <code>Rows</code></td><td>4 / 3</td><td>墙屏尺寸上限</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top:18px">
+        <div>
+          <p><strong>改完是否需重启？</strong> README 未明确说明这些键是靠重启还是 <code>/reload</code> 生效，因此保守起见：<strong>改动需重启游戏生效</strong>。若你实测发现某键支持热重载，以实测为准。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 辅助工具 ================= -->
+  <section class="section" id="tools">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 辅助工具</div>
+        <h2>辅助工具（<code>tools/</code>）</h2>
+        <p>仓库里几个不进游戏就能跑的验证脚本，README 明确写到的三个如下。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>脚本</th>
+              <th>作用</th>
+              <th>怎么跑</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tools/PreviewMain.java</code></td>
+              <td>不进游戏把各页面渲染成 PNG：直接跑真正的 <code>DfcScreen</code> / <code>TerminalCanvas</code>，只跳过纹理上传，出图与方块面像素一致。</td>
+              <td>
+                <pre>javac -encoding UTF-8 -cp "build/classes/java/main;&lt;lwjgl.jar&gt;" -d build/classes/java/main src/main/java/com/hbmzz/client/screen/*.java
+javac -encoding UTF-8 -cp "build/classes/java/main;&lt;lwjgl.jar&gt;" -d tmp/pv tools/PreviewMain.java
+java -Djava.awt.headless=true -cp "tmp/pv;build/classes/java/main;&lt;lwjgl.jar&gt;" com.hbmzz.tools.PreviewMain dist</pre>
+              </td>
+            </tr>
+            <tr>
+              <td><code>tools/parity/run.sh</code></td>
+              <td>核对「诅咒版控制台是不是完整抄过来了」：解 jar → 反编译 → 归一化包名与 SRG 名 → 与 <code>com/hbmzz/cecp</code> 逐行 diff，同时报类覆盖与方法覆盖。</td>
+              <td>
+                <pre>./tools/parity/run.sh "/c/.../mods/[HBM的核科技社区版] NTM-CE-1.12.2-2.5.0.5.jar"</pre>
+              </td>
+            </tr>
+            <tr>
+              <td><code>tools/linkercheck/run.sh</code></td>
+              <td>离线验证机器导入链路（<code>LinkerImport</code> / 监控数据线的 NBT / 反射探测上游接口），不启动游戏。输出 11 项 PASS。</td>
+              <td>
+                <pre>./tools/linkercheck/run.sh "&lt;NTM-CE.jar&gt;"</pre>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 从源码构建 ================= -->
+  <section class="section" id="build">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 构建</div>
+        <h2>从源码构建</h2>
+        <p>前置取自 build.gradle 与 README：<strong>JDK 8</strong>、<strong>Gradle 4.10.3</strong>（ForgeGradle 2.3），MC <span data-bind="auto.mcVersion">1.12.2</span> / Forge <span data-bind="auto.forgeVersion">14.23.5.2847</span>，mappings <code>snapshot_20171003</code>。仓库自带 wrapper。</p>
+      </div>
+
+      <div class="panel panel--bolted">
+        <h4>命令序列</h4>
+        <pre># 用仓库自带的 wrapper 构建
+gradlew build
+
+# 产物（版本号取自 build.gradle 的 version）
+build/libs/hbmzz-&lt;版本&gt;.jar</pre>
+        <p style="margin:10px 0 0;color:var(--text-dim);font-size:14px">当前版本为 <code data-bind="auto.version">x.y.z</code>，产物即 <code>build/libs/hbmzz-<span data-bind="auto.version">x.y.z</span>.jar</code>。Windows 下用 cmd / PowerShell 跑 <code>gradlew.bat</code>。</p>
+      </div>
+
+      <div class="note" style="margin-top:18px">
+        <div>
+          <h4>JDK 必须是 8</h4>
+          <p style="margin:6px 0 0">本模组目标字节码是 Java 8（<code>sourceCompatibility = targetCompatibility = '1.8'</code>），且诅咒版移植代码做了 Java 9+ 语法降级。用 JDK 9+ 编译可能在 <code>instanceof</code> 模式匹配、<code>switch</code> 表达式、<code>var</code>、<code>Optional.isEmpty()</code>、<code>String.isBlank()</code> 这类地方出问题。请固定使用 JDK 8。</p>
+        </div>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <h4>已知问题：wrapper 在 Git Bash / MSYS 下报 GradleWrapperMain</h4>
+          <p style="margin:6px 0 0">在 Git Bash / MSYS 环境里直接 <code>./gradlew</code> 可能报 <code>Could not find or load main class org.gradle.wrapper.GradleWrapperMain</code>。可改用下面这行直接驱动 wrapper jar，效果相同：</p>
+          <pre style="margin-top:8px">java -cp gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain build</pre>
+          <p style="margin:10px 0 0;color:var(--text-dim);font-size:14px">另：若 wrapper 的 <code>gradle-wrapper.jar</code> 丢了，不要对 <code>2.3-SNAPSHOT</code> 联网重新解析（会拉到给新 Gradle 编的 ForgeGradle，配置阶段就炸），改用本地缓存的 <code>~/.gradle/wrapper/dists/gradle-4.10.3-bin/*/gradle-4.10.3/bin/gradle.bat build</code>，卡在 <code>services.gradle.org</code> 时加 <code>--offline</code>。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 已知限制 ================= -->
+  <section class="section" id="limits">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 已知限制</div>
+        <h2>已知限制与外部崩溃</h2>
+        <p>来自 README 的「已知限制」与「已知的外部崩溃（不是本模组引起）」两节。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>类别</th>
+              <th>限制</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>墙屏结构</td>
+              <td>墙屏是同一台设备的渲染跨度，不是独立的多方块结构：其余格子仍是各自的监视器方块，只靠覆盖判定跳过重复绘制。拆掉控制器（左上角那一格）时整面屏一起消失；拆中间某一格只会留下一个缺口，不会连带拆掉邻居。</td>
+            </tr>
+            <tr>
+              <td>终端窗口</td>
+              <td>终端窗口尺寸是客户端本地偏好，不随存档同步给其他玩家。</td>
+            </tr>
+            <tr>
+              <td>融毁倒计时</td>
+              <td>稳定阶段的倒计时是预测：基于实测的催化剂损伤增速，DFC 在无干扰器时仍可能瞬间爆炸。</td>
+            </tr>
+            <tr>
+              <td>功率计</td>
+              <td>功率计必须手动绑定；终端不会自动搜索功率计。</td>
+            </tr>
+            <tr>
+              <td>枪械判定</td>
+              <td>枪械是瞬发射线判定，没有子弹实体、弹道下坠和穿透；伤害不区分部位。</td>
+            </tr>
+            <tr>
+              <td>枪械交互</td>
+              <td>右键对着可交互方块（箱子、工作台等）时，开火会和方块交互同时发生，枪械没有做「交互优先级」判定。</td>
+            </tr>
+            <tr>
+              <td>字体</td>
+              <td>首次打开屏幕时 AWT 需要探测系统字体，极少数精简 JRE 环境可能没有中文字体，此时中文会退化成方框（<code>logs/latest.log</code> 里有一行字体探测结果）。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <h4>已知的外部崩溃（不是本模组引起）</h4>
+          <p style="margin:6px 0 0">在装了 NTM 诅咒版（<code>NTM_Cursed_Edition</code>）的整合包里，DFC 核心附近偶发 <code>ConcurrentModificationException</code>，栈是 <code>com.hbm.tileentity.machine.TileEntityCore.tickClient</code>，里面没有一行 <code>com.hbmzz</code>。原因是诅咒版把 <code>dfcShocks</code> 这个 List 通过 <code>DFCShockPacket</code> 在 netty 线程里 <code>add</code>，而 <code>tickClient</code> 同时在主线程 <code>for</code> 遍历它。本模组对此无能为力，只能把自己的开销压到最低：把 <code>display.liveScreen</code> 设成 <code>false</code> 可以完全关掉方块面渲染，用于确认崩溃是否与本模组无关。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="brand-mark"></span>HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="reference.html#config">配置项</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

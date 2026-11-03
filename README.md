@@ -611,7 +611,7 @@ java -Djava.awt.headless=true -cp "tmp/pv;build/classes/java/main;<lwjgl.jar>" c
 gradlew build
 ```
 
-产物：`build/libs/hbmzz-2.1.6.jar`。
+产物：`build/libs/hbmzz-<版本>.jar`。
 
 > wrapper 的 `gradle-wrapper.jar` 丢了的话，用缓存的分发直接跑：
 > `~/.gradle/wrapper/dists/gradle-4.10.3-bin/*/gradle-4.10.3/bin/gradle.bat build`。

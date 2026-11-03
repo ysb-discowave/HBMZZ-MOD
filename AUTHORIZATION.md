@@ -9,7 +9,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 授权人 | **树上的节枝**（B 站 <https://space.bilibili.com/3494363348863838>，Gitee <https://gitee.com/yi-sichen-jiezhi/DFC-Map-Creation-Tool>） |
+| 授权人 | **树上的节枝**（B 站 <https://space.bilibili.com/3494363348863838>，Gitee <https://gitee.com/jiezhi-bililbli/DFC-Map-Creation-Tool>） |
 | 被授权方 | Yang Sibo（GitHub: ysb-discowave），HBMZZ 项目 |
 | 授权时间 | **2026-11-03 20:34**（B 站私信） |
 | 授权范围 | 本项目从 JiezhiMod 取用的部分（见下表）可按 **GPL-3.0** 使用、修改与再分发 |

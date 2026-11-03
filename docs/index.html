@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBMZZ — 给 HBM 的核科技装一块真的显示器</title>
+<meta name="description" content="面向 HBM 的核科技社区版（NTM:CE）与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 模组：DFC 实时监控屏、可自由编排的机器控制面板、移植自诅咒版的节点图控制台，外加制式枪械与线圈/喷气背包。">
+<meta name="theme-color" content="#0a0c0f">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ — DFC 监控屏 / 机器控制面板">
+<meta property="og:description" content="方块正面不是贴图，是一台真在绘制的显示器。Minecraft 1.12.2 Forge 附属模组，GPL-3.0 开源。">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= HERO ================= -->
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <div class="hero-meta">
+          <span class="tag tag--amber">Minecraft 1.12.2</span>
+          <span class="tag">Forge</span>
+          <span class="tag tag--green">GPL-3.0</span>
+          <span class="tag tag--dim">NTM:CE 附属</span>
+        </div>
+        <h1>给 HBM 的核科技<br>装一块<span class="hl">真的显示器</span></h1>
+        <p class="hero-lead">
+          放下一台 DFC 监控屏，它的正面就是一台工业控制台：开机自检、滚动 POST 日志，
+          然后进入实时遥测。屏上的系统叫 <strong>AHBSSMFI-OS</strong>——环形量表、七路结构灯柱、
+          MIMIC 结构图、带时间标尺的曲线，都是这台「设备」自己的界面语言。
+        </p>
+        <div class="btn-row" style="margin-top:26px">
+          <a class="btn btn--primary" href="https://github.com/ysb-discowave/HBMZZ-MOD/releases/latest">下载最新版</a>
+          <a class="btn btn--ghost" href="guide.html">从安装开始</a>
+          <a class="btn btn--ghost" href="reference.html">控件与节点</a>
+        </div>
+        <div class="hero-foot">
+          <span>版本 <b data-bind="auto.version">—</b></span>
+          <span>控件 <b data-bind="auto.stats.controlTypes">—</b> 种</span>
+          <span>节点 <b data-bind="auto.stats.nodeTypes">—</b> 种</span>
+          <span>源码 <b data-bind="auto.stats.javaLines|num">—</b> 行</span>
+        </div>
+      </div>
+
+      <!-- 屏面：纯 CSS/SVG 画的一帧 01 核心 页面 -->
+      <div class="screen" aria-hidden="true">
+        <div class="screen-bar">
+          <span class="dot"></span>
+          <span class="sys">AHBSSMFI-OS</span>
+          <span>DFC // 01 核心</span>
+          <span class="spacer"></span>
+          <span>LINK OK</span>
+        </div>
+        <div class="screen-body">
+          <div class="rings">
+            <div class="ring ring--outer"></div>
+            <div class="ring ring--inner"></div>
+            <div class="ring-core">
+              <span class="big">8,420</span>
+              <span class="unit">°C</span>
+              <span class="sub">熔点 12,000 °C<br>稳定度 62%</span>
+            </div>
+          </div>
+          <div class="screen-side">
+            <div class="lamps">
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg"></i><i class="lamp-seg"></i></div><span class="lamp-name">STA</span></div>
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i></div><span class="lamp-name">ABS</span></div>
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg"></i></div><span class="lamp-name">PLS</span></div>
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg on"></i><i class="lamp-seg on"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i></div><span class="lamp-name">EMT</span></div>
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg on-mint"></i><i class="lamp-seg on-mint"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i></div><span class="lamp-name">INJ</span></div>
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg on"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i></div><span class="lamp-name">EXC</span></div>
+              <div class="lamp"><div class="lamp-rail"><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i><i class="lamp-seg"></i></div><span class="lamp-name">CMT</span></div>
+            </div>
+            <div class="readouts">
+              <div class="readout"><div class="k">SPK 储能</div><div class="v amber">12.4M</div></div>
+              <div class="readout"><div class="k">输出</div><div class="v amber">36.2k</div></div>
+              <div class="readout"><div class="k">增益</div><div class="v mint">+1.8%</div></div>
+              <div class="readout"><div class="k">升温</div><div class="v">+7.4/s</div></div>
+            </div>
+            <div class="curve">
+              <svg viewBox="0 0 200 60" preserveAspectRatio="none" role="img" aria-label="温度与发电量曲线">
+                <defs>
+                  <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f5a524" stop-opacity=".45"/>
+                    <stop offset="100%" stop-color="#f5a524" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,52 L14,48 L28,50 L42,40 L56,43 L70,33 L84,36 L98,26 L112,30 L126,22 L140,25 L154,16 L168,19 L182,12 L200,15 L200,60 L0,60 Z" fill="url(#fill)"/>
+                <path d="M0,52 L14,48 L28,50 L42,40 L56,43 L70,33 L84,36 L98,26 L112,30 L126,22 L140,25 L154,16 L168,19 L182,12 L200,15" fill="none" stroke="#f5a524" stroke-width="1.2"/>
+                <path d="M0,44 L20,46 L40,41 L60,45 L80,38 L100,40 L120,34 L140,37 L160,31 L180,33 L200,28" fill="none" stroke="#43d9a3" stroke-width=".9" opacity=".85"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 规模统计 ================= -->
+  <div class="wrap" style="padding-bottom:8px">
+    <div class="stats">
+      <div class="stat">
+        <div class="n" data-bind="auto.version">—</div>
+        <div class="l">当前版本</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-bind="auto.stats.controlTypes">—</div>
+        <div class="l">控件类型</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-bind="auto.stats.nodeTypes">—</div>
+        <div class="l">节点类型</div>
+      </div>
+      <div class="stat">
+        <div class="n"><span data-bind="auto.stats.javaLines|num">—</span><small> 行</small></div>
+        <div class="l">Java 源码 · <span data-bind="auto.stats.javaFiles">—</span> 文件</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 六大块 ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 01 — 这个模组里有什么</div>
+        <h2>一块屏，三套控制体系，外加一堆顺手做的东西</h2>
+        <p>看数据是一层，操控机器是另一层。前者从 1.x 一路长到现在，后者是把诅咒版的控制台移植过来之后才补齐的。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="card">
+          <div class="icon">01</div>
+          <h3>实时屏幕</h3>
+          <p>方块正面不是贴图，是一台真在绘制的显示器。AWT 离屏画布 + 3 倍超采样，21px 读数、真圆环刻度、抗锯齿曲线同时出现在同一块面板上。</p>
+          <p style="margin-top:12px">
+            <span class="tag tag--amber">AHBSSMFI-OS</span>
+            <span class="tag">4 个视图</span>
+            <span class="tag">1–4 × 1–3 格</span>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">02</div>
+          <h3>可缩放终端</h3>
+          <p>右键打开终端，左列是控制、右半边是这块屏的实时预览——预览里的像素和你站在方块前看到的是同一份。页面、电源、尺寸全部服务端权威。</p>
+          <p style="margin-top:12px">
+            <span class="tag">拖角 / 滚轮 / 双击</span>
+            <span class="tag">功率计绑定</span>
+            <span class="tag">融毁倒计时</span>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">03</div>
+          <h3>面板工坊</h3>
+          <p>第四页 <code>04 自定义</code> 留给你自己。控件怎么摆、什么时候报警，全部用「当 + 若 + 则」的积木规则描述，改完点保存才写进世界。</p>
+          <p style="margin-top:12px">
+            <span class="tag tag--mint">7 种控件</span>
+            <span class="tag">独立编辑窗口</span>
+            <span class="tag">预设库</span>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">04</div>
+          <h3>机器控制面板</h3>
+          <p>用数据线右键机器记录、再右键面板，在 A–F 六个槽位里绑定，然后拧旋钮就能真的操控 NTM 机器。13 种控件，事件通过反射桥发给上游。</p>
+          <p style="margin-top:12px">
+            <span class="tag tag--amber">13 种控件</span>
+            <span class="tag">跨模组机器桥</span>
+            <span class="tag">A–F 槽位</span>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">05</div>
+          <h3>节点图控制台</h3>
+          <p>从诅咒版（Leafia CE Addon）移植的整套控制台：25 种控件、运行时镜像的事件表、拖拽编辑的节点图，编译成可执行的节点网络。</p>
+          <p style="margin-top:12px">
+            <span class="tag tag--amber">25 种控件</span>
+            <span class="tag tag--mint">32 种节点</span>
+            <span class="tag">事件 → 节点图</span>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">06</div>
+          <h3>枪械 / 线圈 / 喷气背包</h3>
+          <p>顺带做的：制式枪械、Roblox 风格的加特林线圈与喷气背包。它们和监控屏共用同一套资源与配方体系，没有额外的依赖。</p>
+          <p style="margin-top:12px">
+            <span class="tag">制式枪械</span>
+            <span class="tag">线圈：蓄力过载</span>
+            <span class="tag">耐久即燃料</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 快速开始 ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 02 — 四步看到读数</div>
+        <h2>从零到屏上有数</h2>
+        <p>不装 NTM:CE 也能启动并打开终端，只是屏上会写「未找到堆芯」——它对本体的依赖是软的（<code>after:hbm</code>）。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="steps">
+          <div class="step">
+            <h3>装好前置</h3>
+            <p>Minecraft 1.12.2 + Forge 14.23.5.2847 以上。想读 DFC 数据就装 NTM:CE；用诅咒版的客户端另需 MixinBooter —— 本模组自身不使用 Mixin。</p>
+          </div>
+          <div class="step">
+            <h3>丢进 mods</h3>
+            <p>把 <code>hbmzz-&lt;版本&gt;.jar</code> 放进 <code>.minecraft/mods</code>。启动一次，配置会生成在 <code>config/hbmzz.cfg</code>。</p>
+          </div>
+          <div class="step">
+            <h3>放下监控屏</h3>
+            <p>正面会自动开机并显示读数。16 格内有 DFC 核心就会自动绑定；想固定核心或读功率计，用监控数据线右键核心 / 红色电缆仪表，再右键监控屏。</p>
+          </div>
+          <div class="step">
+            <h3>打开终端调屏</h3>
+            <p>右键监控屏打开终端：开关电源、切四个视图、改墙屏跨几格、拖窗口大小。想看板子之外的机器，再放一块机器控制面板。</p>
+          </div>
+        </div>
+
+        <div class="panel panel--bolted">
+          <h4>环境要求</h4>
+          <div class="table-wrap" style="margin-top:12px">
+            <table>
+              <thead><tr><th>项目</th><th>版本</th></tr></thead>
+              <tbody>
+                <tr><td>Minecraft</td><td>1.12.2</td></tr>
+                <tr><td>Forge</td><td>14.23.5.2847 及以上</td></tr>
+                <tr><td>NTM:CE</td><td>2.6.1.0 测试通过（软依赖）</td></tr>
+                <tr><td>Leafia's Cursed Addon</td><td>可选；DFC 重做版提供完整的遥测</td></tr>
+                <tr><td>MixinBooter</td><td>诅咒版附属需要；本模组不使用 Mixin</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note" style="margin-top:16px">
+            <div>
+              <p><b>服务端 ↔ 客户端</b>：模组两边都要装。遥测由服务端采样后只推给 <code>display.displayRange</code> 格内的玩家，范围内没人时连反射读取都跳过。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 设计取舍 ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 03 — 它为什么不一样</div>
+        <h2>几个刻意的选择</h2>
+        <p>这些细节决定了屏上看起来是「一台设备」还是「一张贴图」。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">离屏画布，而不是逐字绘制</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">
+            全部内容用 <code>Graphics2D</code> 画到一张位图上，再作为<strong>单个纹理</strong>贴到一个 quad。
+            所以同一块面板上能同时有 21px 的大号读数、10px 的中文标签、真正的圆环刻度和带抗锯齿的曲线——
+            这是用 <code>FontRenderer</code> 在 3D 里逐字绘制做不到的。
+          </p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">3 倍超采样 + 等比缩放</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">
+            画布按 256×192 逻辑像素排版，实际纹理 768×576。墙屏无论跨 1–4 格宽、1–3 格高，
+            内容始终按 4:3 等比缩放居中，多出来的地方是黑色边框，<strong>不会被拉伸</strong>。
+          </p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">整面墙只渲染一次</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">
+            只有控制器格有方块实体，其余格子是无实体的占位块。按构造就不可能重复绘制，
+            也不需要为每个格子各存一份状态。
+          </p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">不假装在算</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">
+            融毁倒计时在坍缩阶段直接取 DFC 的 <code>explosionIn</code>；
+            稳定阶段按两颗催化剂损伤的实测增长速率推算，<strong>损伤不再增长时不显示预测</strong>，
+            而不是拿写死的速率假装在算。
+          </p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">链路指示灯</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">
+            标题带和页脚都有 <code>LINK OK / LINK SLOW / 数据中断</code>，按最新样本的年龄变色。
+            屏幕停住的时候，它会直接告诉你停在哪一环。
+          </p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">事件日志不刷屏</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">
+            客户端比较前后两帧，只在<strong>跨越阈值</strong>时记一条：温度等级变化、稳定度下降、
+            结构变化、燃料装卸、坍缩开始。平时一条都不写。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 许可 ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="panel panel--bolted" style="display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center">
+        <div>
+          <h2 style="font-size:22px">GPL-3.0，因为它必须得是</h2>
+          <p style="margin:10px 0 0;color:var(--text-dim);max-width:70ch">
+            控制面板与节点系统逐文件移植自 NTM: 诅咒版（GPL-3.0），附属控件与节点来自 CE Addon（GPL-3.0 / LGPL-3.0）。
+            GPL 的衍生作品必须继续以 GPL 分发，所以本项目不能改成 MIT，也不能附加「禁止商用」之类的额外条款。
+            监控屏的渲染结构取自节枝的 DFC 工具，已取得作者书面授权。
+          </p>
+        </div>
+        <div class="btn-row">
+          <a class="btn btn--ghost" href="license.html">许可与致谢</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="brand-mark"></span>HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="reference.html#config">配置项</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

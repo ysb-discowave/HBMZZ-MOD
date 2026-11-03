@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBMZZ 使用指南 — 监控屏 / 终端 / 面板工坊 / 机器控制</title>
+<meta name="description" content="HBMZZ 使用指南：DFC 监控屏的四个视图与开机、坠落、离线、ERROR 301 行为，可缩放终端与功率计绑定，面板工坊的「当+若+则」规则，机器控制面板与节点图控制台的操控方式，以及枪械、线圈与喷气背包。">
+<meta name="theme-color" content="#0a0c0f">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ 使用指南">
+<meta property="og:description" content="从放下一台 DFC 监控屏，到真的操控一台机器：实时屏幕、终端、面板工坊、机器控制面板与节点图控制台。">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HEAD ================= -->
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 使用指南</div>
+      <h1>从放下监控屏，到真的操控一台机器</h1>
+      <p class="lead">
+        HBMZZ 在方块正面画了一台工业控制台：你能用终端调它、用面板工坊给它写报警规则，
+        再接上节点图控制台去操控反应堆。下面按六块功能拆开讲，每块都只说仓库文档里写明的操作与行为。
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= 01 实时屏幕 ================= -->
+  <section class="section" id="screen">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 实时屏幕</div>
+        <h2>方块正面是一台真在绘制的显示器</h2>
+        <p>全部内容用 <code>Graphics2D</code> 画到一张位图，再作为单个纹理贴到一个 quad：21px 大号读数、10px 中文标签、真圆环刻度与抗锯齿曲线能同屏出现。画布按 256×192 逻辑像素排版、实际纹理 768×576（3 倍超采样）；墙屏可跨 1–4 格宽、1–3 格高，内容始终按 4:3 等比缩放居中、不拉伸。整面墙只渲染一次——只有控制器格有方块实体，其余是占位块。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-num">01</div>
+          <h3>四个视图</h3>
+          <p>终端里切换、服务端权威。下面每张图的屏上是什么：</p>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>视图</th><th>屏上是什么</th></tr></thead>
+              <tbody>
+                <tr><td><b>01 核心</b></td><td>双环量表：外环「温度/熔点」比例带指针刻度，内环稳定度；环心整数温度，环下注明熔点。右侧七路结构灯柱（STA/ABS/PLS/EMT/INJ/EXC/CMT），再往下是储能/输出/增益、崩溃风险条与熔毁预测。</td></tr>
+                <tr><td><b>02 部件</b></td><td>MIMIC 结构图：七路结构通道摆成环、连线接堆芯，装了的通道连线是琥珀色；下方 A/B 两列燃料条与能量摘要。</td></tr>
+                <tr><td><b>03 曲线</b></td><td>共用图：温度是填色曲线、发电量是细线，各用量程；顶部时间刻度、图底标 −60s / now，下方本次会话六项统计（最低/平均/最高/峰值/当前/斜率）。</td></tr>
+                <tr><td><b>04 自定义</b></td><td>你自己搭的面板：显示什么、怎么排、何时报警，全部由「面板工坊」定义（见下文）。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-num">02</div>
+          <h3>开机、坠落与离线</h3>
+          <p><b>开机流程</b>：<code>AHBSSMFI-OS</code> 启动画面（分段进度条）→ 逐行 POST 自检 → 主界面。开机动画<strong>只在三个时机播放</strong>：屏幕刚被放下、存档刚被加载、以及堆芯开始坍缩（此时播的是 ERROR 301，不是开机）。其余时间一直停在实时主界面，不会自己重播。</p>
+          <p style="margin-top:12px"><b>被打掉时</b>：挂钩留在天花板，一根电缆吊着整块屏掉下来、在半空摆动，屏上切成 <code>NO SIGNAL</code> 灰雪画面，30 秒后断电消失。</p>
+          <p style="margin-top:12px"><b>离线与故障</b>：堆芯温度不到 100°C 时整屏显示「离线」而不是满屏 0；堆芯开始坍缩时立刻切到 <strong>ERROR 301「与核心失去连接」</strong>，4 秒后自动重启屏幕。</p>
+        </div>
+      </div>
+
+      <div class="grid g3" style="margin-top:18px">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">崩溃告警</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">坍缩期间整条标题带转红、标题改成熔毁倒计时，量表与数值同步转红。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">链路指示灯</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">标题带右下、页脚跑马灯里都有 <code>LINK OK / LINK SLOW / 数据中断</code>，按最新样本的年龄变色——屏幕停住时直接告诉你停在哪一环。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">事件日志不刷屏</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">客户端比较前后两帧，只在<strong>跨越阈值</strong>时记一条：温度等级变化、稳定度下降、结构变化、燃料装卸、坍缩开始。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>数据推送与范围</h4>
+        <p style="margin:8px 0 0;color:var(--text-dim)">服务端按采样间隔（<code>display.displayInterval</code>）tick 采样一次，只推给 <code>display.displayRange</code> 格内的玩家；范围内没人时连反射读取都跳过。需求只是软依赖——没有 NTM 也能启动并打开终端，只是屏上写「未找到堆芯」。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 02 终端 ================= -->
+  <section class="section" id="terminal">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 终端</div>
+        <h2>右键打开，可缩放的调试窗口</h2>
+        <p>左列是控制、右半边是这块屏的实时预览——预览里的像素和你站在方块前看到的是同一份。页面、电源、墙屏尺寸都服务端权威。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="steps">
+          <div class="step">
+            <h3>真正可缩放</h3>
+            <p>拖右下角、滚轮、双击标题栏最大化、<code>复位</code>。上限就是你的游戏窗口；尺寸按方块保存在 NBT 里，客户端本地值不会被服务端下发的方块更新覆盖。</p>
+          </div>
+          <div class="step">
+            <h3>左列控制 + 底部墙屏栏</h3>
+            <p>电源与四个视图（2×2 排布）加上「面板工坊」入口在左列；<strong>墙屏宽/高/复位固定在窗口底边</strong>，无论窗口拖到多小都点得到。旧版本里这组控件是顺序排下去的，窗口矮到约 300px 就被静默跳过——这才是「大小不能改」的真正原因。</p>
+          </div>
+          <div class="step">
+            <h3>右侧实时预览</h3>
+            <p>跑的就是同一套画布，方块面在播开机动画时预览也在播。</p>
+          </div>
+          <div class="step">
+            <h3>服务端权威</h3>
+            <p>页面、电源、墙屏尺寸都发 <code>DFCPageMessage</code> / <code>DFCScreenMessage</code> 由服务端改，再广播给附近玩家，两个人同时开终端不会各改各的。</p>
+          </div>
+        </div>
+
+        <div class="panel panel--bolted">
+          <h4>功率计绑定</h4>
+          <p style="margin:10px 0 0;color:var(--text-dim)">用「监控数据线」右键一个 NTM 功率计（红色电缆仪表 <code>red_cable_gauge</code>），再右键监控屏，即可读取每 tick / 每秒输出。</p>
+          <div class="steps" style="margin-top:14px">
+            <div class="step"><h3>记录功率计</h3><p>手持监控数据线右键红色电缆仪表。</p></div>
+            <div class="step"><h3>绑定到屏</h3><p>再右键监控屏，读数即出现。</p></div>
+          </div>
+
+          <h4 style="margin-top:18px">融毁倒计时：两种算法</h4>
+          <p style="margin:10px 0 0;color:var(--text-dim)">坍缩阶段直接取 DFC 的 <code>explosionIn</code>（精确到秒）；稳定阶段按两颗催化剂 <code>damage</code> 的<strong>实测增长速率</strong>（滑动平均）推算到 100 的时间——<strong>损伤不再增长时不显示预测</strong>，而不是拿写死的速率假装在算。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 03 面板工坊 ================= -->
+  <section class="section" id="workshop">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 面板工坊</div>
+        <h2>第四页留给你自己，用「当 + 若 + 则」搭规则</h2>
+        <p>终端左列的「面板工坊」打开独立编辑窗口，编辑的是这块屏的一份副本，只有点「保存并应用」才真正写进世界。窗口分三区：<strong>控件设计</strong>（左列控件库 + 中列 31×19 格画布 + 右列属性表）、<strong>逻辑编排</strong>（规则列表与「当/若/则」积木）、<strong>预设库</strong>（最多 32 个命名预设）。画布与方块共用坐标，拖动重叠会被拒绝。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <h3>7 种可添加控件</h3>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>控件</th><th>显示什么</th></tr></thead>
+              <tbody>
+                <tr><td>数值表</td><td>大字实时读数（带单位）</td></tr>
+                <tr><td>条形仪表</td><td>14 段量条 + 右上角数值</td></tr>
+                <tr><td>环形仪表</td><td>240° 弧线表盘 + 指针 + 环心读数</td></tr>
+                <tr><td>状态灯</td><td>布尔指示灯（绿=是/红=否）+ 状态字</td></tr>
+                <tr><td>文本标签</td><td>静态说明文字</td></tr>
+                <tr><td>趋势曲线</td><td>最近 40 次采样的折线 + 当前值</td></tr>
+                <tr><td>报警横幅</td><td>当前报警文本；无事时显示「系统正常」</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:12px;color:var(--text-dim);font-size:14px">上限：控件最多 24 个、规则最多 8 条，每条规则最多 4 个条件、4 个动作。</p>
+        </div>
+
+        <div class="card">
+          <h3>数据通道（条件与控件共用）</h3>
+          <p style="margin:0 0 8px"><code>温度</code> <code>熔点</code> <code>稳定度</code> <code>储能</code> <code>输出功率</code> <code>增益</code> <code>催化剂损伤</code> <code>结构件</code> <code>燃料A 液位</code> <code>燃料B 液位</code> <code>熔毁倒计时</code> <code>堆芯在线</code> <code>坍缩中</code> <code>燃料装入</code></p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">前 11 个数值通道，后 3 个布尔通道。布尔通道做条件时不给比较符，直接给<strong>是 / 否</strong>——「堆芯在线 大于 0.5」这种句子不该出现在面板上。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--bolted" style="margin-top:18px">
+        <h3 style="margin-bottom:10px">一条规则的形状（来自 README）</h3>
+        <pre>当 [周期检测] 每 [20] 刻        冷却 [5] 秒    [已启用]
+若 [温度] [大于] [6000]         满足全部 ▸
+则 [触发报警] 等级 2 持续 10 秒
+   [切换页面] → 01 核心</pre>
+        <p style="margin:12px 0 0;color:var(--text-dim);font-size:14px">
+          <b>当</b>（事件积木）：周期检测、数值穿越、坍缩开始、数据中断、开机时。
+          <b>若</b>（条件积木）：左通道 + 比较符（<code>&gt; &gt;= &lt; &lt;= == !=</code>）+ 右值（常数或另一个通道），多条条件用「满足全部 / 满足任意」连接。
+          <b>则</b>（动作积木，最多 4 个）：触发报警、显示横幅、蜂鸣提示、切换页面、记录事件、红石输出、解除报警。
+        </p>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">触发与警报怎么生效</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">规则只在服务端评估，每 10 tick（0.5 秒）走一遍，所以俩人看同一块屏看到同一个报警。每条规则独立冷却（默认 5 秒）；边沿触发各记上次布尔状态、只在 0→1 触发，读档后第一遍只记录不补触发。报警是全屏叠加层（等级 2 红 / 等级 1 琥珀），红石经由 <code>getWeakPower</code>/<code>getStrongPower</code> 输出、到期自动归零。运行时（冷却、边沿记忆、红石剩余）不进 NBT。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">保存、编辑与复用</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">「保存并应用」把整份设计打成 NBT 发服务端校验后写进方块实体；<code>panelLayout</code>/<code>panelLogic</code> 随存档持久化。底栏「复制/粘贴」能跨屏复用；「预设库」写到 <code>config/hbmzz-panels.nbt</code>（最多 32 个，客户端资产）。重新打开工坊即当前生效设计，「还原」丢弃本次改动。新放下的屏自带 8 个控件与 2 条示例规则，第四页一打开就能用。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 04 机器控制面板 ================= -->
+  <section class="section" id="control-panel">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 机器控制面板</div>
+        <h2>监控屏只读，这块真的能动手</h2>
+        <p>贴墙装一块、右键打开、转动旋钮，几格外的 RBMK 控制棒就跟着进；把它接上警报器、防爆门、炮塔、流体储罐，逻辑也能自己动手。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-bottom:18px">
+        <h3 style="margin-bottom:8px">它凭什么能操控别人的机器</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">
+          抄了诅咒版给机器定的两条动词：机器 → 面板用 <code>IControllable.getQueryData()</code> 返回「名字→数值/字符串」表，面板 → 机器用 <code>IControllable.receiveEvent(pos, ControlEvent)</code> 收一条带命名变量的事件，<code>getInEvents()</code> 让机器声明自己接受哪些事件名。
+          <strong>反射不是编译依赖</strong>：<code>ctrl.MachineBridge</code> 反射找接口、缓存方法句柄，找不到就降级成「面板读不到数据」并在侧栏写明原因，不会在启动时崩。事件词表是抄来的（<code>rbmk_ctrl_set_level</code>、<code>rbmk_crane_move</code>、<code>tank_set_mode</code>、<code>turret_switch</code>、<code>turret_set_target</code>、<code>siren_set_state</code>、<code>door_toggle</code>、<code>lever_toggle</code>、<code>spinny_light_power</code> 等），本模组换成了扁平写法：6 个机器槽位 + 13 种控件 + 一句话规则。
+        </p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="card">
+          <h3>面板结构</h3>
+          <p style="margin:0 0 8px">版面 32×18 格（1 格 = 8 逻辑像素，共 256×144 画布），编辑器与方块面共用同一个 <code>CtrlPainter</code>。控件和规则只指向<strong>槽位</strong>，整体可复制到另一台反应堆旁、只重绑槽位。上限 24 控件、6 条联动规则；绑定距离 24 格、只在服务端校验——不在范围内的槽位会被清空但保留指向它的控件。</p>
+          <h4 style="margin:14px 0 8px">13 种控件</h4>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>显示件（读机器）</th><th>操作件（写机器）</th></tr></thead>
+              <tbody>
+                <tr><td>标签</td><td>按钮（瞬时）</td></tr>
+                <tr><td>指示灯</td><td>急停按钮（锁死/复位）</td></tr>
+                <tr><td>三色指示灯</td><td>拨动开关（两态）</td></tr>
+                <tr><td>数码管</td><td>旋钮开关（多档吸附）</td></tr>
+                <tr><td>文本屏</td><td>旋钮（连续）</td></tr>
+                <tr><td>指针表盘</td><td>滑杆（上下推杆）</td></tr>
+                <tr><td>条图</td><td></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>三个页签</h3>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>页签</th><th>作用</th></tr></thead>
+              <tbody>
+                <tr><td><b>运行</b></td><td>操作台：拖动旋钮/滑杆、单击开关与急停，下部是 A–F 六个槽位实时状态。</td></tr>
+                <tr><td><b>控件</b></td><td>13 个控件库、画布、右侧检查器（标签/槽位/数据键/事件/变量/量程/档位/小数/配色）。</td></tr>
+                <tr><td><b>联动</b></td><td>一句话规则：<code>当 [A] 的 [heat] 大于 [900] → 则 [B] 发 [rbmk_ctrl_set_level] 的 [level] = [0]</code>，含冷却与启停。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="margin:16px 0 8px">绑定一台机器</h4>
+          <div class="steps" style="margin-top:6px">
+            <div class="step"><h3>记录机器</h3><p>手持监控数据线右键机器，聊天栏提示「已记录机器坐标：RBMK 控制棒（手动）」。</p></div>
+            <div class="step"><h3>接进槽位</h3><p>手持数据线右键面板打开窗口；到「控件」页，A–F 某行的「绑定」按钮把它接到这个槽位。</p></div>
+            <div class="step"><h3>保存并应用</h3><p>点「保存并应用」才生效。赶时间可手持数据线<strong>潜行右键面板</strong>，直接塞进第一个空槽位并当场生效。</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h3 style="margin-bottom:8px">操控与规则怎么生效</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">每 10 tick（0.5 秒）由 <code>CtrlEngine</code> 走一轮——每台机器只采样一次（<code>getQueryData</code> 是反射调用，也是唯一贵的地方），再刷控件、跑规则。点旋钮只发「第几个 + 多少」，事件名、变量名、机器坐标都在服务端副本里，改过的客户端不能把 3 号旋钮改写成对任意方块发任意指令。规则服务端判、冷却真锁（默认 5 秒）；设计进 NBT，运行时（读数、急停锁定、冷却）不进。</p>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <h4>已知限制</h4>
+          <p style="margin:6px 0 0">只有实现了 <code>IControllable</code> 的机器能绑；诅咒版里主要是 RBMK 控制棒 / 吊车控制台、防爆门、警报器、炮塔、流体储罐、电源盒、旋转警示灯。数据键与事件名完全取决于机器自身实现：机器没上报的键读出来是 <code>—</code>，机器没公布的事件发过去也不会有效果。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 05 节点图控制台 ================= -->
+  <section class="section" id="console">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 节点图控制台</div>
+        <h2>从诅咒版整套搬过来的控制台</h2>
+        <p>这块把 NTM: 诅咒版的控件、事件、变量、节点图、连线器整套搬了过来。它有 <span data-bind="auto.stats.controlTypes">25</span> 种控件、节点图里共 <span data-bind="auto.stats.nodeTypes">32</span> 种节点，表达力是图灵完备级别的。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-bottom:18px">
+        <h3 style="margin-bottom:8px">怎么放、怎么开</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">
+          放下方块时底边吸附在你点的那一面：对着天花板放是吊装（板面朝下），对着地板放是平台式，对着墙放是贴墙式。
+          <strong>手持螺丝刀</strong>右键打开布局编辑器（NTM 的「螺丝刀」「Desh 螺丝刀」按注册名都认，主手副手都行）；
+          <strong>手持监控数据线</strong>右键也能打开（没装 NTM 时的替代工具）。空手右键板面上的某个控件会按下它、发一条 <code>ctrl_press</code> 给这个控件自己的节点图；给旁边方块供电，红石值进入面板的 <code>redstone_input</code> 节点。方块会输出红石：任一 <code>redstone_output</code> 节点算出来的值就是这块方块的弱/强充能强度，六面都算——所以它也能当可编程红石控制器用。
+        </p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="card">
+          <h3>三层结构：控件 → 事件 → 节点图</h3>
+          <p style="margin:0 0 8px">每个控件带一张自己的电路图：物理控件（右键能按的立体模型）→ 几个有名字的 vars（<code>isPushed</code> / <code>isOn</code> / <code>value</code> / <code>color</code>）→ 接收事件（<code>ctrl_press</code> / <code>tick</code>）、发送事件（<code>set_redstone</code>）→ 节点图 <code>NodeSystem</code>（一个事件一张图，图里节点算完写回 vars）。真正动手的是节点图：放一个「红石输出」节点写的是控制台方块自己的红石，放一个「广播事件」节点把事件发给同一张面板上的别的控件。</p>
+        </div>
+
+        <div class="card">
+          <h3><span data-bind="auto.stats.controlTypes">25</span> 种控件（按类别）</h3>
+          <p style="margin:0 0 6px;font-size:14px"><b>来自诅咒版本体（14）</b>：按钮、急停按钮、防护按钮、拨动开关、旋转开关、垂直滑条、旋钮、七段数码、文字屏、方形仪表、圆形仪表、指示灯、RGB 指示灯、标签。</p>
+          <p style="margin:0 0 6px;font-size:14px"><b>来自诅咒版附属 Leafia（11）</b>：辉光数码管、大型按钮、大型拨杆开关、水平拨杆、竖直拨杆、水平仪表、竖直仪表、RBMK 阵列、图表、文字指示牌、方框标签。</p>
+          <p style="margin:0;font-size:14px;color:var(--text-dim)"><code>RBMK 阵列</code> 是唯一跨模组读数据的控件（反射调 CE 的 <code>getConsoleData()</code>）。模型与贴图一并带进来（6 个 .obj + 15 张 png），不依赖附属 jar 在不在。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>节点图里有什么</h4>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr><th>分类</th><th>节点</th></tr></thead>
+            <tbody>
+              <tr><td>输入</td><td>事件数据、读取变量、查询方块、红石输入、批量查询、图表区间</td></tr>
+              <tr><td>输出</td><td>广播事件、取消当前事件、设置变量、红石输出、播放声音、写入图表</td></tr>
+              <tr><td>数学</td><td>加减乘除、取余、幂、对数、指数、平方根、绝对值、比较、限幅、最大最小、取整（20 种运算，一个节点切着用）</td></tr>
+              <tr><td>布尔</td><td>AND / OR / NOT / XOR / NAND / NOR / XNOR，外加脉冲、SR 锁存</td></tr>
+              <tr><td>逻辑</td><td>函数（自定义表达式）、缓冲器（延迟一拍）、条件（if）</td></tr>
+              <tr><td>数据包</td><td>读取数据包、写入数据包（复合类型打包/拆包）</td></tr>
+              <tr><td>文本</td><td>文本拼接、取子串、格式化、数值缩写</td></tr>
+              <tr><td>实用</td><td>缓存、时钟、随机整数、随机小数、汇总、文本转数字</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:10px 0 0;color:var(--text-dim);font-size:14px">编辑器共 7 页：摆放页、连接页、节点页、事件页、变量页、安全页、控件配置页。变量分局部（控件内）与全局（整张面板共享）。事件表不是抄死的，而是运行时镜像 CE 自己的注册表，所以附属追加的事件在广播节点上也能带自己的变量。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h3 style="margin-bottom:8px">汉化边界：协议字符串一律不翻译</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">
+          翻了的是会显示给人看的字：控件名、节点名、节点分类与菜单项、按钮标题、滑条与提示文字、数学/布尔运算显示名。
+          <strong>没翻的是协议</strong>：控件注册名（<code>button_push</code> 这类标识符）、NBT 键（<code>isPushed</code> / <code>nodeType</code> / <code>click_control</code>）、事件词表（<code>ctrl_press</code> / <code>initialize</code> / <code>tick</code>）、控件变量名（<code>value</code> / <code>isOn</code> / <code>isLit</code>）、六个方向名（<code>north</code> / <code>south</code>…）、数据包字段名。翻哪一个都会让面板读不到数、发不出事件或读不了旧存档。节点图现在整段保持 unicode 字模开启、小字号标签按实测宽度裁剪，中文不再变成方块。
+        </p>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>「机器控制面板」与「节点图控制台」怎么选</h4>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr><th></th><th>机器控制面板（本项目设计）</th><th>机器控制台（诅咒版移植）</th></tr></thead>
+            <tbody>
+              <tr><td>界面</td><td>窗口里的 2D 画布</td><td>世界里的立体面板 + 窗口编辑器</td></tr>
+              <tr><td>逻辑</td><td>6 槽位 + 一句话规则</td><td>每个控件一张节点图，可互相广播事件</td></tr>
+              <tr><td>控件</td><td>13 种，AWT 绘制</td><td>14 种，OBJ 立体模型</td></tr>
+              <tr><td>多机联动</td><td>有（槽位表）</td><td>有（连接器 + 查询方块节点）</td></tr>
+              <tr><td>上手成本</td><td>低，规则表就是全部</td><td>高，但表达力是图灵完备级别</td></tr>
+              <tr><td>代码来源</td><td>契约抄 CE，实现自写</td><td>整套抄 CE，只做兼容层与汉化</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:10px 0 0;color:var(--text-dim);font-size:14px">两块可以同时装、互不干扰，各用自己的界面。</p>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <h4>已知限制</h4>
+          <p style="margin:6px 0 0">OpenComputers 集成没有移植。渲染走兼容层，比 VAO 差一点。只有实现了 <code>IControllable</code> 的方块能被连接（CE 机器在自身包里实现同名接口，本模组用 <code>BridgedControllable</code> 包一层）。<strong>从机器发给面板的事件（机器→面板方向）暂时收不到</strong>，面板→机器是通的。节点图的存档与 CE 不通用，只存在本模组的方块实体里。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 06 枪械 / 线圈 / 喷气背包 ================= -->
+  <section class="section" id="extras">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 枪械 / 线圈 / 喷气背包</div>
+        <h2>顺带做的几件手持装备</h2>
+        <p>它们和监控屏共用同一套资源与配方体系，没有额外依赖。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="card">
+          <h3>制式枪械</h3>
+          <p>内置三把瞬发射线枪械，全部服务端裁判：客户端只上报扳机是否按住，射速、弹匣、命中判定都在服务端算，改客户端转速也打不快。Mk.1 制式手枪（9mm，半自动精度高）、Mk.2 卡宾枪（5.56mm，全自动）、Mk.3 破门霰弹枪（12 号，半自动强散布）；弹药统一是「弹药」物品，靠 metadata 分三种口径。</p>
+        </div>
+        <div class="card">
+          <h3>Roblox 线圈</h3>
+          <p>速度线圈、跳跃线圈、恢复线圈三个手持装备，无需 NTM：主手/副手持有即由服务端 <code>PlayerTickEvent</code> 施加对应效果（速度 / 跳跃提升 / 生命恢复），背包内不生效。效果与配方都取自 Roblox 风格设计。</p>
+        </div>
+        <div class="card">
+          <h3>喷气背包</h3>
+          <p>穿戴在胸甲位，按住跳跃键向上飞，消耗耐久。耐久即燃料（满 2400，连续飞行约 6 分钟），铁砧 + 铁锭可修复；客户端把「跳跃键按下」状态发给服务端，由服务端施加 <code>motionY</code> 推力与火焰粒子。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 常见操作速查 ================= -->
+  <section class="section" id="cheatsheet">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 常见操作速查</div>
+        <h2>一表记住最常用的几步</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>操作</th><th>怎么做</th></tr></thead>
+          <tbody>
+            <tr><td>放下一台监控屏</td><td>正面自动开机；16 格内有 DFC 核心自动绑定。</td></tr>
+            <tr><td>打开终端</td><td>右键监控屏。</td></tr>
+            <tr><td>切换视图 / 页</td><td>终端左列 <code>1 核心</code> / <code>2 部件</code> / <code>3 曲线</code> / <code>4 自定义</code>。</td></tr>
+            <tr><td>绑定一台机器的核心（机器控制面板）</td><td>手持监控数据线右键机器记录，再右键面板，到「控件」页绑 A–F 槽位，保存并应用；急用可潜行右键面板塞进首槽。</td></tr>
+            <tr><td>绑定功率计（监控屏读数）</td><td>手持监控数据线右键红色电缆仪表，再右键监控屏。</td></tr>
+            <tr><td>改墙屏尺寸</td><td>终端底部「宽度 / 高度」的 − / +。</td></tr>
+            <tr><td>打开面板工坊</td><td>终端左列「面板工坊」入口。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="brand-mark"></span>HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="reference.html#config">配置项</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

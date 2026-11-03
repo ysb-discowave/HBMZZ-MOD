@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBMZZ — 许可与致谢（GPL-3.0）</title>
+<meta name="description" content="HBMZZ 模组的许可证与第三方来源说明：GPL-3.0-only 的由来、NTM-CE / CE Addon / 节枝的取用范围、节枝书面授权记录，以及再分发者的义务与署名。">
+<meta name="theme-color" content="#0a0c0f">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ — 许可与致谢">
+<meta property="og:description" content="GPL-3.0-only 的由来、第三方代码取用范围、节枝书面授权记录，以及再分发者的义务与署名。">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <div class="wrap">
+    <div class="page-head">
+      <div class="kicker">// 许可与致谢</div>
+      <h1>GPL-3.0，而且必须得是它</h1>
+      <p class="lead">
+        本模组是自由软件，依据 GNU 通用公共许可证第 3 版（GPL-3.0-only）分发。选 GPL-3.0
+        不是审美偏好，而是因为取用的上游代码都是 GPL 体系，衍生作品只能继续以 GPL 分发。
+        本页逐条说明：本项目的许可证、每一部分代码来自谁、节枝的书面授权，以及再分发者要履行的义务。
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= 1. 本项目许可 ================= -->
+  <section class="section" id="license">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 01 — 本项目许可</div>
+        <h2>许可证：GNU General Public License v3.0（GPL-3.0-only）</h2>
+      </div>
+
+      <div class="panel panel--flat">
+        <pre>HBMZZ — HBM's Nuclear Tech 控制台 / 监控屏扩展
+Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)</pre>
+        <p style="margin:14px 0 0">
+          全文见仓库根目录 <a href="https://github.com/ysb-discowave/HBMZZ-MOD/blob/main/LICENSE">LICENSE</a>
+          （GitHub 镜像），或 <a href="https://www.gnu.org/licenses/gpl-3.0.txt">gnu.org 上的文本</a>。本页不转载许可证全文。
+        </p>
+      </div>
+
+      <h3 style="margin-top:26px">为什么必须是 GPL-3.0</h3>
+      <p>
+        <code>com.hbmzz.cecp</code> 整个包（含控件、节点系统、编辑器界面、方块与方块实体）是
+        <strong>逐文件移植</strong>自 <strong>NTM: 诅咒版</strong> 的 <code>com.hbm.inventory.control_panel</code>，
+        而该项目的许可证是 GPL-3.0。附属的节点与控件来自 <strong>CE Addon（Leafia）</strong>，其许可证为
+        GPL-3.0，部分文件为 LGPL-3.0。
+      </p>
+      <p>
+        根据 GPL-3.0，<strong>衍生作品必须继续以 GPL-3.0 分发</strong>：本项目不能改成 MIT / Apache-2.0，
+        也不能附加「禁止商用」「禁止再分发」之类的额外限制（GPL-3.0 §10）。监控屏的渲染结构取自节枝的
+        DFC 工具，已取得作者书面授权（见 <a href="#authorization">第 3 节</a>），该授权只做放宽、未追加限制。
+      </p>
+
+      <div class="note note--mint" style="margin-top:18px">
+        <div>
+          <h4 style="margin:0 0 8px">你可以做什么</h4>
+          <p style="margin:0">
+            阅读、修改、fork、制作附属、放入整合包、商用、重新发布 jar —— 只要保留版权声明与
+            <code>LICENSE</code>，并把你的改动同样以 GPL-3.0 公开。装不装 NTM-CE 都能启动；
+            只有涉及机器交互的功能需要它在运行时存在（反射软依赖，未链接其代码）。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2. 第三方来源 ================= -->
+  <section class="section" id="notice">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 02 — 第三方来源</div>
+        <h2>每一部分代码来自谁</h2>
+        <p>下表列出本项目中所有取自上游的代码与素材、其许可证，以及使用位置。逐条依据 <code>NOTICE.md</code>。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>来源</th><th>许可证</th><th>本项目中使用的位置</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>HBM's Nuclear Tech — Community Edition（NTM-CE）</strong><br><a href="https://github.com/Warfactory-Official/Hbm-s-Nuclear-Tech-CE">Warfactory-Official/Hbm-s-Nuclear-Tech-CE</a><br>作者：HBMMods / Drillgon200 / TheOriginalGolem / Alcater / MrNorwood / Movblock / EOS 等</td>
+              <td><span class="tag tag--green">GPL-3.0</span></td>
+              <td><code>com.hbmzz.cecp</code> 全部包（逐文件移植自 <code>com.hbm.inventory.control_panel</code>）：控件、节点系统、编辑器界面、方块与方块实体，以及对应的 OBJ 模型与贴图。</td>
+            </tr>
+            <tr>
+              <td><strong>NTM Cursed Addon（CE Addon / Leafia）</strong><br><a href="https://github.com/ntmleafia/NTM-Cursed-Addon">ntmleafia/NTM-Cursed-Addon</a><br>作者：Leafia、movblock 等</td>
+              <td><span class="tag tag--green">GPL-3.0</span><br><span class="tag tag--dim">部分 LGPL-3.0</span></td>
+              <td><code>com.hbmzz.cecp.nodes.addon</code>（节点）、<code>controls.addon</code>（控件）、<code>controls.configs.addon</code>（配置面板），以及对应的模型、贴图与兼容层。</td>
+            </tr>
+            <tr>
+              <td><strong>DFC-Map-Creation-Tool / 节枝特效工具 JiezhiMod</strong><br>作者：树上的节枝（jiezhi）</td>
+              <td>原为自定义「源码可见许可协议 v1.0」（非 OSI 认证）；<strong>已取得作者书面授权，可按 GPL-3.0 使用</strong>（2026-11-03）</td>
+              <td>监控屏的整机 TESR 渲染结构、控制器 + 占位格结构、吊装几何与变换、AWT 离屏画布 → 单纹理 quad 的上传管线。覆盖文件见 <a href="#authorization">第 3 节</a>。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:28px">本项目自有</h3>
+      <div class="panel panel--flat">
+        <p style="margin:0">以下部分均为本项目实现，不取自任何上游：</p>
+        <ul style="margin:12px 0 0">
+          <li><code>com.hbmzz.ctrl</code>（反射桥 + 服务端轮次引擎 + 扁平规则模型）</li>
+          <li><code>com.hbmzz.item</code>、<code>com.hbmzz.gun</code>、<code>com.hbmzz.entity</code>、<code>com.hbmzz.network</code></li>
+          <li><code>com.hbmzz.dfc.DFCReader</code>、<code>com.hbmzz.panel</code></li>
+          <li><code>client/screen</code> 中的界面绘制（AHBSSMFI-OS 各页面、双环量表、事件日志）</li>
+          <li><code>HBMZZConfig</code> 配置</li>
+          <li><code>tools/</code> 下的全部验证脚本</li>
+        </ul>
+      </div>
+
+      <h3 style="margin-top:28px">对上游做过的修改（GPL-3.0 §5(a)）</h3>
+      <p>
+        <code>com.hbm.inventory.control_panel</code> → <code>com.hbmzz.cecp</code> 的移植除了下列改动，逻辑未动：
+      </p>
+      <ol>
+        <li><strong>包名</strong>：<code>com.hbm.inventory.control_panel</code> → <code>com.hbmzz.cecp</code>（含子包）。</li>
+        <li><strong>语法降级</strong>：Java 9+ 语法（<code>instanceof</code> 模式匹配、<code>switch</code> 表达式、<code>var</code>、<code>Optional.isEmpty()</code>、<code>String.isBlank()</code>）改写为 Java 8 等价写法，以便在 Minecraft 1.12.2 / Forge 运行。</li>
+        <li><strong>依赖替换</strong>：上游对 NTM 私有渲染 / 缓冲 / 网络类的调用（<code>NTMBufferBuilder</code>、<code>NTMImmediate</code>、<code>WaveFrontObjectVAO</code>、<code>MainRegistry</code> 等）替换为本项目的兼容层 <code>com.hbmzz.cecp.compat</code>。</li>
+        <li><strong>跨模组适配</strong>：新增 <code>CPMachines</code> / <code>BridgedControllable</code>，使 CE 机器能被面板识别；事件表改为运行时镜像 CE 的 <code>ControlEvent.REGISTRY</code>，不再抄写固定名单。</li>
+        <li><strong>界面文本</strong>：显示文本英译中。<strong>协议字符串一律未翻译</strong>（事件名、变量名、NBT 键）。</li>
+        <li><strong>新增功能</strong>：附属模组的 14 个节点 + 11 个控件 + 2 个图表节点；<code>NodeSounder</code> 音效表改为按 <code>(类名, 字段名)</code> 反射解析；<code>NodeBulkQuery</code> 改走 <code>CPMachines</code>；<code>NodeSounder</code> 的 <code>doOutput</code> 由 <code>false</code> 改为 <code>true</code>（上游返回值在广播链路里会取消接收者，属缺陷）。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 3. 节枝授权 ================= -->
+  <section class="section" id="authorization">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 03 — 节枝授权</div>
+        <h2>第三方书面授权记录</h2>
+        <p>本节是 <code>LICENSE</code>（GPL-3.0）能覆盖全仓库的前提之一，完整记录见仓库根目录 <code>AUTHORIZATION.md</code>。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="panel panel--flat">
+          <h4>授权要素</h4>
+          <ul class="mono" style="margin:12px 0 0;line-height:1.9">
+            <li>授权人：<strong>树上的节枝</strong></li>
+            <li>被授权方：Yang Sibo（GitHub: ysb-discowave），HBMZZ 项目</li>
+            <li>时间：<strong>2026-11-03 20:34</strong></li>
+            <li>渠道：B 站私信</li>
+            <li>范围：本项目从 JiezhiMod 取用的部分可按 GPL-3.0 使用、修改与再分发</li>
+          </ul>
+          <p style="margin-top:14px">
+            节枝原协议的 §4.3（禁止二次分发 jar）、§4.5（禁止商业用途）与 GPL-3.0 直接冲突，
+            该冲突已通过本次书面同意解决。
+          </p>
+        </div>
+
+        <div class="panel panel--flat">
+          <h4>对话原文</h4>
+          <pre style="margin-top:12px">Tiny·全能（本项目作者） 20:34
+@树上的节枝 我看你的 dfc 模组的显示器挺有意思的，所以我在我的
+HBM-ZZ 模组里的显示器抄了你的部分代码、思路，现在我打算发布
+HBM-ZZ 的第一个外部版本，打算使用 GPL-3.0 开源协议开放源代码，
+但这和你所使用的开源协议有所冲突，希望你能给我一份书面授权，
+已让 HBM-ZZ 合法发行
+
+树上的节枝
+（引用上条消息）知道了，可以了
+
+树上的节枝
+去吧
+
+树上的节枝
+才回家</pre>
+          <p style="margin:12px 0 0;color:var(--text-dim);font-size:13px">
+            最后一句「才回家」与授权无关，如实列出，不作解释。
+          </p>
+        </div>
+      </div>
+
+      <h4 style="margin-top:26px">授权截图（存档）</h4>
+      <figure style="margin:0">
+        <img src="authorization/2026-11-03-jiezhi-bilibili-pm.png"
+             alt="2026-11-03 20:34 本项目作者与树上的节枝在 B 站私信的授权对话截图，含「知道了，可以了」「去吧」等回复"
+             style="width:100%;max-width:860px;border:1px solid var(--line);border-radius:3px;display:block;margin:14px 0">
+        <figcaption style="color:var(--text-mute);font-size:13px">图：B 站私信授权记录，时间 2026-11-03 20:34。原始存档见 <code>docs/authorization/2026-11-03-jiezhi-bilibili-pm.png</code>。</figcaption>
+      </figure>
+
+      <h4 style="margin-top:26px">授权覆盖的 8 个文件</h4>
+      <p>即 <code>NOTICE.md</code> 第 2 节「JiezhiMod」一行所列，全部为<strong>渲染结构与管线思路</strong>，不含屏上界面：</p>
+      <ul>
+        <li><code>client/RenderDFCMonitor</code> —— 整机 TESR 渲染结构、吊装几何与变换</li>
+        <li><code>client/ConsoleModel</code> —— 整机 TESR 渲染结构（空模型外壳）</li>
+        <li><code>block/BlockDFCMonitor</code> —— 控制器 + 占位格结构</li>
+        <li><code>block/BlockDFCMonitorPart</code> —— 控制器 + 占位格结构（占位块）</li>
+        <li><code>tile/TileEntityDFCMonitor</code> —— 控制器 + 占位格结构（方块实体）</li>
+        <li><code>dfc/ConsoleRig</code> —— 控制器 + 占位格结构、吊装几何与变换</li>
+        <li><code>client/RenderFallenScreen</code> —— 坠落 / 摆动动画</li>
+        <li><code>client/screen/TerminalCanvas</code> —— AWT 离屏画布 → 单纹理 quad 上传管线</li>
+      </ul>
+
+      <h4 style="margin-top:26px">明确不在此授权内的部分</h4>
+      <ul>
+        <li>JiezhiMod 的<strong>界面设计、配色、页面布局</strong>：本项目未取用，屏上 AHBSSMFI-OS 的页面、双环量表、七路灯柱、MIMIC 结构图、事件日志全部为本项目自写。</li>
+        <li>JiezhiMod 的<strong>素材文件</strong>（贴图、模型、音效）：本项目未取用。</li>
+        <li>JiezhiMod 的<strong>其余代码</strong>：本项目未取用。</li>
+      </ul>
+
+      <div class="note note--mint" style="margin-top:20px">
+        <div>
+          <h4 style="margin:0 0 10px">结论</h4>
+          <ol style="margin:0">
+            <li>本仓库<strong>可以整体按 GPL-3.0 发布</strong>，<code>LICENSE</code> 的效力覆盖全部文件。</li>
+            <li>该授权只做<strong>放宽</strong>，未对下游追加任何限制，符合 GPL-3.0 §7（不存在附加限制）。</li>
+            <li>从本项目 fork 后发布的人<strong>不需要</strong>再单独向节枝申请授权；但 <code>AUTHORIZATION.md</code> 与本页必须保留，否则授权链的书面证据就断了。</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 4. 再分发者义务 ================= -->
+  <section class="section" id="obligations">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 04 — 再分发者义务</div>
+        <h2>分发源码或 jar 时你要做什么</h2>
+        <p>依据 <code>NOTICE.md</code> 第 4 节。分发本项目的源码或 jar（包括改过的版本）时：</p>
+      </div>
+
+      <ol>
+        <li>保留 <code>LICENSE</code>、<code>NOTICE.md</code> 与 <code>AUTHORIZATION.md</code>，保留源码中的版权声明。<code>AUTHORIZATION.md</code> 是节枝授权的书面证据，删掉它，授权链就断了。</li>
+        <li>以 GPL-3.0 分发，<strong>不得追加</strong>「禁止商用」「禁止再分发」「必须授权」等额外限制。</li>
+        <li>修改过的话，在显眼位置说明改了什么、什么时候改的（§5(a)）。</li>
+        <li>提供对应源码（§6）。从本仓库 fork 后发布二进制，指向你自己的仓库即可。</li>
+        <li>保留 README「署名」一节里对<strong>树上的节枝</strong>的署名（这既是授权的条件，也是事实）。</li>
+      </ol>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p style="margin:0">
+            <strong>最关键的一条：</strong>第 2 条。GPL-3.0 不允许追加任何「禁止商用」「禁止再分发」之类的额外限制（§10）。
+            任何此类附加条款在法律上无效，且会导致你失去依 GPL-3.0 再分发的资格。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5. 署名 ================= -->
+  <section class="section" id="credits">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 05 — 署名</div>
+        <h2>致谢</h2>
+      </div>
+
+      <div class="grid g3">
+        <div class="card">
+          <div class="icon">J</div>
+          <h3>树上的节枝</h3>
+          <p>DFC-Map-Creation-Tool（JiezhiMod）作者。监控屏的渲染结构与画布上传管线取自该项目，已取得其书面授权按 GPL-3.0 使用。</p>
+          <p style="margin-top:12px">
+            <a href="https://space.bilibili.com/3494363348863838">B 站主页 ↗</a><br>
+            <a href="https://gitee.com/jiezhi-bililbli/DFC-Map-Creation-Tool">Gitee 仓库 ↗</a>
+          </p>
+          <p style="margin-top:12px;color:var(--text-dim);font-size:13px">
+            屏上 AHBSSMFI-OS 的界面与 1.6.0 起的视觉体系（琥珀磷光工业色、双环量表、七路灯柱、MIMIC 结构图）均为本项目自有实现，与 JiezhiMod 的界面无关。
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">N</div>
+          <h3>NTM:CE 的作者们</h3>
+          <p><code>com.hbmzz.cecp</code> 整包逐文件移植自 NTM: 诅咒版，版权归其作者所有。</p>
+          <p style="margin-top:12px;color:var(--text-dim);font-size:14px">
+            HBMMods / Drillgon200 / TheOriginalGolem / Alcater / MrNorwood / Movblock / EOS 等，完整名单见其 <code>mcmod.info</code>。
+          </p>
+          <p style="margin-top:12px">
+            <a href="https://github.com/Warfactory-Official/Hbm-s-Nuclear-Tech-CE">Warfactory-Official/Hbm-s-Nuclear-Tech-CE ↗</a>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="icon">L</div>
+          <h3>Leafia / movblock</h3>
+          <p>CE Addon（NTM Cursed Addon）作者，提供了附属的节点与控件（GPL-3.0 / 部分 LGPL-3.0）。</p>
+          <p style="margin-top:12px">
+            <a href="https://github.com/ntmleafia/NTM-Cursed-Addon">ntmleafia/NTM-Cursed-Addon ↗</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:22px">
+        <div>
+          <p style="margin:0">
+            <strong>免责声明：</strong>本项目不是 NTM / NTM-CE / CE Addon 的官方作品，也未获得其作者背书。装不装它们都能启动，但涉及机器交互的功能需要 NTM-CE 在运行时存在（反射软依赖，未链接其代码）。NTM-CE 与 CE Addon 的名称、图标归各自作者所有，本项目未使用其图标作为自己的图标。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="brand-mark"></span>HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="reference.html#config">配置项</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

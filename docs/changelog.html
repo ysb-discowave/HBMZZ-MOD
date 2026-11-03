@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBMZZ 更新日志 — 按版本倒序的逐版变更</title>
+<meta name="description" content="HBMZZ 更新日志：按版本倒序记录 2.1.5（把机器接进面板）到 2.2.1 的逐版变更，以及当前路线图。发布日期一律以 GitHub Releases 为准。">
+<meta name="theme-color" content="#0a0c0f">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ 更新日志">
+<meta property="og:description" content="按版本倒序的逐版变更与路线图，日期以 GitHub Releases 为准。">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HEAD ================= -->
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 更新日志</div>
+      <h1>每个版本改了什么</h1>
+      <p class="lead">
+        下面按<strong>版本倒序</strong>排列：最新的在最上面。仓库没有可靠的逐版发布日期，
+        所以本页<strong>不写任何日期</strong>——确切的发布时间以
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">GitHub Releases</a> 为准。
+        当前版本随仓库扫描自动更新：<span data-bind="auto.version">v?</span>。
+        更早的 1.x 版本不在本页记录（见页尾说明）。
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= 当前规模 ================= -->
+  <div class="wrap" style="padding-bottom:8px">
+    <div class="stats">
+      <div class="stat">
+        <div class="n" data-bind="auto.version">—</div>
+        <div class="l">当前版本</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-bind="auto.stats.controlTypes">—</div>
+        <div class="l">控件类型</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-bind="auto.stats.nodeTypes">—</div>
+        <div class="l">节点类型</div>
+      </div>
+      <div class="stat">
+        <div class="n"><span data-bind="auto.stats.javaLines|num">—</span><small> 行</small></div>
+        <div class="l">Java 源码</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 逐版变更 ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 逐版变更</div>
+        <h2>从 2.1.5 到 2.2.1</h2>
+        <p>机器控制面板与节点图控制台相关的逐版改动。每条尽量讲清「原来怎样 / 现在怎样」，而不是一句「优化了体验」。</p>
+      </div>
+
+      <div class="timeline">
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.2.1</span>
+            <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>带 OBJ 模型的附属控件</h3>
+          <ul>
+            <li>移植 11 个带 OBJ 模型的诅咒版附属控件：Nixie 管显示、大方钮、大开关、横/竖拨杆、横/竖量表、RBMK 显示、图表、文字指示、绘图板。</li>
+            <li>新增两个图表节点（追加数据点、取区间极值），图表控件因此可以自行累积历史。</li>
+            <li>控件注册名统一加 <code>leafia_</code> 前缀，避免与本体控件撞名。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.2.0</span>
+          </div>
+          <h3>补齐附属节点</h3>
+          <ul>
+            <li>移植 14 个 Leafia 附属节点：播放声音、脉冲、置位/复位锁存、缓存、时钟、随机数（整型/小数）、归约、字符串转数、字符串拼接、子串、格式化、批量查询、SIPfx。</li>
+            <li>播放声音改按「类名 + 字段名」反射解析上游音效表，不再硬编码。</li>
+            <li>批量查询改走跨模组机器桥，原来只认诅咒版自己的接口。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.1.9</span>
+          </div>
+          <h3>事件真的能投到机器上</h3>
+          <ul>
+            <li>修正事件广播的投递路径：控制台在只声明 <code>tick</code> 的情况下，广播事件原本会被直接丢弃。</li>
+            <li>两个广播重载收敛到同一条投递链路，先查本地事件表，再查跨模组机器表。</li>
+            <li>广播节点改用上游的事件副本，不再走会抛异常的新建路径。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.1.8</span>
+          </div>
+          <h3>事件表运行时镜像</h3>
+          <ul>
+            <li>不再抄写固定的事件名单，改为运行时读取上游注册表，附属模组追加的事件同样能识别。</li>
+            <li>广播与输出类节点的参数恢复完整：数值、取消两个都在，读取侧同样可读。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.1.7</span>
+          </div>
+          <h3>绘制批次修复</h3>
+          <ul>
+            <li>带模型的控件改为追加进外层立即模式批次，不再自行 <code>begin/draw</code> 打断父批次。</li>
+            <li>修复了控件一多就整片消失的渲染问题。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.1.6</span>
+          </div>
+          <h3>节点图里的中文</h3>
+          <ul>
+            <li>诅咒版画节点图前会关掉 unicode 字模（它图里全是英文），中文落进去会被按 <code>ch % 256</code> 砍成 ASCII，于是节点标题、下拉项、参数标签全变成方块和问号，宽度也算错。</li>
+            <li>节点图整段保持 unicode 字模开启；所有小字号标签改成按实测宽度裁剪，不再硬截 5 个字符。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.1.5</span>
+          </div>
+          <h3>把机器接进面板</h3>
+          <ul>
+            <li>新增跨模组机器桥：CE 机器（含多方块核心）可被面板识别并绑定。</li>
+            <li>A–F 槽位绑定流程定型，沿用至今。</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 路线图 ================= -->
+  <section class="section" id="roadmap">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 路线图</div>
+        <h2>接下来要做的</h2>
+        <p>按状态分三组。状态随仓库扫描自动刷新，不写承诺日期。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:10px"><span class="tag tag--green">已完成</span></h3>
+          <ul style="margin:0;padding-left:18px">
+            <li style="color:var(--text-dim);font-size:14px">GPL-3.0 开源发布所需的许可链（含节枝书面授权）</li>
+          </ul>
+        </div>
+
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:10px"><span class="tag tag--amber">进行中</span></h3>
+          <ul style="margin:0;padding-left:18px">
+            <li style="color:var(--text-dim);font-size:14px">官网与文档随版本自动同步（本页数据来自仓库扫描）</li>
+          </ul>
+        </div>
+
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:10px"><span class="tag tag--dim">计划</span></h3>
+          <ul style="margin:0;padding-left:18px">
+            <li style="color:var(--text-dim);font-size:14px">补全带 GUI 的控件与节点的进游戏验证</li>
+            <li style="color:var(--text-dim);font-size:14px">英文界面选项</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 说明 ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="note">
+        <div>
+          <h4>关于更早的版本</h4>
+          <p style="margin:6px 0 0">更早的 <strong>1.x</strong> 版本变更见 <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">GitHub Releases</a> 与仓库 <a href="https://github.com/ysb-discowave/HBMZZ-MOD">README</a>；本页从 <strong>2.1.5（把机器接进面板）</strong>开始逐版记录。版本号里的数字是历史事实、写死在此页，而页头的「当前版本」展示位随仓库扫描自动更新。</p>
+        </div>
+      </div>
+      <p style="margin-top:16px;color:var(--text-mute);font-size:14px">需要查控件、节点、配方与配置项的明细，去 <a href="reference.html">参考手册</a>。</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="brand-mark"></span>HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="reference.html#config">配置项</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

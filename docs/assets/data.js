@@ -238,6 +238,19 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "2.3.2",
+      "title": "连不上的线，点不开的窗",
+      "items": [
+        "修：视频广播器右键没有反应。方块调 openVideoBroadcaster 开窗，而 ClientProxy 没覆盖这个方法，落回公共代理的空实现，于是手挥了、什么都没发生。",
+        "修：监控屏连不上任何东西。1.12.2 只在方块拒绝这次右键之后才调用 Item.onItemUse，而监控屏的 onBlockActivated 永远返回 true——拿数据线点屏，屏幕只是打开终端，绑定代码从来没被执行过。现在拿着数据线时方块让位，点屏即绑定；数据线里没有记录时仍然打开终端。",
+        "修：摄像头没接进绑定流程。数据线点摄像头只会落到「已记录坐标」，监控屏也没有任何地方调 setCameraPos。现在点摄像头记录、点屏绑定并自动翻到第 4 页，潜行点屏断开。",
+        "修：摄像头绑定不存档。屏幕只存「看哪」，这两个字段没写进 NBT，退出重进就断线。",
+        "摄像头画面改 100 ms 缓存：墙面渲染器和窗口本来就每帧取一次，一帧 160 条射线、每条约 72 次方块查询，等于在渲染线程上按 60 Hz 空转。",
+        "服务端不再为读一个名字去跑整幅画面：snapshot() 每轮询一次就射线追踪一遍再把像素扔掉。",
+        "regcheck 加三条：proxy.openX 是否在 ClientProxy 有实现、代码里用到的翻译 key 是否两种语言都有、绑定目标方块是否把右键让给了数据线。"
+      ]
+    },
+    {
       "version": "2.3.1",
       "title": "两个注册漏项",
       "items": [
@@ -338,12 +351,12 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "2.3.1",
+    "version": "2.3.2",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 237,
-      "javaLines": 44150,
+      "javaLines": 44341,
       "resourceFiles": 132,
       "nodeTypes": 32,
       "controlTypes": 25

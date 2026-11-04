@@ -173,7 +173,7 @@ public class RenderDFCMonitor extends TileEntitySpecialRenderer<TileEntityDFCMon
         if (te.isCameraEnabled() && te.getCameraPos() != null && te.getWorld() != null) {
             TileEntity cameraTe = te.getWorld().getTileEntity(te.getCameraPos());
             if (cameraTe instanceof TileEntityMonitorCamera) {
-                cameraView = ((TileEntityMonitorCamera) cameraTe).capture(te.getWorld());
+                cameraView = ((TileEntityMonitorCamera) cameraTe).view(te.getWorld());
             }
         }
         canvas.setLinkAge(te.getClientDataAge());

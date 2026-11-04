@@ -187,7 +187,7 @@ public class GuiDFCMonitor extends GuiScreen {
         if (te.isCameraEnabled() && te.getCameraPos() != null && this.mc != null && this.mc.world != null) {
             TileEntity cameraTe = this.mc.world.getTileEntity(te.getCameraPos());
             if (cameraTe instanceof TileEntityMonitorCamera) {
-                cameraView = ((TileEntityMonitorCamera) cameraTe).capture(this.mc.world);
+                cameraView = ((TileEntityMonitorCamera) cameraTe).view(this.mc.world);
             }
         }
         this.preview.render(sinceOn, powered, data, page, te.getClientTempRate(), faultElapsed, cameraView);

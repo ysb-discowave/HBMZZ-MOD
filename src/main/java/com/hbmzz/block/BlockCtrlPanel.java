@@ -137,6 +137,13 @@ public class BlockCtrlPanel extends BlockHorizontal implements ITileEntityProvid
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        // Hold the cable and the cable decides: it opens this window itself, or
+        // binds the machine it recorded into a free slot while sneaking. A block
+        // that claims every click makes the tool's onItemUse unreachable, which
+        // is how the screen ended up with a cable that could not connect to it.
+        if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemMonitorLinker) {
+            return false;
+        }
         if (world.isRemote) {
             HBMZZ.proxy.openControlPanel(pos);
             return true;

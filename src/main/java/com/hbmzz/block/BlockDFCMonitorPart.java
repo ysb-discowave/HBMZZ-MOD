@@ -193,7 +193,7 @@ public class BlockDFCMonitorPart extends Block {
      * cell's idea of its size: a stale cell in an old save may think it is 2x2
      * while the panel around it has grown to 4x3.
      */
-    static BlockPos findController(World world, BlockPos pos) {
+    public static BlockPos findController(World world, BlockPos pos) {
         IBlockState state = world.getBlockState(pos);
         if (!(state.getBlock() instanceof BlockDFCMonitorPart)) {
             return null;

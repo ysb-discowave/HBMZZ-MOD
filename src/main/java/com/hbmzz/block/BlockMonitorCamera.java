@@ -34,7 +34,7 @@ import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
 public class BlockMonitorCamera extends BlockHorizontal implements ITileEntityProvider {
@@ -94,6 +94,14 @@ public class BlockMonitorCamera extends BlockHorizontal implements ITileEntityPr
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        // The camera is the thing the link cable records, and 1.12.2 only calls
+        // the item's onItemUse when the block declines the click. Claiming it
+        // here made "record this camera" impossible: the cable would fall
+        // through to its generic branch and the camera could never reach a
+        // screen.
+        if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemMonitorLinker) {
+            return false;
+        }
         if (world.isRemote) {
             return true;
         }
@@ -102,9 +110,8 @@ public class BlockMonitorCamera extends BlockHorizontal implements ITileEntityPr
             return false;
         }
         TileEntityMonitorCamera camera = (TileEntityMonitorCamera) te;
-        String summary = "监控: " + camera.getName() + " | 频道: " + camera.getChannel()
-                + " | 角度: " + camera.getYaw() + "/" + camera.getPitch();
-        player.sendMessage(new TextComponentString(summary));
+        player.sendMessage(new TextComponentTranslation("hbmzz.camera.info", camera.getName(),
+                camera.getChannel(), camera.getYaw() + "/" + camera.getPitch()));
         return true;
     }
 

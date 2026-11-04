@@ -75,6 +75,16 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     /** Samples kept for the sparklines (48 * 10 ticks = 24 s of history). */
     public static final int HISTORY = 48;
 
+    /**
+     * The fourth page, and the only one that can be switched to by a machine
+     * rather than by a click: binding a camera lands here.
+     *
+     * <p>Lives on the tile entity because the linker that binds the camera runs
+     * on the server, and the page index cannot be imported from the client-side
+     * screen class there.</p>
+     */
+    public static final int PAGE_CAMERA = 3;
+
     private BlockPos corePos;
     private BlockPos meterPos;
     private BlockPos cameraPos;
@@ -380,12 +390,14 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             TileEntity te = world.getTileEntity(cameraPos);
             if (te instanceof TileEntityMonitorCamera) {
                 TileEntityMonitorCamera camera = (TileEntityMonitorCamera) te;
-                TileEntityMonitorCamera.CameraView view = camera.capture(world);
-                if (view != null) {
-                    snapshot.coreType = "CAM:" + camera.getName();
-                    snapshot.fuel1Name = camera.getChannel();
-                    snapshot.fuel2Name = "ANGLE " + camera.getYaw() + "/" + camera.getPitch();
-                }
+                // No capture() here. The picture is drawn by the client from the
+                // camera's own block; the server only needs the labels. This used
+                // to ray-trace 160 rays down the camera's view every poll on the
+                // server and throw the pixels away, which is the most expensive
+                // way there is to read a name.
+                snapshot.coreType = "CAM:" + camera.getName();
+                snapshot.fuel1Name = camera.getChannel();
+                snapshot.fuel2Name = "ANGLE " + camera.getYaw() + "/" + camera.getPitch();
             }
         }
         refinePrediction(snapshot);
@@ -720,6 +732,14 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         if (meterPos != null) {
             compound.setLong("meterPos", meterPos.toLong());
         }
+        // The camera link has to survive a reload: the feed itself is drawn from
+        // the camera's block at render time, so all the screen stores is where
+        // to look. Leaving these out meant a bound camera came back unbound
+        // after quitting the world - the monitor simply stopped showing it.
+        if (cameraPos != null) {
+            compound.setLong("cameraPos", cameraPos.toLong());
+        }
+        compound.setBoolean("cameraEnabled", cameraEnabled);
         compound.setInteger("panelW", panelW);
         compound.setInteger("panelH", panelH);
         compound.setInteger("screenCols", screenCols);
@@ -748,6 +768,8 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         if (compound.hasKey("meterPos")) {
             meterPos = BlockPos.fromLong(compound.getLong("meterPos"));
         }
+        cameraPos = compound.hasKey("cameraPos") ? BlockPos.fromLong(compound.getLong("cameraPos")) : null;
+        cameraEnabled = compound.getBoolean("cameraEnabled");
         panelW = HBMZZConfig.clampWidth(compound.getInteger("panelW") > 0
                 ? compound.getInteger("panelW") : HBMZZConfig.defaultWidth);
         panelH = HBMZZConfig.clampHeight(compound.getInteger("panelH") > 0

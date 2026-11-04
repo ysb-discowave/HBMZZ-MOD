@@ -59,6 +59,20 @@ public class TileEntityMonitorCamera extends TileEntity {
     /** In blocks; the view cone is about 10x6. */
     private int range = 12;
 
+    /**
+     * Client-side copy of the newest frame.
+     *
+     * <p>{@link #capture} walks 160 rays of up to {@code range * 6} samples
+     * each, and both the wall renderer and the window ask for a frame once per
+     * rendered frame - so an uncached capture is ~11k block lookups at 60 Hz,
+     * on the render thread. A tenth of a second of staleness is invisible on a
+     * security feed and costs 10 captures a second instead of 60.</p>
+     */
+    private CameraView cachedView;
+    private long cachedAt;
+
+    private static final long VIEW_CACHE_MS = 100L;
+
     public String getName() {
         return name;
     }
@@ -143,6 +157,23 @@ public class TileEntityMonitorCamera extends TileEntity {
         return new CameraView(width, height, pixels, this.name, this.channel, this.yaw, this.pitch);
     }
 
+    /**
+     * The frame to draw, reused for {@link #VIEW_CACHE_MS}.
+     *
+     * <p>Callers are per-frame code - the wall renderer and the monitor window -
+     * so this is the entry point they should use; {@link #capture} stays public
+     * for the one-shot case (a screenshot, a test).</p>
+     */
+    public CameraView view(World world) {
+        long now = System.currentTimeMillis();
+        if (this.cachedView != null && now - this.cachedAt < VIEW_CACHE_MS) {
+            return this.cachedView;
+        }
+        this.cachedView = capture(world);
+        this.cachedAt = now;
+        return this.cachedView;
+    }
+
     private int sampleColor(World world, Vec3d origin, Vec3d target) {
         Vec3d step = target.subtract(origin);
         double length = step.lengthVector();
@@ -197,6 +228,9 @@ public class TileEntityMonitorCamera extends TileEntity {
     @Override
     public void readFromNBT(NBTTagCompound compound) {
         super.readFromNBT(compound);
+        // New aim or new name, new picture: drop the cached frame so the screen
+        // does not keep showing the old direction for a tenth of a second.
+        this.cachedView = null;
         name = compound.getString("camName");
         channel = compound.getString("camChannel");
         if (name == null || name.trim().isEmpty()) {

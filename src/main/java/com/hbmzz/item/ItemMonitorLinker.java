@@ -41,6 +41,16 @@ import java.util.List;
 
 public class ItemMonitorLinker extends Item {
 
+    /**
+     * How far a camera may sit from the screen that reads it, in blocks.
+     *
+     * <p>Not a technical limit - the feed is pulled from the chunk either way -
+     * but a cable that works across the map makes "which camera is this?" a
+     * question the player has to answer by breaking things. 64 also keeps the
+     * camera inside the same loaded-chunk neighbourhood as most screens.</p>
+     */
+    public static final int MAX_CAMERA_RANGE = 64;
+
     public ItemMonitorLinker() {
         setRegistryName(HBMZZ.MODID, "monitor_linker");
         setUnlocalizedName(HBMZZ.MODID + ".monitor_linker");
@@ -81,6 +91,21 @@ public class ItemMonitorLinker extends Item {
             return EnumActionResult.SUCCESS;
         }
 
+        // A screen's filler cells forward their clicks to the controller cell, so
+        // the cable has to look through them as well - otherwise binding by
+        // clicking the right half of a 4x3 screen records the filler instead.
+        BlockPos origin = monitorOrigin(world, pos);
+        boolean onMonitor = world.getBlockState(origin).getBlock() instanceof BlockDFCMonitor;
+
+        // Carrying the cable and clicking a screen means "bind what I recorded".
+        // With nothing recorded there is nothing to bind, and silence would read
+        // as a broken click - so the click falls back to opening the terminal,
+        // which is exactly what it did before binding existed.
+        if (onMonitor && world.isRemote && !hasRecording(stack.getTagCompound())) {
+            HBMZZ.proxy.openMonitor(origin);
+            return EnumActionResult.SUCCESS;
+        }
+
         if (world.isRemote) {
             return EnumActionResult.SUCCESS;
         }
@@ -89,7 +114,7 @@ public class ItemMonitorLinker extends Item {
             tag = new NBTTagCompound();
             stack.setTagCompound(tag);
         }
-        TileEntity te = world.getTileEntity(pos);
+        TileEntity te = world.getTileEntity(onMonitor ? origin : pos);
 
         if (DFCReader.isPowerMeter(te)) {
             tag.setLong("meter", pos.toLong());
@@ -99,6 +124,19 @@ public class ItemMonitorLinker extends Item {
         if (DFCReader.isCore(te)) {
             tag.setLong("core", pos.toLong());
             player.sendMessage(new TextComponentTranslation("hbmzz.msg.core_set"));
+            return EnumActionResult.SUCCESS;
+        }
+        // The camera is recorded exactly like the core: point at it, then point
+        // at the screen. Before this existed the cable fell through to the
+        // generic "recorded a coordinate" path, which records the position but
+        // leaves the monitor with no way to ever read it - the camera could be
+        // placed, aimed and right-clicked, and still never appear on a screen.
+        if (te instanceof com.hbmzz.tile.TileEntityMonitorCamera) {
+            com.hbmzz.tile.TileEntityMonitorCamera camera =
+                    (com.hbmzz.tile.TileEntityMonitorCamera) te;
+            tag.setLong("cam", pos.toLong());
+            tag.setString("camName", camera.getName());
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.camera_set", camera.getName()));
             return EnumActionResult.SUCCESS;
         }
         // The console itself is controllable too, which is how one console can
@@ -121,7 +159,7 @@ public class ItemMonitorLinker extends Item {
             player.sendMessage(new TextComponentTranslation("hbmzz.msg.ctrl_set",
                     com.hbmzz.ctrl.MachineBridge.describe(te)));
             return EnumActionResult.SUCCESS;
-        }        if (world.getBlockState(pos).getBlock() instanceof BlockDFCMonitor) {
+        }        if (onMonitor) {
             if (te instanceof TileEntityDFCMonitor) {
                 TileEntityDFCMonitor monitor = (TileEntityDFCMonitor) te;
                 boolean changed = false;
@@ -135,7 +173,20 @@ public class ItemMonitorLinker extends Item {
                     changed = true;
                     player.sendMessage(new TextComponentTranslation("hbmzz.msg.core_bound"));
                 }
-                if (!changed) {
+                if (tag.hasKey("cam")) {
+                    changed = true;
+                    if (player.isSneaking()) {
+                        // Sneak to cut the feed. Without this the only way to
+                        // stop watching a camera would be to break the screen.
+                        monitor.setCameraEnabled(false);
+                        player.sendMessage(new TextComponentTranslation("hbmzz.msg.camera_clear"));
+                    } else {
+                        bindCamera(world, player, monitor, BlockPos.fromLong(tag.getLong("cam")));
+                    }
+                }
+                if (!changed && player.isSneaking()) {
+                    // Sneaking skipped the block, so no window opened either;
+                    // say why nothing happened instead of saying nothing.
                     player.sendMessage(new TextComponentTranslation("hbmzz.msg.nothing"));
                 }
                 return EnumActionResult.SUCCESS;
@@ -154,6 +205,58 @@ public class ItemMonitorLinker extends Item {
         }
         player.sendMessage(new TextComponentTranslation("hbmzz.msg.invalid"));
         return EnumActionResult.PASS;
+    }
+
+    /**
+     * The controller cell behind a click, or {@code pos} itself when the click
+     * landed somewhere else.
+     */
+    private static BlockPos monitorOrigin(World world, BlockPos pos) {
+        if (world.getBlockState(pos).getBlock() instanceof com.hbmzz.block.BlockDFCMonitorPart) {
+            BlockPos controller = com.hbmzz.block.BlockDFCMonitorPart.findController(world, pos);
+            if (controller != null) {
+                return controller;
+            }
+        }
+        return pos;
+    }
+
+    /** True when the cable remembers something that a screen can be given. */
+    private static boolean hasRecording(NBTTagCompound tag) {
+        return tag != null && (tag.hasKey("meter") || tag.hasKey("core") || tag.hasKey("cam"));
+    }
+
+    /**
+     * Connects a recorded camera to a screen.
+     *
+     * <p>Checked rather than assumed: the position was recorded minutes ago and
+     * the camera may have been broken since, and a screen reading a dead camera
+     * would look exactly like a screen with no camera at all. Both refusals say
+     * why, because "nothing happened" is the one answer that leaves the player
+     * with no next step.</p>
+     */
+    private static boolean bindCamera(World world, EntityPlayer player,
+                                      TileEntityDFCMonitor monitor, BlockPos camPos) {
+        TileEntity camTe = world.getTileEntity(camPos);
+        if (!(camTe instanceof com.hbmzz.tile.TileEntityMonitorCamera)) {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.camera_lost"));
+            return false;
+        }
+        if (camPos.distanceSq(monitor.getPos()) > MAX_CAMERA_RANGE * MAX_CAMERA_RANGE) {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.camera_far", MAX_CAMERA_RANGE));
+            return false;
+        }
+        com.hbmzz.tile.TileEntityMonitorCamera camera =
+                (com.hbmzz.tile.TileEntityMonitorCamera) camTe;
+        monitor.setCameraPos(camPos);
+        monitor.setCameraEnabled(true);
+        // Switching the page is the difference between "bound" and "obviously
+        // bound": the operator is standing in front of a screen whose first
+        // three pages say nothing about cameras, so a silent bind reads as a
+        // failure and the next thing they do is break the block and retry.
+        monitor.setPage(TileEntityDFCMonitor.PAGE_CAMERA);
+        player.sendMessage(new TextComponentTranslation("hbmzz.msg.camera_bound", camera.getName()));
+        return true;
     }
 
     /**
@@ -262,6 +365,10 @@ public class ItemMonitorLinker extends Item {
         }
         if (tag != null && tag.hasKey("ctrl")) {
             tooltip.add(TextFormatting.AQUA + "machine: " + tag.getString("ctrlName"));
+        }
+        if (tag != null && tag.hasKey("cam")) {
+            tooltip.add(TextFormatting.AQUA + "camera: " + tag.getString("camName")
+                    + " @ " + BlockPos.fromLong(tag.getLong("cam")));
         }
         int[][] recorded = getLocations(stack);
         if (recorded != null) {

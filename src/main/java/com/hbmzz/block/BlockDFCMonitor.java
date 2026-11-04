@@ -381,6 +381,15 @@ public class BlockDFCMonitor extends BlockHorizontal implements ITileEntityProvi
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                              EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        // The link cable has to get this click. 1.12.2 gives the block the
+        // right-click first and only calls Item.onItemUse when the block says
+        // no, so a block that always claims the click makes its own linking tool
+        // dead code: point the cable at a core, point it at the screen, and the
+        // screen just opens its terminal. Every "connected" setting in this mod
+        // was unreachable for that reason, the camera included.
+        if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemMonitorLinker) {
+            return false;
+        }
         if (world.isRemote) {
             HBMZZ.proxy.openMonitor(pos);
             return true;

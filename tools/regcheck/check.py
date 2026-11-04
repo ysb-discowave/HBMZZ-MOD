@@ -60,8 +60,16 @@ def body_of(source, method_name):
     return source[match.end():end if end > 0 else len(source)]
 
 
-def field_names(source, type_pattern):
-    return set(re.findall(
+def member_body(source, method_name):
+    """Text of a method with any return type, up to the line that closes it."""
+    match = re.search(r"\b[\w<>\[\]]+\s+" + method_name + r"\s*\(", source)
+    if not match:
+        return ""
+    end = source.find("\n    }", match.end())
+    return source[match.end():end if end > 0 else len(source)]
+
+
+def field_names(source, type_pattern):    return set(re.findall(
         r"public\s+static\s+final\s+" + type_pattern + r"\s+([A-Z][A-Z_0-9]*)\s*=", source))
 
 
@@ -133,6 +141,78 @@ def main():
             unnamed.append(item)
     check(not unnamed, "every registered ItemBlock sets its registry name",
           "no setRegistryName(...) before registering: " + ", ".join(unnamed))
+
+    # 6. Every client-only window the blocks ask the proxy to open must have an
+    # implementation on the client. A name that exists only on CommonProxy is a
+    # no-op that compiles perfectly: 2.3.1 shipped a broadcaster whose
+    # right-click called openVideoBroadcaster() into an empty base method, so
+    # the block returned true, the hand swung, and no window ever appeared.
+    common = read(os.path.join(SRC, "com/hbmzz/common/CommonProxy.java"))
+    client = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
+    wanted = set()
+    for dirpath, _dirnames, filenames in os.walk(SRC):
+        for filename in filenames:
+            if not filename.endswith(".java"):
+                continue
+            text = read(os.path.join(dirpath, filename))
+            wanted |= set(re.findall(r"proxy\s*\.\s*(open\w+)\s*\(", text))
+    missing_common = sorted(w for w in wanted if not re.search(r"void\s+" + w + r"\s*\(", common))
+    missing_client = sorted(w for w in wanted if not re.search(r"void\s+" + w + r"\s*\(", client))
+    check(not missing_common, "every proxy.openX(...) call exists on CommonProxy",
+          "called but not declared: " + ", ".join(missing_common))
+    check(not missing_client, "every proxy.openX(...) call is implemented on ClientProxy",
+          "no-op on the client (the window never opens): " + ", ".join(missing_client))
+
+    # 7. Every translation key the code asks for must exist in both languages.
+    # A missing key shows the raw "hbmzz.msg.camera_bound" to the player, which
+    # reads like a crash to anyone who is not the author.
+    keys = set()
+    for dirpath, _dirnames, filenames in os.walk(SRC):
+        for filename in filenames:
+            if not filename.endswith(".java"):
+                continue
+            text = read(os.path.join(dirpath, filename))
+            keys |= set(re.findall(
+                r'(?:TextComponentTranslation|translateToLocal(?:Formatted)?)\s*\(\s*"(hbmzz\.[^"]+)"',
+                text))
+
+    def lang_keys(name):
+        path = os.path.join(ROOT, "src/main/resources/assets/hbmzz/lang", name)
+        if not os.path.exists(path):
+            return set()
+        return set(re.findall(r"^(hbmzz\.[^=\s]+)\s*=", read(path), re.MULTILINE))
+
+    zh = lang_keys("zh_cn.lang")
+    en = lang_keys("en_us.lang")
+    for label, have in (("zh_cn.lang", zh), ("en_us.lang", en)):
+        absent = sorted(k for k in keys if k not in have)
+        check(not absent, "every %s key used in code exists in %s" % ("hbmzz.*", label),
+              "missing: " + ", ".join(absent))
+
+    # 8. The link cable binds by running Item.onItemUse, and 1.12.2 only calls
+    # that after the block has declined the click. A block that claims every
+    # right-click therefore makes its own linking tool unreachable - which is
+    # exactly what shipped: a monitor that opened its terminal on every click,
+    # so no camera, core or meter could ever be connected to it. The console is
+    # exempt because it owns its editor and the cable only records it while
+    # sneaking.
+    LINK_TARGETS = ["BlockDFCMonitor", "BlockMonitorCamera", "BlockCtrlPanel"]
+    LINK_EXEMPT = {"BlockCtrlConsole"}
+    offenders = []
+    for name in LINK_TARGETS:
+        if name in LINK_EXEMPT:
+            continue
+        path = os.path.join(SRC, "com/hbmzz/block", name + ".java")
+        if not os.path.exists(path):
+            continue
+        text = read(path)
+        if "onBlockActivated" not in text:
+            continue
+        if "ItemMonitorLinker" not in member_body(text, "onBlockActivated"):
+            offenders.append(name)
+    check(not offenders, "every block the cable binds into declines the click for it",
+          "claims the right-click, so ItemMonitorLinker.onItemUse never runs: "
+          + ", ".join(offenders))
 
     failed = [name for ok, name, _ in results if not ok]
     print()

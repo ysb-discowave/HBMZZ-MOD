@@ -138,6 +138,15 @@
             <div class="step"><h3>绑定到屏</h3><p>再右键监控屏，读数即出现。</p></div>
           </div>
 
+          <h4 style="margin-top:18px">摄像头接入（第 4 页）</h4>
+          <p style="margin:10px 0 0;color:var(--text-dim)">监控摄像头放下时按你的视线定角度，之后用数据线把它接到屏上：屏幕的第 4 页在有摄像头时显示它的画面，没有时仍是面板工坊的自定义页。</p>
+          <div class="steps" style="margin-top:14px">
+            <div class="step"><h3>记录摄像头</h3><p>手持监控数据线右键摄像头，聊天栏提示「已记录摄像头坐标：CAM-…」。</p></div>
+            <div class="step"><h3>绑定到屏</h3><p>再右键监控屏（点任一格都行，大屏的边缘格会转给控制器）。屏幕自动翻到第 4 页。</p></div>
+            <div class="step"><h3>断开</h3><p>手持数据线<strong>潜行右键</strong>监控屏，画面断开，回到数据页。</p></div>
+          </div>
+          <p style="margin:10px 0 0;color:var(--text-dim)">摄像头必须在屏的 64 格内；绑定写在方块 NBT 里，退出重进不会断。画面每 100 ms 取一帧——它是逐条射线采样出来的，不是真的渲染，所以看得清轮廓、看不清细节。</p>
+
           <h4 style="margin-top:18px">融毁倒计时：两种算法</h4>
           <p style="margin:10px 0 0;color:var(--text-dim)">坍缩阶段直接取 DFC 的 <code>explosionIn</code>（精确到秒）；稳定阶段按两颗催化剂 <code>damage</code> 的<strong>实测增长速率</strong>（滑动平均）推算到 100 的时间——<strong>损伤不再增长时不显示预测</strong>，而不是拿写死的速率假装在算。</p>
         </div>
@@ -485,6 +494,7 @@
             <tr><td>切换视图 / 页</td><td>终端左列 <code>1 核心</code> / <code>2 部件</code> / <code>3 曲线</code> / <code>4 自定义</code>。</td></tr>
             <tr><td>绑定一台机器的核心（机器控制面板）</td><td>手持监控数据线右键机器记录，再右键面板，到「控件」页绑 A–F 槽位，保存并应用；急用可潜行右键面板塞进首槽。</td></tr>
             <tr><td>绑定功率计（监控屏读数）</td><td>手持监控数据线右键红色电缆仪表，再右键监控屏。</td></tr>
+            <tr><td>把摄像头接到屏上</td><td>手持监控数据线右键摄像头记录，再右键监控屏，自动翻到第 4 页；潜行右键屏断开。</td></tr>
             <tr><td>改墙屏尺寸</td><td>终端底部「宽度 / 高度」的 − / +。</td></tr>
             <tr><td>打开面板工坊</td><td>终端左列「面板工坊」入口。</td></tr>
             <tr><td>广播一段视频</td><td>放视频广播器 → 右键选视频与选择器 → 「测试广播」→「保存并应用」→ 给个红石上升沿。</td></tr>

@@ -712,6 +712,19 @@ python tools/video/pack.py --frames my_frames alarm --fps 4
 
 前者需要 ffmpeg（找不到时会直说），后者不需要。
 
+`tools/regcheck/check.py` 静态核对「声明了但没有注册」这一类错误——编译器看不见、进游戏才发现：
+
+```bash
+python tools/regcheck/check.py
+```
+
+它解析 `ModContent` 与 `HBMZZ` 的源码，比对四组集合：声明的 Block、注册的 Block；声明的 Item、注册的 Item；每个可放置方块是否有对应物品；每个 `extends TileEntity` 的类是否有注册名。2.3.0 里的两个 bug 正是它现在盯的东西：
+
+- `ITEM_BLOCK_VIDEO_BROADCASTER` 声明了却没交给物品注册表 → 方块没有物品，创造栏里看不到、也放不下来。
+- `TileEntityMonitorCamera` 没注册 → 它靠 `SPacketUpdateTileEntity` 同步名称与朝向，放置时 `onBlockPlacedBy` 的第一句 `setName` 就会调 `writeToNBT`，直接抛 `... is missing a mapping!`，**放下就崩**。
+
+不启动 JVM，几百毫秒跑完，改完 `ModContent` / 任何 TE 都该跑一遍。
+
 ## 从源码构建
 
 需要 **JDK 8** 与 Gradle 4.10.3（ForgeGradle 2.3）。仓库自带 wrapper：

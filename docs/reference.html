@@ -532,6 +532,20 @@ java -Djava.awt.headless=true -cp "tmp/pv;build/classes/java/main;&lt;lwjgl.jar&
                 <pre>./tools/linkercheck/run.sh "&lt;NTM-CE.jar&gt;"</pre>
               </td>
             </tr>
+            <tr>
+              <td><code>tools/videocheck/run.sh</code></td>
+              <td>离线验证视频包能不能被 <code>VideoClip</code> 读出来，并跑一遍名字白名单（<code>../x</code>、<code>a/b</code> 必须被拒）。不碰方块、不碰网络。输出 26 项 PASS。</td>
+              <td>
+                <pre>./tools/videocheck/run.sh</pre>
+              </td>
+            </tr>
+            <tr>
+              <td><code>tools/regcheck/check.py</code></td>
+              <td>静态核对「声明了但没注册」：Block / Item 是否进了对应注册表、每个可放置方块有没有物品、每个 <code>extends TileEntity</code> 的类有没有注册名。2.3.1 修的「广播器没有物品」「摄像头放下就崩」正是这类漏项。纯文本分析，不启动 JVM。</td>
+              <td>
+                <pre>python tools/regcheck/check.py</pre>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

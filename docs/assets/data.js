@@ -238,6 +238,15 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "2.3.1",
+      "title": "两个注册漏项",
+      "items": [
+        "修：视频广播器只有方块、没有物品——ITEM_BLOCK_VIDEO_BROADCASTER 声明了却没交给物品注册表，创造栏里看不到，也放不下来。",
+        "修：监控摄像头放下就崩。TileEntityMonitorCamera 从未注册，而它靠 SPacketUpdateTileEntity 同步名称与朝向，放置时第一次 setName 就调 writeToNBT，直接抛 \"is missing a mapping!\"。",
+        "新增 tools/regcheck/check.py：静态比对「声明的」与「注册的」Block / Item / TileEntity，不进游戏就能抓住这类漏项。"
+      ]
+    },
+    {
       "version": "2.3.0",
       "title": "视频广播器",
       "items": [
@@ -329,12 +338,12 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "2.3.0",
+    "version": "2.3.1",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 237,
-      "javaLines": 44142,
+      "javaLines": 44150,
       "resourceFiles": 132,
       "nodeTypes": 32,
       "controlTypes": 25

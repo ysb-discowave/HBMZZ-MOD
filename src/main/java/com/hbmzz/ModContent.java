@@ -99,6 +99,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_CTRL_PANEL);
         ITEM_BLOCK_CTRL_CONSOLE.setRegistryName(BLOCK_CTRL_CONSOLE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_CTRL_CONSOLE);
+        ITEM_BLOCK_VIDEO_BROADCASTER.setRegistryName(BLOCK_VIDEO_BROADCASTER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_VIDEO_BROADCASTER);
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_SPEED_COIL);
         event.getRegistry().register(ITEM_JUMP_COIL);

@@ -63,6 +63,12 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "ctrl_console"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoBroadcaster.class,
                 new ResourceLocation(MODID, "video_broadcaster"));
+        // The camera syncs its name/channel/aim through SPacketUpdateTileEntity, so
+        // the very first setName() in onBlockPlacedBy calls writeToNBT(). Without a
+        // mapping that throws "TileEntityMonitorCamera is missing a mapping!" and the
+        // game dies the instant the block is placed - not on save, on place.
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityMonitorCamera.class,
+                new ResourceLocation(MODID, "monitor_camera"));
         // The console opens its layout editor through FML's gui packet, so this
         // mod needs a gui handler even though the id is always 0.
         net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(

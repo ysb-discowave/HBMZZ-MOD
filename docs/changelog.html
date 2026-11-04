@@ -73,7 +73,7 @@
     <div class="wrap">
       <div class="section-head">
         <div class="kicker">// 逐版变更</div>
-        <h2>从 2.1.5 到 2.3.0</h2>
+        <h2>从 2.1.5 到 <span data-bind="auto.version">2.3.1</span></h2>
         <p>机器控制面板、节点图控制台与视频广播器的逐版改动。每条尽量讲清「原来怎样 / 现在怎样」，而不是一句「优化了体验」。</p>
       </div>
 
@@ -81,8 +81,20 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.3.0</span>
+            <span class="tl-ver">v2.3.1</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>两个注册漏项</h3>
+          <ul>
+            <li><strong>修：</strong>视频广播器只有方块、没有物品。<code>ITEM_BLOCK_VIDEO_BROADCASTER</code> 声明了却从未交给物品注册表，所以创造栏里看不到，也放不下来。</li>
+            <li><strong>修：</strong>监控摄像头放下就崩。<code>TileEntityMonitorCamera</code> 从未注册，而它靠 <code>SPacketUpdateTileEntity</code> 同步名称与朝向——放置时 <code>onBlockPlacedBy</code> 的第一句 <code>setName</code> 就会调 <code>writeToNBT</code>，直接抛 <code>... is missing a mapping!</code>。不是存档时才炸，是放下的那一瞬间。</li>
+            <li>新增 <code>tools/regcheck/check.py</code>：静态比对「声明的」与「注册的」Block / Item / TileEntity，几百毫秒跑完，不进游戏就能抓住这类漏项。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.3.0</span>
           </div>
           <h3>视频广播器</h3>
           <ul>

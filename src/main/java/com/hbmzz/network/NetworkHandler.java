@@ -55,6 +55,10 @@ public final class NetworkHandler {
                 com.hbmzz.cecp.net.NBTControlPacket.class, 11, Side.SERVER);
         INSTANCE.registerMessage(com.hbmzz.cecp.net.ControlPanelUpdatePacket.Handler.class,
                 com.hbmzz.cecp.net.ControlPanelUpdatePacket.class, 12, Side.CLIENT);
+        // Video broadcaster: settings up, "play this clip" down. The clip itself
+        // never travels - the client already has it in config/hbmzz/videos/.
+        INSTANCE.registerMessage(VideoConfigMessage.Handler.class, VideoConfigMessage.class, 13, Side.SERVER);
+        INSTANCE.registerMessage(VideoBroadcastMessage.Handler.class, VideoBroadcastMessage.class, 14, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

@@ -394,6 +394,81 @@
     </div>
   </section>
 
+  <!-- ================= 07 视频广播器 ================= -->
+  <section class="section" id="video">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 视频广播器</div>
+        <h2>让某个人屏幕当场黑掉，然后开始播片</h2>
+        <p>一个方块，两个字段：播什么、播给谁。红石上升沿一到，被选中的玩家屏幕上没有任何过渡——画面直接切黑，然后开始播，播完自动恢复。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h3>放方块、接红石</h3>
+          <p>正面朝向你，红石线接到任意一面。正面小灯亮起表示正在被驱动。</p>
+        </div>
+        <div class="step">
+          <h3>右键开窗，选视频</h3>
+          <p>输入包名，或者从清单里点一个——清单只列 <code>config/hbmzz/videos/</code> 里真的有的东西。</p>
+        </div>
+        <div class="step">
+          <h3>填广播目标</h3>
+          <p>命令方块那套选择器：<code>@a[r=32]</code>、<code>@p</code>、<code>@a[team=red]</code>。输入框下面会实时告诉你现在匹配到几个人。</p>
+        </div>
+        <div class="step">
+          <h3>先按「测试广播」</h3>
+          <p>它走的是和红石完全相同的那条链路，所以能测通就是真能通。确认没问题再按「保存并应用」——保存本身<strong>不会</strong>触发。</p>
+        </div>
+      </div>
+
+      <div class="grid g3" style="margin-top:22px">
+        <div class="card">
+          <h3>只认上升沿</h3>
+          <p>拉杆一直按着是一次广播，不是每秒二十次。进存档或区块重载后的第一个 tick 只记录电平、不触发——站在红石块旁边上线，不该被自己的机器糊一脸。</p>
+        </div>
+        <div class="card">
+          <h3>轮询而不是听通知</h3>
+          <p>红石按 tick 结算，每 tick 问一次 <code>isBlockPowered</code> 与任何邻居钩子一样快，但不会漏：区块重载回来时是收不到那个「变化」的。这里漏一次，屏幕就永远不接管。</p>
+        </div>
+        <div class="card">
+          <h3>冷却兜底</h3>
+          <p>两次广播至少隔 <code>video.cooldownTicks</code>（默认 20 tick）。漏斗钟、中继器环那种高频信号会被忽略并写进状态行，免得视频变频闪。</p>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="card">
+          <h3>窗口里的两个字段</h3>
+          <p><strong>视频文件</strong>是包名，不是路径；<strong>广播目标</strong>是选择器原文。两者都存进方块 NBT，跟着存档走。窗口只编辑一份工作副本，按保存才发给服务端，服务端会重新校验一遍——包括名字白名单、长度、距离，以及（若开启）管理员权限。</p>
+        </div>
+        <div class="card">
+          <h3>目标是怎么算出来的</h3>
+          <p>解析交给原版 <code>EntitySelector</code>，方块扮成命令等级 2 的发送者。半径和坐标以<strong>方块</strong>为原点。注意 <code>@s</code> 会失败：它表示「执行这条命令的实体」，方块不是实体——而且它不会被偷偷换成 <code>@p</code>，那样在服务器上会广播到别人屏幕去。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h4>视频放哪、长什么样</h4>
+        <p style="color:var(--text-dim);margin:8px 0 12px">放在<strong>客户端</strong>的 <code>config/hbmzz/videos/</code> 下，两种形状都认：</p>
+        <pre>alarm.zip            alarm/
+  meta.json            meta.json
+  f000001.jpg          f000001.jpg
+  f000002.jpg          f000002.jpg
+  audio.wav            audio.wav</pre>
+        <p style="color:var(--text-dim);margin:12px 0 0">meta.json 可以整个省掉：缺省 12 fps，帧数按目录里实际有几张图算。用一条命令把 mp4 打成包：</p>
+        <pre>python tools/video/pack.py alarm.mp4 alarm --fps 12</pre>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>视频要放在每一台需要观看的客户端上。</strong>服务端只发「播 alarm」这几个字，不发帧——30 秒 480p 是几十 MB，网络上传不动，这跟材质包是同一个交易。客户端没有这个文件时，它不会给你一块沉默的黑屏，而是直接报出缺的文件名和它找过的路径。</p>
+          <p>另外，<strong>ESC 默认关不掉</strong>，其它按键也一律吞掉。这是刻意的；<code>video.allowEsc=true</code> 可以恢复，给不想吓人的服务器留了开关。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 常见操作速查 ================= -->
   <section class="section" id="cheatsheet">
     <div class="wrap">
@@ -412,6 +487,7 @@
             <tr><td>绑定功率计（监控屏读数）</td><td>手持监控数据线右键红色电缆仪表，再右键监控屏。</td></tr>
             <tr><td>改墙屏尺寸</td><td>终端底部「宽度 / 高度」的 − / +。</td></tr>
             <tr><td>打开面板工坊</td><td>终端左列「面板工坊」入口。</td></tr>
+            <tr><td>广播一段视频</td><td>放视频广播器 → 右键选视频与选择器 → 「测试广播」→「保存并应用」→ 给个红石上升沿。</td></tr>
           </tbody>
         </table>
       </div>

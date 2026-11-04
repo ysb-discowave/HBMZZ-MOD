@@ -382,6 +382,11 @@
               <td>诅咒版控制台整体移植。方块本体不渲染（ENTITYBLOCK_ANIMATED + 空模型），整个板子连同控件由 TESR 画出，控件是真立体模型。</td>
             </tr>
             <tr>
+              <td>视频广播器</td>
+              <td><code>video_broadcaster</code></td>
+              <td>普通满方块，正面一块小屏 + 状态灯。红石上升沿触发，把选择器选中的玩家屏幕换成一段视频。见 <a href="guide.html#video">使用指南 · 视频广播器</a>。</td>
+            </tr>
+            <tr>
               <td>监控数据线</td>
               <td>—</td>
               <td>一个物品干两件事：记录 DFC 核心 / 功率计并绑定到监控屏；记录可控机器，并当控制台的配置工具用。</td>
@@ -419,6 +424,12 @@
           <pre>铁锭  红石   铁锭
 玻璃板 比较器 玻璃板
 铁锭  红石   铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>视频广播器</h4>
+          <pre>铁锭  玻璃板  铁锭
+红石  侦测器  红石
+铁锭  铁锭    铁锭</pre>
         </div>
       </div>
 
@@ -461,6 +472,12 @@
             <tr><td><code>display.hudRange</code></td><td>16</td><td>HUD 出现的最大距离（格）</td></tr>
             <tr><td><code>display.defaultScreenCols</code> / <code>Rows</code></td><td>2 / 2</td><td>新放置的墙屏跨几格</td></tr>
             <tr><td><code>display.maxScreenCols</code> / <code>Rows</code></td><td>4 / 3</td><td>墙屏尺寸上限</td></tr>
+            <tr><td><code>video.cooldownTicks</code></td><td>20</td><td>两次广播的最小间隔；更快的高频红石被忽略</td></tr>
+            <tr><td><code>video.allowEsc</code></td><td>false</td><td>允许玩家按 ESC 中途退出广播</td></tr>
+            <tr><td><code>video.operatorOnly</code></td><td>false</td><td>只有命令等级 2（管理员）能配置和触发</td></tr>
+            <tr><td><code>video.audio</code></td><td>true</td><td>播放可选音轨；混音器拒绝时静默降级</td></tr>
+            <tr><td><code>video.cacheFrames</code></td><td>6</td><td>解码线程领先播放头几帧，越高越顺、越吃内存</td></tr>
+            <tr><td><code>video.maxWidth</code> / <code>maxHeight</code></td><td>960 / 540</td><td>超过这个尺寸的帧在解码时等比缩小</td></tr>
           </tbody>
         </table>
       </div>

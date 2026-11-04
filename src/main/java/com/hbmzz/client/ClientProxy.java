@@ -83,6 +83,7 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("ammo_12ga"));
         list.add(loc("control_panel"));
         list.add(loc("ctrl_console"));
+        list.add(loc("video_broadcaster"));
         return list;
     }
 
@@ -103,6 +104,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_AMMO);
         list.add(Item.getItemFromBlock(ModContent.BLOCK_CTRL_PANEL));
         list.add(ModContent.ITEM_BLOCK_CTRL_CONSOLE);
+        list.add(ModContent.ITEM_BLOCK_VIDEO_BROADCASTER);
         return list;
     }
 
@@ -114,6 +116,7 @@ public class ClientProxy extends CommonProxy {
         list.add(0);
         list.add(1);
         list.add(2);
+        list.add(0);
         list.add(0);
         list.add(0);
         return list;

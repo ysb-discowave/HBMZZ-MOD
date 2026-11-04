@@ -2,6 +2,7 @@ tile.hbmzz.dfc_monitor.name=DFC Monitor
 tile.hbmzz.monitor_camera.name=Monitor Camera
 tile.hbmzz.control_panel.name=Machine Control Panel
 tile.hbmzz.ctrl_console.name=Machine Control Console
+tile.hbmzz.video_broadcaster.name=Video Broadcaster
 item.hbmzz.monitor_camera.name=Monitor Camera
 item.hbmzz.ctrl_console.name=Machine Control Console
 hbmzz.console.desc=Right-click with the monitor link cable to open the layout editor.

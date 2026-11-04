@@ -57,11 +57,14 @@ public final class ModContent {
     public static final Block BLOCK_CTRL_PANEL = new BlockCtrlPanel();
     /** Cursed-Edition style console: free-form control layout with a node graph. */
     public static final Block BLOCK_CTRL_CONSOLE = new com.hbmzz.cecp.block.BlockCtrlConsole();
+    /** Takes over the screens of the players a selector names. */
+    public static final Block BLOCK_VIDEO_BROADCASTER = new com.hbmzz.block.BlockVideoBroadcaster();
     public static final Item ITEM_LINKER = new ItemMonitorLinker();
     public static final Item ITEM_BLOCK_MONITOR = new ItemBlockMonitor(BLOCK_MONITOR);
     public static final Item ITEM_BLOCK_MONITOR_CAMERA = new ItemBlock(BLOCK_MONITOR_CAMERA);
     public static final Item ITEM_BLOCK_CTRL_PANEL = new ItemBlock(BLOCK_CTRL_PANEL);
     public static final Item ITEM_BLOCK_CTRL_CONSOLE = new ItemBlock(BLOCK_CTRL_CONSOLE);
+    public static final Item ITEM_BLOCK_VIDEO_BROADCASTER = new ItemBlock(BLOCK_VIDEO_BROADCASTER);
 
     public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
     public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
@@ -83,6 +86,7 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_MONITOR_CAMERA);
         event.getRegistry().register(BLOCK_CTRL_PANEL);
         event.getRegistry().register(BLOCK_CTRL_CONSOLE);
+        event.getRegistry().register(BLOCK_VIDEO_BROADCASTER);
     }
 
     @SubscribeEvent
@@ -160,6 +164,20 @@ public final class ModContent {
                 'G', Items.GOLD_INGOT,
                 'E', Items.ENDER_PEARL
         ).setRegistryName(HBMZZ.MODID, "monitor_linker"));
+
+        // Video broadcaster: a glass face to be the screen, an observer because
+        // it is the block that watches for a signal, and redstone to carry it.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "video_broadcaster"),
+                new ItemStack(BLOCK_VIDEO_BROADCASTER),
+                "IGI",
+                "ROR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'O', Item.getItemFromBlock(Blocks.OBSERVER)
+        ).setRegistryName(HBMZZ.MODID, "video_broadcaster"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "monitor_camera"),

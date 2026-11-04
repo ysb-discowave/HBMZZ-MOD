@@ -73,16 +73,32 @@
     <div class="wrap">
       <div class="section-head">
         <div class="kicker">// 逐版变更</div>
-        <h2>从 2.1.5 到 2.2.1</h2>
-        <p>机器控制面板与节点图控制台相关的逐版改动。每条尽量讲清「原来怎样 / 现在怎样」，而不是一句「优化了体验」。</p>
+        <h2>从 2.1.5 到 2.3.0</h2>
+        <p>机器控制面板、节点图控制台与视频广播器的逐版改动。每条尽量讲清「原来怎样 / 现在怎样」，而不是一句「优化了体验」。</p>
       </div>
 
       <div class="timeline">
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.2.1</span>
+            <span class="tl-ver">v2.3.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>视频广播器</h3>
+          <ul>
+            <li>新增方块「视频广播器」：红石上升沿一到，把选中的玩家屏幕整个换成一段视频，播完自动恢复。</li>
+            <li>红石按 tick 轮询判定（不会漏边沿），只认上升沿；进存档 / 区块重载后的第一个 tick 不触发，高频时钟走冷却。</li>
+            <li>目标玩家用原版 <code>EntitySelector</code> 解析：<code>@a</code>、<code>@p</code>、<code>@r</code>、<code>@a[r=32]</code> 都行；方块扮成命令等级 2 的发送者，<code>@s</code> 会明确失败而不是偷偷换成 <code>@p</code>。</li>
+            <li>视频是 <code>config/hbmzz/videos/</code> 里的帧序列包（zip 或目录 + <code>meta.json</code> + 可选 <code>audio.wav</code>），用 JRE 自带的 <code>ImageIO</code> 解码，不带任何原生库。</li>
+            <li>解码在后台线程，只保留固定帧数的窗口；播放按时钟走，跟不上就丢帧而不是把声音拖慢。</li>
+            <li>客户端缺文件时直接报出缺的文件名与路径，不是一块沉默的黑屏。</li>
+            <li>新增 <code>tools/video/pack.py</code>（mp4 或现成图片 → 包）与 <code>tools/videocheck</code>（离线验证包能被读出来）。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.2.1</span>
           </div>
           <h3>带 OBJ 模型的附属控件</h3>
           <ul>

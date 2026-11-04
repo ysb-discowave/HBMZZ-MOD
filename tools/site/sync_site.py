@@ -212,6 +212,17 @@ def main() -> int:
             print("OK       docs/assets/data.js 与仓库状态一致")
 
         problems = check_pages(payload)
+        # mcmod.info 里的 version 是游戏内模组列表显示的那个，它和 build.gradle
+        # 各写一份，最容易悄悄漂掉（jar 名 2.3.0、列表里 2.0.0）。
+        info = os.path.join(ROOT, "src", "main", "resources", "mcmod.info")
+        if os.path.exists(info):
+            m = re.search(r'"version"\s*:\s*"([^"]+)"', read(info))
+            if not m:
+                problems.append(("FAIL", "mcmod.info 里找不到 version 字段"))
+            elif m.group(1) != payload["auto"]["version"]:
+                problems.append(("FAIL", "mcmod.info 的 version 是 %s，build.gradle 是 %s"
+                                 % (m.group(1), payload["auto"]["version"])))
+
         for level, msg in problems:
             print("%-8s %s" % (level, msg))
         if problems:

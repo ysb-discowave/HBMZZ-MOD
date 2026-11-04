@@ -40,4 +40,12 @@ public class CommonProxy {
      */
     public void openControlPanel(BlockPos pos) {
     }
+
+    /**
+     * Opens the video broadcaster's settings window. Client only; a dedicated
+     * server never needs to know the window exists, it just carries the two
+     * packets.
+     */
+    public void openVideoBroadcaster(BlockPos pos) {
+    }
 }

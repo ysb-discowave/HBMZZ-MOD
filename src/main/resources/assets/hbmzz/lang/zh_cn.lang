@@ -2,6 +2,7 @@ tile.hbmzz.dfc_monitor.name=DFC 监控屏
 tile.hbmzz.monitor_camera.name=监控摄像头
 tile.hbmzz.control_panel.name=机器控制面板
 tile.hbmzz.ctrl_console.name=机器控制台
+tile.hbmzz.video_broadcaster.name=视频广播器
 item.hbmzz.monitor_camera.name=监控摄像头
 item.hbmzz.ctrl_console.name=机器控制台
 hbmzz.console.desc=手持监控数据线右键打开布局编辑器。

@@ -47,6 +47,15 @@ public final class HBMZZConfig {
     public static int maxScreenCols = 4;
     public static int maxScreenRows = 3;
 
+    // ---- video broadcaster ----
+    public static int videoCooldownTicks = 20;
+    public static boolean videoAllowEsc = false;
+    public static boolean videoOperatorOnly = false;
+    public static boolean videoAudio = true;
+    public static int videoCacheFrames = 6;
+    public static int videoMaxWidth = 960;
+    public static int videoMaxHeight = 540;
+
     private HBMZZConfig() {
     }
 
@@ -90,6 +99,20 @@ public final class HBMZZConfig {
                     "Hard cap for the wall screen width, in blocks.");
             maxScreenRows = cfg.getInt("maxScreenRows", "display", 3, 1, 6,
                     "Hard cap for the wall screen height, in blocks.");
+            videoCooldownTicks = cfg.getInt("cooldownTicks", "video", 20, 1, 200,
+                    "Minimum ticks between two broadcasts; a faster redstone clock is ignored.");
+            videoAllowEsc = cfg.getBoolean("allowEsc", "video", false,
+                    "Let players press ESC to leave a broadcast. False keeps the full-screen takeover until the clip ends.");
+            videoOperatorOnly = cfg.getBoolean("operatorOnly", "video", false,
+                    "Require command level 2 (operator) to save settings or test-fire. The redstone trigger has no player behind it and is unaffected.");
+            videoAudio = cfg.getBoolean("audio", "video", true,
+                    "Play the optional audio.wav track. Silently skipped when the mixer refuses it.");
+            videoCacheFrames = cfg.getInt("cacheFrames", "video", 6, 2, 24,
+                    "Decoded frames kept ahead of the playhead. Higher is smoother and uses more RAM.");
+            videoMaxWidth = cfg.getInt("maxWidth", "video", 960, 128, 1920,
+                    "Video frames wider than this are scaled down on decode.");
+            videoMaxHeight = cfg.getInt("maxHeight", "video", 540, 128, 1080,
+                    "Video frames taller than this are scaled down on decode.");
         } finally {
             if (cfg.hasChanged()) {
                 cfg.save();

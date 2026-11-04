@@ -61,6 +61,8 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "control_panel"));
         GameRegistry.registerTileEntity(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,
                 new ResourceLocation(MODID, "ctrl_console"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoBroadcaster.class,
+                new ResourceLocation(MODID, "video_broadcaster"));
         // The console opens its layout editor through FML's gui packet, so this
         // mod needs a gui handler even though the id is always 0.
         net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(

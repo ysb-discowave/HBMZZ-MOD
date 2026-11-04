@@ -238,6 +238,19 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "2.3.0",
+      "title": "视频广播器",
+      "items": [
+        "新增视频广播器方块：红石上升沿触发，把选中的玩家屏幕整个换成一段视频，播完自动恢复。",
+        "红石按 tick 轮询判定，只认上升沿；进存档 / 区块重载后的第一个 tick 不触发，高频时钟走冷却。",
+        "目标玩家用原版 EntitySelector 解析（@a / @p / @r / 带方括号参数），方块扮成命令等级 2 的发送者。",
+        "视频是 config/hbmzz/videos/ 里的帧序列包（zip 或目录 + meta.json + 可选 audio.wav），用 JRE 自带的 ImageIO 解码，不带任何原生库。",
+        "解码在后台线程，只保留固定帧数的窗口；播放按时钟走，跟不上就丢帧而不是拖慢声音。",
+        "客户端缺文件时显示缺的文件名与路径，不是一块沉默的黑屏。",
+        "新增 tools/video/pack.py（mp4 或现成图片 → 包）与 tools/videocheck（离线验证包能被读出来）。"
+      ]
+    },
+    {
       "version": "2.2.1",
       "title": "带 OBJ 模型的附属控件",
       "items": [
@@ -316,16 +329,16 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "2.2.1",
+    "version": "2.3.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 223,
-      "javaLines": 41543,
-      "resourceFiles": 125,
+      "javaFiles": 237,
+      "javaLines": 44142,
+      "resourceFiles": 132,
       "nodeTypes": 32,
       "controlTypes": 25
     },
-    "generatedAt": "2026-11-03"
+    "generatedAt": "2026-11-04"
   }
 };

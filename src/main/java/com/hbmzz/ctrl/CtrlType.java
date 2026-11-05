@@ -51,7 +51,17 @@ public enum CtrlType {
     SWITCH("拨动开关", true, 2, 3, 2, 2),
     ROTARY("旋钮开关", true, 3, 3, 2, 2),
     KNOB("旋钮", true, 3, 3, 2, 2),
-    SLIDER("滑杆", true, 2, 6, 2, 3);
+    SLIDER("滑杆", true, 2, 6, 2, 3),
+
+    // ---- the third family: a window onto every slot -----------------------
+    //
+    // Deliberately neither readout nor operator. A readout shows one key of one
+    // machine; an operator pushes one value at one machine. The terminal does
+    // both, on any of the six, chosen at runtime by the person typing - which
+    // is why it cannot be expressed as either without lying about which machine
+    // it owns. It is the only control whose `link` means "where I am looking
+    // right now" rather than "what I am wired to".
+    TERMINAL("终端", false, 8, 6, 3, 3);
 
     public static final CtrlType[] ALL = values();
 
@@ -82,12 +92,23 @@ public enum CtrlType {
 
     /** True when it reads from a machine, i.e. it needs a data key. */
     public boolean usesKey() {
-        return !this.operator;
+        return !this.operator && this != TERMINAL;
     }
 
     /** True when it writes to a machine, i.e. it needs an event name. */
     public boolean usesEvent() {
         return this.operator;
+    }
+
+    /**
+     * True for the one control that addresses machines by command line.
+     *
+     * <p>Kept as a test rather than a fourth field on the enum because every
+     * other distinction here is about direction (in or out), and the terminal
+     * has no fixed direction to record.</p>
+     */
+    public boolean isTerminal() {
+        return this == TERMINAL;
     }
 
     /**
@@ -147,6 +168,8 @@ public enum CtrlType {
                 return "连续旋钮，量程内取值";
             case SLIDER:
                 return "上下推杆，量程内取值";
+            case TERMINAL:
+                return "命令行读写 A–F 任意机器，右键开窗";
             default:
                 return "";
         }

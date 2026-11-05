@@ -59,6 +59,9 @@ public final class NetworkHandler {
         // never travels - the client already has it in config/hbmzz/videos/.
         INSTANCE.registerMessage(VideoConfigMessage.Handler.class, VideoConfigMessage.class, 13, Side.SERVER);
         INSTANCE.registerMessage(VideoBroadcastMessage.Handler.class, VideoBroadcastMessage.class, 14, Side.CLIENT);
+        // Panel terminal: one typed line up, the lines it printed back down.
+        INSTANCE.registerMessage(TerminalInputMessage.Handler.class, TerminalInputMessage.class, 15, Side.SERVER);
+        INSTANCE.registerMessage(TerminalReplyMessage.Handler.class, TerminalReplyMessage.class, 16, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

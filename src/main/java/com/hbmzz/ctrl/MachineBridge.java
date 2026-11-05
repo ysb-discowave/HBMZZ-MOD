@@ -232,7 +232,32 @@ public final class MachineBridge {
         link.keys.addAll(keysOf(tile));
         link.events.clear();
         link.events.addAll(eventsOf(tile));
+        link.vars.clear();
+        link.vars.putAll(varsOf(tile));
         return true;
+    }
+
+    /**
+     * Event name to the variable it carries, for the machines we have a
+     * transcribed vocabulary for.
+     *
+     * <p>Only the known table can answer this: NTM's {@code IControllable}
+     * announces <em>which</em> events it takes but not what a caller is expected
+     * to put in them, so an addon machine's variable name is genuinely
+     * unknowable without reading its code. An empty answer is therefore normal
+     * and means "type the variable yourself", not "there is none".</p>
+     */
+    public static Map<String, String> varsOf(TileEntity tile) {
+        Map<String, String> out = new LinkedHashMap<String, String>();
+        String[][] known = KNOWN_EVENTS.get(tile == null ? "" : tile.getClass().getSimpleName());
+        if (known != null) {
+            for (String[] pair : known) {
+                if (pair.length > 1 && !pair[1].isEmpty()) {
+                    out.put(pair[0], pair[1]);
+                }
+            }
+        }
+        return out;
     }
 
     /** Data keys the machine reports right now; empty when it reports nothing. */

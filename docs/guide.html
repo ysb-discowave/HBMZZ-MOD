@@ -229,7 +229,7 @@
         <h3 style="margin-bottom:8px">它凭什么能操控别人的机器</h3>
         <p style="color:var(--text-dim);font-size:14px;margin:0">
           抄了诅咒版给机器定的两条动词：机器 → 面板用 <code>IControllable.getQueryData()</code> 返回「名字→数值/字符串」表，面板 → 机器用 <code>IControllable.receiveEvent(pos, ControlEvent)</code> 收一条带命名变量的事件，<code>getInEvents()</code> 让机器声明自己接受哪些事件名。
-          <strong>反射不是编译依赖</strong>：<code>ctrl.MachineBridge</code> 反射找接口、缓存方法句柄，找不到就降级成「面板读不到数据」并在侧栏写明原因，不会在启动时崩。事件词表是抄来的（<code>rbmk_ctrl_set_level</code>、<code>rbmk_crane_move</code>、<code>tank_set_mode</code>、<code>turret_switch</code>、<code>turret_set_target</code>、<code>siren_set_state</code>、<code>door_toggle</code>、<code>lever_toggle</code>、<code>spinny_light_power</code> 等），本模组换成了扁平写法：6 个机器槽位 + 13 种控件 + 一句话规则。
+          <strong>反射不是编译依赖</strong>：<code>ctrl.MachineBridge</code> 反射找接口、缓存方法句柄，找不到就降级成「面板读不到数据」并在侧栏写明原因，不会在启动时崩。事件词表是抄来的（<code>rbmk_ctrl_set_level</code>、<code>rbmk_crane_move</code>、<code>tank_set_mode</code>、<code>turret_switch</code>、<code>turret_set_target</code>、<code>siren_set_state</code>、<code>door_toggle</code>、<code>lever_toggle</code>、<code>spinny_light_power</code> 等），本模组换成了扁平写法：6 个机器槽位 + 14 种控件 + 一句话规则。
         </p>
       </div>
 
@@ -237,7 +237,7 @@
         <div class="card">
           <h3>面板结构</h3>
           <p style="margin:0 0 8px">版面 32×18 格（1 格 = 8 逻辑像素，共 256×144 画布），编辑器与方块面共用同一个 <code>CtrlPainter</code>。控件和规则只指向<strong>槽位</strong>，整体可复制到另一台反应堆旁、只重绑槽位。上限 24 控件、6 条联动规则；绑定距离 24 格、只在服务端校验——不在范围内的槽位会被清空但保留指向它的控件。</p>
-          <h4 style="margin:14px 0 8px">13 种控件</h4>
+          <h4 style="margin:14px 0 8px">14 种控件</h4>
           <div class="table-wrap">
             <table>
               <thead><tr><th>显示件（读机器）</th><th>操作件（写机器）</th></tr></thead>
@@ -249,6 +249,7 @@
                 <tr><td>文本屏</td><td>旋钮（连续）</td></tr>
                 <tr><td>指针表盘</td><td>滑杆（上下推杆）</td></tr>
                 <tr><td>条图</td><td></td></tr>
+                <tr><td colspan="2"><b>终端</b>（读写任意槽位，右键开窗）</td></tr>
               </tbody>
             </table>
           </div>
@@ -261,7 +262,7 @@
               <thead><tr><th>页签</th><th>作用</th></tr></thead>
               <tbody>
                 <tr><td><b>运行</b></td><td>操作台：拖动旋钮/滑杆、单击开关与急停，下部是 A–F 六个槽位实时状态。</td></tr>
-                <tr><td><b>控件</b></td><td>13 个控件库、画布、右侧检查器（标签/槽位/数据键/事件/变量/量程/档位/小数/配色）。</td></tr>
+                <tr><td><b>控件</b></td><td>14 个控件库、画布、右侧检查器（标签/槽位/数据键/事件/变量/量程/档位/小数/配色）。</td></tr>
                 <tr><td><b>联动</b></td><td>一句话规则：<code>当 [A] 的 [heat] 大于 [900] → 则 [B] 发 [rbmk_ctrl_set_level] 的 [level] = [0]</code>，含冷却与启停。</td></tr>
               </tbody>
             </table>
@@ -279,6 +280,53 @@
       <div class="panel panel--flat" style="margin-top:18px">
         <h3 style="margin-bottom:8px">操控与规则怎么生效</h3>
         <p style="color:var(--text-dim);font-size:14px;margin:0">每 10 tick（0.5 秒）由 <code>CtrlEngine</code> 走一轮——每台机器只采样一次（<code>getQueryData</code> 是反射调用，也是唯一贵的地方），再刷控件、跑规则。点旋钮只发「第几个 + 多少」，事件名、变量名、机器坐标都在服务端副本里，改过的客户端不能把 3 号旋钮改写成对任意方块发任意指令。规则服务端判、冷却真锁（默认 5 秒）；设计进 NBT，运行时（读数、急停锁定、冷却）不进。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px" id="terminal">
+        <h3 style="margin-bottom:8px">终端控件：一块面板上的一台命令行</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
+          表盘适合「一直看着某个数」，不适合「现在告诉我 4 号机组的蒸汽压力是多少」。终端就是为后者加的：它不绑某一台机器，它绑<strong>这块面板</strong>——A–F 六台上绑着的机器它都能读写，当场切换目标。到「控件」页把「终端」拖到画布上、保存，回「运行」页<strong>右键它</strong>（左键也行）就开窗。
+        </p>
+
+        <div class="grid g2" style="align-items:start">
+          <div>
+            <h4 style="margin:0 0 8px">命令</h4>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>命令</th><th>作用</th></tr></thead>
+                <tbody>
+                  <tr><td><code>ls</code></td><td>列出 A–F：名字、坐标、可读键数、可发事件数。<code>▸</code> 是当前目标。</td></tr>
+                  <tr><td><code>use B</code></td><td>切换目标（也认 <code>sel</code>；只写字母即可）。</td></tr>
+                  <tr><td><code>read</code> / <code>read heat</code></td><td>读这台机器的全部数据，或只读一个键。</td></tr>
+                  <tr><td><code>keys</code></td><td>只列可读的键名。</td></tr>
+                  <tr><td><code>events</code></td><td>列出它接受的事件，以及每个事件带的变量。</td></tr>
+                  <tr><td><code>ev &lt;事件&gt; [变量=值]…</code></td><td>发事件，例如 <code>ev rbmk_ctrl_set_level level=40</code>；不带等号的词按 1 处理，适合 <code>turret_set_target passive</code> 这种开关量。</td></tr>
+                  <tr><td><code>set &lt;变量&gt; &lt;值&gt;</code></td><td>知道变量名就够了，终端自己找对应的事件。</td></tr>
+                  <tr><td><code>help</code> / <code>clear</code></td><td>命令列表 / 清屏（历史仍可用 <kbd>↑</kbd> 取回）。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h4 style="margin:0 0 8px">补全与切换</h4>
+            <p style="font-size:14px;color:var(--text-dim);margin:0 0 10px">
+              <kbd>Tab</kbd> 按上下文给候选：第一格是命令名，<code>use </code> 之后是<strong>已绑定</strong>的槽位（空格位不出现），<code>read </code> 之后是这台机器上报的键，<code>ev </code> 之后是它接受的事件，再往后补出该事件的变量名（<code>level=</code>）。多个候选时列表浮在输入框上方，继续 <kbd>Tab</kbd> 循环、<kbd>Shift</kbd>+<kbd>Tab</kbd> 反向、<kbd>Enter</kbd> 采用并执行。
+            </p>
+            <p style="font-size:14px;color:var(--text-dim);margin:0 0 10px">
+              目标机器有两个入口：窗口上方 <strong>A–F 六个标签</strong>点一下，或直接打 <code>use B</code>。提示符会跟着变成 <code>B&gt;</code>，面板上那块终端贴纸也会显示同一个目标——存档里存的是同一个字段，所以多人看到的目标一致，不是各看各的。
+            </p>
+            <p style="font-size:14px;color:var(--text-dim);margin:0">
+              <kbd>↑</kbd><kbd>↓</kbd> 取回历史，<kbd>PgUp</kbd>/<kbd>PgDn</kbd> 翻屏，<kbd>Esc</kbd> 回到面板。刚放下的终端会自己指向第一个已绑定槽位；目标槽位被解绑时自动落到下一台。
+            </p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>为什么它不能越权</h4>
+            <p style="margin:6px 0 0">窗口只把<strong>一行文本</strong>交给服务端；机器、事件、变量都由服务端拿着自己那份面板解析。改过的客户端能打任意字，但能做的事和它手动转一个旋钮完全一样，不多一件。命令限速每秒 10 条，因为旋钮一次只发一个值，而回车可以一直按。</p>
+          </div>
+        </div>
       </div>
 
       <div class="note note--red" style="margin-top:18px">

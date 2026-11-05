@@ -24,6 +24,7 @@ import com.hbmzz.ctrl.CtrlPanel;
 import com.hbmzz.ctrl.CtrlRule;
 import com.hbmzz.ctrl.CtrlWidget;
 import com.hbmzz.ctrl.MachineBridge;
+import com.hbmzz.ctrl.TerminalShell;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -52,6 +53,8 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
 
     /** How far a machine may be from the panel and still be bindable. */
     public static final int LINK_RANGE = 24;
+    /** Terminal commands accepted per second, across all of a panel's terminals. */
+    private static final int TERMINAL_BURST = 10;
 
     private CtrlPanel panel = CtrlPanel.defaults();
     private int timer = CtrlEngine.TICK;
@@ -59,6 +62,9 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
     private boolean linksDirty = true;
     /** Set when an operator turn should reach nearby clients on the next round. */
     private boolean pendingSync;
+    /** Rate limit for the terminal, in whole seconds of world time. */
+    private long terminalSecond = -1L;
+    private int terminalUsed;
 
     public CtrlPanel getPanel() {
         return this.panel;
@@ -156,6 +162,45 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
             // everyone else catches up on the next half-second round.
             this.pendingSync = true;
         }
+    }
+
+    /**
+     * Runs one line typed into a terminal control.
+     *
+     * <p>All of the authority lives here, not in the window: the index of the
+     * control, the panel it belongs to and the machines it may reach are the
+     * server's copy. A modified client can therefore type anything, and the
+     * worst it can do is the same thing the panel could already do by hand.</p>
+     *
+     * <p>Throttled, because unlike a knob a terminal can emit an unbounded
+     * number of events per second and each one lands in somebody's reactor.
+     * Ten a second is far above typing speed and far below a flood.</p>
+     */
+    public TerminalShell.Result runTerminal(int index, String line, TerminalShell.Sink sink) {
+        TerminalShell.Result result = new TerminalShell.Result();
+        if (this.world == null || this.world.isRemote || sink == null) {
+            return result;
+        }
+        CtrlWidget widget = this.panel.get(index);
+        if (widget == null || !widget.type.isTerminal()) {
+            sink.err("这个控件不是终端。");
+            return result;
+        }
+        long second = this.world.getTotalWorldTime() / 20L;
+        if (second != this.terminalSecond) {
+            this.terminalSecond = second;
+            this.terminalUsed = 0;
+        }
+        if (++this.terminalUsed > TERMINAL_BURST) {
+            sink.err("命令太频繁了，等一秒再来。");
+            return result;
+        }
+        result = TerminalShell.execute(this.panel, widget, this.world, line, sink);
+        if (result.dirty) {
+            markDirty();
+            sync();
+        }
+        return result;
     }
 
     // ------------------------------------------------------------------ tick

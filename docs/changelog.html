@@ -81,8 +81,24 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.3.2</span>
+            <span class="tl-ver">v2.4.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>控制面板的终端</h3>
+          <ul>
+            <li><strong>新增控件「终端」：</strong>放在面板上，右键开一个命令行窗口，用 <code>ls</code> / <code>use</code> / <code>read</code> / <code>ev</code> / <code>set</code> 直接读写 A–F 上绑定的任意一台机器——不必再为了一个读数摆一排表盘。</li>
+            <li><strong>目标机器随时切换。</strong>窗口上方 A–F 六个标签点一下就换，也可以打 <code>use B</code>；当前目标写在提示符里（<code>B&gt;</code>），并随面板存档同步，多人看到的是同一个目标。</li>
+            <li><strong>Tab 补全按上下文给选项：</strong>命令名、已绑定槽位、当前机器的数据键、该事件携带的变量（<code>ev rbmk_ctrl_set_level </code> 之后补出 <code>level=</code>）。<kbd>Shift</kbd>+<kbd>Tab</kbd> 反向，<kbd>↑</kbd><kbd>↓</kbd> 取回历史，<kbd>PgUp</kbd>/<kbd>PgDn</kbd> 翻屏。</li>
+            <li><strong>命令在服务端解析。</strong>客户端只送一行文本，不送机器坐标、不送事件名——终端的安全边界因此与旋钮完全一致：能做的手动也能做，做不到的照样做不到。</li>
+            <li>终端命令限速每秒 10 条；失败会说明原因（没选目标 / 槽位是空的 / 机器已不在 / 事件被拒），不给沉默。</li>
+            <li>刚放下的终端会自己指向第一个已绑定槽位；目标槽位被解绑时自动回落到下一台，不会挂在一格空气上。</li>
+            <li>离线自检 <code>tools/termcheck</code>（38 项）跑的是真 <code>TerminalShell</code>，覆盖补全的起始位置、前缀过滤、变量补全与命令分发；<code>tools/regcheck</code> 加三条：每种控件是否都有绘制分支、是否都有面板说明、终端的命令表与 <code>help</code> 文本是否一致。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.3.2</span>
           </div>
           <h3>连不上的线，点不开的窗</h3>
           <ul>

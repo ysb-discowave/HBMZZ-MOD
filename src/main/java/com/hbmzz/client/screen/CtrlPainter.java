@@ -120,6 +120,9 @@ public final class CtrlPainter {
                 case SLIDER:
                     paintSlider(g2, widget, x, y, w, h);
                     break;
+                case TERMINAL:
+                    paintTerminal(g2, widget, x, y, w, h);
+                    break;
                 default:
                     paintPlate(g2, x, y, w, h, false);
                     break;
@@ -504,6 +507,83 @@ public final class CtrlPainter {
         if (h >= 26) {
             caption(g, widget, x, y, h);
         }
+    }
+
+    /**
+     * A terminal is painted as what it is: a small glowing screen sunk into the
+     * plate, with the machine it is pointing at and a cursor.
+     *
+     * <p>No knobs, no needle - the shape has to say "this one you type at" from
+     * across the room, because every other control here is something you grab.
+     * The scanlines are one-pixel lines drawn straight into the AWT sheet; at
+     * this size they cost nothing and they are the difference between "a dark
+     * rectangle" and "a powered display".</p>
+     */
+    private static void paintTerminal(Graphics2D g, CtrlWidget widget, int x, int y, int w, int h) {
+        paintPlate(g, x, y, w, h, false);
+        int inset = Math.max(3, Math.min(5, h / 8));
+        int sx = x + inset;
+        int sy = y + inset;
+        int sw = w - inset * 2;
+        int sh = h - inset * 2;
+        if (sw < 6 || sh < 6) {
+            return;
+        }
+        g.setPaint(new GradientPaint(sx, sy, new Color(0x0A1310), sx, sy + sh, new Color(0x040706)));
+        g.fill(new RoundRectangle2D.Float(sx, sy, sw, sh, 3, 3));
+        g.setColor(new Color(0x2A3A34));
+        g.setStroke(new BasicStroke(1F));
+        g.draw(new RoundRectangle2D.Float(sx + 0.5F, sy + 0.5F, sw - 1, sh - 1, 3, 3));
+        // Scanlines, clipped by starting and ending inside the screen.
+        g.setColor(new Color(95, 217, 192, 18));
+        for (int line = sy + 3; line < sy + sh - 1; line += 3) {
+            g.drawLine(sx + 1, line, sx + sw - 2, line);
+        }
+
+        boolean bound = widget.link >= 0;
+        Color phosphor = bound ? new Color(0x5FD9C0) : new Color(0x6B5A3E);
+        String target = widget.text == null || widget.text.isEmpty() ? "未接机器" : widget.text;
+
+        // Caption, then the target line, then the prompt row. Drawn top-down
+        // with a floor so a 3-cell terminal still shows the target, which is
+        // the one thing it has to say.
+        int pad = 4;
+        int baseline = sy + sh - pad;
+        Font mono = ScreenFonts.mono(9);
+        Font font = ScreenFonts.hasCjk(target) ? ScreenFonts.cjk(9) : mono;
+        if (h >= 40) {
+            g.setFont(ScreenFonts.cjk(8));
+            g.setColor(TEXT_DIM);
+            g.drawString(clipWidth(g, widget.label, sw - pad * 2, ScreenFonts.cjk(8)), sx + pad, sy + 11);
+            baseline = sy + sh - pad - 4;
+        }
+        int caretW = 4;
+        g.setFont(font);
+        FontMetrics metrics = g.getFontMetrics();
+        String shown = clipWidth(g, target, sw - pad * 2 - caretW - 8, font);
+        g.setColor(phosphor);
+        g.drawString(">", sx + pad, baseline);
+        int promptW = metrics.stringWidth("> ");
+        g.drawString(shown, sx + pad + promptW, baseline);
+        int caretX = sx + pad + promptW + metrics.stringWidth(shown) + 2;
+        if (caretX + caretW < sx + sw - 2) {
+            g.setColor(phosphor);
+            g.fillRect(caretX, baseline - 7, caretW, 8);
+        }
+    }
+
+    /** Truncates with an ellipsis to a pixel budget. */
+    private static String clipWidth(Graphics2D g, String value, int room, Font font) {
+        g.setFont(font);
+        FontMetrics metrics = g.getFontMetrics();
+        String text = value == null ? "" : value;
+        if (metrics.stringWidth(text) <= room) {
+            return text;
+        }
+        while (text.length() > 1 && metrics.stringWidth(text + "…") > room) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text + "…";
     }
 
     private static void paintSlider(Graphics2D g, CtrlWidget widget, int x, int y, int w, int h) {

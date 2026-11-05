@@ -60,7 +60,7 @@ public final class CtrlEngine {
 
         boolean changed = false;
         for (CtrlWidget widget : panel.widgets) {
-            changed |= refreshWidget(widget, samples);
+            changed |= refreshWidget(panel, widget, samples);
         }
         for (CtrlRule rule : panel.rules) {
             changed |= runRule(rule, panel, samples, world, now);
@@ -68,7 +68,10 @@ public final class CtrlEngine {
         return changed;
     }
 
-    private static boolean refreshWidget(CtrlWidget widget, MachineBridge.Sample[] samples) {
+    private static boolean refreshWidget(CtrlPanel panel, CtrlWidget widget, MachineBridge.Sample[] samples) {
+        if (widget.type.isTerminal()) {
+            return refreshTerminal(panel, widget);
+        }
         if (widget.isOperator()) {
             return false;
         }
@@ -90,6 +93,50 @@ public final class CtrlEngine {
         boolean changed = Math.abs(value - widget.value) > 1.0E-4D || !text.equals(widget.text);
         widget.value = value;
         widget.text = text;
+        return changed;
+    }
+
+    /**
+     * Keeps a terminal's target slot honest and its caption current.
+     *
+     * <p>The terminal addresses a slot chosen at runtime, so there are two ways
+     * for it to end up pointing nowhere: it was just placed (link -1), or the
+     * slot it was looking at was unbound while it was looking at it. Both heal
+     * themselves by falling back to the first machine that is actually there -
+     * a terminal showing "未接机器" on a panel with five live machines is a
+     * control the operator has to fix by hand for no reason.</p>
+     *
+     * <p>Note that this writes a design field from the tick loop. That is safe
+     * here and only here: the value is derived entirely from the panel's own
+     * links, so it cannot disagree with what the player sees, and it stops
+     * changing the moment a valid slot is selected.</p>
+     */
+    private static boolean refreshTerminal(CtrlPanel panel, CtrlWidget widget) {
+        boolean changed = false;
+        if (widget.link < 0 || widget.link >= CtrlPanel.LINKS || panel.links[widget.link].isEmpty()) {
+            int pick = -1;
+            for (int i = 0; i < CtrlPanel.LINKS; i++) {
+                if (!panel.links[i].isEmpty()) {
+                    pick = i;
+                    break;
+                }
+            }
+            if (pick != widget.link) {
+                widget.link = pick;
+                changed = true;
+            }
+        }
+        String text;
+        if (widget.link < 0) {
+            text = "未接机器";
+        } else {
+            CtrlLink link = panel.links[widget.link];
+            text = CtrlLink.letter(widget.link) + " · " + (link.label.isEmpty() ? "机器" : link.label);
+        }
+        if (!text.equals(widget.text)) {
+            widget.text = text;
+            changed = true;
+        }
         return changed;
     }
 

@@ -322,6 +322,11 @@ public class CtrlCanvas {
                 // out on purpose: clicking a gauge should do nothing rather
                 // than swallow the click.
                 add("run:" + i, x, y, w, h);
+            } else if (widget.type.isTerminal()) {
+                // A terminal is the other exception: it is the one control on
+                // a working panel that opens something instead of moving
+                // something.
+                add("term:" + i, x, y, w, h);
             }
         }
         if (panel.widgets.isEmpty()) {
@@ -412,6 +417,7 @@ public class CtrlCanvas {
                 "· 旋钮 / 滑杆:按住左键拖动",
                 "· 开关 / 按钮:左键单击",
                 "· 急停:单击按下,再单击复位",
+                "· 终端:左键或右键开窗",
                 "· 显示类控件只读",
         };
         for (String line : lines) {
@@ -461,10 +467,13 @@ public class CtrlCanvas {
 
         // Palette: three columns. Two columns looked roomier per button but
         // pushed the inspector off the bottom of the sheet, and the inspector
-        // is where the work happens.
+        // is where the work happens. The row count is derived, not written
+        // down: a literal here silently overlapped the inspector the first
+        // time a type was added.
         int cellW = 68;
         int cellH = 18;
-        for (int i = 0; i < CtrlType.palette().length; i++) {
+        int types = CtrlType.palette().length;
+        for (int i = 0; i < types; i++) {
             int col = i % 3;
             int row = i / 3;
             int cx = x + col * (cellW + 6);
@@ -473,7 +482,8 @@ public class CtrlCanvas {
             chip(g, cx, cy, cellW, cellH, type.label(), mouseX, mouseY, false);
             add("add:" + type.name(), cx, cy, cellW, cellH);
         }
-        y += 5 * (cellH + 3) + 6;
+        int paletteRows = (types + 2) / 3;
+        y += paletteRows * (cellH + 3) + 6;
         g.setColor(new Color(0x2A323B));
         g.drawLine(x, y, x + SIDE_W, y);
         y += 14;
@@ -487,57 +497,72 @@ public class CtrlCanvas {
             return;
         }
 
-        CtrlPainter.text(g, widget.type.label() + (widget.isOperator() ? "（操作件）" : "（显示件）"),
+        CtrlPainter.text(g, widget.type.label()
+                        + (widget.type.isTerminal() ? "（终端）" : (widget.isOperator() ? "（操作件）" : "（显示件）")),
                 x, y, ScreenFonts.cjk(9), new Color(0x6FD3FF));
         y += 14;
 
         y = field(g, x, y, "标签", widget.label, "field:label", mouseX, mouseY);
 
         // Slot stepper. Named wslot, not slot: the slots row below already owns
-        // the "slot:<n>:bind" ids and the two must not be confused.
-        y = stepper(g, x, y, "槽位", CtrlLink.letter(widget.link), "wslot:-", "wslot:+", mouseX, mouseY);
+        // the "slot:<n>:bind" ids and the two must not be confused. A terminal
+        // reads it as its target because that is what it means there - the
+        // machine it is talking to right now, not a wire.
+        y = stepper(g, x, y, widget.type.isTerminal() ? "目标" : "槽位",
+                CtrlLink.letter(widget.link), "wslot:-", "wslot:+", mouseX, mouseY);
 
-        if (widget.type.usesKey()) {
-            y = field(g, x, y, "数据键", widget.key.isEmpty() ? "（未选）" : widget.key, "field:key", mouseX, mouseY);
-            int keys = widget.bound() ? panel.links[widget.link].keys.size() : 0;
-            if (widget.bound() && keys > 0) {
-                chip(g, x + SIDE_W - 40, y - 15, 40, 13, "选键", mouseX, mouseY, false);
-                add("pickkey", x + SIDE_W - 40, y - 15, 40, 13);
-            }
-        }
-        if (widget.type.usesEvent()) {
-            y = field(g, x, y, "事件", widget.event.isEmpty() ? "（未选）" : widget.event, "field:event", mouseX, mouseY);
-            int events = widget.bound() ? panel.links[widget.link].events.size() : 0;
-            if (widget.bound() && events > 0) {
-                chip(g, x + SIDE_W - 40, y - 15, 40, 13, "选事件", mouseX, mouseY, false);
-                add("pickevent", x + SIDE_W - 40, y - 15, 40, 13);
-            }
-            y = field(g, x, y, "变量", widget.var.isEmpty() ? "（无参）" : widget.var, "field:var", mouseX, mouseY);
-        }
-
-        if (widget.type.isBooleanish()) {
-            // A lamp has no range to speak of; say so instead of showing a
-            // stepper that would do nothing.
-            CtrlPainter.text(g, "量程", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
-            CtrlPainter.text(g, "0 – 1（开关量）", x + 62, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT);
-            y += 18;
+        if (widget.type.isTerminal()) {
+            CtrlPainter.text(g, "在“运行”页右键此控件开窗", x, y + 10, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
+            y += 14;
+            CtrlPainter.text(g, "命令 ls / use / read / ev / set", x, y + 10, ScreenFonts.cjk(8),
+                    CtrlPainter.TEXT_DIM);
+            y += 16;
+            chip(g, x, y, 92, 18, "打开终端", mouseX, mouseY, false);
+            add("openterm", x, y, 92, 18);
+            y += 24;
         } else {
-            CtrlPainter.text(g, "量程", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
-            miniStepper(g, x + 62, y, String.valueOf((int) widget.min), "min:-", "min:+", mouseX, mouseY);
-            miniStepper(g, x + 130, y, String.valueOf((int) widget.max), "max:-", "max:+", mouseX, mouseY);
-            y += 18;
+            if (widget.type.usesKey()) {
+                y = field(g, x, y, "数据键", widget.key.isEmpty() ? "（未选）" : widget.key, "field:key", mouseX, mouseY);
+                int keys = widget.bound() ? panel.links[widget.link].keys.size() : 0;
+                if (widget.bound() && keys > 0) {
+                    chip(g, x + SIDE_W - 40, y - 15, 40, 13, "选键", mouseX, mouseY, false);
+                    add("pickkey", x + SIDE_W - 40, y - 15, 40, 13);
+                }
+            }
+            if (widget.type.usesEvent()) {
+                y = field(g, x, y, "事件", widget.event.isEmpty() ? "（未选）" : widget.event, "field:event", mouseX, mouseY);
+                int events = widget.bound() ? panel.links[widget.link].events.size() : 0;
+                if (widget.bound() && events > 0) {
+                    chip(g, x + SIDE_W - 40, y - 15, 40, 13, "选事件", mouseX, mouseY, false);
+                    add("pickevent", x + SIDE_W - 40, y - 15, 40, 13);
+                }
+                y = field(g, x, y, "变量", widget.var.isEmpty() ? "（无参）" : widget.var, "field:var", mouseX, mouseY);
+            }
+
+            if (widget.type.isBooleanish()) {
+                // A lamp has no range to speak of; say so instead of showing a
+                // stepper that would do nothing.
+                CtrlPainter.text(g, "量程", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
+                CtrlPainter.text(g, "0 – 1（开关量）", x + 62, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT);
+                y += 18;
+            } else {
+                CtrlPainter.text(g, "量程", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
+                miniStepper(g, x + 62, y, String.valueOf((int) widget.min), "min:-", "min:+", mouseX, mouseY);
+                miniStepper(g, x + 130, y, String.valueOf((int) widget.max), "max:-", "max:+", mouseX, mouseY);
+                y += 18;
+            }
+            if (widget.type == CtrlType.ROTARY) {
+                CtrlPainter.text(g, "档位", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
+                miniStepper(g, x + 62, y, String.valueOf(widget.steps), "steps:-", "steps:+", mouseX, mouseY);
+                y += 18;
+            }
+            CtrlPainter.text(g, "小数", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
+            miniStepper(g, x + 62, y, String.valueOf(widget.decimals), "dec:-", "dec:+", mouseX, mouseY);
+            CtrlPainter.text(g, "配色", x + 130, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
+            miniStepper(g, x + 166, y, String.valueOf(widget.color), "color:-", "color:+", mouseX, mouseY);
+            y += 20;
+            y += 6;
         }
-        if (widget.type == CtrlType.ROTARY) {
-            CtrlPainter.text(g, "档位", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
-            miniStepper(g, x + 62, y, String.valueOf(widget.steps), "steps:-", "steps:+", mouseX, mouseY);
-            y += 18;
-        }
-        CtrlPainter.text(g, "小数", x, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
-        miniStepper(g, x + 62, y, String.valueOf(widget.decimals), "dec:-", "dec:+", mouseX, mouseY);
-        CtrlPainter.text(g, "配色", x + 130, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT_DIM);
-        miniStepper(g, x + 166, y, String.valueOf(widget.color), "color:-", "color:+", mouseX, mouseY);
-        y += 20;
-        y += 6;
 
         chip(g, x, y, 62, 18, "删除", mouseX, mouseY, false);
         add("delwidget", x, y, 62, 18);

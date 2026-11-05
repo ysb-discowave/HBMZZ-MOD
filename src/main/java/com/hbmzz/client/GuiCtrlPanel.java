@@ -249,6 +249,15 @@ public class GuiCtrlPanel extends GuiScreen {
             if (this.mode != 0 && id.startsWith("widget:")) {
                 this.selWidget = number(id.substring(7));
                 deleteWidget();
+                return;
+            }
+            // Except on a terminal, where the right button is the documented
+            // way in: a control that opens a window is not a control you would
+            // ever want to fire by accident, and one gesture to open it beats
+            // a modifier. The editor tab keeps delete-on-right-click, because
+            // there the widget id is "widget:n", not "term:n".
+            if (id.startsWith("term:")) {
+                handle(id, lx, ly);
             }
             return;
         }
@@ -279,6 +288,14 @@ public class GuiCtrlPanel extends GuiScreen {
             return;
         }
         if (id.startsWith("run:")) {
+            return;
+        }
+        if (id.startsWith("term:")) {
+            openTerminal(number(id.substring(5)));
+            return;
+        }
+        if (id.equals("openterm")) {
+            openTerminal(this.selWidget);
             return;
         }
         if (id.startsWith("slot:")) {
@@ -392,6 +409,28 @@ public class GuiCtrlPanel extends GuiScreen {
         this.selWidget = this.work.widgets.size() - 1;
         this.status = "已复制控件";
         touch();
+    }
+
+    /**
+     * Opens the terminal window for one control.
+     *
+     * <p>Refused while the working copy has unsaved edits, and not politely:
+     * the terminal is a separate window, so opening it throws this one away,
+     * and "throw away ten minutes of arranging controls because you wanted to
+     * type one command" is not a trade the player agreed to. Save first, then
+     * both windows agree on what the panel is.</p>
+     */
+    private void openTerminal(int index) {
+        CtrlWidget target = this.work == null ? null : this.work.get(index);
+        if (target == null || !target.type.isTerminal()) {
+            return;
+        }
+        if (this.modified) {
+            this.status = "先保存并应用，再打开终端";
+            this.canvas.markDirty();
+            return;
+        }
+        this.mc.displayGuiScreen(new GuiCtrlTerminal(this.pos, index));
     }
 
     private void addRule() {

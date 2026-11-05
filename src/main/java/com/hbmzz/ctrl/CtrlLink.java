@@ -24,7 +24,9 @@ import net.minecraft.nbt.NBTTagString;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * One of the six link slots (A-F): a machine somewhere in the world.
@@ -51,6 +53,17 @@ public class CtrlLink {
     public final List<String> keys = new ArrayList<String>();
     /** Event names the machine accepts, cached for the editor's dropdown. */
     public final List<String> events = new ArrayList<String>();
+    /**
+     * Event name to the variable it carries, e.g. {@code rbmk_ctrl_set_level ->
+     * level}, for the machines whose vocabulary we know.
+     *
+     * <p>Rides along with {@link #keys} and {@link #events} for the same reason
+     * and under the same rule: it is a cache the server rebuilds on the first
+     * round after loading, never a source of truth. The terminal needs it on
+     * the client because it has to complete {@code ev rbmk_ctrl_set_level }
+     * into {@code level=} without a round trip per keystroke.</p>
+     */
+    public final Map<String, String> vars = new LinkedHashMap<String, String>();
 
     public boolean isEmpty() {
         return this.pos == null;
@@ -61,6 +74,7 @@ public class CtrlLink {
         this.label = "";
         this.keys.clear();
         this.events.clear();
+        this.vars.clear();
     }
 
     public void set(BlockPos pos, String label) {
@@ -97,6 +111,13 @@ public class CtrlLink {
                 }
                 tag.setTag("ee", list);
             }
+            if (!this.vars.isEmpty()) {
+                NBTTagCompound vars = new NBTTagCompound();
+                for (Map.Entry<String, String> entry : this.vars.entrySet()) {
+                    vars.setString(entry.getKey(), entry.getValue());
+                }
+                tag.setTag("vv", vars);
+            }
         }
         return tag;
     }
@@ -114,6 +135,10 @@ public class CtrlLink {
             for (int i = 0; i < events.tagCount(); i++) {
                 this.events.add(events.getStringTagAt(i));
             }
+            NBTTagCompound vars = tag.getCompoundTag("vv");
+            for (String event : vars.getKeySet()) {
+                this.vars.put(event, vars.getString(event));
+            }
         }
     }
 
@@ -123,6 +148,7 @@ public class CtrlLink {
         copy.label = this.label;
         copy.keys.addAll(this.keys);
         copy.events.addAll(this.events);
+        copy.vars.putAll(this.vars);
         return copy;
     }
 }

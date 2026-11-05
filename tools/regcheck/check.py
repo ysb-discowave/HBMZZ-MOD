@@ -214,6 +214,40 @@ def main():
           "claims the right-click, so ItemMonitorLinker.onItemUse never runs: "
           + ", ".join(offenders))
 
+    # 9. Every control type must have a painter. A missing case does not fail to
+    # compile - it silently falls through to `default: paintPlate`, which is a
+    # blank grey square where a control should be. That is exactly how a new
+    # type ships looking like a placeholder.
+    type_source = read(os.path.join(SRC, "com/hbmzz/ctrl/CtrlType.java"))
+    types = set(re.findall(r"^    ([A-Z][A-Z_0-9]*)\(", type_source, re.MULTILINE))
+    painter = read(os.path.join(SRC, "com/hbmzz/client/screen/CtrlPainter.java"))
+    switch_at = painter.find("switch (widget.type)")
+    painted = set()
+    if switch_at >= 0:
+        body = painter[switch_at:painter.find("default:", switch_at)]
+        painted = set(re.findall(r"case\s+([A-Z][A-Z_0-9]*)\s*:", body))
+    unpainted = sorted(types - painted)
+    check(not unpainted, "every CtrlType has a case in CtrlPainter.paint",
+          "falls through to a blank plate: " + ", ".join(unpainted))
+
+    # 10. Every control type must explain itself in the palette tooltip list.
+    hints = set(re.findall(r"case\s+([A-Z][A-Z_0-9]*)\s*:\s*\n\s*return\s+\"", type_source))
+    unhinted = sorted(types - hints)
+    check(not unhinted, "every CtrlType has a non-empty hint()",
+          "palette shows an empty tooltip: " + ", ".join(unhinted))
+
+    # 11. The terminal's command table and its help text must agree: a verb that
+    # completes but has no usage line is a command the player can run and cannot
+    # look up.
+    shell = read(os.path.join(SRC, "com/hbmzz/ctrl/TerminalShell.java"))
+    start = shell.find("String[] COMMANDS")
+    block = shell[start:shell.find("};", start)] if start >= 0 else ""
+    declared = set(re.findall(r'"([a-z]+)"', block))
+    documented = set(re.findall(r'USAGE\.put\("([a-z]+)"', shell))
+    undoc = sorted(declared - documented)
+    check(declared and not undoc, "every terminal verb has a usage line",
+          "completes but 'help <verb>' says nothing: " + ", ".join(undoc))
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

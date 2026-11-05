@@ -23,8 +23,13 @@ import java.io.File;
  * are all judgement calls that a screenshot settles and a diff does not.</p>
  *
  * <pre>
+ * javac -encoding UTF-8 -d tmp/pc -cp build/classes/java/main \
+ *       tools/PreviewCtrl.java $(find tools/linkercheck/stubs -name '*.java')
  * java -Djava.awt.headless=true -cp "tmp/pc;build/classes/java/main" PreviewCtrl dist
  * </pre>
+ *
+ * <p>The stand-ins are not optional: {@code CtrlPanel.defaults()} touches NBT,
+ * and without them the very first panel blows up before anything is drawn.</p>
  */
 public final class PreviewCtrl {
 

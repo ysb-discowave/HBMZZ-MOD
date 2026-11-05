@@ -143,6 +143,17 @@ public class TermCanvas {
         return this.texId;
     }
 
+    /**
+     * The painted sheet, for the offline preview tool.
+     *
+     * <p>Same door {@code CtrlCanvas} opens: the window is the only part of the
+     * terminal that reading the code cannot confirm, so it has to be viewable
+     * without a GPU or a game.</p>
+     */
+    public java.awt.image.BufferedImage image() {
+        return this.image;
+    }
+
     public void markDirty() {
         this.dirty = true;
     }
@@ -388,11 +399,17 @@ public class TermCanvas {
         }
         Font font = ScreenFonts.cjk(9);
         int rows = Math.min(6, view.suggest.size());
+        int hidden = view.suggest.size() - rows;
+        // The "+N" badge needs its own column: drawn over the candidates it
+        // lands on the first row's tail, where the eye reads it as part of the
+        // longest candidate name.
+        String more = hidden > 0 ? "+" + hidden : "";
+        int badge = more.isEmpty() ? 0 : width(g, more, ScreenFonts.mono(8)) + 8;
         int boxW = 0;
         for (int i = 0; i < rows; i++) {
             boxW = Math.max(boxW, width(g, view.suggest.get(i), font));
         }
-        boxW = Math.min(W - PAD * 2, boxW + 20);
+        boxW = Math.min(W - PAD * 2, boxW + 20 + badge);
         int boxH = rows * LINE_H + 6;
         int y = H - FOOT_H - INPUT_H - 4 - boxH - 2;
 
@@ -404,13 +421,12 @@ public class TermCanvas {
                 rect(g, PAD + 1, y + 3 + i * LINE_H, boxW - 2, LINE_H, 0xFF2A210F);
                 rect(g, PAD + 1, y + 3 + i * LINE_H, 2, LINE_H, AMBER);
             }
-            text(g, clip(g, view.suggest.get(i), boxW - 14, font), PAD + 8, y + 12 + i * LINE_H,
+            text(g, clip(g, view.suggest.get(i), boxW - 14 - badge, font), PAD + 8, y + 12 + i * LINE_H,
                     active ? AMBER : DIM, font);
         }
         // More candidates than fit: say so, silently truncating looks like the
         // list was wrong.
-        if (view.suggest.size() > rows) {
-            String more = "+" + (view.suggest.size() - rows);
+        if (!more.isEmpty()) {
             text(g, more, PAD + boxW - width(g, more, ScreenFonts.mono(8)) - 4, y + 10,
                     FAINT, ScreenFonts.mono(8));
         }

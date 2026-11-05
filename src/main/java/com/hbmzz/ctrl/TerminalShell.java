@@ -73,7 +73,7 @@ public final class TerminalShell {
 
     static {
         USAGE.put("help", "help [命令] — 命令列表，或某条命令的用法");
-        USAGE.put("ls", "ls — 列出 A–F 上绑定的机器，▸ 是当前目标");
+        USAGE.put("ls", "ls — 列出 A–F 上绑定的机器，* 是当前目标");
         USAGE.put("use", "use <A–F> — 切换当前目标机器");
         USAGE.put("read", "read [键] — 读当前机器的全部数据，或某一个键");
         USAGE.put("keys", "keys — 只列可读的数据键名");
@@ -360,7 +360,13 @@ public final class TerminalShell {
         boolean any = false;
         for (int i = 0; i < CtrlPanel.LINKS; i++) {
             CtrlLink link = panel.links[i];
-            String mark = i == terminal.link ? "▸" : " ";
+            // '*' rather than a triangle: the window picks its font per line,
+            // and a line with Chinese in it goes to the CJK face, which has no
+            // U+25B8 - the marker came out as a tofu box exactly on the lines
+            // that carry a machine name. '*' exists in every font in the
+            // candidate list and is one pixel narrower than a space at 9 px, so
+            // the name column stays put.
+            String mark = i == terminal.link ? "*" : " ";
             if (link.isEmpty()) {
                 sink.hint("  " + mark + " " + CtrlLink.letter(i) + "  未绑定");
                 continue;

@@ -81,8 +81,21 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.4.0</span>
+            <span class="tl-ver">v2.4.1</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>终端里的豆腐块</h3>
+          <ul>
+            <li><strong>修：</strong><code>ls</code> 用来标当前目标的 <code>▸</code> 在终端窗口里显示成方框。窗口是逐行选字体的：带中文的行走中文字体，而 Microsoft YaHei / SimHei 都没有 <code>U+25B8</code>；恰好机器名都是中文，于是这个标记只在最该看清的那几行坏掉。现在换成 <code>*</code>，四个候选字体都有，宽度也只差 1 像素，名字列不会歪。</li>
+            <li><strong>修：</strong>补全列表角上的 <code>+N</code> 原来压在候选文字尾巴上，看起来像名字的一部分。给它留了单独一列。</li>
+            <li><strong>修：</strong>视频广播器里 <code>✔</code> / <code>⚠</code> 两个符号同样缺字形（原版字体也没有），改成文字加颜色区分。</li>
+            <li><strong>新增自检：</strong><code>tools/regcheck</code> 第 14 条扫全部字符串字面量，凡是不在四个字体交集里的装饰符号都报红并给出文件行号——这类「编译通过、进游戏变方框」的问题不该靠眼睛发现。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.4.0</span>
           </div>
           <h3>控制面板的终端</h3>
           <ul>

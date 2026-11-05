@@ -238,6 +238,16 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "2.4.1",
+      "title": "终端里的豆腐块",
+      "items": [
+        "修：ls 用来标当前目标的 ▸ 在终端窗口里显示成方框。窗口逐行选字体，带中文的行走中文字体，而 Microsoft YaHei / SimHei 都没有 U+25B8；机器名恰好都是中文，于是标记只在最该看清的那几行坏掉。换成 *，四个候选字体都有，宽度只差 1 像素。",
+        "修：补全列表角上的 +N 原来压在候选文字尾巴上，看起来像候选名的一部分，现在有单独一列。",
+        "修：视频广播器里的 ✔ / ⚠ 同样缺字形（原版字体也没有），改成文字加颜色区分。",
+        "新增自检：regcheck 第 14 条扫全部字符串字面量，不在四个字体交集里的装饰符号一律报红并给出行号。"
+      ]
+    },
+    {
       "version": "2.4.0",
       "title": "控制面板的终端",
       "items": [
@@ -365,12 +375,12 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "2.4.0",
+    "version": "2.4.1",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 243,
-      "javaLines": 46706,
+      "javaLines": 46741,
       "resourceFiles": 132,
       "nodeTypes": 32,
       "controlTypes": 25

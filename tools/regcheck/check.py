@@ -77,6 +77,53 @@ def registered_names(body):
     return set(re.findall(r"register\s*\(\s*([A-Z][A-Z_0-9]*)\s*\)", body))
 
 
+def string_literals(source):
+    """(line, text) for every string literal that is not inside a comment."""
+    out = []
+    i = 0
+    line = 1
+    n = len(source)
+    while i < n:
+        ch = source[i]
+        if ch == "\n":
+            line += 1
+            i += 1
+        elif source.startswith("//", i):
+            j = source.find("\n", i)
+            i = n if j < 0 else j
+        elif source.startswith("/*", i):
+            j = source.find("*/", i + 2)
+            end = n if j < 0 else j
+            line += source.count("\n", i, end)
+            i = n if j < 0 else j + 2
+        elif ch == '"':
+            j = i + 1
+            buf = []
+            text = line
+            while j < n:
+                c = source[j]
+                if c == "\\" and j + 1 < n:
+                    nxt = source[j + 1]
+                    buf.append({"n": "\n", "t": "\t"}.get(nxt, nxt))
+                    j += 2
+                    continue
+                if c == '"' or c == "\n":
+                    break
+                buf.append(c)
+                j += 1
+            out.append((text, "".join(buf)))
+            line += "".join(buf).count("\n")
+            i = j + 1
+        elif ch == "'":
+            j = i + 1
+            while j < n and source[j] != "'":
+                j += 2 if source[j] == "\\" else 1
+            i = j + 1
+        else:
+            i += 1
+    return out
+
+
 def main():
     content = read(CONTENT)
     main_java = read(MAIN)
@@ -247,6 +294,40 @@ def main():
     undoc = sorted(declared - documented)
     check(declared and not undoc, "every terminal verb has a usage line",
           "completes but 'help <verb>' says nothing: " + ", ".join(undoc))
+
+    # 12. Every decorative glyph in a user-visible string must exist in the
+    # fonts the AWT windows actually use.
+    #
+    # 2.4.0 shipped a terminal whose "current target" marker was U+25B8: present
+    # in Consolas, absent from Microsoft YaHei. TermCanvas picks a font per
+    # line, and a line carrying a machine name goes to the CJK face - so the
+    # marker rendered as a tofu box on exactly the rows that mattered, while
+    # looking perfectly fine in the source and in the Latin-only rows.
+    #
+    # The safe set below was measured with Font.canDisplay at 9-10 px on
+    # Consolas, Microsoft YaHei, SimHei and Dialog. A glyph missing from any one
+    # of them is one machine away from a box, so the set is the intersection.
+    # CJK ideographs and full-width punctuation are allowed wholesale: those are
+    # what the CJK faces exist for.
+    safe_glyphs = set("\u00b0\u00b7\u00d7\u2013\u2014\u201c\u201d\u2026"
+                      "\u2191\u2192\u2193\u25cb")
+    offenders = []
+    for base, _, files in sorted(os.walk(SRC)):
+        for name in sorted(files):
+            if not name.endswith(".java"):
+                continue
+            path = os.path.join(base, name)
+            for lineno, literal in string_literals(read(path)):
+                for ch in literal:
+                    cp = ord(ch)
+                    if cp < 128 or ch in safe_glyphs:
+                        continue
+                    if 0x4E00 <= cp <= 0x9FFF or 0x3000 <= cp <= 0x303F or 0xFF00 <= cp <= 0xFFEF:
+                        continue
+                    offenders.append("%s:%d U+%04X" % (
+                        os.path.relpath(path, ROOT).replace("\\", "/"), lineno, cp))
+    check(not offenders, "no string uses a glyph the UI fonts cannot draw",
+          "renders as a box: " + ", ".join(sorted(set(offenders))[:6]))
 
     failed = [name for ok, name, _ in results if not ok]
     print()

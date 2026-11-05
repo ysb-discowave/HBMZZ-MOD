@@ -260,10 +260,10 @@ public class GuiVideoBroadcaster extends GuiScreen {
             text.append("视频名只能用字母数字和 _ . -");
             color = RED;
         } else if (VideoLibrary.exists(video)) {
-            text.append("视频 ✔ 本机已有");
+            text.append("视频 · 本机已有");
             color = MINT;
         } else {
-            text.append("视频 ⚠ 本机没有这个文件");
+            text.append("视频 · 本机没有这个文件");
             color = RED;
         }
 

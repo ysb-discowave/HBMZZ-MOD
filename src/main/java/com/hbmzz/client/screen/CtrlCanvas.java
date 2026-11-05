@@ -697,7 +697,7 @@ public class CtrlCanvas {
         return y + 18;
     }
 
-    /** Narrow value box with − / + beside it, for two-per-row layouts. */
+    /** Narrow value box with - / + beside it, for two-per-row layouts. */
     private int miniStepper(Graphics2D g, int x, int y, String value, String minusId, String plusId,
                             int mouseX, int mouseY) {
         int boxW = 30;
@@ -706,7 +706,7 @@ public class CtrlCanvas {
         g.setColor(new Color(0x39434D));
         g.draw(new RoundRectangle2D.Float(x + 0.5F, y + 0.5F, boxW - 1, 15, 3, 3));
         CtrlPainter.centered(g, value, x + boxW / 2, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT);
-        chip(g, x + boxW + 2, y, 14, 16, "−", mouseX, mouseY, false);
+        chip(g, x + boxW + 2, y, 14, 16, "-", mouseX, mouseY, false);
         add(minusId, x + boxW + 2, y, 14, 16);
         chip(g, x + boxW + 18, y, 14, 16, "+", mouseX, mouseY, false);
         add(plusId, x + boxW + 18, y, 14, 16);
@@ -724,7 +724,7 @@ public class CtrlCanvas {
         g.setColor(new Color(0x39434D));
         g.draw(new RoundRectangle2D.Float(bx + 0.5F, y + 0.5F, bw - 1, 15, 3, 3));
         CtrlPainter.centered(g, value, bx + bw / 2, y + 12, ScreenFonts.cjk(9), CtrlPainter.TEXT);
-        chip(g, bx + bw + 4, y, 18, 16, "−", mouseX, mouseY, false);
+        chip(g, bx + bw + 4, y, 18, 16, "-", mouseX, mouseY, false);
         add(minusId, bx + bw + 4, y, 18, 16);
         chip(g, bx + bw + 24, y, 18, 16, "+", mouseX, mouseY, false);
         add(plusId, bx + bw + 24, y, 18, 16);

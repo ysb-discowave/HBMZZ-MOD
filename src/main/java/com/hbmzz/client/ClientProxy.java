@@ -141,4 +141,9 @@ public class ClientProxy extends CommonProxy {
     public void openVideoBroadcaster(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoBroadcaster(pos));
     }
+
+    @Override
+    public void openTerminal(int kind, BlockPos pos, int index) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiCtrlTerminal(kind, pos, index));
+    }
 }

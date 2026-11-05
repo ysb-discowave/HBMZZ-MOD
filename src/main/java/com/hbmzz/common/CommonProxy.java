@@ -48,4 +48,14 @@ public class CommonProxy {
      */
     public void openVideoBroadcaster(BlockPos pos) {
     }
+
+    /**
+     * Opens the command window of one terminal control.
+     *
+     * <p>{@code kind} says which panel the control lives on - this mod's own
+     * ({@code KIND_PANEL}) or the ported console ({@code KIND_CONSOLE}) - because
+     * the two speak to different tile entities over the same packets.</p>
+     */
+    public void openTerminal(int kind, BlockPos pos, int index) {
+    }
 }

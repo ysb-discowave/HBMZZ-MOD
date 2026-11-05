@@ -57,6 +57,9 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)
 6. **新增功能**：附属模组的 14 个节点 + 11 个控件 + 2 个图表节点；`NodeSounder` 的音效表改为
    按 `(类名, 字段名)` 反射解析；`NodeBulkQuery` 改走 `CPMachines` 以支持跨模组；
    `NodeSounder` 的 `doOutput` 由 `false` 改为 `true`（上游返回值在广播链路里会取消接收者，属缺陷）。
+   2.5.0 起另有**本项目自写**的控件 `TerminalControl`（注册名 `terminal`，`com.hbmzz.cecp.controls.addon`）：
+   它放在移植过来的控件目录里、用移植过来的 `Control` / `ControlEvent` / `IControllable` 接口，
+   但这一个文件不是移植产物，不含上游代码。同批新增的 `com.hbmzz.ctrl.TerminalHost` 等亦为本项目自写。
 
 ### 其他许可说明
 

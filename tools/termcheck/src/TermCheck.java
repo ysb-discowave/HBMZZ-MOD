@@ -17,6 +17,8 @@
  */
 
 import com.hbmzz.ctrl.CtrlPanel;
+import com.hbmzz.ctrl.CtrlPanelHost;
+import com.hbmzz.ctrl.SnapshotHost;
 import com.hbmzz.ctrl.CtrlType;
 import com.hbmzz.ctrl.CtrlWidget;
 import com.hbmzz.ctrl.TerminalShell;
@@ -49,6 +51,7 @@ public final class TermCheck {
         tokens();
         completion();
         dispatch();
+        hosts();
 
         System.out.println();
         System.out.println("passed " + passed + ", failed " + failed);
@@ -84,9 +87,14 @@ public final class TermCheck {
         return panel.widgets.get(0);
     }
 
+    /** The terminal's view of that panel, which is what the shell talks to. */
+    private static CtrlPanelHost host(CtrlPanel panel) {
+        return new CtrlPanelHost(panel, 0, null);
+    }
+
     private static TerminalShell.Sink run(CtrlPanel panel, String line) {
         TerminalShell.Sink sink = new TerminalShell.Sink();
-        TerminalShell.execute(panel, terminal(panel), null, line, sink);
+        TerminalShell.execute(host(panel), line, sink);
         return sink;
     }
 
@@ -109,56 +117,56 @@ public final class TermCheck {
     private static void completion() {
         CtrlPanel panel = panel();
 
-        TerminalShell.Completion all = TerminalShell.complete(panel, terminal(panel), "", 0);
+        TerminalShell.Completion all = TerminalShell.complete(host(panel), "", 0);
         check("empty line completes every verb", all.candidates.size() == TerminalShell.COMMANDS.length,
                 all.candidates.toString());
         check("empty line starts at 0", all.start == 0);
 
-        TerminalShell.Completion re = TerminalShell.complete(panel, terminal(panel), "re", 2);
+        TerminalShell.Completion re = TerminalShell.complete(host(panel), "re", 2);
         check("prefix filters verbs", re.candidates.size() == 1 && re.candidates.get(0).equals("read"),
                 re.candidates.toString());
 
-        TerminalShell.Completion space = TerminalShell.complete(panel, terminal(panel), "use ", 4);
+        TerminalShell.Completion space = TerminalShell.complete(host(panel), "use ", 4);
         check("use completes only bound slots",
                 space.candidates.size() == 2 && space.candidates.contains("A") && space.candidates.contains("B"),
                 space.candidates.toString());
         check("use completion starts after the space", space.start == 4);
 
-        TerminalShell.Completion mid = TerminalShell.complete(panel, terminal(panel), "use A", 5);
+        TerminalShell.Completion mid = TerminalShell.complete(host(panel), "use A", 5);
         check("a complete word is still offered back",
                 mid.candidates.size() == 1 && mid.candidates.get(0).equals("A"), mid.candidates.toString());
 
-        TerminalShell.Completion keys = TerminalShell.complete(panel, terminal(panel), "read ", 5);
+        TerminalShell.Completion keys = TerminalShell.complete(host(panel), "read ", 5);
         check("read completes data keys",
                 keys.candidates.size() == 2 && keys.candidates.contains("heat") && keys.candidates.contains("level"),
                 keys.candidates.toString());
 
-        TerminalShell.Completion keyPrefix = TerminalShell.complete(panel, terminal(panel), "read le", 7);
+        TerminalShell.Completion keyPrefix = TerminalShell.complete(host(panel), "read le", 7);
         check("key prefix filters", keyPrefix.candidates.size() == 1
                 && keyPrefix.candidates.get(0).equals("level"), keyPrefix.candidates.toString());
         check("key completion starts at the token, not the line", keyPrefix.start == 5);
 
-        TerminalShell.Completion events = TerminalShell.complete(panel, terminal(panel), "ev ", 3);
+        TerminalShell.Completion events = TerminalShell.complete(host(panel), "ev ", 3);
         check("ev completes events", events.candidates.size() == 1
                 && events.candidates.get(0).equals("rbmk_ctrl_set_level"), events.candidates.toString());
 
         String withEvent = "ev rbmk_ctrl_set_level ";
-        TerminalShell.Completion vars = TerminalShell.complete(panel, terminal(panel), withEvent, withEvent.length());
+        TerminalShell.Completion vars = TerminalShell.complete(host(panel), withEvent, withEvent.length());
         check("ev completes the variable of that event",
                 vars.candidates.size() == 1 && vars.candidates.get(0).equals("level="),
                 vars.candidates.toString());
 
-        TerminalShell.Completion setVars = TerminalShell.complete(panel, terminal(panel), "set ", 4);
+        TerminalShell.Completion setVars = TerminalShell.complete(host(panel), "set ", 4);
         check("set completes known variable names",
                 setVars.candidates.size() == 1 && setVars.candidates.get(0).equals("level"),
                 setVars.candidates.toString());
 
-        TerminalShell.Completion none = TerminalShell.complete(panel, terminal(panel), "zzz", 3);
+        TerminalShell.Completion none = TerminalShell.complete(host(panel), "zzz", 3);
         check("no match offers nothing", none.candidates.isEmpty(), none.candidates.toString());
 
         // A caret in the middle of a line must complete the word it is in, not
         // the last word on the line.
-        TerminalShell.Completion middle = TerminalShell.complete(panel, terminal(panel), "use A extra", 4);
+        TerminalShell.Completion middle = TerminalShell.complete(host(panel), "use A extra", 4);
         check("caret in the middle completes that word",
                 middle.start == 4 && middle.candidates.contains("A"), middle.start + " " + middle.candidates);
     }
@@ -193,11 +201,11 @@ public final class TermCheck {
 
         CtrlWidget widget = terminal(panel);
         TerminalShell.Sink useBAgain = new TerminalShell.Sink();
-        TerminalShell.Result again = TerminalShell.execute(panel, widget, null, "use b", useBAgain);
+        TerminalShell.Result again = TerminalShell.execute(host(panel), "use b", useBAgain);
         check("use b is a no-op when already there",
                 !again.dirty && useBAgain.lines.get(0).contains("已经在"), useBAgain.lines.toString());
 
-        TerminalShell.Result moved = TerminalShell.execute(panel, widget, null, "use A", new TerminalShell.Sink());
+        TerminalShell.Result moved = TerminalShell.execute(host(panel), "use A", new TerminalShell.Sink());
         check("selecting a machine marks the panel dirty", moved.dirty && widget.link == 0);
 
         TerminalShell.Sink empty = run(panel, "use C");
@@ -213,7 +221,7 @@ public final class TermCheck {
         TerminalShell.Sink clear = run(panel, "clear");
         check("clear asks the window to drop its scrollback", clear.lines.size() <= 1);
 
-        TerminalShell.Result cleared = TerminalShell.execute(panel, widget, null, "clear", new TerminalShell.Sink());
+        TerminalShell.Result cleared = TerminalShell.execute(host(panel), "clear", new TerminalShell.Sink());
         check("clear sets the flag", cleared.clear);
 
         // Machine I/O without NTM: every read path must explain itself instead
@@ -235,9 +243,60 @@ public final class TermCheck {
         CtrlWidget orphan = CtrlWidget.of(CtrlType.TERMINAL, 0, 0);
         orphan.link = -1;
         CtrlPanel bare = new CtrlPanel();
-        TerminalShell.execute(bare, orphan, null, "read", noTarget);
+        TerminalShell.execute(new CtrlPanelHost(bare, 0, null), "read", noTarget);
         check("no target is explained", kindOf(noTarget, 0) == TerminalShell.ERR,
                 noTarget.lines.toString());
+    }
+
+    // --------------------------------------------------------- host switch
+
+    /**
+     * The same shell driven by a snapshot instead of a panel.
+     *
+     * <p>That is exactly the ported console's situation: its window completes
+     * against whatever the server shipped, and a slot label there is a linker
+     * tag rather than a letter.</p>
+     */
+    private static void hosts() {
+        CtrlPanel panel = panel();
+        check("a slot resolves by its machine name",
+                TerminalShell.resolve(host(panel), "RBMK 控制棒") == 0);
+        check("a slot resolves by a unique prefix",
+                TerminalShell.resolve(host(panel), "蒸汽") == 1);
+        check("a slot still resolves by letter", TerminalShell.resolve(host(panel), "b") == 1);
+        check("an unknown name resolves to nothing", TerminalShell.resolve(host(panel), "锅炉") < 0);
+
+        run(panel, "use B");
+        TerminalShell.Sink named = run(panel, "use RBMK 控制棒");
+        check("use accepts a name with a space in it", terminal(panel).link == 0, named.lines.toString());
+
+        SnapshotHost snapshot = new SnapshotHost();
+        snapshot.add("反应堆", "RBMK", true);
+        snapshot.add("主泵", "泵", true);
+        snapshot.target(0);
+        java.util.List<String> keys = new java.util.ArrayList<String>();
+        keys.add("heat");
+        snapshot.vocab(0, keys, new java.util.ArrayList<String>(),
+                new java.util.LinkedHashMap<String, String>());
+
+        TerminalShell.Completion slots = TerminalShell.complete(snapshot, "use ", 4);
+        check("a snapshot completes its own labels",
+                slots.candidates.size() == 2 && slots.candidates.contains("反应堆"),
+                slots.candidates.toString());
+        TerminalShell.Completion snapKeys = TerminalShell.complete(snapshot, "read ", 5);
+        check("a snapshot completes the vocabulary it was given",
+                snapKeys.candidates.size() == 1 && snapKeys.candidates.get(0).equals("heat"),
+                snapKeys.candidates.toString());
+
+        TerminalShell.Sink list = new TerminalShell.Sink();
+        TerminalShell.execute(snapshot, "ls", list);
+        boolean marked = false;
+        for (String line : list.lines) {
+            if (line.trim().startsWith("*")) {
+                marked = true;
+            }
+        }
+        check("ls marks the current target", marked, list.lines.toString());
     }
 
     // --------------------------------------------------------------- helpers

@@ -19,7 +19,6 @@
 package com.hbmzz.ctrl;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,14 +31,19 @@ import java.util.Set;
 
 /**
  * The language the terminal speaks: a handful of verbs over the same two calls
- * a control makes - {@code getQueryData()} in, {@code receiveEvent()} out.
+ * a control makes - read the machine's data, send it an event.
  *
  * <p>Two halves, deliberately separate. {@link #complete} needs no world, so the
- * window can complete a keystroke with zero latency against the panel copy it
- * already holds; {@link #execute} needs the world, so it only ever runs on the
+ * window can complete a keystroke with zero latency against the copy it already
+ * holds; {@link #execute} needs the machines, so it only ever runs on the
  * server, against the server's own copy of the panel. That split is what keeps
  * the client from being able to name a machine the panel is not bound to: it
  * sends a line of text, and the server decides what that text can reach.</p>
+ *
+ * <p>The panel itself is behind {@link TerminalHost}, because this mod has two
+ * of them - its own grid panel and the ported Cursed Edition console - and the
+ * operator should not have to learn two sets of verbs depending on which board
+ * the terminal control was dropped onto.</p>
  *
  * <p>The grammar is small on purpose. A terminal that can do everything is a
  * second, worse editor; this one does the four things a person at a reactor
@@ -73,8 +77,8 @@ public final class TerminalShell {
 
     static {
         USAGE.put("help", "help [命令] — 命令列表，或某条命令的用法");
-        USAGE.put("ls", "ls — 列出 A–F 上绑定的机器，* 是当前目标");
-        USAGE.put("use", "use <A–F> — 切换当前目标机器");
+        USAGE.put("ls", "ls — 列出已绑定的机器，* 是当前目标");
+        USAGE.put("use", "use <槽位> — 切换当前目标机器（槽位字母，或机器名）");
         USAGE.put("read", "read [键] — 读当前机器的全部数据，或某一个键");
         USAGE.put("keys", "keys — 只列可读的数据键名");
         USAGE.put("events", "events — 列出当前机器接受的事件及其变量");
@@ -152,10 +156,11 @@ public final class TerminalShell {
     /**
      * Completes the word the caret sits in.
      *
+     * @param host  the panel's machines, as the window knows them
      * @param input the whole command line as typed
      * @param caret caret position, clamped into {@code input}
      */
-    public static Completion complete(CtrlPanel panel, CtrlWidget widget, String input, int caret) {
+    public static Completion complete(TerminalHost host, String input, int caret) {
         String line = input == null ? "" : input;
         int at = Math.max(0, Math.min(line.length(), caret));
         int start = at;
@@ -174,7 +179,7 @@ public final class TerminalShell {
             pool = new ArrayList<String>();
             Collections.addAll(pool, COMMANDS);
         } else {
-            pool = vocabulary(panel, widget, head);
+            pool = vocabulary(host, head);
         }
         List<String> out = new ArrayList<String>();
         for (String candidate : pool) {
@@ -195,17 +200,19 @@ public final class TerminalShell {
     }
 
     /** What may appear where, given the words already typed. */
-    private static List<String> vocabulary(CtrlPanel panel, CtrlWidget widget, String[] head) {
+    private static List<String> vocabulary(TerminalHost host, String[] head) {
         List<String> pool = new ArrayList<String>();
         String cmd = head[0].toLowerCase(Locale.ROOT);
-        CtrlLink link = target(panel, widget);
+        int slot = host == null ? -1 : host.target();
         switch (cmd) {
             case "use":
             case "sel":
             case "select":
-                for (int i = 0; i < CtrlPanel.LINKS; i++) {
-                    if (!panel.links[i].isEmpty()) {
-                        pool.add(CtrlLink.letter(i));
+                if (host != null) {
+                    for (int i = 0; i < host.slots(); i++) {
+                        if (host.bound(i)) {
+                            pool.add(host.label(i));
+                        }
                     }
                 }
                 break;
@@ -214,29 +221,29 @@ public final class TerminalShell {
                 break;
             case "read":
             case "get":
-                if (link != null) {
-                    pool.addAll(link.keys);
+                if (host != null && slot >= 0) {
+                    pool.addAll(host.keys(slot));
                 }
                 break;
             case "ev":
             case "fire":
-                if (head.length == 1) {
-                    if (link != null) {
-                        pool.addAll(link.events);
-                    }
-                } else if (link != null) {
-                    // Past the event name: offer "var=" for the variables that
-                    // event is known to carry.
-                    String var = link.vars.get(head[1]);
-                    if (var != null && !var.isEmpty()) {
-                        pool.add(var + "=");
+                if (host != null && slot >= 0) {
+                    if (head.length == 1) {
+                        pool.addAll(host.events(slot));
+                    } else {
+                        // Past the event name: offer "var=" for the variables
+                        // that event is known to carry.
+                        String var = host.vars(slot).get(head[1]);
+                        if (var != null && !var.isEmpty()) {
+                            pool.add(var + "=");
+                        }
                     }
                 }
                 break;
             case "set":
-                if (link != null && head.length == 1) {
+                if (host != null && slot >= 0 && head.length == 1) {
                     Set<String> seen = new LinkedHashSet<String>();
-                    for (String var : link.vars.values()) {
+                    for (String var : host.vars(slot).values()) {
                         if (!var.isEmpty()) {
                             seen.add(var);
                         }
@@ -250,30 +257,18 @@ public final class TerminalShell {
         return pool;
     }
 
-    /** The machine the terminal is looking at, or null. */
-    public static CtrlLink target(CtrlPanel panel, CtrlWidget widget) {
-        if (panel == null || widget == null) {
-            return null;
-        }
-        if (widget.link < 0 || widget.link >= CtrlPanel.LINKS) {
-            return null;
-        }
-        CtrlLink link = panel.links[widget.link];
-        return link.isEmpty() ? null : link;
-    }
-
     // ================================================================= execution
 
     /**
-     * Runs one command line against the server's panel.
+     * Runs one command line against the server's copy of the panel.
      *
      * <p>Never throws: every failure becomes a line the operator can read. A
      * terminal that silently does nothing is worse than one that says why -
      * the usual reason is simply that no machine is selected yet.</p>
      */
-    public static Result execute(CtrlPanel panel, CtrlWidget widget, World world, String raw, Sink sink) {
+    public static Result execute(TerminalHost host, String raw, Sink sink) {
         Result result = new Result();
-        if (panel == null || widget == null || sink == null) {
+        if (host == null || sink == null) {
             return result;
         }
         String line = raw == null ? "" : raw.trim();
@@ -293,31 +288,31 @@ public final class TerminalShell {
             case "ls":
             case "list":
             case "dir":
-                list(panel, widget, world, sink);
+                list(host, sink);
                 return result;
             case "use":
             case "sel":
             case "select":
-                result.dirty = select(panel, widget, args, sink);
+                result.dirty = select(host, args, sink);
                 return result;
             case "read":
             case "get":
             case "cat":
-                read(panel, widget, world, args, sink);
+                read(host, args, sink);
                 return result;
             case "keys":
-                keys(panel, widget, sink);
+                keys(host, sink);
                 return result;
             case "events":
             case "evs":
-                events(panel, widget, sink);
+                events(host, sink);
                 return result;
             case "ev":
             case "fire":
-                fire(panel, widget, world, args, sink);
+                fire(host, args, sink);
                 return result;
             case "set":
-                set(panel, widget, world, args, sink);
+                set(host, args, sink);
                 return result;
             case "clear":
             case "cls":
@@ -349,35 +344,34 @@ public final class TerminalShell {
                 sink.out("  " + usage);
             }
         }
-        sink.hint("目标机器用 use A–F 切换，也可以点窗口上方的标签。");
+        sink.hint("目标机器用 use 切换，也可以点窗口上方的标签。");
     }
 
-    private static void list(CtrlPanel panel, CtrlWidget terminal, World world, Sink sink) {
-        if (!MachineBridge.available()) {
+    private static void list(TerminalHost host, Sink sink) {
+        if (!host.available()) {
             sink.err("没有可用的机器接口：需要 NTM: 诅咒版。");
             return;
         }
         boolean any = false;
-        for (int i = 0; i < CtrlPanel.LINKS; i++) {
-            CtrlLink link = panel.links[i];
+        int target = host.target();
+        for (int i = 0; i < host.slots(); i++) {
             // '*' rather than a triangle: the window picks its font per line,
             // and a line with Chinese in it goes to the CJK face, which has no
             // U+25B8 - the marker came out as a tofu box exactly on the lines
             // that carry a machine name. '*' exists in every font in the
             // candidate list and is one pixel narrower than a space at 9 px, so
             // the name column stays put.
-            String mark = i == terminal.link ? "*" : " ";
-            if (link.isEmpty()) {
-                sink.hint("  " + mark + " " + CtrlLink.letter(i) + "  未绑定");
+            String mark = i == target ? "*" : " ";
+            if (!host.bound(i)) {
+                sink.hint("  " + mark + " " + host.label(i) + "  未绑定");
                 continue;
             }
             any = true;
-            boolean live = MachineBridge.isControllable(world, link.pos);
-            sink.add("  " + mark + " " + CtrlLink.letter(i) + "  " + link.label
-                    + (live ? "" : "  （离线）"), i == terminal.link ? OK : OUT);
-            BlockPos pos = link.pos;
-            sink.hint("       " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()
-                    + " · 可读 " + link.keys.size() + " 键 · 可发 " + link.events.size() + " 事件");
+            sink.add("  " + mark + " " + host.label(i) + "  " + host.name(i),
+                    i == target ? OK : OUT);
+            String where = coords(host, i);
+            sink.hint("       " + (where.isEmpty() ? "" : where + " · ")
+                    + "可读 " + host.keys(i).size() + " 键 · 可发 " + host.events(i).size() + " 事件");
         }
         if (!any) {
             sink.err("这个面板还没有绑定任何机器。");
@@ -385,103 +379,110 @@ public final class TerminalShell {
         }
     }
 
-    private static boolean select(CtrlPanel panel, CtrlWidget terminal, String[] args, Sink sink) {
+    private static String coords(TerminalHost host, int slot) {
+        BlockPos pos = host.pos(slot);
+        if (pos == null) {
+            return "";
+        }
+        return pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
+    }
+
+    private static boolean select(TerminalHost host, String[] args, Sink sink) {
         if (args.length < 2) {
-            CtrlLink current = target(panel, terminal);
-            if (current == null) {
-                sink.err("当前没有目标。用法：use A–F");
+            int current = host.target();
+            if (current < 0 || !host.bound(current)) {
+                sink.err("当前没有目标。用法：use <槽位>");
             } else {
-                sink.out("当前目标：" + CtrlLink.letter(terminal.link) + " · " + current.label);
+                sink.out("当前目标：" + host.label(current) + " · " + host.name(current));
             }
             return false;
         }
-        String token = args[1].toUpperCase(Locale.ROOT);
-        int slot = slotOf(token);
+        // Linker tags are free text and may contain spaces ("RBMK 控制棒组"),
+        // so everything after "use" is the slot name, not just the first word.
+        int slot = resolve(host, rest(args, 1));
         if (slot < 0) {
             sink.err("不是有效的槽位：" + clip(args[1]));
-            sink.hint("槽位是 A–F，用 ls 看哪些已绑定。");
+            sink.hint("用 ls 看有哪些槽位和机器名。");
             return false;
         }
-        CtrlLink link = panel.links[slot];
-        if (link.isEmpty()) {
-            sink.err("槽位 " + CtrlLink.letter(slot) + " 上没有机器。");
+        if (!host.bound(slot)) {
+            sink.err("槽位 " + host.label(slot) + " 上没有机器。");
             return false;
         }
-        if (terminal.link == slot) {
-            sink.hint("已经在 " + CtrlLink.letter(slot) + " · " + link.label + " 上。");
+        if (host.target() == slot) {
+            sink.hint("已经在 " + host.label(slot) + " · " + host.name(slot) + " 上。");
             return false;
         }
-        terminal.link = slot;
-        sink.ok("目标 → " + CtrlLink.letter(slot) + " · " + link.label);
+        if (!host.select(slot)) {
+            sink.err("切换失败：这个终端已经没有绑定了。");
+            return false;
+        }
+        sink.ok("目标 → " + host.label(slot) + " · " + host.name(slot));
         return true;
     }
 
-    private static void read(CtrlPanel panel, CtrlWidget terminal, World world, String[] args, Sink sink) {
-        CtrlLink link = requireTarget(panel, terminal, sink);
-        if (link == null) {
+    private static void read(TerminalHost host, String[] args, Sink sink) {
+        int slot = requireTarget(host, sink);
+        if (slot < 0) {
             return;
         }
-        MachineBridge.Sample sample = MachineBridge.sample(world, link.pos);
-        if (sample == null) {
-            sink.err("读不到 " + CtrlLink.letter(terminal.link) + "：机器已不在或不受控制面板管理。");
+        Map<String, String> data = host.read(slot);
+        if (data.isEmpty()) {
+            sink.err("读不到 " + host.label(slot) + "：机器已不在或不受控制面板管理。");
             return;
         }
         if (args.length > 1) {
             String key = args[1];
-            if (!sample.has(key)) {
+            if (!data.containsKey(key)) {
                 sink.err("这台机器没有上报 " + clip(key) + "。");
-                sink.hint(sample.numbers.isEmpty() && sample.texts.isEmpty()
-                        ? "它现在什么也没上报。" : "用 keys 看可读的键名。");
+                sink.hint("用 keys 看可读的键名。");
                 return;
             }
-            sink.out("  " + key + " = " + sample.text(key));
+            sink.out("  " + key + " = " + data.get(key));
             return;
         }
-        List<String> all = new ArrayList<String>();
-        all.addAll(sample.numbers.keySet());
-        all.addAll(sample.texts.keySet());
+        List<String> all = new ArrayList<String>(data.keySet());
         Collections.sort(all);
-        if (all.isEmpty()) {
-            sink.hint("这台机器没有上报任何数据。");
-            return;
-        }
-        sink.hint(CtrlLink.letter(terminal.link) + " · " + link.label + " — " + all.size() + " 项");
+        sink.hint(host.label(slot) + " · " + host.name(slot) + " — " + all.size() + " 项");
         for (String key : all) {
-            sink.out("  " + pad(key, 16) + " = " + sample.text(key));
+            sink.out("  " + pad(key, 16) + " = " + data.get(key));
         }
     }
 
-    private static void keys(CtrlPanel panel, CtrlWidget terminal, Sink sink) {
-        CtrlLink link = requireTarget(panel, terminal, sink);
-        if (link == null) {
+    private static void keys(TerminalHost host, Sink sink) {
+        int slot = requireTarget(host, sink);
+        if (slot < 0) {
             return;
         }
-        if (link.keys.isEmpty()) {
+        List<String> keys = host.keys(slot);
+        if (keys.isEmpty()) {
             sink.hint("这台机器没有上报可读数据。");
             return;
         }
-        sink.out(join(link.keys));
+        sink.out(join(keys));
     }
 
-    private static void events(CtrlPanel panel, CtrlWidget terminal, Sink sink) {
-        CtrlLink link = requireTarget(panel, terminal, sink);
-        if (link == null) {
+    private static void events(TerminalHost host, Sink sink) {
+        int slot = requireTarget(host, sink);
+        if (slot < 0) {
             return;
         }
-        if (link.events.isEmpty()) {
+        List<String> events = host.events(slot);
+        if (events.isEmpty()) {
             sink.hint("这台机器没有公布可接受的事件。");
             return;
         }
         sink.hint("事件 — 变量（没有变量的用 ev <事件> 直接发）");
-        for (String event : link.events) {
-            String var = link.vars.get(event);
+        Map<String, String> vars = host.vars(slot);
+        for (String event : events) {
+            String var = vars.get(event);
             sink.out("  " + pad(event, 22) + (var == null || var.isEmpty() ? "" : " " + var));
         }
     }
 
-    private static void fire(CtrlPanel panel, CtrlWidget terminal, World world, String[] args, Sink sink) {
-        CtrlLink link = requireTarget(panel, terminal, sink);
-        if (link == null) {
+    private static void fire(TerminalHost host, String[] args, Sink sink) {
+        int slot = requireTarget(host, sink);
+        if (slot < 0) {
             return;
         }
         if (args.length < 2) {
@@ -511,26 +512,26 @@ public final class TerminalShell {
             }
             vars.put(var, number(value));
         }
-        if (!link.events.contains(event)) {
+        if (!host.events(slot).contains(event)) {
             sink.hint("注意：该机器没有公布 " + clip(event) + "，仍按原样发送。");
         }
-        boolean sent = MachineBridge.fireAll(world, link.pos, event, vars);
+        boolean sent = host.fire(slot, event, vars);
         if (sent) {
-            sink.ok("→ " + CtrlLink.letter(terminal.link) + " " + event
+            sink.ok("→ " + host.label(slot) + " " + event
                     + (vars.isEmpty() ? "" : " " + describeVars(vars)));
         } else {
             sink.err("发送失败：" + event + "（机器已不在，或它拒绝了该事件）");
         }
     }
 
-    private static void set(CtrlPanel panel, CtrlWidget terminal, World world, String[] args, Sink sink) {
-        CtrlLink link = requireTarget(panel, terminal, sink);
-        if (link == null) {
+    private static void set(TerminalHost host, String[] args, Sink sink) {
+        int slot = requireTarget(host, sink);
+        if (slot < 0) {
             return;
         }
         if (args.length < 3) {
             sink.err("用法：set <变量> <值>，例如 set level 40");
-            String vars = knownVars(link);
+            String vars = knownVars(host.vars(slot));
             if (!vars.isEmpty()) {
                 sink.hint("这台机器已知的变量：" + vars);
             }
@@ -538,7 +539,7 @@ public final class TerminalShell {
         }
         String var = args[1];
         List<String> matches = new ArrayList<String>();
-        for (Map.Entry<String, String> entry : link.vars.entrySet()) {
+        for (Map.Entry<String, String> entry : host.vars(slot).entrySet()) {
             if (var.equalsIgnoreCase(entry.getValue())) {
                 matches.add(entry.getKey());
             }
@@ -557,9 +558,9 @@ public final class TerminalShell {
         String value = args[2];
         Map<String, Object> vars = new LinkedHashMap<String, Object>();
         vars.put(var, number(value));
-        boolean sent = MachineBridge.fireAll(world, link.pos, event, vars);
+        boolean sent = host.fire(slot, event, vars);
         if (sent) {
-            sink.ok("→ " + CtrlLink.letter(terminal.link) + " " + event + " " + var + "=" + clip(value));
+            sink.ok("→ " + host.label(slot) + " " + event + " " + var + "=" + clip(value));
         } else {
             sink.err("发送失败：" + event + "（机器已不在，或它拒绝了该事件）");
         }
@@ -567,14 +568,14 @@ public final class TerminalShell {
 
     // =================================================================== helpers
 
-    private static CtrlLink requireTarget(CtrlPanel panel, CtrlWidget terminal, Sink sink) {
-        CtrlLink link = target(panel, terminal);
-        if (link == null) {
+    private static int requireTarget(TerminalHost host, Sink sink) {
+        int slot = host.target();
+        if (slot < 0 || slot >= host.slots() || !host.bound(slot)) {
             sink.err("还没有选择目标机器。");
-            sink.hint("用 ls 看已绑定的槽位，use A–F 选一个。");
-            return null;
+            sink.hint("用 ls 看已绑定的槽位，use <槽位> 选一个。");
+            return -1;
         }
-        return link;
+        return slot;
     }
 
     /** Splits on runs of whitespace; never returns an empty array for non-blank input. */
@@ -592,6 +593,18 @@ public final class TerminalShell {
         return parts;
     }
 
+    /** Everything from {@code from} on, re-joined with single spaces. */
+    public static String rest(String[] args, int from) {
+        StringBuilder text = new StringBuilder();
+        for (int i = from; i < args.length; i++) {
+            if (text.length() > 0) {
+                text.append(' ');
+            }
+            text.append(args[i]);
+        }
+        return text.toString();
+    }
+
     /** A–F (or 1–6) to 0..5, or -1. */
     public static int slotOf(String token) {
         if (token == null || token.isEmpty()) {
@@ -605,6 +618,80 @@ public final class TerminalShell {
             return first - '0';
         }
         return -1;
+    }
+
+    /**
+     * A slot from what the operator typed: the slot label, its letter, or a
+     * machine name.
+     *
+     * <p>The ported console's slots are named by whatever tag the linker gave
+     * them ("RBMK 控制棒组"), which is more useful to type than a letter that
+     * does not exist on that panel - so a label or a unique prefix of one
+     * resolves too.</p>
+     */
+    public static int resolve(TerminalHost host, String token) {
+        if (host == null || token == null || token.isEmpty()) {
+            return -1;
+        }
+        // 1. The label itself. On this mod's panel that is A-F; on the ported
+        //    console it is the linker tag the operator chose.
+        for (int i = 0; i < host.slots(); i++) {
+            if (token.equalsIgnoreCase(host.label(i))) {
+                return i;
+            }
+        }
+        // 2. The machine's own name, when exactly one bound slot answers to it.
+        //    "use 反应堆" is easier to remember than which letter it ended up on,
+        //    and both panels can name their machines.
+        int named = -1;
+        for (int i = 0; i < host.slots(); i++) {
+            if (!host.bound(i) || host.name(i) == null) {
+                continue;
+            }
+            if (token.equalsIgnoreCase(host.name(i).trim())) {
+                if (named >= 0) {
+                    return -1;
+                }
+                named = i;
+            }
+        }
+        if (named >= 0) {
+            return named;
+        }
+        // Only a bare letter is a letter: on the ported console a tag may start
+        // with A-F too ("A 号反应堆"), and reading its first character as slot 0
+        // would silently jump somewhere the operator did not ask for.
+        if (token.length() == 1) {
+            int letter = slotOf(token.toUpperCase(Locale.ROOT));
+            if (letter >= 0 && letter < host.slots()) {
+                return letter;
+            }
+            if (token.charAt(0) >= '1' && token.charAt(0) <= '9') {
+                int numbered = token.charAt(0) - '1';
+                if (numbered < host.slots()) {
+                    return numbered;
+                }
+            }
+        }
+        // 3. A unique prefix of either. A name may carry a suffix ("（离线）"),
+        //    so an exact match on it is not the common case - the operator types
+        //    the beginning of the name and expects that to be enough.
+        String lower = token.toLowerCase(Locale.ROOT);
+        int found = -1;
+        for (int i = 0; i < host.slots(); i++) {
+            if (!startsWith(host.label(i), lower) && !startsWith(host.bound(i) ? host.name(i) : null, lower)) {
+                continue;
+            }
+            if (found >= 0) {
+                return -1;
+            }
+            found = i;
+        }
+        return found;
+    }
+
+    private static boolean startsWith(String text, String lowerPrefix) {
+        return text != null && text.toLowerCase(Locale.ROOT).startsWith(lowerPrefix);
     }
 
     /**
@@ -647,14 +734,14 @@ public final class TerminalShell {
         return text.toString();
     }
 
-    private static String knownVars(CtrlLink link) {
-        Set<String> vars = new LinkedHashSet<String>();
-        for (String var : link.vars.values()) {
+    private static String knownVars(Map<String, String> vars) {
+        Set<String> names = new LinkedHashSet<String>();
+        for (String var : vars.values()) {
             if (!var.isEmpty()) {
-                vars.add(var);
+                names.add(var);
             }
         }
-        return join(new ArrayList<String>(vars));
+        return join(new ArrayList<String>(names));
     }
 
     private static String join(List<String> parts) {

@@ -69,6 +69,24 @@ def member_body(source, method_name):
     return source[match.end():end if end > 0 else len(source)]
 
 
+def tab_body(source, method_name):
+    """Same, for the ported files, which close their methods with a tab.
+
+    body_of() looks for four spaces because the files written for this mod are
+    indented that way; the ported Cursed Edition sources indent with tabs, so
+    a four-space search runs past the end of the method and swallows whatever
+    comes next - which for a "does the registry list this control" check means
+    reading half the file and passing on anything.
+    """
+    match = re.search(r"\b[\w<>\[\]]+\s+" + method_name + r"\s*\(", source)
+    if not match:
+        return ""
+    ends = [source.find(mark, match.end()) for mark in ("\n\t}", "\n    }")]
+    ends = [end for end in ends if end >= 0]
+    end = min(ends) if ends else len(source)
+    return source[match.end():end]
+
+
 def field_names(source, type_pattern):    return set(re.findall(
         r"public\s+static\s+final\s+" + type_pattern + r"\s+([A-Z][A-Z_0-9]*)\s*=", source))
 
@@ -397,6 +415,73 @@ def main():
     exposed = "public static final List<ControlType> ALL_VALUES" in type_src
     check(not leaks and not exposed, "the control-type table is only read through all()",
           "reads the live list: " + (", ".join(leaks) if leaks else "field is public again"))
+
+    # 17. A control type the addon registers must have a Chinese name. The
+    # editor's "pick a type" menu is drawn from getDisplayName(), and the
+    # fallback in localized() is the key itself - so a forgotten case does not
+    # fail, it just puts "Terminal" in a menu where every other row is Chinese.
+    addon_types = read(os.path.join(SRC, "com/hbmzz/cecp/controls/addon/AddonControlType.java"))
+    names = set(re.findall(r'registerOrGet\s*\(\s*"([^"]+)"\s*\)', "\n".join(code_lines(addon_types))))
+    translated = set(re.findall(r'case\s+"([^"]+)"\s*:\s*return\s+"([^"]*)"', type_src))
+    have = set(name for name, label in translated if label and label != name)
+    untranslated = sorted(names - have)
+    check(names and not untranslated, "every addon control type has a Chinese display name",
+          "menu shows the English key: " + ", ".join(untranslated))
+
+    # 18. Every control class the addon ships must actually be handed to the
+    # registry. A class nobody adds is dead code that still compiles - which is
+    # how 2.3.0 shipped a block with no item and a tile entity with no mapping.
+    # The registry silently drops duplicates, so a control that is written but
+    # unlisted looks exactly like one that works, right up until you open the
+    # menu and cannot find it.
+    addon_dir = os.path.join(SRC, "com/hbmzz/cecp/controls/addon")
+    concrete = set()
+    for name in sorted(os.listdir(addon_dir)):
+        if not name.endswith(".java") or name in ("AddonControlType.java",):
+            continue
+        text = read(os.path.join(addon_dir, name))
+        if re.search(r"\babstract\s+class\b", text):
+            continue
+        if not re.search(r"\bclass\s+\w+\s+extends\s+Control\b", text):
+            continue
+        concrete.add(name[:-5])
+    registry = read(os.path.join(SRC, "com/hbmzz/cecp/ControlRegistry.java"))
+    # Comments blanked, not just skipped: "//addonControls.add(new TerminalControl(..."
+    # is exactly what a half-finished port looks like, and it is not registered.
+    addon_body = "\n".join(code_lines(tab_body(registry, "initAddonControls")))
+    listed = set(re.findall(r"new\s+(?:[\w.]+\.)?(\w+)\s*\(", addon_body))
+    unlisted = sorted(concrete - listed)
+    check(not unlisted, "every addon control class is in the control registry",
+          "never instantiated in initAddonControls: " + ", ".join(unlisted))
+
+    # 19. Registry names have to be unique: ControlRegistry.put() overwrites,
+    # so a collision removes one control from every saved panel without an
+    # error - the panel loads, one control is simply the other one now.
+    entries = re.findall(
+        r"new\s+(?:[\w.]+\.)?\w+\s*\(\s*\"[^\"]*\"\s*,\s*(\"[^\"]*\"|[^,]+?)\s*,\s*null\s*\)",
+        addon_body)
+    seen = {}
+    clashes = []
+    for name in entries:
+        token = name.strip()
+        if token.startswith('"'):
+            key = token.strip('"')
+        else:
+            # A constant: follow it into the class that declares it. The
+            # constant is qualified (TerminalControl.REGISTRY), so the owner is
+            # the segment before it, not the first one.
+            parts = token.split(".")
+            constant = parts[-1]
+            owner = parts[-2] if len(parts) > 1 else parts[0]
+            path = os.path.join(addon_dir, owner + ".java")
+            found = re.search(r'\b' + constant + r'\s*=\s*"([^"]*)"', read(path)) \
+                if os.path.exists(path) else None
+            key = found.group(1) if found else "<" + token + ">"
+        if key in seen:
+            clashes.append(key)
+        seen[key] = token
+    check(entries and not clashes, "every addon control has its own registry name",
+          "silently overwrites another control: " + ", ".join(sorted(set(clashes))))
 
     failed = [name for ok, name, _ in results if not ok]
     print()

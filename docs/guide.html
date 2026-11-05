@@ -329,6 +329,30 @@
         </div>
       </div>
 
+      <div class="panel panel--flat" style="margin-top:18px" id="terminal-console">
+        <h3 style="margin-bottom:8px">同一台终端，也可以装在 CE 控制台上</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
+          上面说的是模组自己的控制面板（32×18 网格、A–F 六个槽位）。从诅咒版移植过来的那块<strong>节点图控制台</strong>是另一套代码，它的编辑器里也能选到「终端」——控件列表最后一行。放一个、拖到你顺手的位置、保存，然后<strong>右键它</strong>开窗。
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>模组控制面板</th><th>CE 控制台</th></tr></thead>
+            <tbody>
+              <tr><td>槽位</td><td>A–F 六个固定槽</td><td>你在<strong>联动器页签</strong>里起的标签名，随绑定存在控件自己身上</td></tr>
+              <tr><td>切换目标</td><td><code>use B</code></td><td><code>use 反应堆</code>（带空格的标签整行都算名字）、<code>use 2</code>，或点窗口上方的标签</td></tr>
+              <tr><td>目标存在哪</td><td>终端控件的一个字段</td><td>控件自己的 <code>vars</code> 里，跟着面板 NBT 走</td></tr>
+              <tr><td>槽位顺序</td><td>固定 A→F</td><td>按标签名排序。那块 map 是从 <code>HashMap</code> 重建的，插入顺序不可靠，名次一变 <code>2</code> 号就换机器了</td></tr>
+              <tr><td>命令与补全</td><td colspan="2">完全一样：两边的补全与执行都挂在同一个 <code>TerminalHost</code> 上，动词、提示、错误文字只有一份</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p style="color:var(--text-dim);font-size:14px;margin:12px 0 0">
+          窗口上方只画得下 6 个标签：绑得更多时用 <code>ls</code> 看全表、<code>use 名字</code> 切换，不用只盯着标签。目标序号越界（比如你删了一个标签）时终端退回第一个槽位，而不是列着一堆槽位却一个都读不了。
+        </p>
+      </div>
+
       <div class="note note--red" style="margin-top:18px">
         <div>
           <h4>已知限制</h4>

@@ -18,6 +18,8 @@
 
 package com.hbmzz.network;
 
+import com.hbmzz.cecp.tile.TileEntityCtrlConsole;
+import com.hbmzz.ctrl.TerminalHost;
 import com.hbmzz.ctrl.TerminalShell;
 import com.hbmzz.tile.TileEntityCtrlPanel;
 import io.netty.buffer.ByteBuf;
@@ -36,9 +38,19 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
  * is exactly as powerful as the panel already was - no more. That is the same
  * rule {@link CtrlUseMessage} follows with a knob's value, and it matters more
  * here because the payload is free-form.</p>
+ *
+ * <p>An empty line is not a no-op: it asks for the panel's current state and
+ * nothing else, which is what the window sends when it opens so the slot strip
+ * and the completion vocabulary are right before the first command.</p>
  */
 public class TerminalInputMessage implements IMessage {
 
+    /** This mod's own grid panel. */
+    public static final int KIND_PANEL = 0;
+    /** The ported Cursed Edition console. */
+    public static final int KIND_CONSOLE = 1;
+
+    private int kind = KIND_PANEL;
     private BlockPos pos = BlockPos.ORIGIN;
     private int index = -1;
     private String line = "";
@@ -47,6 +59,11 @@ public class TerminalInputMessage implements IMessage {
     }
 
     public TerminalInputMessage(BlockPos pos, int index, String line) {
+        this(KIND_PANEL, pos, index, line);
+    }
+
+    public TerminalInputMessage(int kind, BlockPos pos, int index, String line) {
+        this.kind = kind;
         this.pos = pos;
         this.index = index;
         this.line = line == null ? "" : line;
@@ -54,6 +71,7 @@ public class TerminalInputMessage implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        this.kind = buf.readByte();
         this.pos = BlockPos.fromLong(buf.readLong());
         this.index = buf.readShort();
         this.line = readString(buf, TerminalShell.MAX_LINE);
@@ -61,6 +79,7 @@ public class TerminalInputMessage implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
+        buf.writeByte(this.kind);
         buf.writeLong(this.pos.toLong());
         buf.writeShort(this.index);
         writeString(buf, this.line, TerminalShell.MAX_LINE);
@@ -97,6 +116,7 @@ public class TerminalInputMessage implements IMessage {
             final EntityPlayerMP player = ctx.getServerHandler().player;
             final BlockPos pos = message.pos;
             final int index = message.index;
+            final int kind = message.kind;
             final String line = message.line;
             player.mcServer.addScheduledTask(() -> {
                 TerminalShell.Sink sink = new TerminalShell.Sink();
@@ -110,7 +130,15 @@ public class TerminalInputMessage implements IMessage {
                     sink.err("离面板太远了（8 格内）。");
                 } else {
                     TileEntity te = player.world.getTileEntity(pos);
-                    if (!(te instanceof TileEntityCtrlPanel)) {
+                    if (kind == KIND_CONSOLE) {
+                        if (!(te instanceof TileEntityCtrlConsole)) {
+                            sink.err("控制台已经不在了。");
+                        } else {
+                            TileEntityCtrlConsole console = (TileEntityCtrlConsole) te;
+                            result = console.runTerminal(index, line, sink);
+                            slot = console.terminalTarget(index);
+                        }
+                    } else if (!(te instanceof TileEntityCtrlPanel)) {
                         sink.err("面板已经不在了。");
                     } else {
                         TileEntityCtrlPanel panel = (TileEntityCtrlPanel) te;
@@ -121,10 +149,29 @@ public class TerminalInputMessage implements IMessage {
                         }
                     }
                 }
+                TerminalHost host = stateOf(player, pos, kind, index);
                 NetworkHandler.sendTo(player,
-                        new TerminalReplyMessage(pos, index, slot, result.clear, sink));
+                        new TerminalReplyMessage(kind, pos, index, slot, result.clear, sink, host));
             });
             return null;
+        }
+
+        /**
+         * The host the reply describes itself from, or null when there is none.
+         *
+         * <p>Built after the command so the vocabulary it ships is the one the
+         * next keystroke will complete against - a {@code use} that changes the
+         * target also changes which keys exist.</p>
+         */
+        private static TerminalHost stateOf(EntityPlayerMP player, BlockPos pos, int kind, int index) {
+            TileEntity te = player.world.getTileEntity(pos);
+            if (kind == KIND_CONSOLE) {
+                return te instanceof TileEntityCtrlConsole
+                        ? ((TileEntityCtrlConsole) te).terminalHost(index) : null;
+            }
+            return te instanceof TileEntityCtrlPanel
+                    ? new com.hbmzz.ctrl.CtrlPanelHost(((TileEntityCtrlPanel) te).getPanel(), index,
+                    player.world) : null;
         }
     }
 }

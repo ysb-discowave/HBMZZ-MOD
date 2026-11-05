@@ -116,7 +116,7 @@ public class TermCanvas {
     }
 
     /** Mirrors {@code CtrlPanel.LINKS} without dragging the whole ctrl package in. */
-    private static final int LINKS = 6;
+    public static final int LINKS = 6;
 
     // ---------------------------------------------------------------- state
 

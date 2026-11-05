@@ -97,6 +97,10 @@ public class ControlRegistry {
 		addonControls.add(new Drawing("方框标签","leafia_drawing_box",null));
 		addonControls.add(new LeverHorizontal("水平拨杆","leafia_lever_h",null));
 		addonControls.add(new LeverVertical("竖直拨杆","leafia_lever_v",null));
+		// Listed last on purpose: it is the newest thing in the menu and the one
+		// an operator goes looking for, not the one they trip over.
+		addonControls.add(new com.hbmzz.cecp.controls.addon.TerminalControl(
+				"终端", com.hbmzz.cecp.controls.addon.TerminalControl.REGISTRY, null));
 	}
 	
 	public static List<Control> getAllControls(){

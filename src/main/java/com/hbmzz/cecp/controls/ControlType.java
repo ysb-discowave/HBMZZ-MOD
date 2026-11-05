@@ -93,6 +93,7 @@ public class ControlType {
             case "Graph":     return "图表";
             case "Lever":     return "拨杆";
             case "Label":     return "标签";
+            case "Terminal":  return "终端";
             case "Unknown":   return "未知控件";
             default:          return key;
         }

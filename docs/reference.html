@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HBMZZ 参考手册 — 控件 / 节点 / 配方 / 配置 / 构建</title>
-<meta name="description" content="HBMZZ 参考手册：25 种节点图控制台控件、13 种机器控制面板控件、32 类节点、方块与物品、工作台配方、config/hbmzz.cfg 配置项、辅助工具与从源码构建。查表用，教程见使用指南。">
+<meta name="description" content="HBMZZ 参考手册：26 种节点图控制台控件、13 种机器控制面板控件、32 类节点、方块与物品、工作台配方、config/hbmzz.cfg 配置项、辅助工具与从源码构建。查表用，教程见使用指南。">
 <meta name="theme-color" content="#0a0c0f">
 <meta property="og:type" content="website">
 <meta property="og:title" content="HBMZZ 参考手册">
@@ -39,7 +39,7 @@
       <p class="lead">
         这页是<strong>查表页</strong>，不是教程。要学怎么放监控屏、怎么搭报警规则、怎么接机器，
         去<a href="guide.html">使用指南</a>。这里只把 README 里写明的事实列成表：
-        控制台 25 种控件、机器控制面板 13 种控件、32 类节点、方块与物品、配方、
+        控制台 26 种控件、机器控制面板 13 种控件、32 类节点、方块与物品、配方、
         <code>config/hbmzz.cfg</code> 的全部键值，以及辅助工具和从源码构建。
       </p>
     </div>
@@ -51,11 +51,11 @@
       <div class="section-head">
         <div class="kicker">// 控件</div>
         <h2>控件总表</h2>
-        <p>本模组有两类能摆在面板上的控件：节点图控制台的 25 种（其中 11 种移植自 Leafia 附属），以及机器控制面板的 13 种（本项目自己设计）。面板工坊另有一套 7 种自定义控件，见下方说明。</p>
+        <p>本模组有两类能摆在面板上的控件：节点图控制台的 26 种（14 种来自 CE 本体、11 种移植自 Leafia 附属、1 种是本项目加的终端），以及机器控制面板的 13 种（本项目自己设计）。面板工坊另有一套 7 种自定义控件，见下方说明。</p>
       </div>
 
-      <h3>节点图控制台 · 25 种控件</h3>
-      <p style="margin:0 0 10px;color:var(--text-dim);font-size:14px">前 14 种来自 CE 本体，后 11 种来自 CE Addon（Leafia），注册名保持附属原样，已装附属的面板存档读进来不会变成 <code>UnknownControl</code>。</p>
+      <h3>节点图控制台 · 26 种控件</h3>
+      <p style="margin:0 0 10px;color:var(--text-dim);font-size:14px">前 14 种来自 CE 本体，接着 11 种来自 CE Addon（Leafia），最后 1 种是本项目加的<strong>终端</strong>。前 25 种的注册名保持原样，已装附属的面板存档读进来不会变成 <code>UnknownControl</code>。</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -217,6 +217,12 @@
               <td><code>leafia_drawing_box</code></td>
               <td><span class="tag tag--mint">只读</span></td>
               <td>纯装饰框，可写文字，无变量</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--dim">本项目</span> 终端</td>
+              <td><code>terminal</code></td>
+              <td><span class="tag tag--amber">读写</span></td>
+              <td>命令行读写本控件联动器里绑定的<strong>所有</strong>机器，目标当场切换；槽位=标签名，选中的槽位存在控件 <code>vars</code> 里。见使用指南 · 终端</td>
             </tr>
           </tbody>
         </table>

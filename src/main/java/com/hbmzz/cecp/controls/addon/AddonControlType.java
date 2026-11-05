@@ -34,6 +34,13 @@ public final class AddonControlType {
     public static final ControlType RBMK_DISPLAY = ControlType.registerOrGet("RBMK Display");
     public static final ControlType GRAPH = ControlType.registerOrGet("Graph");
     public static final ControlType LEVER = ControlType.registerOrGet("Lever");
+    /**
+     * The command terminal.
+     *
+     * <p>Its own family rather than a display: it is neither read-only nor a
+     * knob, and the editor's menu groups by type, so it deserves the row.</p>
+     */
+    public static final ControlType TERMINAL = ControlType.registerOrGet("Terminal");
 
     /**
      * Forces this class - and therefore the three registrations above - to run.
@@ -53,8 +60,8 @@ public final class AddonControlType {
      * later.</p>
      */
     public static void register() {
-        // Touch all three: a reference to one constant initialises the class.
-        if (RBMK_DISPLAY == null || GRAPH == null || LEVER == null) {
+        // Touch every constant: a reference to one initialises the class.
+        if (RBMK_DISPLAY == null || GRAPH == null || LEVER == null || TERMINAL == null) {
             throw new IllegalStateException("control type registration failed");
         }
     }

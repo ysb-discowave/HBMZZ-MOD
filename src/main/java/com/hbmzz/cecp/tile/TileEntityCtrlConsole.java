@@ -25,9 +25,13 @@ import com.hbmzz.cecp.Control;
 import com.hbmzz.cecp.ControlEvent;
 import com.hbmzz.cecp.ControlEventSystem;
 import com.hbmzz.cecp.ControlPanel;
+import com.hbmzz.cecp.TerminalConsoleHost;
 import com.hbmzz.cecp.block.CtrlConsoleType;
+import com.hbmzz.cecp.controls.addon.TerminalControl;
 import com.hbmzz.cecp.net.CPPackets;
 import com.hbmzz.cecp.net.ControlPanelUpdatePacket;
+import com.hbmzz.ctrl.TerminalHost;
+import com.hbmzz.ctrl.TerminalShell;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -79,6 +83,11 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
     private final Deque<RedstoneInputSnapshot> pendingRedstoneInputSnapshots = new ArrayDeque<>();
     private RedstoneInputSnapshot activeRedstoneInputSnapshot;
     private int redstoneOutputCollectionDepth = 0;
+
+    /** Commands a second, across the whole console. Same budget as the panel. */
+    private static final int TERMINAL_BURST = 10;
+    private long terminalSecond = -1L;
+    private int terminalUsed;
 
     public TileEntityCtrlConsole() {
         this.inventory = new ItemStackHandler(1) {
@@ -279,6 +288,77 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
             ControlEvent evt = ControlEvent.readFromNBT(data);
             this.panel.receiveDirectEvent(this.panel.controls.get(idx), evt);
         }
+    }
+
+    /**
+     * Runs one terminal command against this console's own panel copy.
+     *
+     * <p>Server only, and reached only from {@code TerminalInputMessage}: the
+     * client sends the text, never a machine. Everything the command is allowed
+     * to touch is decided here, against the panel the server has - which is the
+     * same authority a player has when they turn a knob on the same board.</p>
+     */
+    public TerminalShell.Result runTerminal(int controlIndex, String line, TerminalShell.Sink sink) {
+        TerminalShell.Result result = new TerminalShell.Result();
+        if (this.world == null || this.world.isRemote || sink == null) {
+            return result;
+        }
+        if (this.panel == null || controlIndex < 0 || controlIndex >= this.panel.controls.size()) {
+            sink.err("这个终端已经不在了。");
+            return result;
+        }
+        Control control = this.panel.controls.get(controlIndex);
+        if (!(control instanceof TerminalControl)) {
+            sink.err("这个控件不是终端。");
+            return result;
+        }
+        long second = this.world.getTotalWorldTime() / 20L;
+        if (second != this.terminalSecond) {
+            this.terminalSecond = second;
+            this.terminalUsed = 0;
+        }
+        if (++this.terminalUsed > TERMINAL_BURST) {
+            sink.err("命令太频繁了，等一秒再来。");
+            return result;
+        }
+        result = TerminalShell.execute(new TerminalConsoleHost((TerminalControl) control, this.world), line, sink);
+        if (result.dirty) {
+            markDirty();
+            // The target is part of the control's saved variables, so the other
+            // viewers of this console should see the selection move too.
+            NBTTagCompound data = new NBTTagCompound();
+            this.panel.writeToNBT(data);
+            CPPackets.createSendToAllTrackingThreadedPacket(
+                    new ControlPanelUpdatePacket(this.pos, data),
+                    new TargetPoint(this.world.provider.getDimension(), this.pos.getX(), this.pos.getY(),
+                            this.pos.getZ(), 1));
+        }
+        return result;
+    }
+
+    /**
+     * The terminal view of control {@code controlIndex}, or null when that
+     * control is not a terminal.
+     *
+     * <p>Used by the reply packet to describe the panel back to the window -
+     * labels, target, and the vocabulary Tab needs - so the client never has to
+     * guess what a machine accepts.</p>
+     */
+    public TerminalHost terminalHost(int controlIndex) {
+        if (this.panel == null || controlIndex < 0 || controlIndex >= this.panel.controls.size()) {
+            return null;
+        }
+        Control control = this.panel.controls.get(controlIndex);
+        if (!(control instanceof TerminalControl)) {
+            return null;
+        }
+        return new TerminalConsoleHost((TerminalControl) control, this.world);
+    }
+
+    /** Which slot the terminal at {@code controlIndex} points at, or -1. */
+    public int terminalTarget(int controlIndex) {
+        TerminalHost host = terminalHost(controlIndex);
+        return host == null ? -1 : host.target();
     }
 
     @Override

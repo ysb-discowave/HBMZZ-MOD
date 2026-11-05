@@ -81,8 +81,25 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.4.2</span>
+            <span class="tl-ver">v2.5.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>终端搬进 CE 控制台</h3>
+          <ul>
+            <li><strong>新增：CE 控制台的自定义控件列表里多了「终端」。</strong>就是那个从诅咒版移植过来的控制台：放一个终端控件，用联动器给它起名字绑上机器（名字就是槽位名），右键它打开命令窗口。<strong>原来终端只长在模组自己的控制面板上</strong>，这次按同一个用法搬到了移植面板里，而不是反过来给模组面板加功能。</li>
+            <li><strong>槽位不再只有 A–F。</strong>CE 控制台每个控件各有一套 <code>taggedLinks</code>，槽位就是你在联动器页签里起的那个名字。于是 <code>use</code> 后面可以写名字（带空格也行，例如 <code>use RBMK 控制棒组</code>），也可以写序号；<code>ls</code> 仍用 <code>*</code> 标当前目标。</li>
+            <li><strong>命令语言抽成与面板无关的一层。</strong>两块板子不共享任何一个类，所以补全与执行都写在一个 <code>TerminalHost</code> 接口上：动词、提示、错误文字只有一份。终端装在哪种面板上，语法都一样。</li>
+            <li><strong>目标选择跟着存档走。</strong>选中的槽位存进控件自己的 <code>vars</code>，随面板 NBT 一起保存；槽位顺序按标签名排序而不是联动器的插入顺序——那块 map 是从 <code>HashMap</code> 重建的，两次读档可能给出不同顺序，第 2 个槽位换台机器比没有槽位更糟。序号越界时退回第一个，而不是让四个槽位列着却一个都读不了。</li>
+            <li><strong>Tab 补全不发包。</strong>服务端每次回包都带上槽位表，以及当前目标的可读键名、事件和变量名；客户端对着本地这份副本补全，一次按键零往返。执行仍然只在服务端——客户端只发一行文本和一个控件序号，服务器用自己的面板解析。</li>
+            <li><strong>限流：</strong>一个终端每秒最多 10 行，超了直接回「命令太频繁了」，免得一条命令刷爆机器的事件总线。</li>
+            <li><strong>自检加 3 条（<code>tools/regcheck</code>，共 19 条）：</strong>addon 控件类型必须有中文名（漏了就把英文键塞进中文菜单）；写出来的控件类必须真的进注册表（2.3.0 就是这么丢的物品和 TE）；注册名不得重复——重复在 <code>put</code> 时静默覆盖，面板照常加载，只是少了一个控件。三条都做过回退验证，确认会红。</li>
+            <li><strong><code>tools/termcheck</code> 换成新接口</strong>，并加一组 host 用例：按名字 / 前缀 / 字母解析槽位、带空格的 <code>use</code>、以及快照补全与 <code>ls</code> 的标记。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.4.2</span>
           </div>
           <h3>控制台编辑器一开就崩</h3>
           <ul>

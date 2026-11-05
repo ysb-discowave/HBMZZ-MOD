@@ -161,6 +161,15 @@ public class BlockCtrlConsole extends BlockContainer {
             }
             TileEntityCtrlConsole console = (TileEntityCtrlConsole) te;
             Control ctrl = console.panel.getSelectedControl(playerIn.getPositionEyes(1.0F), playerIn.getLook(1.0F));
+            if (ctrl != null && ctrl instanceof com.hbmzz.cecp.controls.addon.TerminalControl) {
+                // A terminal is not a button: clicking it opens the command
+                // window instead of sending ctrl_press. The window then talks to
+                // the server through TerminalInputMessage, which is a stricter
+                // channel than the click was.
+                com.hbmzz.HBMZZ.proxy.openTerminal(com.hbmzz.network.TerminalInputMessage.KIND_CONSOLE,
+                        pos, console.panel.controls.indexOf(ctrl));
+                return true;
+            }
             if (ctrl != null) {
                 ControlEvent evt = ControlEvent.newEvent("ctrl_press");
                 evt.setVar("isSneaking", new DataValueFloat(playerIn.isSneaking()));

@@ -19,13 +19,15 @@
 package com.hbmzz.client;
 
 import com.hbmzz.client.screen.TermCanvas;
+import com.hbmzz.cecp.controls.addon.TerminalControl;
+import com.hbmzz.cecp.tile.TileEntityCtrlConsole;
 import com.hbmzz.ctrl.CtrlLink;
 import com.hbmzz.ctrl.CtrlPanel;
-import com.hbmzz.ctrl.CtrlType;
-import com.hbmzz.ctrl.CtrlWidget;
+import com.hbmzz.ctrl.SnapshotHost;
 import com.hbmzz.ctrl.TerminalShell;
 import com.hbmzz.network.NetworkHandler;
 import com.hbmzz.network.TerminalInputMessage;
+import com.hbmzz.network.TerminalReplyMessage;
 import com.hbmzz.tile.TileEntityCtrlPanel;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -68,9 +70,13 @@ public class GuiCtrlTerminal extends GuiScreen {
 
     private final BlockPos pos;
     private final int index;
+    /** {@link TerminalInputMessage#KIND_PANEL} or {@code KIND_CONSOLE}. */
+    private final int kind;
 
     private final TermCanvas canvas = new TermCanvas();
     private final TermCanvas.View view = new TermCanvas.View();
+    /** Slots and vocabulary as the server last described them. */
+    private final SnapshotHost snapshot = new SnapshotHost();
     private final List<String> history = new ArrayList<String>();
     private int historyAt;
 
@@ -91,8 +97,17 @@ public class GuiCtrlTerminal extends GuiScreen {
     private boolean closing;
 
     public GuiCtrlTerminal(BlockPos pos, int index) {
+        this(TerminalInputMessage.KIND_PANEL, pos, index);
+    }
+
+    public GuiCtrlTerminal(int kind, BlockPos pos, int index) {
+        this.kind = kind;
         this.pos = pos;
         this.index = index;
+    }
+
+    private boolean isConsole() {
+        return this.kind == TerminalInputMessage.KIND_CONSOLE;
     }
 
     private TileEntityCtrlPanel tile() {
@@ -103,18 +118,46 @@ public class GuiCtrlTerminal extends GuiScreen {
         return te instanceof TileEntityCtrlPanel ? (TileEntityCtrlPanel) te : null;
     }
 
+    /** The ported console this window belongs to, or null. */
+    private TileEntityCtrlConsole console() {
+        if (this.mc == null || this.mc.world == null) {
+            return null;
+        }
+        TileEntity te = this.mc.world.getTileEntity(this.pos);
+        return te instanceof TileEntityCtrlConsole ? (TileEntityCtrlConsole) te : null;
+    }
+
+    /**
+     * Does the thing this window is attached to still exist?
+     *
+     * <p>Checked per frame, because the block can be broken or the control
+     * deleted while the window is open - and typing into a window with no
+     * addressee is worse than being kicked out of it.</p>
+     */
+    private boolean addresseeAlive() {
+        if (isConsole()) {
+            TileEntityCtrlConsole console = console();
+            if (console == null || console.panel == null
+                    || this.index < 0 || this.index >= console.panel.controls.size()) {
+                return false;
+            }
+            return console.panel.controls.get(this.index) instanceof TerminalControl;
+        }
+        CtrlPanel panel = panel();
+        return panel != null && widget(panel) != null;
+    }
+
     private CtrlPanel panel() {
         TileEntityCtrlPanel te = tile();
         return te == null ? null : te.getPanel();
     }
 
-    private CtrlWidget widget() {
-        CtrlPanel panel = panel();
+    private com.hbmzz.ctrl.CtrlWidget widget(CtrlPanel panel) {
         if (panel == null || this.index < 0) {
             return null;
         }
-        CtrlWidget widget = panel.get(this.index);
-        return widget != null && widget.type == CtrlType.TERMINAL ? widget : null;
+        com.hbmzz.ctrl.CtrlWidget widget = panel.get(this.index);
+        return widget != null && widget.type == com.hbmzz.ctrl.CtrlType.TERMINAL ? widget : null;
     }
 
     // ------------------------------------------------------------- lifecycle
@@ -131,13 +174,21 @@ public class GuiCtrlTerminal extends GuiScreen {
         // The banner is written once per window, not per keystroke, and it is
         // the only place the target machine's name is spelled out in full.
         if (this.view.lines.isEmpty()) {
-            this.view.lines.add(new TermCanvas.Line("机器终端已连接到面板。", TerminalShell.HINT));
-            this.view.lines.add(new TermCanvas.Line("  ls        列出 A–F 上绑定的机器", TerminalShell.OUT));
+            this.view.lines.add(new TermCanvas.Line("机器终端已连接。", TerminalShell.HINT));
+            this.view.lines.add(new TermCanvas.Line("  ls        列出已绑定的机器", TerminalShell.OUT));
             this.view.lines.add(new TermCanvas.Line("  use A     切换目标机器", TerminalShell.OUT));
             this.view.lines.add(new TermCanvas.Line("  read      读它的全部数据", TerminalShell.OUT));
             this.view.lines.add(new TermCanvas.Line("  ev / set  发事件、写数值", TerminalShell.OUT));
             this.view.lines.add(new TermCanvas.Line("  其余命令见 help；Tab 补全。", TerminalShell.HINT));
+            if (this.isConsole()) {
+                this.view.lines.add(new TermCanvas.Line(
+                        "  这台面板的槽位就是联动器里起的名字，use 后面可以写名字。", TerminalShell.HINT));
+            }
         }
+        seedSnapshot();
+        // Ask the server for the authoritative slot list and vocabulary; the
+        // local copy above is only there so the strip is never briefly empty.
+        NetworkHandler.sendToServer(new TerminalInputMessage(this.kind, this.pos, this.index, ""));
     }
 
     @Override
@@ -158,16 +209,54 @@ public class GuiCtrlTerminal extends GuiScreen {
     }
 
     /**
-     * Rebuilds the view from the tile: slot names, current target, prompt.
+     * Fills the snapshot from the local panel copy, before the server answers.
+     *
+     * <p>Only so the window does not open with six blank tabs; the reply
+     * overwrites every field a moment later.</p>
+     */
+    private void seedSnapshot() {
+        this.snapshot.clear();
+        if (this.isConsole()) {
+            TileEntityCtrlConsole console = console();
+            if (console == null || console.panel == null
+                    || this.index < 0 || this.index >= console.panel.controls.size()) {
+                return;
+            }
+            if (!(console.panel.controls.get(this.index) instanceof TerminalControl)) {
+                return;
+            }
+            TerminalControl control = (TerminalControl) console.panel.controls.get(this.index);
+            for (String tag : control.tags()) {
+                this.snapshot.add(tag, tag, true);
+            }
+            this.snapshot.target(control.getTarget());
+            return;
+        }
+        CtrlPanel panel = panel();
+        com.hbmzz.ctrl.CtrlWidget widget = widget(panel);
+        if (panel == null || widget == null) {
+            return;
+        }
+        for (int i = 0; i < CtrlPanel.LINKS; i++) {
+            CtrlLink link = panel.links[i];
+            boolean bound = !link.isEmpty();
+            this.snapshot.add(CtrlLink.letter(i), bound ? link.label : "未绑定", bound);
+            if (bound) {
+                this.snapshot.vocab(i, link.keys, link.events, link.vars);
+            }
+        }
+        this.snapshot.target(widget.link);
+    }
+
+    /**
+     * Rebuilds the view from what the server last said.
      *
      * <p>Called every frame instead of kept in a field, because the panel is
      * the truth. Binding a machine in the other window while this one is open
      * should show up here on the next frame, not on the next reopen.</p>
      */
     private void refreshView() {
-        CtrlPanel panel = panel();
-        CtrlWidget widget = widget();
-        if (panel == null || widget == null) {
+        if (!addresseeAlive()) {
             // The block or the control went away under us. Closing is better
             // than typing into a window that no longer has a addressee.
             if (!this.closing) {
@@ -176,15 +265,18 @@ public class GuiCtrlTerminal extends GuiScreen {
             }
             return;
         }
-        for (int i = 0; i < CtrlPanel.LINKS; i++) {
-            CtrlLink link = panel.links[i];
-            this.view.slots[i] = link.isEmpty() ? null : link.label;
+        int target = this.snapshot.target();
+        for (int i = 0; i < TermCanvas.LINKS; i++) {
+            boolean bound = i < this.snapshot.slots() && this.snapshot.bound(i);
+            this.view.slots[i] = bound ? this.snapshot.label(i) : null;
         }
-        this.view.selected = widget.link;
-        this.view.panelName = panel.name;
-        this.view.subtitle = widget.link < 0 ? "无目标"
-                : CtrlLink.letter(widget.link) + " · " + panel.links[widget.link].label;
-        this.view.prompt = (widget.link < 0 ? "-" : CtrlLink.letter(widget.link)) + ">";
+        this.view.selected = target >= 0 && target < TermCanvas.LINKS ? target : -1;
+        this.view.panelName = this.isConsole() ? "CE 控制台" : panel() == null ? "" : panel().name;
+        String label = target < 0 ? "" : this.snapshot.label(target);
+        String name = target < 0 ? "" : this.snapshot.name(target);
+        this.view.subtitle = target < 0 ? "无目标"
+                : label + " · " + (name == null || name.isEmpty() ? label : name);
+        this.view.prompt = (target < 0 ? "-" : label) + ">";
         this.view.input = this.input;
         this.view.caret = this.caret;
         this.view.scroll = this.scroll;
@@ -325,7 +417,7 @@ public class GuiCtrlTerminal extends GuiScreen {
         this.input = "";
         this.caret = 0;
         this.scroll = 0;
-        NetworkHandler.sendToServer(new TerminalInputMessage(this.pos, this.index, line));
+        NetworkHandler.sendToServer(new TerminalInputMessage(this.kind, this.pos, this.index, line));
     }
 
     private void echo(String text) {
@@ -358,7 +450,7 @@ public class GuiCtrlTerminal extends GuiScreen {
     private void complete(int direction) {
         if (!this.suggesting) {
             TerminalShell.Completion completion =
-                    TerminalShell.complete(panel(), widget(), this.input, this.caret);
+                    TerminalShell.complete(this.snapshot, this.input, this.caret);
             if (completion.candidates.isEmpty()) {
                 this.status = "没有可补全的内容";
                 return;
@@ -406,23 +498,51 @@ public class GuiCtrlTerminal extends GuiScreen {
     // ----------------------------------------------------------------- reply
 
     /** Called from the packet bridge on the client thread. */
-    public void onReply(BlockPos where, int which, int slot, boolean clear, String kinds, String text) {
-        if (!this.pos.equals(where) || which != this.index) {
+    public void onReply(int kind, BlockPos where, int which, int slot, boolean clear,
+                        String kinds, String text, String labels, String keys,
+                        String events, String vars) {
+        if (kind != this.kind || !this.pos.equals(where) || which != this.index) {
             return;
         }
         this.frameDue = true;
+        if (!labels.isEmpty()) {
+            this.snapshot.clear();
+            for (String label : TerminalReplyMessage.split(labels, 32)) {
+                this.snapshot.add(label, label, true);
+            }
+        }
+        this.snapshot.target(slot);
+        if (slot >= 0) {
+            this.snapshot.vocab(slot,
+                    TerminalReplyMessage.split(keys, 32),
+                    TerminalReplyMessage.split(events, 32),
+                    pairs(TerminalReplyMessage.split(vars, 16)));
+        }
         if (clear) {
             this.view.lines.clear();
         }
         String[] lines = text.isEmpty() ? new String[0] : text.split("\n", -1);
         for (int i = 0; i < lines.length; i++) {
-            int kind = i < kinds.length() ? kinds.charAt(i) - '0' : TerminalShell.OUT;
-            append(new TermCanvas.Line(lines[i], kind));
+            int lineKind = i < kinds.length() ? kinds.charAt(i) - '0' : TerminalShell.OUT;
+            append(new TermCanvas.Line(lines[i], lineKind));
         }
         if (slot >= 0) {
-            this.status = "目标 " + CtrlLink.letter(slot);
+            String label = this.snapshot.label(slot);
+            this.status = "目标 " + (label == null || label.isEmpty() ? String.valueOf(slot) : label);
         }
         this.scroll = 0;
+    }
+
+    /** "event var" lines back into the map completion uses. */
+    private static java.util.Map<String, String> pairs(java.util.List<String> lines) {
+        java.util.Map<String, String> out = new java.util.LinkedHashMap<String, String>();
+        for (String line : lines) {
+            int space = line.indexOf(' ');
+            if (space > 0) {
+                out.put(line.substring(0, space), line.substring(space + 1).trim());
+            }
+        }
+        return out;
     }
 
     // ----------------------------------------------------------------- mouse
@@ -438,9 +558,13 @@ public class GuiCtrlTerminal extends GuiScreen {
         }
         int slot = this.canvas.slotAt(lx, ly);
         if (slot >= 0) {
+            if (!this.snapshot.bound(slot)) {
+                return;
+            }
             // Switching targets goes through the same command the operator
             // would type, so there is one code path and one set of rules.
-            this.input = "use " + CtrlLink.letter(slot);
+            String label = this.snapshot.label(slot);
+            this.input = "use " + (label == null || label.isEmpty() ? String.valueOf(slot) : label);
             submit();
             return;
         }
@@ -462,8 +586,10 @@ public class GuiCtrlTerminal extends GuiScreen {
 
     private void close() {
         this.closing = true;
-        TileEntityCtrlPanel te = tile();
-        this.reopenPanel = te != null && widget() != null;
+        // Only this mod's panel has a window to go back to; the ported console
+        // is operated from the world, so its terminal closes to the world.
+        this.reopenPanel = !this.isConsole() && tile() != null
+                && widget(panel()) != null;
         this.mc.displayGuiScreen(this.reopenPanel ? new GuiCtrlPanel(this.pos) : null);
     }
 

@@ -21,6 +21,7 @@ package com.hbmzz.tile;
 import com.hbmzz.ctrl.CtrlEngine;
 import com.hbmzz.ctrl.CtrlLink;
 import com.hbmzz.ctrl.CtrlPanel;
+import com.hbmzz.ctrl.CtrlPanelHost;
 import com.hbmzz.ctrl.CtrlRule;
 import com.hbmzz.ctrl.CtrlWidget;
 import com.hbmzz.ctrl.MachineBridge;
@@ -195,7 +196,7 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
             sink.err("命令太频繁了，等一秒再来。");
             return result;
         }
-        result = TerminalShell.execute(this.panel, widget, this.world, line, sink);
+        result = TerminalShell.execute(new CtrlPanelHost(this.panel, index, this.world), line, sink);
         if (result.dirty) {
             markDirty();
             sync();

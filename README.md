@@ -776,6 +776,18 @@ gradlew build
 
 产物：`build/libs/hbmzz-<版本>.jar`。
 
+装进游戏也一步到位（旧版自动改名 `.jar.bak`，脚本不删任何东西）：
+
+```bash
+python tools/deploy.py            # 自动找 mods 目录
+python tools/deploy.py --dry-run  # 只看会做什么
+```
+
+mods 目录的解析顺序：`--mods` → 环境变量 `HBMZZ_MODS` → 仓库根的 `deploy.local.json`
+（已 gitignore，各人路径不同）→ 自动探测 `~/Desktop/.minecraft/versions/*/mods` 与
+`~/.minecraft/mods` 里装了 NTM 的那个。脚本先比校验和，已一致就什么都不做；复制完再算一次，
+不一致直接报错而不是留下一份半成品。游戏开着时改不动文件，它会说清楚而不是抛栈。
+
 > wrapper 的 `gradle-wrapper.jar` 丢了的话，用缓存的分发直接跑：
 > `~/.gradle/wrapper/dists/gradle-4.10.3-bin/*/gradle-4.10.3/bin/gradle.bat build`。
 > 别对 `2.3-SNAPSHOT` 联网重新解析——会拉到给新 Gradle 编的 ForgeGradle，5.x/6.x 上配置阶段就炸

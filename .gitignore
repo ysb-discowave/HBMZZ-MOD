@@ -10,6 +10,9 @@ build_log*.txt
 release/
 dist/
 
+# 本机部署目标（tools/deploy.py 读，别人的机器路径不同，不进仓库）
+deploy.local.json
+
 # 编辑器 / 工具产生的本地数据
 .workbuddy/
 .idea/

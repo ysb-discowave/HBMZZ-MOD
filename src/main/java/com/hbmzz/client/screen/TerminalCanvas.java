@@ -357,8 +357,10 @@ public final class TerminalCanvas {
         rect(sx - 9, 10, 5, 10, statusColor);
 
         if (coreLabel != null) {
+            // The core label is a link tag, so it can be Chinese; asking the
+            // monospaced face for Han gives a row of empty boxes.
             String bind = "\u00b7 " + coreLabel;
-            Font bindFont = ScreenFonts.mono(8);
+            Font bindFont = ScreenFonts.text(bind, 8);
             int bw = textWidth(bind, bindFont);
             if (sx - 14 - bw > 120) {
                 text(bind, sx - 14 - bw, 19, FAINT, bindFont);

@@ -81,8 +81,22 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.5.0</span>
+            <span class="tl-ver">v2.5.1</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>中文槽位名不再印成豆腐块</h3>
+          <ul>
+            <li><strong>修：终端输入行左边的提示符，槽位名是中文时变成一排空方框。</strong>自研面板的槽位是 <code>A</code>–<code>F</code>，提示符永远只有三个字母，所以这个位置一直用等宽字体画也没人发现；CE 控制台的槽位是你自己起的中文标签（<code>反应堆</code>），等宽字体没有汉字，AWT 就画它自己的「缺字」方框——不报错、不崩溃，只是看起来像坏了一样。</li>
+            <li><strong>根因不是漏了一个字体调用，而是「量宽度和画字各挑各的字体」。</strong>现在窗口里所有文字都走同一个入口：字体由<b>要画的那个字符串</b>决定（有汉字就用中文字体，纯 ASCII 才用等宽），量宽度、算光标位置、按像素裁剪用的是同一个函数。两边不可能再算出不同的宽度。</li>
+            <li><strong>顺带修掉同类的两处：</strong>DFC 监视器终端标题右侧的「· 核心名」，以及底部状态条变成「数据中断」时（那一条平时是纯 ASCII，只有断开时才带上汉字）。</li>
+            <li><strong>自检加 2 条（<code>tools/regcheck</code>，共 21 条）：</strong>终端窗口里不许再手工取等宽字体（字体必须由字符串决定）；<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 三处版本号必须一致。都做过回退验证。</li>
+            <li><strong>附带：</strong>日志里那句 <code>Client attempting to join with ... hbmzz@2.0.0</code> 终于是对的版本号了——<code>HBMZZ.VERSION</code> 是编译期常量，从 2.0.0 起就没跟着升过，五个版本的日志都在报旧号。现在由上面那条自检盯着。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.5.0</span>
           </div>
           <h3>终端搬进 CE 控制台</h3>
           <ul>

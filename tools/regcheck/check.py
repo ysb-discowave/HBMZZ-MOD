@@ -380,6 +380,26 @@ def main():
     check(not offenders, "no string uses a glyph the UI fonts cannot draw",
           "renders as a box: " + ", ".join(sorted(set(offenders))[:6]))
 
+    # 14b. The terminal window must pick its face from the string, not from the
+    # call site.
+    #
+    # 2.5.1's prompt read "反应堆>" - the current slot's tag, which on the ported
+    # console is an operator's own Chinese link tag - and it was drawn with the
+    # monospaced face, so it came out as three tofu boxes. Nothing threw: AWT
+    # draws the notdef glyph and moves on.
+    #
+    # TermCanvas now has one entry point per primitive (text/width/clip all take
+    # size+bold and derive the face from the value), which makes measure and
+    # draw physically incapable of disagreeing. A direct ScreenFonts.mono() in
+    # that file is the only way back to the old behaviour, so it is banned.
+    term_canvas = read(os.path.join(SRC, "com/hbmzz/client/screen/TermCanvas.java"))
+    bypass = []
+    for lineno, line in enumerate(code_lines(term_canvas), 1):
+        if "ScreenFonts.mono" in line:
+            bypass.append("TermCanvas.java:%d %s" % (lineno, line.strip()[:60]))
+    check(not bypass, "the terminal window never picks a face by hand",
+          "a Chinese tag drawn as monospaced becomes boxes: " + "; ".join(bypass[:3]))
+
     # 15. The console editor must never take the top of its sub-element stack
     # without asking whether there is one.
     #
@@ -482,6 +502,23 @@ def main():
         seen[key] = token
     check(entries and not clashes, "every addon control has its own registry name",
           "silently overwrites another control: " + ", ".join(sorted(set(clashes))))
+
+    # 20. Three places spell the version and only one of them is bumped by hand
+    # reliably. HBMZZ.VERSION is what FML prints in "Client attempting to join
+    # with N mods: ... hbmzz@<ver>", so a stale literal means the log lies about
+    # which build is loaded - it said 2.0.0 for five releases. The annotation
+    # needs a compile-time constant, so this cannot be read from mcmod.info at
+    # runtime; comparing the three is the next best thing.
+    gradle_version = re.search(r"^version\s*=\s*'([^']+)'",
+                               read(os.path.join(ROOT, "build.gradle")), re.M)
+    mod_info = re.search(r'"version"\s*:\s*"([^"]+)"',
+                         read(os.path.join(SRC, "..", "resources", "mcmod.info")))
+    java_version = re.search(r'VERSION\s*=\s*"([^"]+)"',
+                             read(os.path.join(SRC, "com/hbmzz/HBMZZ.java")))
+    stamps = [m.group(1) if m else None for m in (gradle_version, mod_info, java_version)]
+    check(len(set(stamps)) == 1 and stamps[0],
+          "the three version stamps agree (build.gradle / mcmod.info / HBMZZ.VERSION)",
+          "got " + " / ".join(str(s) for s in stamps))
 
     failed = [name for ok, name, _ in results if not ok]
     print()

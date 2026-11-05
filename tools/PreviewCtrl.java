@@ -141,6 +141,29 @@ public final class PreviewCtrl {
         canvas.render(help, -1, -1);
         save(canvas, dir, "term-help.png");
 
+        // 4. CE 控制台：槽位名是玩家自己起的中文标签，而标签会落在输入行
+        // 提示符上。这一屏存在的唯一理由就是盯住那个位置：自研面板的提示符
+        // 是 "A>"，从来没有暴露过「等宽字体画汉字」这件事。
+        TermCanvas.View console = base();
+        console.panelName = "CE 控制台";
+        console.prompt = "反应堆>";
+        console.slots[0] = "反应堆";
+        console.slots[1] = "蒸汽发生器";
+        console.slots[2] = null;
+        console.slots[3] = null;
+        console.slots[4] = null;
+        console.slots[5] = null;
+        console.selected = 0;
+        console.subtitle = "反应堆 · RBMK 控制棒（手动）";
+        console.lines.add(line("> ls", TerminalShell.ECHO));
+        console.lines.add(line("* 反应堆  RBMK 控制棒（手动）", TerminalShell.OK));
+        console.lines.add(line("  蒸汽发生器  RBMK 蒸汽发生器", TerminalShell.OUT));
+        console.lines.add(line("可读 12 键 · 可发 6 事件", TerminalShell.HINT));
+        console.status = "第 1/1 台";
+        canvas.markDirty();
+        canvas.render(console, -1, -1);
+        save(canvas, dir, "term-console.png");
+
         canvas.dispose();
     }
 

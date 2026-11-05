@@ -149,4 +149,27 @@ public final class ScreenFonts {
         }
         return false;
     }
+
+    /**
+     * The face for a string: the CJK one when it needs Han, monospaced otherwise.
+     *
+     * <p>This is the only sanctioned way to pick a font for text that might be
+     * user data. Getting it wrong does not throw: AWT draws the face's
+     * "notdef" glyph, so a Han character set in Consolas comes out as an empty
+     * box and the string looks like a row of tofu. Every dynamic label in the
+     * terminal goes through here for that reason - link tags are free text, and
+     * an operator naming a machine "反应堆" is the normal case, not the edge.</p>
+     */
+    public static Font text(String value, int size) {
+        return hasCjk(value) ? cjk(size) : mono(size);
+    }
+
+    /**
+     * Bold variant. A "bold" request only means bold for Latin: at 9-10 logical
+     * pixels a bold Han glyph fuses its strokes into a smear, which reads worse
+     * than regular weight - so CJK falls back to the regular face.
+     */
+    public static Font textBold(String value, int size) {
+        return hasCjk(value) ? cjk(size) : monoBold(size);
+    }
 }

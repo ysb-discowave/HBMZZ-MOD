@@ -833,7 +833,9 @@ public final class DfcScreen {
         }
         line.append(" // ").append(link);
 
-        Font font = ScreenFonts.mono(7);
+        // One of the states is "数据中断", so the ticker is not pure ASCII
+        // either: the face has to follow the string, not the column.
+        Font font = ScreenFonts.text(line.toString(), 7);
         String text = clip(line.toString(), 214, font);
         text(text, 12, 188, this.alert ? ALERT_TXT : DIM, font);
 

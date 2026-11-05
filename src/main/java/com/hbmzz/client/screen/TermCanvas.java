@@ -24,7 +24,6 @@ import com.hbmzz.ctrl.TerminalShell;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
@@ -244,10 +243,10 @@ public class TermCanvas {
         rect(g, 0, 0, W, HEADER_H, PANEL);
         rect(g, 0, HEADER_H - 1, W, 1, LINE);
         rect(g, PAD, 8, 3, 14, AMBER);
-        text(g, "机器终端", PAD + 9, 20, TXT, ScreenFonts.cjkBold(12));
-        int titleW = width(g, "机器终端", ScreenFonts.cjkBold(12));
+        text(g, "机器终端", PAD + 9, 20, TXT, 12, true);
+        int titleW = width(g, "机器终端", 12, true);
         if (!view.panelName.isEmpty()) {
-            text(g, "· " + view.panelName, PAD + 9 + titleW + 6, 20, FAINT, ScreenFonts.cjk(9));
+            text(g, "· " + view.panelName, PAD + 9 + titleW + 6, 20, FAINT, 9, false);
         }
 
         int size = 16;
@@ -256,17 +255,16 @@ public class TermCanvas {
         boolean hover = mouseX >= cx && mouseX < cx + size && mouseY >= cy && mouseY < cy + size;
         rect(g, cx, cy, size, size, hover ? 0xFF4A1A12 : 0xFF1E1A14);
         frame(g, cx, cy, size, size, hover ? CRIT : LINE);
-        center(g, "x", cx, size, cy + 11, hover ? 0xFFFFC8BC : DIM, ScreenFonts.mono(10));
+        center(g, "x", cx, size, cy + 11, hover ? 0xFFFFC8BC : DIM, 10, false);
         this.closeHit = new int[]{cx, cy, size, size};
 
         // Target on the right of the header, right to left, so the one number
         // that matters while typing is never the thing that gets clipped.
         if (!view.subtitle.isEmpty()) {
             String target = view.subtitle;
-            Font font = ScreenFonts.hasCjk(target) ? ScreenFonts.cjk(9) : ScreenFonts.mono(9);
-            int tw = width(g, target, font);
+            int tw = width(g, target, 9, false);
             int tx = Math.max(PAD + 120, cx - 14 - tw);
-            text(g, target, tx, 20, MINT, font);
+            text(g, target, tx, 20, MINT, 9, false);
         }
     }
 
@@ -294,14 +292,12 @@ public class TermCanvas {
             if (active) {
                 rect(g, x, y, 2, STRIP_H, AMBER);
             }
-            Font letter = ScreenFonts.monoBold(9);
             text(g, CtrlLink.letter(i), x + 6, y + 14,
-                    bound ? (active ? AMBER : TXT) : FAINT, letter);
+                    bound ? (active ? AMBER : TXT) : FAINT, 9, true);
             int room = chipW - 20;
             String label = bound ? name : "未绑定";
-            Font font = ScreenFonts.cjk(8);
-            text(g, clip(g, label, room, font), x + 17, y + 14,
-                    bound ? (active ? TXT : DIM) : FAINT, font);
+            text(g, clip(g, label, room, 8, false), x + 17, y + 14,
+                    bound ? (active ? TXT : DIM) : FAINT, 8, false);
             if (bound) {
                 this.slotHits.add(new int[]{i, x, y, chipW, STRIP_H});
             }
@@ -320,20 +316,20 @@ public class TermCanvas {
         int y = box[1] + 12;
         for (int i = start; i < end; i++) {
             Line line = view.lines.get(i);
-            Font font = ScreenFonts.hasCjk(line.text) ? ScreenFonts.cjk(9) : ScreenFonts.mono(9);
-            text(g, clip(g, line.text, box[2] - 12, font), box[0] + 6, y, colour(line.kind), font);
+            text(g, clip(g, line.text, box[2] - 12, 9, false), box[0] + 6, y,
+                    colour(line.kind), 9, false);
             y += LINE_H;
         }
         if (count == 0) {
-            text(g, "输入 help 查看命令。", box[0] + 6, box[1] + 12, FAINT, ScreenFonts.cjk(9));
+            text(g, "输入 help 查看命令。", box[0] + 6, box[1] + 12, FAINT, 9, false);
         }
         if (view.scroll > 0) {
             // Scrollback indicator, because a window that silently shows older
             // lines looks like it stopped updating.
             String mark = "↑ " + view.scroll;
-            int tw = width(g, mark, ScreenFonts.mono(8));
+            int tw = width(g, mark, 8, false);
             rect(g, box[0] + box[2] - tw - 12, box[1] + 3, tw + 8, 12, 0xFF1E1A14);
-            text(g, mark, box[0] + box[2] - tw - 8, box[1] + 12, AMBER, ScreenFonts.mono(8));
+            text(g, mark, box[0] + box[2] - tw - 8, box[1] + 12, AMBER, 8, false);
         }
     }
 
@@ -343,12 +339,13 @@ public class TermCanvas {
         frame(g, PAD, y, W - PAD * 2, INPUT_H, AMBER);
         rect(g, PAD, y, 2, INPUT_H, AMBER);
 
+        // The prompt is the current slot's name. On the ported console that is
+        // an operator's own link tag - "反应堆" - so it is not safe to assume
+        // ASCII here; the primitive picks the face per string.
         int promptX = PAD + 7;
-        Font promptFont = ScreenFonts.monoBold(10);
-        text(g, view.prompt, promptX, y + 15, AMBER, promptFont);
-        int textX = promptX + width(g, view.prompt, promptFont) + 5;
+        text(g, view.prompt, promptX, y + 15, AMBER, 10, true);
+        int textX = promptX + width(g, view.prompt, 10, true) + 5;
 
-        Font font = ScreenFonts.hasCjk(view.input) ? ScreenFonts.cjk(10) : ScreenFonts.mono(10);
         int room = W - PAD - 8 - textX;
         String shown = view.input;
         int caret = Math.max(0, Math.min(shown.length(), view.caret));
@@ -356,18 +353,16 @@ public class TermCanvas {
         // the input is a command, not a document, so horizontal scrolling is
         // one word of arithmetic instead of a viewport.
         int from = 0;
-        while (from < caret && width(g, shown.substring(from, caret), font) > room - 6) {
+        while (from < caret && width(g, shown.substring(from, caret), 10, false) > room - 6) {
             from++;
         }
         String visible = shown.substring(from);
-        if (width(g, visible, font) > room) {
-            while (visible.length() > 1 && width(g, visible, font) > room) {
-                visible = visible.substring(0, visible.length() - 1);
-            }
+        while (visible.length() > 1 && width(g, visible, 10, false) > room) {
+            visible = visible.substring(0, visible.length() - 1);
         }
-        text(g, visible, textX, y + 15, TXT, font);
+        text(g, visible, textX, y + 15, TXT, 10, false);
         if ((System.currentTimeMillis() / 500L) % 2L == 0L) {
-            int caretX = textX + width(g, shown.substring(from, caret), font);
+            int caretX = textX + width(g, shown.substring(from, caret), 10, false);
             rect(g, caretX, y + 4, 1, 14, AMBER);
         }
     }
@@ -375,12 +370,11 @@ public class TermCanvas {
     private void paintFooter(Graphics2D g, View view) {
         int y = H - FOOT_H + 6;
         String hint = "Tab 补全   ↑↓ 历史   PgUp/PgDn 滚动   Esc 关闭";
-        text(g, hint, PAD, y + 8, FAINT, ScreenFonts.cjk(8));
+        text(g, hint, PAD, y + 8, FAINT, 8, false);
         if (!view.status.isEmpty()) {
-            Font font = ScreenFonts.cjk(8);
-            int tw = width(g, view.status, font);
-            if (PAD + width(g, hint, ScreenFonts.cjk(8)) + 12 < W - PAD - tw) {
-                text(g, view.status, W - PAD - tw, y + 8, DIM, font);
+            int tw = width(g, view.status, 8, false);
+            if (PAD + width(g, hint, 8, false) + 12 < W - PAD - tw) {
+                text(g, view.status, W - PAD - tw, y + 8, DIM, 8, false);
             }
         }
     }
@@ -397,17 +391,16 @@ public class TermCanvas {
         if (view.suggest.isEmpty()) {
             return;
         }
-        Font font = ScreenFonts.cjk(9);
         int rows = Math.min(6, view.suggest.size());
         int hidden = view.suggest.size() - rows;
         // The "+N" badge needs its own column: drawn over the candidates it
         // lands on the first row's tail, where the eye reads it as part of the
         // longest candidate name.
         String more = hidden > 0 ? "+" + hidden : "";
-        int badge = more.isEmpty() ? 0 : width(g, more, ScreenFonts.mono(8)) + 8;
+        int badge = more.isEmpty() ? 0 : width(g, more, 8, false) + 8;
         int boxW = 0;
         for (int i = 0; i < rows; i++) {
-            boxW = Math.max(boxW, width(g, view.suggest.get(i), font));
+            boxW = Math.max(boxW, width(g, view.suggest.get(i), 9, false));
         }
         boxW = Math.min(W - PAD * 2, boxW + 20 + badge);
         int boxH = rows * LINE_H + 6;
@@ -421,14 +414,13 @@ public class TermCanvas {
                 rect(g, PAD + 1, y + 3 + i * LINE_H, boxW - 2, LINE_H, 0xFF2A210F);
                 rect(g, PAD + 1, y + 3 + i * LINE_H, 2, LINE_H, AMBER);
             }
-            text(g, clip(g, view.suggest.get(i), boxW - 14 - badge, font), PAD + 8, y + 12 + i * LINE_H,
-                    active ? AMBER : DIM, font);
+            text(g, clip(g, view.suggest.get(i), boxW - 14 - badge, 9, false),
+                    PAD + 8, y + 12 + i * LINE_H, active ? AMBER : DIM, 9, false);
         }
         // More candidates than fit: say so, silently truncating looks like the
         // list was wrong.
         if (!more.isEmpty()) {
-            text(g, more, PAD + boxW - width(g, more, ScreenFonts.mono(8)) - 4, y + 10,
-                    FAINT, ScreenFonts.mono(8));
+            text(g, more, PAD + boxW - width(g, more, 8, false) - 4, y + 10, FAINT, 8, false);
         }
     }
 
@@ -496,29 +488,39 @@ public class TermCanvas {
         g.draw(new RoundRectangle2D.Float(x + 0.5F, y + 0.5F, w - 1, h - 1, 3, 3));
     }
 
-    private void text(Graphics2D g, String value, int x, int y, int argb, Font font) {
-        g.setFont(font);
+    /**
+     * Draws one run of text.
+     *
+     * <p>The face is derived from {@code value} here rather than passed in: a
+     * caller that measures with one font and draws with another positions the
+     * caret and clips the line against a width nobody ever sees. Handing this
+     * method a Chinese link tag drawn as monospaced type is exactly how the
+     * prompt came out as three tofu boxes, so the choice is not left to the
+     * call site at all.</p>
+     */
+    private void text(Graphics2D g, String value, int x, int y, int argb, int size, boolean bold) {
+        g.setFont(bold ? ScreenFonts.textBold(value, size) : ScreenFonts.text(value, size));
         g.setColor(new Color(argb, true));
         g.drawString(value, x, y);
     }
 
-    private void center(Graphics2D g, String value, int x, int w, int baseline, int argb, Font font) {
-        text(g, value, x + w / 2 - width(g, value, font) / 2, baseline, argb, font);
+    private void center(Graphics2D g, String value, int x, int w, int baseline, int argb,
+                        int size, boolean bold) {
+        text(g, value, x + w / 2 - width(g, value, size, bold) / 2, baseline, argb, size, bold);
     }
 
-    private int width(Graphics2D g, String value, Font font) {
-        FontMetrics metrics = g.getFontMetrics(font);
-        return metrics.stringWidth(value);
+    private int width(Graphics2D g, String value, int size, boolean bold) {
+        Font face = bold ? ScreenFonts.textBold(value, size) : ScreenFonts.text(value, size);
+        return g.getFontMetrics(face).stringWidth(value);
     }
 
     /** Truncates with an ellipsis to a pixel budget. */
-    private String clip(Graphics2D g, String value, int room, Font font) {
-        FontMetrics metrics = g.getFontMetrics(font);
-        if (metrics.stringWidth(value) <= room) {
+    private String clip(Graphics2D g, String value, int room, int size, boolean bold) {
+        if (width(g, value, size, bold) <= room) {
             return value;
         }
         String out = value;
-        while (out.length() > 1 && metrics.stringWidth(out + "…") > room) {
+        while (out.length() > 1 && width(g, out + "…", size, bold) > room) {
             out = out.substring(0, out.length() - 1);
         }
         return out + "…";

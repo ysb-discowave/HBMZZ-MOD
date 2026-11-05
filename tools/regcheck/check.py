@@ -77,6 +77,39 @@ def registered_names(body):
     return set(re.findall(r"register\s*\(\s*([A-Z][A-Z_0-9]*)\s*\)", body))
 
 
+def code_lines(source):
+    """Lines with comments blanked out, keeping the line count.
+
+    Some checks are about what the code *does*; a comment explaining the rule
+    ("an empty stack means updateScreen dies on getFirst()") must not trip the
+    rule it documents. Nothing here needs to understand strings: the files
+    these checks read have no comment markers inside literals.
+    """
+    out = []
+    in_block = False
+    for line in source.splitlines():
+        buf = []
+        i = 0
+        while i < len(line):
+            if in_block:
+                end = line.find("*/", i)
+                if end < 0:
+                    i = len(line)
+                else:
+                    in_block = False
+                    i = end + 2
+            elif line.startswith("//", i):
+                i = len(line)
+            elif line.startswith("/*", i):
+                in_block = True
+                i += 2
+            else:
+                buf.append(line[i])
+                i += 1
+        out.append("".join(buf))
+    return out
+
+
 def string_literals(source):
     """(line, text) for every string literal that is not inside a comment."""
     out = []
@@ -328,6 +361,42 @@ def main():
                         os.path.relpath(path, ROOT).replace("\\", "/"), lineno, cp))
     check(not offenders, "no string uses a glyph the UI fonts cannot draw",
           "renders as a box: " + ", ".join(sorted(set(offenders))[:6]))
+
+    # 15. The console editor must never take the top of its sub-element stack
+    # without asking whether there is one.
+    #
+    # The stack is filled in initGui, so an exception inside initGui leaves it
+    # empty - and then updateScreen() died on getFirst() every tick, turning a
+    # broken menu into "the editor crashes on open". The empty case is only
+    # reachable through another bug, which is exactly why it has to be handled:
+    # one bug should not be reported as a different, unrecoverable one.
+    editor = read(os.path.join(SRC, "com/hbmzz/cecp/GuiControlEdit.java"))
+    unguarded = []
+    for lineno, line in enumerate(code_lines(editor), 1):
+        if "getFirst()" in line and "isEmpty()" not in line:
+            unguarded.append("GuiControlEdit.java:%d" % lineno)
+    check(not unguarded, "the editor never reads an empty sub-element stack",
+          "unguarded getFirst(): " + ", ".join(unguarded))
+
+    # 16. ControlType's table is filled by static initialisers, including ones
+    # that only run on first use (the addon's three types). Any code that
+    # iterates the live list is therefore iterating something that can grow
+    # under it - the ConcurrentModificationException that took the editor down.
+    # The list is private and all() hands out a copy, so this is about nobody
+    # undoing that: one public field would put the trap back.
+    type_src = read(os.path.join(SRC, "com/hbmzz/cecp/controls/ControlType.java"))
+    leaks = []
+    for base, _, files in sorted(os.walk(SRC)):
+        for name in sorted(files):
+            if not name.endswith(".java") or name == "ControlType.java":
+                continue
+            path = os.path.join(base, name)
+            for lineno, line in enumerate(code_lines(read(path)), 1):
+                if "ALL_VALUES" in line:
+                    leaks.append("%s:%d" % (os.path.relpath(path, ROOT).replace("\\", "/"), lineno))
+    exposed = "public static final List<ControlType> ALL_VALUES" in type_src
+    check(not leaks and not exposed, "the control-type table is only read through all()",
+          "reads the live list: " + (", ".join(leaks) if leaks else "field is public again"))
 
     failed = [name for ok, name, _ in results if not ok]
     print()

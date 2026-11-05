@@ -81,8 +81,24 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.4.1</span>
+            <span class="tl-ver">v2.4.2</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>控制台编辑器一开就崩</h3>
+          <ul>
+            <li><strong>修：控制台编辑器（CE 控制台）打开即崩。</strong>崩溃报告只显示 <code>updateScreen</code> 里的 <code>ArrayDeque.getFirst()</code>，真凶在两帧之前：<code>ControlType</code> 的类型表是静态初始化时一条条填的，而 addon 的 3 个类型要等某个类第一次碰到它们才登记；编辑器的类型菜单正好一边遍历这张表、一边通过注册表解析每个类型——解析就触发了那 3 条登记，等于往自己正在遍历的列表里追加，于是 <code>ConcurrentModificationException</code> 打断 <code>initGui</code>，元素栈没被填上，下一 tick 才崩在空栈上。</li>
+            <li><strong>类型表在启动时就补齐。</strong>注册表初始化时先强制登记 addon 的三个类型，之后再没有任何代码能改这张表。</li>
+            <li><strong>菜单遍历快照。</strong>类型列表改成 <code>ControlType.all()</code> 的副本，按钮 id 与点击时解析用的也是同一份快照——表后来变长也不会让按钮错位。</li>
+            <li><strong>编辑器不再被一个子菜单带走。</strong>元素栈先入栈再初始化子元素，所有取栈顶都改成可空；某个子元素 <code>initGui</code> 抛异常只记一条 ERROR，界面照常打开。一个 bug 不该以另一个更严重的面目出现。</li>
+            <li><strong>修：</strong>窗口缩放（F11 / 改 GUI 缩放）会让类型菜单里的按钮累积一份副本，越缩越多。</li>
+            <li><strong>新增自检 <code>tools/cecpcheck</code>（8 项）：</strong>断言「注册表 init 之后类型表就是完整的」，并在同一进程里按菜单的方式遍历一遍——修复前是 9 个类型、遍历中变 12 个。</li>
+            <li><code>regcheck</code> 加两条：编辑器不得无保护地取空栈顶；类型表只能通过 <code>all()</code> 读，字段不得再变回 public。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.4.1</span>
           </div>
           <h3>终端里的豆腐块</h3>
           <ul>

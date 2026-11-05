@@ -36,6 +36,8 @@ public class SubElementItemChoice extends SubElement {
 	public int currentPage = 1;
 	public int numPages = 1;
 	public List<GuiButton> buttons = new ArrayList<>();
+	/** The types as they were when the buttons were built - see initGui. */
+	private List<ControlType> types = new ArrayList<>();
 	
 	public SubElementItemChoice(GuiControlEdit gui){
 		super(gui);
@@ -45,18 +47,31 @@ public class SubElementItemChoice extends SubElement {
 	protected void initGui(){
 		int cX = gui.width/2;
 		int cY = gui.height/2;
+		// initGui runs again on every resize, and this list is ours, not the
+		// screen's - without the clear, each resize appended a second copy of
+		// every type and the menu grew a row of dead buttons per resize.
+		buttons.clear();
+
 		pageLeft = gui.addButton(new GuiButton(gui.currentButtonId(), cX-80, cY+92, 15, 20, "<"));
 		pageRight = gui.addButton(new GuiButton(gui.currentButtonId(), cX+65, cY+92, 15, 20, ">"));
 
+		// A snapshot, because resolving a type through the registry is exactly
+		// what registers the ones nobody has touched yet (the addon's three).
+		// Iterating the live list while that happens is a
+		// ConcurrentModificationException, and it took the whole editor down.
+		// actionPerformed reads this same list, so button id - 1000 still lands
+		// on the type the player clicked, even if the live list has grown.
+		types = ControlType.all();
+
 		int id = 1000;
 		int pos = 0;
-		for (ControlType control : ControlType.ALL_VALUES) {
+		for (ControlType control : types) {
 			if (!ControlRegistry.getAllControlsOfType(control).isEmpty()) {
 				buttons.add(gui.addButton(
 						new GuiButton(id++,
 								cX-80,(cY-90)+((pos++)%7)*25,
-							160,20,
-							control.getDisplayName()
+								160,20,
+								control.getDisplayName()
 						))
 				);
 			} else
@@ -112,9 +127,9 @@ public class SubElementItemChoice extends SubElement {
 			recalculateVisibleButtons();
 		} else {
 			int typeIndex = button.id - 1000;
-			if(typeIndex < 0 || typeIndex >= ControlType.ALL_VALUES.size()) return;
+			if(typeIndex < 0 || typeIndex >= types.size()) return;
 
-			ControlType type = ControlType.ALL_VALUES.get(typeIndex);
+			ControlType type = types.get(typeIndex);
 			gui.itemConfig.variants = ControlRegistry.getAllControlsOfType(type);
 			if(gui.itemConfig.variants.isEmpty()) return;
 

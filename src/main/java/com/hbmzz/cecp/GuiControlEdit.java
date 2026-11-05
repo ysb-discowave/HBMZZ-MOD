@@ -34,6 +34,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import org.apache.logging.log4j.LogManager;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
@@ -110,17 +111,47 @@ public class GuiControlEdit extends GuiContainer {
 		panelResize = new SubElementPanelResize(this);
 		itemConfig = new SubElementItemConfig(this);
 		variables = new SubElementVariables(this);
-		placement.initGui();
-		choice.initGui();
-		linker.initGui();
-		eventEditor.initGui();
-		nodeEditor.initGui();
-		panelResize.initGui();
-		itemConfig.initGui();
-		variables.initGui();
 
+		// Push first, then initialise. The other order leaves an empty stack
+		// behind if any sub-element throws out of initGui - and an empty stack
+		// means the next tick's updateScreen() dies on getFirst(), which turns
+		// one broken menu into a game crash with the real cause buried a hundred
+		// lines up the log. See the ConcurrentModificationException in
+		// SubElementItemChoice that motivated this order.
+		subElementStack.clear();
 		subElementStack.addFirst(placement);
+
+		initQuietly(placement);
+		initQuietly(choice);
+		initQuietly(linker);
+		initQuietly(eventEditor);
+		initQuietly(nodeEditor);
+		initQuietly(panelResize);
+		initQuietly(itemConfig);
+		initQuietly(variables);
+
 		placement.enableButtons(true);
+	}
+
+	/**
+	 * One sub-element's initGui, with the failure contained.
+	 *
+	 * <p>A menu that cannot build its buttons should be a menu with no buttons
+	 * and a stack trace, not a screen the player cannot leave. The trace still
+	 * goes to the log at ERROR, so the bug is not hidden - only defused.</p>
+	 */
+	private void initQuietly(SubElement element) {
+		try {
+			element.initGui();
+		} catch (Throwable error) {
+			LogManager.getLogger("hbmzz").error("control panel: " + element.getClass().getSimpleName()
+					+ ".initGui() failed; the menu will open without it", error);
+		}
+	}
+
+	/** The open sub-element, or null when the stack is somehow empty. */
+	private SubElement top() {
+		return subElementStack.isEmpty() ? null : subElementStack.getFirst();
 	}
 	
 	public FontRenderer getFontRenderer(){
@@ -149,7 +180,10 @@ public class GuiControlEdit extends GuiContainer {
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
 		super.drawScreen(mouseX, mouseY, partialTicks);
-		subElementStack.getFirst().drawScreen();
+		SubElement open = top();
+		if (open != null) {
+			open.drawScreen();
+		}
 		super.renderHoveredToolTip(mouseX, mouseY);
 	}
 	
@@ -165,18 +199,25 @@ public class GuiControlEdit extends GuiContainer {
 
 		drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
 		
-		subElementStack.getFirst().renderBackground();
+		SubElement open = top();
+		if (open != null) {
+			open.renderBackground();
+		}
 	}
 	
 	@Override
 	protected void actionPerformed(GuiButton button) throws IOException {
-		if(!subElementStack.getFirst().lock)
-			subElementStack.getFirst().actionPerformed(button);
+		SubElement open = top();
+		if(open != null && !open.lock)
+			open.actionPerformed(button);
 	}
 	
 	public void pushElement(SubElement e){
-		subElementStack.getFirst().enableButtons(false);
-		subElementStack.getFirst().onElementClose();
+		SubElement open = top();
+		if (open != null) {
+			open.enableButtons(false);
+			open.onElementClose();
+		}
 		e.lock = true;
 		e.enableButtons(true);
 		e.onElementOpen();
@@ -184,16 +225,27 @@ public class GuiControlEdit extends GuiContainer {
 	}
 	
 	public void popElement(){
+		// Back to the placement menu, and no further: popping the last element
+		// used to leave an empty stack for the next tick to trip over.
+		if (subElementStack.size() <= 1) {
+			return;
+		}
 		SubElement e = subElementStack.removeFirst();
 		e.enableButtons(false);
 		e.onElementClose();
-		subElementStack.getFirst().enableButtons(true);
-		subElementStack.getFirst().onElementOpen();
+		SubElement open = top();
+		if (open != null) {
+			open.enableButtons(true);
+			open.onElementOpen();
+		}
 	}
 	
 	protected void resetStack(){
-		subElementStack.getFirst().enableButtons(false);
-		subElementStack.getFirst().onElementClose();
+		SubElement open = top();
+		if (open != null) {
+			open.enableButtons(false);
+			open.onElementClose();
+		}
 		subElementStack.clear();
 		subElementStack.addFirst(placement);
 		placement.enableButtons(true);
@@ -203,26 +255,38 @@ public class GuiControlEdit extends GuiContainer {
 	protected void keyTyped(char typedChar, int keyCode) throws IOException {
 		if(!this.mc.gameSettings.keyBindInventory.isActiveAndMatches(keyCode))
 			super.keyTyped(typedChar, keyCode);
-		subElementStack.getFirst().keyTyped(typedChar, keyCode);
+		SubElement open = top();
+		if (open != null) {
+			open.keyTyped(typedChar, keyCode);
+		}
 	}
 	
 	@Override
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException{
 		super.mouseClicked(mouseX, mouseY, mouseButton);
-		subElementStack.getFirst().lock = false;
-		subElementStack.getFirst().mouseClicked(mouseX, mouseY, mouseButton);
+		SubElement open = top();
+		if (open != null) {
+			open.lock = false;
+			open.mouseClicked(mouseX, mouseY, mouseButton);
+		}
 	}
 	
 	@Override
 	protected void mouseReleased(int mouseX, int mouseY, int state){
 		super.mouseReleased(mouseX, mouseY, state);
-		subElementStack.getFirst().mouseReleased(mouseX, mouseY, state);
+		SubElement open = top();
+		if (open != null) {
+			open.mouseReleased(mouseX, mouseY, state);
+		}
 	}
 	
 	@Override
 	public void updateScreen(){
 		super.updateScreen();
-		subElementStack.getFirst().update();
+		SubElement open = top();
+		if (open != null) {
+			open.update();
+		}
 	}
 	
 }

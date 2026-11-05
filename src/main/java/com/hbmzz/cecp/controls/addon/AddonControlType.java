@@ -35,6 +35,30 @@ public final class AddonControlType {
     public static final ControlType GRAPH = ControlType.registerOrGet("Graph");
     public static final ControlType LEVER = ControlType.registerOrGet("Lever");
 
+    /**
+     * Forces this class - and therefore the three registrations above - to run.
+     *
+     * <p>Static fields are initialised on first <em>use</em>, and nothing uses
+     * them during startup: {@code ControlRegistry.init()} builds the control
+     * table by constructing control objects, and their {@code getControlType()}
+     * is not called until something walks it. That "something" used to be the
+     * console editor's type menu, which walked the type list at the same time -
+     * so the very first walk appended three entries to the list it was
+     * iterating, and the editor died of a ConcurrentModificationException
+     * before it could draw.</p>
+     *
+     * <p>Calling this from {@code ControlRegistry.init()} makes the type list
+     * complete before any GUI can read it. The menu is also fixed to iterate a
+     * snapshot, because one lazy registry is all it takes and there may be more
+     * later.</p>
+     */
+    public static void register() {
+        // Touch all three: a reference to one constant initialises the class.
+        if (RBMK_DISPLAY == null || GRAPH == null || LEVER == null) {
+            throw new IllegalStateException("control type registration failed");
+        }
+    }
+
     private AddonControlType() {
     }
 }

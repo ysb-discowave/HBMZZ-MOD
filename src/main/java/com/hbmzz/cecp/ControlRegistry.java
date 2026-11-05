@@ -80,6 +80,12 @@ public class ControlRegistry {
 	private static void initAddonControls(){
 		if(!addonControls.isEmpty())
 			return;
+		// Before anything is added: the addon's control types live in a class
+		// whose static initialiser appends to ControlType's list. Left lazy, that
+		// append happens the first time the console editor walks the type list -
+		// and the walk dies with a ConcurrentModificationException. See
+		// AddonControlType.register().
+		AddonControlType.register();
 		addonControls.add(new NixieDisplay("辉光数码管","leafia_nixie",null));
 		addonControls.add(new LargeSwitch("大型拨杆开关","leafia_sbswitch",null));
 		addonControls.add(new LargeButton("大型按钮","leafia_sbbutton",null));

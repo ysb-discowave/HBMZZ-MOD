@@ -30,12 +30,49 @@ public class ControlType {
     public final String name;
     /** Chinese label for the editor's "pick a control type" list. */
     public final String displayName;
-    public static final List<ControlType> ALL_VALUES = new ArrayList<>();
+
+    /**
+     * Every type, in registration order. Private on purpose.
+     *
+     * <p>Types are appended lazily: {@code AddonControlType}'s three entries are
+     * only added the first time a class touches it. The editor used to iterate
+     * this very list while calling {@code getControlType()} on the registry,
+     * which initialised the addon types mid-loop - and a growing list inside a
+     * for-each is a ConcurrentModificationException. That killed the console
+     * editor every time it was the first thing to touch those classes.</p>
+     *
+     * <p>So: nobody iterates or indexes the live list any more. {@link #all()}
+     * hands out a copy; {@link #at(int)} resolves an index against the live
+     * list. Both keep the grow-then-read ordering bug out of reach of the
+     * compiler, which is the only reviewer that never gets tired.</p>
+     */
+    private static final List<ControlType> ALL_VALUES = new ArrayList<>();
+
     /// Do not use this, use registerNew
     private ControlType(String name){
         this.name = name;
         this.displayName = localized(name);
         ALL_VALUES.add(this);
+    }
+
+    /**
+     * A snapshot of the type list, safe to iterate.
+     *
+     * <p>Copy, not view: the caller is usually a menu that then resolves the
+     * types back through the registry, and that resolution is what registers
+     * the missing ones.</p>
+     */
+    public static List<ControlType> all() {
+        return new ArrayList<>(ALL_VALUES);
+    }
+
+    /** Type at an index, or null when the list has since grown past it. */
+    public static ControlType at(int index) {
+        return index >= 0 && index < ALL_VALUES.size() ? ALL_VALUES.get(index) : null;
+    }
+
+    public static int count() {
+        return ALL_VALUES.size();
     }
 
     public String getDisplayName() {

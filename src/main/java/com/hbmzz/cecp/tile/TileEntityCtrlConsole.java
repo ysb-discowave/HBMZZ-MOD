@@ -30,6 +30,8 @@ import com.hbmzz.cecp.block.CtrlConsoleType;
 import com.hbmzz.cecp.controls.addon.TerminalControl;
 import com.hbmzz.cecp.net.CPPackets;
 import com.hbmzz.cecp.net.ControlPanelUpdatePacket;
+import com.hbmzz.ctrl.GroupedHost;
+import com.hbmzz.ctrl.PartBroadcast;
 import com.hbmzz.ctrl.TerminalHost;
 import com.hbmzz.ctrl.TerminalShell;
 import net.minecraft.block.state.IBlockState;
@@ -115,11 +117,31 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
                     ControlEventSystem.get(this.world).subscribeTo(this, b);
                 }
             }
+            publishParts();
             reinitializePanelState();
             if (hasAnyRedstoneOutput()) {
                 notifyRedstoneNeighbors();
             }
         }
+    }
+
+    /**
+     * Tells {@link com.hbmzz.ctrl.PartBroadcast} which machines this console
+     * links, so a value change on one of them reaches its same-named siblings.
+     *
+     * <p>Called on load and after every design edit, because that is exactly
+     * when the set changes. Doing it here rather than on every event keeps the
+     * per-event cost at one map lookup.</p>
+     */
+    private void publishParts() {
+        if (this.world == null || this.world.isRemote || this.panel == null) {
+            return;
+        }
+        List<BlockPos> positions = new ArrayList<BlockPos>();
+        for (Control control : this.panel.controls) {
+            positions.addAll(control.taggedLinks.values());
+        }
+        PartBroadcast.bind(this.world, this.pos, positions);
     }
 
     @SideOnly(Side.CLIENT)
@@ -275,6 +297,7 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
                     ControlEventSystem.get(this.world).subscribeTo(this, b);
                 }
             }
+            publishParts();
             reinitializePanelState();
             CPPackets.createSendToAllTrackingThreadedPacket(
                     new ControlPanelUpdatePacket(this.pos, data),
@@ -321,7 +344,7 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
             sink.err("命令太频繁了，等一秒再来。");
             return result;
         }
-        result = TerminalShell.execute(new TerminalConsoleHost((TerminalControl) control, this.world), line, sink);
+        result = TerminalShell.execute(terminalHost(controlIndex), line, sink);
         if (result.dirty) {
             markDirty();
             // The target is part of the control's saved variables, so the other
@@ -343,6 +366,10 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
      * <p>Used by the reply packet to describe the panel back to the window -
      * labels, target, and the vocabulary Tab needs - so the client never has to
      * guess what a machine accepts.</p>
+     *
+     * <p>Grouped: the window sees one slot per 部件类型, not one per linker
+     * tag, so a console wired to a dozen RBMK parts is one tab to operate the
+     * whole reactor instead of twelve.</p>
      */
     public TerminalHost terminalHost(int controlIndex) {
         if (this.panel == null || controlIndex < 0 || controlIndex >= this.panel.controls.size()) {
@@ -352,7 +379,7 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
         if (!(control instanceof TerminalControl)) {
             return null;
         }
-        return new TerminalConsoleHost((TerminalControl) control, this.world);
+        return GroupedHost.of(new TerminalConsoleHost((TerminalControl) control, this.world), this.world);
     }
 
     /** Which slot the terminal at {@code controlIndex} points at, or -1. */

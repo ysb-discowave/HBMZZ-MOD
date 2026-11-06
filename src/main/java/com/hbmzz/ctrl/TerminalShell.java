@@ -70,7 +70,7 @@ public final class TerminalShell {
 
     /** Verbs, in the order {@code help} lists them. */
     public static final String[] COMMANDS = {
-            "help", "ls", "use", "read", "keys", "events", "ev", "set", "clear"
+            "help", "ls", "use", "read", "keys", "events", "parts", "ev", "set", "clear"
     };
 
     private static final Map<String, String> USAGE = new LinkedHashMap<String, String>();
@@ -82,6 +82,7 @@ public final class TerminalShell {
         USAGE.put("read", "read [键] — 读当前机器的全部数据，或某一个键");
         USAGE.put("keys", "keys — 只列可读的数据键名");
         USAGE.put("events", "events — 列出当前机器接受的事件及其变量");
+        USAGE.put("parts", "parts — 列出当前槽位里的部件与数量（同名部件会一起动作）");
         USAGE.put("ev", "ev <事件> [变量=值]… — 发一个事件，如 ev rbmk_ctrl_set_level level=40");
         USAGE.put("set", "set <变量> <值> — 按变量名发事件，自动找对应事件");
         USAGE.put("clear", "clear — 清屏（历史仍可用 ↑ 取回）");
@@ -307,6 +308,10 @@ public final class TerminalShell {
             case "evs":
                 events(host, sink);
                 return result;
+            case "parts":
+            case "part":
+                parts(host, sink);
+                return result;
             case "ev":
             case "fire":
                 fire(host, args, sink);
@@ -370,7 +375,9 @@ public final class TerminalShell {
             sink.add("  " + mark + " " + host.label(i) + "  " + host.name(i),
                     i == target ? OK : OUT);
             String where = coords(host, i);
+            int scope = host.scope(i);
             sink.hint("       " + (where.isEmpty() ? "" : where + " · ")
+                    + (scope > 1 ? scope + " 部件 · " : "")
                     + "可读 " + host.keys(i).size() + " 键 · 可发 " + host.events(i).size() + " 事件");
         }
         if (!any) {
@@ -480,6 +487,32 @@ public final class TerminalShell {
         }
     }
 
+    /**
+     * What this slot is made of.
+     *
+     * <p>A group is one slot but many machines, and "set level 40" on it moves
+     * all of them. That is the point, but it is also the kind of thing an
+     * operator should be able to see before pulling the lever - so the parts
+     * list makes the broadcast rule visible: every name here moves together,
+     * and nothing outside it does.</p>
+     */
+    private static void parts(TerminalHost host, Sink sink) {
+        int slot = requireTarget(host, sink);
+        if (slot < 0) {
+            return;
+        }
+        Map<String, Integer> parts = host.parts(slot);
+        if (parts.isEmpty()) {
+            sink.hint(host.label(slot) + " 是一台单独的机器，没有同名部件。");
+            return;
+        }
+        sink.hint(host.label(slot) + " · " + host.name(slot));
+        for (Map.Entry<String, Integer> entry : parts.entrySet()) {
+            sink.out("  " + pad(entry.getKey(), 22) + "×" + entry.getValue());
+        }
+        sink.hint("同名部件一起动作；不同名的部件各归各的。");
+    }
+
     private static void fire(TerminalHost host, String[] args, Sink sink) {
         int slot = requireTarget(host, sink);
         if (slot < 0) {
@@ -515,10 +548,11 @@ public final class TerminalShell {
         if (!host.events(slot).contains(event)) {
             sink.hint("注意：该机器没有公布 " + clip(event) + "，仍按原样发送。");
         }
-        boolean sent = host.fire(slot, event, vars);
-        if (sent) {
+        int sent = host.fire(slot, event, vars);
+        if (sent > 0) {
             sink.ok("→ " + host.label(slot) + " " + event
-                    + (vars.isEmpty() ? "" : " " + describeVars(vars)));
+                    + (vars.isEmpty() ? "" : " " + describeVars(vars))
+                    + countSuffix(sent));
         } else {
             sink.err("发送失败：" + event + "（机器已不在，或它拒绝了该事件）");
         }
@@ -558,12 +592,18 @@ public final class TerminalShell {
         String value = args[2];
         Map<String, Object> vars = new LinkedHashMap<String, Object>();
         vars.put(var, number(value));
-        boolean sent = host.fire(slot, event, vars);
-        if (sent) {
-            sink.ok("→ " + host.label(slot) + " " + event + " " + var + "=" + clip(value));
+        int sent = host.fire(slot, event, vars);
+        if (sent > 0) {
+            sink.ok("→ " + host.label(slot) + " " + event + " " + var + "=" + clip(value)
+                    + countSuffix(sent));
         } else {
             sink.err("发送失败：" + event + "（机器已不在，或它拒绝了该事件）");
         }
+    }
+
+    /** " ×4" when a write reached several parts, nothing for one machine. */
+    private static String countSuffix(int sent) {
+        return sent > 1 ? " ×" + sent : "";
     }
 
     // =================================================================== helpers
@@ -785,6 +825,8 @@ public final class TerminalShell {
                 return "read";
             case "evs":
                 return "events";
+            case "part":
+                return "parts";
             case "fire":
                 return "ev";
             case "cls":

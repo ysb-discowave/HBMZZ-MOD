@@ -83,12 +83,43 @@ public interface TerminalHost {
      */
     Map<String, String> read(int slot);
 
-    /** Sends one event with its variables. False when nothing took it. */
-    boolean fire(int slot, String event, Map<String, Object> vars);
+    /**
+     * Sends one event with its variables.
+     *
+     * <p>Returns how many machines took it, not just whether anything did: a
+     * group slot covers a whole reactor, but one event usually belongs to one
+     * kind of part in it, and "×4" is the answer to the only question the
+     * operator has after pressing enter - how much did I just move.</p>
+     *
+     * @return machines written, 0 when none accepted the event
+     */
+    int fire(int slot, String event, Map<String, Object> vars);
 
     /** False when the machine bridge is missing (NTM not installed). */
     boolean available();
 
     /** Position of a bound machine, for the {@code ls} coordinate line. */
     BlockPos pos(int slot);
+
+    /**
+     * How many machines this slot addresses.
+     *
+     * <p>One for a plain machine, N for a {@link PartGroup} - the terminal says
+     * "×N" on a write so the operator can see that one command moved the whole
+     * reactor rather than a single rod.</p>
+     */
+    default int scope(int slot) {
+        return 1;
+    }
+
+    /**
+     * The named sub-parts of this slot, name to count; empty when it is one
+     * machine.
+     *
+     * <p>This is the list a same-name broadcast works through, so the window can
+     * answer "what will this command actually move" before it is typed.</p>
+     */
+    default Map<String, Integer> parts(int slot) {
+        return java.util.Collections.emptyMap();
+    }
 }

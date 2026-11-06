@@ -179,10 +179,10 @@ public class TerminalConsoleHost implements TerminalHost {
     }
 
     @Override
-    public boolean fire(int slot, String event, Map<String, Object> vars) {
+    public int fire(int slot, String event, Map<String, Object> vars) {
         IControllable machine = machine(slot);
         if (machine == null || event == null || event.isEmpty()) {
-            return false;
+            return 0;
         }
         ControlEvent evt = new ControlEvent(event);
         for (Map.Entry<String, Object> entry : vars.entrySet()) {
@@ -196,7 +196,7 @@ public class TerminalConsoleHost implements TerminalHost {
         BlockPos from = this.panel == null || this.panel.parent == null
                 ? this.positions.get(slot) : this.panel.parent.getControlPos();
         machine.receiveEvent(from, evt);
-        return true;
+        return 1;
     }
 
     @Override

@@ -18,14 +18,19 @@
 
 import com.hbmzz.ctrl.CtrlPanel;
 import com.hbmzz.ctrl.CtrlPanelHost;
+import com.hbmzz.ctrl.GroupedHost;
+import com.hbmzz.ctrl.PartGroup;
 import com.hbmzz.ctrl.SnapshotHost;
 import com.hbmzz.ctrl.CtrlType;
 import com.hbmzz.ctrl.CtrlWidget;
+import com.hbmzz.ctrl.TerminalHost;
 import com.hbmzz.ctrl.TerminalShell;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Offline check of the terminal's grammar, completion and command dispatch.
@@ -52,6 +57,7 @@ public final class TermCheck {
         completion();
         dispatch();
         hosts();
+        groups();
 
         System.out.println();
         System.out.println("passed " + passed + ", failed " + failed);
@@ -299,7 +305,295 @@ public final class TermCheck {
         check("ls marks the current target", marked, list.lines.toString());
     }
 
+    // --------------------------------------------------------------- groups
+
+    /**
+     * One 部件类型 in front of several machines.
+     *
+     * <p>What is asserted is the contract the window and the broadcast rest on,
+     * not Minecraft: a write reaches the parts that declare the event and only
+     * those, it reaches each of them once, and a read shows the spread instead
+     * of one member's number pretending to be the whole reactor.</p>
+     */
+    private static void groups() {
+        FakeHost machines = new FakeHost();
+        for (int i = 0; i < 4; i++) {
+            machines.add("杆" + i, "RBMK 控制棒（手动）", new BlockPos(i, 64, 0),
+                    40.0D + i, "rbmk_ctrl_set_level", "level");
+        }
+        machines.add("锅炉 1", "RBMK 蒸汽发生器", new BlockPos(0, 66, 0), 100.0D, "rbmk_boiler_purge", "");
+        machines.add("锅炉 2", "RBMK 蒸汽发生器", new BlockPos(1, 66, 0), 100.0D, "rbmk_boiler_purge", "");
+
+        List<Integer> reactorSlots = new ArrayList<Integer>();
+        List<String> reactorNames = new ArrayList<String>();
+        for (int i = 0; i < 6; i++) {
+            reactorSlots.add(Integer.valueOf(i));
+            reactorNames.add(i < 4 ? "RBMK 控制棒（手动）" : "RBMK 蒸汽发生器");
+        }
+        PartGroup reactor = new PartGroup("rbmk", "RBMK 反应堆", machines, reactorSlots, reactorNames);
+
+        check("a group counts its parts by name",
+                reactor.census().size() == 2
+                        && reactor.census().get("RBMK 控制棒（手动）").intValue() == 4
+                        && reactor.census().get("RBMK 蒸汽发生器").intValue() == 2,
+                reactor.census().toString());
+        check("a group names itself by reactor and size",
+                reactor.describe().equals("RBMK 反应堆 · 6 部件"), reactor.describe());
+        check("a group reports the spread across the whole reactor",
+                "40–100".equals(reactor.read().get("level")), reactor.read().toString());
+
+        Map<String, Object> vars = new LinkedHashMap<String, Object>();
+        vars.put("level", Double.valueOf(40));
+        machines.fired.clear();
+        int sent = reactor.fire("rbmk_ctrl_set_level", vars);
+        check("a group write reaches every member that takes the event",
+                sent == 4 && machines.fired.size() == 4, "sent=" + sent + " " + machines.fired);
+        check("a group write never reaches a part that does not",
+                !machines.fired.contains("4:rbmk_ctrl_set_level"), machines.fired.toString());
+        check("a group write delivers once per member, not once per pair",
+                machines.fired.size() == 4, machines.fired.toString());
+
+        machines.fired.clear();
+        int purged = reactor.fire("rbmk_boiler_purge", new LinkedHashMap<String, Object>());
+        check("a group write splits by part name through the event itself",
+                purged == 2 && machines.fired.size() == 2
+                        && machines.fired.get(0).startsWith("4:"), machines.fired.toString());
+
+        PartGroup alone = new PartGroup("rbmk", "RBMK 反应堆", machines,
+                java.util.Collections.singletonList(Integer.valueOf(0)),
+                java.util.Collections.singletonList("RBMK 控制棒（手动）"));
+        check("a one-part group describes the part, not a count",
+                alone.describe().equals("RBMK 控制棒（手动）"), alone.describe());
+        machines.fired.clear();
+        alone.fire("rbmk_ctrl_set_level", vars);
+        check("a one-part group is still one delivery", machines.fired.size() == 1, machines.fired.toString());
+
+        GroupHost host = new GroupHost(reactor);
+
+        TerminalShell.Sink parts = new TerminalShell.Sink();
+        TerminalShell.execute(host, "parts", parts);
+        check("parts lists the names of a group with their counts",
+                parts.lines.size() == 4 && parts.lines.get(1).contains("控制棒")
+                        && parts.lines.get(1).contains("×4"), parts.lines.toString());
+
+        machines.fired.clear();
+        TerminalShell.Sink fired = new TerminalShell.Sink();
+        TerminalShell.execute(host, "ev rbmk_ctrl_set_level level=55", fired);
+        String last = fired.lines.isEmpty() ? "" : fired.lines.get(fired.lines.size() - 1);
+        check("a group write reports how many parts it moved", last.endsWith("×4"), last);
+
+        TerminalShell.Sink read = new TerminalShell.Sink();
+        TerminalShell.execute(host, "read", read);
+        check("read shows the group's spread, not one member", joined(read.lines).contains("40–100"),
+                read.lines.toString());
+
+        TerminalShell.Sink list = new TerminalShell.Sink();
+        TerminalShell.execute(host, "ls", list);
+        check("ls says how many parts a slot covers", joined(list.lines).contains("6 部件"),
+                list.lines.toString());
+
+        // Folding needs machines to look at. Without a world every slot stays
+        // itself, which is what keeps a six-slot panel of six different
+        // machines exactly as it was.
+        TerminalHost plain = new CtrlPanelHost(panel(), 0, null);
+        check("no world means no folding", GroupedHost.of(plain, null) == plain);
+    }
+
+    /** A host that is one group, so the shell's own words can be read back. */
+    private static final class GroupHost implements TerminalHost {
+
+        private final PartGroup group;
+
+        GroupHost(PartGroup group) {
+            this.group = group;
+        }
+
+        @Override
+        public int slots() {
+            return 1;
+        }
+
+        @Override
+        public String label(int slot) {
+            return "RBMK";
+        }
+
+        @Override
+        public String name(int slot) {
+            return this.group.describe();
+        }
+
+        @Override
+        public boolean bound(int slot) {
+            return slot == 0;
+        }
+
+        @Override
+        public int target() {
+            return 0;
+        }
+
+        @Override
+        public boolean select(int slot) {
+            return false;
+        }
+
+        @Override
+        public List<String> keys(int slot) {
+            return this.group.keys();
+        }
+
+        @Override
+        public List<String> events(int slot) {
+            return this.group.events();
+        }
+
+        @Override
+        public Map<String, String> vars(int slot) {
+            return this.group.vars();
+        }
+
+        @Override
+        public Map<String, String> read(int slot) {
+            return this.group.read();
+        }
+
+        @Override
+        public int fire(int slot, String event, Map<String, Object> vars) {
+            return this.group.fire(event, vars);
+        }
+
+        @Override
+        public boolean available() {
+            return true;
+        }
+
+        @Override
+        public BlockPos pos(int slot) {
+            return this.group.pos();
+        }
+
+        @Override
+        public int scope(int slot) {
+            return this.group.size();
+        }
+
+        @Override
+        public Map<String, Integer> parts(int slot) {
+            return this.group.census();
+        }
+    }
+
+    /** Machines with no world behind them: enough to exercise a group. */
+    private static final class FakeHost implements TerminalHost {
+
+        private static final class Machine {
+            String label;
+            String name;
+            BlockPos pos;
+            double level;
+            String event;
+            String var;
+        }
+
+        private final List<Machine> machines = new ArrayList<Machine>();
+        final List<String> fired = new ArrayList<String>();
+
+        void add(String label, String name, BlockPos pos, double level, String event, String var) {
+            Machine machine = new Machine();
+            machine.label = label;
+            machine.name = name;
+            machine.pos = pos;
+            machine.level = level;
+            machine.event = event;
+            machine.var = var;
+            this.machines.add(machine);
+        }
+
+        @Override
+        public int slots() {
+            return this.machines.size();
+        }
+
+        @Override
+        public String label(int slot) {
+            return this.machines.get(slot).label;
+        }
+
+        @Override
+        public String name(int slot) {
+            return this.machines.get(slot).name;
+        }
+
+        @Override
+        public boolean bound(int slot) {
+            return slot >= 0 && slot < this.machines.size();
+        }
+
+        @Override
+        public int target() {
+            return 0;
+        }
+
+        @Override
+        public boolean select(int slot) {
+            return false;
+        }
+
+        @Override
+        public List<String> keys(int slot) {
+            return new ArrayList<String>(read(slot).keySet());
+        }
+
+        @Override
+        public List<String> events(int slot) {
+            List<String> out = new ArrayList<String>();
+            out.add(this.machines.get(slot).event);
+            return out;
+        }
+
+        @Override
+        public Map<String, String> vars(int slot) {
+            Map<String, String> out = new LinkedHashMap<String, String>();
+            out.put(this.machines.get(slot).event, this.machines.get(slot).var);
+            return out;
+        }
+
+        @Override
+        public Map<String, String> read(int slot) {
+            Map<String, String> out = new LinkedHashMap<String, String>();
+            double value = this.machines.get(slot).level;
+            out.put("level", Math.abs(value - Math.rint(value)) < 1.0E-4D
+                    ? String.valueOf((long) Math.rint(value)) : String.valueOf(value));
+            return out;
+        }
+
+        @Override
+        public int fire(int slot, String event, Map<String, Object> vars) {
+            this.fired.add(slot + ":" + event);
+            return 1;
+        }
+
+        @Override
+        public boolean available() {
+            return true;
+        }
+
+        @Override
+        public BlockPos pos(int slot) {
+            return this.machines.get(slot).pos;
+        }
+    }
+
     // --------------------------------------------------------------- helpers
+
+    private static String joined(List<String> lines) {
+        StringBuilder text = new StringBuilder();
+        for (String line : lines) {
+            text.append(line).append('\n');
+        }
+        return text.toString();
+    }
 
     private static int kindOf(TerminalShell.Sink sink, int index) {
         if (index < 0 || index >= sink.kinds.size()) {

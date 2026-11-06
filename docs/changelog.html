@@ -81,8 +81,25 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.5.1</span>
+            <span class="tl-ver">v2.6.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>一台反应堆就是一个部件类型</h3>
+          <ul>
+            <li><strong>新增：同一类别的机器折进同一个槽位。</strong>一台 RBMK 是十几个方块实体——燃料通道、控制棒、蒸汽发生器、吊车台。以前它们各占一个联动器标签，窗口里就是十几个标签、十几次 <code>use</code>；现在同族、同一台反应堆的零件只占<strong>一个</strong>槽位（<code>RBMK</code>），一个窗口调整台堆。</li>
+            <li><strong>归类是三级，全部自动：</strong>①<strong>部件类型</strong>看方块实体类名（含 <code>RBMK</code> → RBMK 反应堆，含 <code>DFC</code> → DFC 反应堆，储罐／炮塔／警报／门／电源盒／警示灯／控制台各自一族，表里没有的类各自成族，不合并）；②<strong>同一台反应堆</strong>按同族零件的切比雪夫距离 ≤ 6 格<strong>链式</strong>分簇，所以大堆仍是一簇、隔开的两台堆是两个槽（<code>RBMK#2</code>）；③<strong>部件名称</strong>是机器类型名（「RBMK 控制棒（手动）」），广播就认它。</li>
+            <li><strong>只在同族 ≥ 2 台时折叠。</strong>单独一台仍用它原来的标签（<code>A</code>、你起的名字），六台互不相干的机器那块面板和以前完全一样；没接机器的空槽也留在原位，标签条不会塌成「只剩接了线的几个」。</li>
+            <li><strong>读是整组，写是分流。</strong><code>read</code> 的数值键给<strong>最小–最大</strong>（40/40/40/80 显示 <code>40–80</code>），文本键给不同取值；<code>keys</code>／<code>events</code>／变量名取并集；新增 <code>parts</code> 列点名册（有哪些名字、各几台）；<code>set</code>／<code>ev</code> 成功后回一行实际台数 <code>×4</code>。</li>
+            <li><strong>新增：同名零件自动广播。</strong>任何一条写入——旋钮、面板规则、CE 节点图、终端——落到一台已绑定机器之后，会复制给<strong>同面板 + 同部件类型 + 同部件名称 + 同一台反应堆</strong>的伙伴，不跨机组、不跨族、不跨面板，单次上限 32 台。<b>两个例外不扩散</b>：部件类型槽位上发起的整组写入，以及节点图一次发往多个位置的广播——它们本来就是发给整组，再扩散会变成 N×N 次投递（瞬时按钮会被按两次）。</li>
+            <li><strong>钩子只有一个。</strong><code>MachineBridge.fire</code> 改成转调 <code>fireAll</code>，广播挂在 <code>fireAll</code> 上：以后新增任何写入路径都不可能「忘记广播」，就像它不可能忘记发送事件本身。</li>
+            <li><strong>自检加 5 条（<code>tools/regcheck</code>，共 26 条）：</strong><code>fireAll</code> 必须还挂着 <code>PartBroadcast.fanOut</code>；<code>PartGroup.fire</code> 与 <code>ControlEventSystem.broadcastEvent</code> 必须自己打开范围闸（否则 N×N 投递）；<code>TerminalShell.execute</code> 不许直接收裸 host（否则静默退回一标签一槽）；部件类型表必须还认得 RBMK 与 DFC。<code>tools/termcheck</code> 同时加了 14 条组用例（按名字计数、事件分流、只投递一次、<code>parts</code>、<code>×N</code>、聚合读数、无世界时不折叠），共 60 条。</li>
+            <li><strong>已知边界：</strong>两台<strong>贴着盖</strong>的反应堆会被认成一簇——它们之间没有超过 6 格的空地，几何上没有别的办法区分。真要分开，中间留 6 格以上的间隔。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.5.1</span>
           </div>
           <h3>中文槽位名不再印成豆腐块</h3>
           <ul>

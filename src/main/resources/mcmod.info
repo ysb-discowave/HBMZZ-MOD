@@ -3,7 +3,7 @@
     "modid": "hbmzz",
     "name": "HBMZZ",
     "description": "A live DFC wall screen plus a resizable terminal, a machine control panel that drives NTM machines through the IControllable protocol, a video broadcaster that takes over a selected player's screen on a redstone edge, Roblox-style Speed/Jump/Regeneration coils, a wearable jetpack and a small hitscan arsenal (sidearm, carbine, breaker) with three ammo calibers, for HBM's Nuclear Tech Mod Community Edition.",
-    "version": "2.5.1",
+    "version": "2.6.0",
     "mcversion": "1.12.2",
     "authorList": ["HBMZZ"],
     "credits": "Built for NTM:CE and Leafia's Cursed Addon. The machine control panel and the node-graph console are derived from NTM: Cursed Edition (com.hbm.inventory.control_panel, GPL-3.0); the addon nodes and controls come from NTM Cursed Addon / Leafia (GPL-3.0, partly LGPL-3.0). Monitor panel design inspired by JiezhiMod (DFC-Map-Creation-Tool) by Shushangde Jiezhi - https://gitee.com/jiezhi-bililbli/DFC-Map-Creation-Tool - used under written permission, see AUTHORIZATION.md. Full provenance in NOTICE.md.",

@@ -300,6 +300,7 @@
                   <tr><td><code>read</code> / <code>read heat</code></td><td>读这台机器的全部数据，或只读一个键。</td></tr>
                   <tr><td><code>keys</code></td><td>只列可读的键名。</td></tr>
                   <tr><td><code>events</code></td><td>列出它接受的事件，以及每个事件带的变量。</td></tr>
+                  <tr><td><code>parts</code></td><td>列出这个槽位里有哪些部件、各几台（部件类型槽位专用；单品槽位回一句「只有一台」）。</td></tr>
                   <tr><td><code>ev &lt;事件&gt; [变量=值]…</code></td><td>发事件，例如 <code>ev rbmk_ctrl_set_level level=40</code>；不带等号的词按 1 处理，适合 <code>turret_set_target passive</code> 这种开关量。</td></tr>
                   <tr><td><code>set &lt;变量&gt; &lt;值&gt;</code></td><td>知道变量名就够了，终端自己找对应的事件。</td></tr>
                   <tr><td><code>help</code> / <code>clear</code></td><td>命令列表 / 清屏（历史仍可用 <kbd>↑</kbd> 取回）。</td></tr>
@@ -351,6 +352,63 @@
         <p style="color:var(--text-dim);font-size:14px;margin:12px 0 0">
           窗口上方只画得下 6 个标签：绑得更多时用 <code>ls</code> 看全表、<code>use 名字</code> 切换，不用只盯着标签。目标序号越界（比如你删了一个标签）时终端退回第一个槽位，而不是列着一堆槽位却一个都读不了。
         </p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px" id="part-groups">
+        <h3 style="margin-bottom:8px">一台反应堆算一个部件类型</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
+          一台实用的 RBMK 不是一格方块：十几个燃料通道、一排控制棒、一两个蒸汽发生器、一个吊车控制台。以前要给它们挨个起名字绑进面板，于是窗口里是十二个标签、十二次 <code>use</code>、十二次 <code>set</code>——而操作者脑子里想的只有一个东西：「这台反应堆」。现在<strong>同一类别的机器会折进同一个槽位</strong>，一个窗口调整台堆。
+        </p>
+
+        <div class="grid g2" style="align-items:start">
+          <div>
+            <h4 style="margin:0 0 8px">三级归类</h4>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>级别</th><th>怎么判定</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>部件类型</strong><br><span style="color:var(--text-dim)">family</span></td><td>看方块实体的类名：含 <code>RBMK</code> 归「RBMK 反应堆」，含 <code>DFC</code> 归「DFC 反应堆」；储罐、炮塔、警报器、门、电源盒、警示灯、控制面板各自一族。<strong>表里没有的机器类各自成族</strong>，不会被塞进别家的槽位。</td></tr>
+                  <tr><td><strong>同一台反应堆</strong><br><span style="color:var(--text-dim)">cluster</span></td><td>同族零件之间按<strong>切比雪夫距离 ≤ 6 格</strong>连通分簇，而且是链式的：A 近 B、B 近 C 就算同一簇。所以 20 格宽的大堆仍是一簇，而隔着空地的两台堆会分成两个槽（<code>RBMK</code> 与 <code>RBMK#2</code>）。</td></tr>
+                  <tr><td><strong>部件名称</strong><br><span style="color:var(--text-dim)">part</span></td><td>机器类型名，例如「RBMK 控制棒（手动）」「RBMK 蒸汽发生器」。<strong>同名广播认的就是它</strong>，不是你起的联动器标签——标签的意义正是把两根控制棒区分开，而「控制棒」是它们共有的东西。</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="color:var(--text-dim);font-size:13px;margin:10px 0 0">
+              只有<strong>同一族至少 2 台</strong>时才折叠；单独一台仍用它原来的标签（<code>A</code>、你起的名字），所以六台互不相干的机器那块面板看起来和以前一模一样。没绑定机器的空槽也留在原位，标签条不会塌成「只剩接了线的几个」。
+            </p>
+          </div>
+          <div>
+            <h4 style="margin:0 0 8px">窗口里能看到 / 能调到什么</h4>
+            <ul style="font-size:14px;color:var(--text-dim);margin:0;padding-left:18px;line-height:1.75">
+              <li><strong>槽位＝部件类型。</strong>标题栏写「RBMK 反应堆 · 12 部件」，提示符变成 <code>RBMK&gt;</code>，<code>use</code> 也认这个名字。</li>
+              <li><strong><code>read</code> 读整组。</strong>数值键给<b>最小–最大</b>（四根棒 40/40/40/80 显示 <code>40–80</code>），文本键给不同的取值，最多三个；全部一致时就只有一个数。</li>
+              <li><strong><code>keys</code> / <code>events</code> / 变量名是并集。</strong>整台堆能读什么、能发什么，一次列全，不用来回切槽。</li>
+              <li><strong><code>parts</code> 是点名册。</strong>列出这个槽位里有哪些名字、各几台——也就是「我这一条命令会动到谁」。</li>
+              <li><strong>写入会显示实际台数。</strong><code>set level 40</code> 之后回一行 <code>→ RBMK rbmk_ctrl_set_level level=40 ×4</code>：四根棒动了，蒸汽发生器没动。</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin:16px 0 8px">同名广播：什么时候触发，作用到哪</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>规则</th></tr></thead>
+            <tbody>
+              <tr><td><strong>触发条件</strong></td><td>本模组<strong>任何一条</strong>发往机器的道路——面板旋钮、面板规则、CE 控制台的节点图、终端——把事件交给一台<strong>已被面板绑定</strong>的机器之后。</td></tr>
+              <tr><td><strong>命中条件</strong></td><td>与源机器<strong>同面板绑定 + 同部件类型 + 同部件名称 + 同一台反应堆</strong>，且不是它自己。</td></tr>
+              <tr><td><strong>作用范围</strong></td><td>只限这些同名伙伴：不跨机组（隔壁那台堆不会动）、不跨部件类型、不跨面板。一次最多复制到 32 台，超过的部分不动。没接面板的机器永远不会被写到。</td></tr>
+              <tr><td><strong>不触发的情形</strong></td><td>终端在<strong>部件类型槽位</strong>上发起的写入，以及节点图一次发往<strong>多个位置</strong>的广播——它们本身就是「发给整组」，再扩散一次就变成 N×N 次投递（瞬时按钮会被自己按两次）。这两条路径在写之前就把扩散关掉。</td></tr>
+              <tr><td><strong>失败时</strong></td><td>先送到你指定的那台；复制给同名的部分失败，只影响伙伴，不回滚、也不改你已经发出的那一份。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>为什么按「几何 + 类名」而不是按标签名归类</h4>
+            <p style="margin:6px 0 0">标签是自由文本，随时能改名；要是靠命名约定（<code>1号堆-控制棒1</code>）分组，改个名字整个槽位就散了，而且每个人得先学会一套规矩才能用。类名是机器自己说的，距离是方块自己摆的，两样都不需要玩家配合。代价是<strong>两台贴在一起盖的堆会被认成一簇</strong>——它们之间没有超过 6 格的空地，代码没有别的办法区分。真要分开，让两台堆之间留出 6 格以上的间隔即可。</p>
+          </div>
+        </div>
       </div>
 
       <div class="note note--red" style="margin-top:18px">

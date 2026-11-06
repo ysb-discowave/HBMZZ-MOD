@@ -274,8 +274,11 @@ public class GuiCtrlTerminal extends GuiScreen {
         this.view.panelName = this.isConsole() ? "CE 控制台" : panel() == null ? "" : panel().name;
         String label = target < 0 ? "" : this.snapshot.label(target);
         String name = target < 0 ? "" : this.snapshot.name(target);
+        // A group's name already begins with its label ("RBMK 反应堆 · 12 部件"),
+        // so repeating the label in front of it would read "RBMK · RBMK ...".
+        String detail = name == null || name.isEmpty() ? label : name;
         this.view.subtitle = target < 0 ? "无目标"
-                : label + " · " + (name == null || name.isEmpty() ? label : name);
+                : (detail.startsWith(label) ? detail : label + " · " + detail);
         this.view.prompt = (target < 0 ? "-" : label) + ">";
         this.view.input = this.input;
         this.view.caret = this.caret;
@@ -499,16 +502,23 @@ public class GuiCtrlTerminal extends GuiScreen {
 
     /** Called from the packet bridge on the client thread. */
     public void onReply(int kind, BlockPos where, int which, int slot, boolean clear,
-                        String kinds, String text, String labels, String keys,
-                        String events, String vars) {
+                        String kinds, String text, String labels, String names,
+                        String keys, String events, String vars) {
         if (kind != this.kind || !this.pos.equals(where) || which != this.index) {
             return;
         }
         this.frameDue = true;
         if (!labels.isEmpty()) {
             this.snapshot.clear();
-            for (String label : TerminalReplyMessage.split(labels, 32)) {
-                this.snapshot.add(label, label, true);
+            java.util.List<String> labelList = TerminalReplyMessage.split(labels, 32);
+            java.util.List<String> nameList = TerminalReplyMessage.split(names, 32);
+            for (int i = 0; i < labelList.size(); i++) {
+                // The name is what the header shows; before grouping it was the
+                // same string as the label, and every older reply still sends
+                // an empty list here, so fall back rather than show blanks.
+                String name = i < nameList.size() && !nameList.get(i).isEmpty()
+                        ? nameList.get(i) : labelList.get(i);
+                this.snapshot.add(labelList.get(i), name, true);
             }
         }
         this.snapshot.target(slot);

@@ -121,7 +121,7 @@ public class TerminalInputMessage implements IMessage {
             player.mcServer.addScheduledTask(() -> {
                 TerminalShell.Sink sink = new TerminalShell.Sink();
                 TerminalShell.Result result = new TerminalShell.Result();
-                int slot = -1;
+                TerminalHost host = null;
                 // Same arm's length as operating a knob: if you cannot reach
                 // the panel, you cannot type at it either. Say so rather than
                 // dropping the line - a terminal that swallows input reads as
@@ -136,42 +136,25 @@ public class TerminalInputMessage implements IMessage {
                         } else {
                             TileEntityCtrlConsole console = (TileEntityCtrlConsole) te;
                             result = console.runTerminal(index, line, sink);
-                            slot = console.terminalTarget(index);
+                            host = console.terminalHost(index);
                         }
                     } else if (!(te instanceof TileEntityCtrlPanel)) {
                         sink.err("面板已经不在了。");
                     } else {
                         TileEntityCtrlPanel panel = (TileEntityCtrlPanel) te;
                         result = panel.runTerminal(index, line, sink);
-                        com.hbmzz.ctrl.CtrlWidget widget = panel.getPanel().get(index);
-                        if (widget != null) {
-                            slot = widget.link;
-                        }
+                        host = panel.terminalHost(index);
                     }
                 }
-                TerminalHost host = stateOf(player, pos, kind, index);
+                // The host is built after the command, so the vocabulary it
+                // ships is the one the next keystroke will complete against -
+                // and so the target it reports is the one the command just
+                // moved to.
+                int slot = host == null ? -1 : host.target();
                 NetworkHandler.sendTo(player,
                         new TerminalReplyMessage(kind, pos, index, slot, result.clear, sink, host));
             });
             return null;
-        }
-
-        /**
-         * The host the reply describes itself from, or null when there is none.
-         *
-         * <p>Built after the command so the vocabulary it ships is the one the
-         * next keystroke will complete against - a {@code use} that changes the
-         * target also changes which keys exist.</p>
-         */
-        private static TerminalHost stateOf(EntityPlayerMP player, BlockPos pos, int kind, int index) {
-            TileEntity te = player.world.getTileEntity(pos);
-            if (kind == KIND_CONSOLE) {
-                return te instanceof TileEntityCtrlConsole
-                        ? ((TileEntityCtrlConsole) te).terminalHost(index) : null;
-            }
-            return te instanceof TileEntityCtrlPanel
-                    ? new com.hbmzz.ctrl.CtrlPanelHost(((TileEntityCtrlPanel) te).getPanel(), index,
-                    player.world) : null;
         }
     }
 }

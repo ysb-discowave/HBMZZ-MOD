@@ -24,7 +24,10 @@ import com.hbmzz.ctrl.CtrlPanel;
 import com.hbmzz.ctrl.CtrlPanelHost;
 import com.hbmzz.ctrl.CtrlRule;
 import com.hbmzz.ctrl.CtrlWidget;
+import com.hbmzz.ctrl.GroupedHost;
 import com.hbmzz.ctrl.MachineBridge;
+import com.hbmzz.ctrl.PartBroadcast;
+import com.hbmzz.ctrl.TerminalHost;
 import com.hbmzz.ctrl.TerminalShell;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -34,6 +37,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The machine control panel block entity: the panel, the six machine bindings,
@@ -69,6 +75,35 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
 
     public CtrlPanel getPanel() {
         return this.panel;
+    }
+
+    /**
+     * Publishes this panel's links for same-name broadcasting, and hands the
+     * terminal its grouped view.
+     *
+     * <p>Kept next to each other because they answer the same question from two
+     * directions: {@link PartBroadcast} needs "which machines are wired
+     * together" so a write to one can reach its siblings, and the terminal needs
+     * "which of those are the same 部件类型" so it can show one slot per reactor
+     * rather than one per wire.</p>
+     */
+    private void publishParts() {
+        if (this.world == null || this.world.isRemote) {
+            return;
+        }
+        List<BlockPos> positions = new ArrayList<BlockPos>();
+        for (CtrlLink link : this.panel.links) {
+            if (!link.isEmpty()) {
+                positions.add(link.pos);
+            }
+        }
+        PartBroadcast.bind(this.world, this.pos, positions);
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        publishParts();
     }
 
     /** True when this panel has a rule that must run with nobody watching. */
@@ -115,6 +150,7 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
         }
         this.panel = copy;
         this.linksDirty = true;
+        publishParts();
         markDirty();
         sync();
     }
@@ -131,6 +167,7 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
         }
         if (machinePos == null) {
             this.panel.forgetLink(slot);
+            publishParts();
             markDirty();
             sync();
             return true;
@@ -144,6 +181,7 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
         CtrlLink link = this.panel.links[slot];
         link.set(machinePos, "");
         MachineBridge.describe(link, this.world);
+        publishParts();
         markDirty();
         sync();
         return true;
@@ -196,12 +234,29 @@ public class TileEntityCtrlPanel extends TileEntity implements ITickable {
             sink.err("命令太频繁了，等一秒再来。");
             return result;
         }
-        result = TerminalShell.execute(new CtrlPanelHost(this.panel, index, this.world), line, sink);
+        result = TerminalShell.execute(terminalHost(index), line, sink);
         if (result.dirty) {
             markDirty();
             sync();
         }
         return result;
+    }
+
+    /**
+     * The grouped view of this panel's terminal, or null when {@code index} is
+     * not a terminal control.
+     *
+     * <p>Grouped rather than raw so that a panel with four control rods in
+     * slots A-D is one slot in the window - the panel's own A-D keys stay
+     * exactly as they were for widgets and rules, which address concrete
+     * machines and must not be renumbered.</p>
+     */
+    public TerminalHost terminalHost(int index) {
+        CtrlWidget widget = this.panel.get(index);
+        if (widget == null || !widget.type.isTerminal()) {
+            return null;
+        }
+        return GroupedHost.of(new CtrlPanelHost(this.panel, index, this.world), this.world);
     }
 
     // ------------------------------------------------------------------ tick

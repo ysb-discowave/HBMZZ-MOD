@@ -156,11 +156,23 @@ public class ControlEventSystem {
 		// always empty and every broadcast to a linked machine stopped right at
 		// this line. NTM machines live in another registry entirely and reach
 		// this method through CPMachines, which the loop below applies.
-		for(BlockPos pos : positions){
-			deliver(from, evt, pos);
+		// Two or more targets is already a broadcast, so it must not fan out
+		// again per machine: a momentary door toggle delivered by both paths
+		// would close the door the same tick it opened. One target keeps the
+		// per-part fan-out, which is what makes a node aimed at one control rod
+		// move its siblings.
+		boolean multi = positions.size() > 1;
+		if(multi)
+			com.hbmzz.ctrl.PartBroadcast.beginScope();
+		try {
+			for(BlockPos pos : positions){
+				deliver(from, evt, pos);
+			}
+		} finally {
+			if(multi)
+				com.hbmzz.ctrl.PartBroadcast.endScope();
 		}
-	}
-	
+	}	
 	/**
 	 * Hands one event to whatever is at {@code pos}: this mod's own controllable
 	 * first, and an NTM machine from the other mod's registry second.

@@ -520,6 +520,63 @@ def main():
           "the three version stamps agree (build.gradle / mcmod.info / HBMZZ.VERSION)",
           "got " + " / ".join(str(s) for s in stamps))
 
+    # 21. The same-name broadcast hangs off MachineBridge.fireAll, because that
+    # is the one method every write in this mod passes through - a knob, a rule,
+    # the node graph, a terminal. If the call goes away, nothing fails to
+    # compile: every caller still sends to one machine, and the reactor just
+    # drifts apart one rod at a time.
+    bridge = read(os.path.join(SRC, "com/hbmzz/ctrl/MachineBridge.java"))
+    # Anchored on the definition: fire() calls fireAll(), so a regex that just
+    # looks for the name would read the wrong method and pass on a file where
+    # the fan-out is gone.
+    fire_all_at = bridge.find("public static boolean fireAll(")
+    fire_all_body = bridge[fire_all_at:bridge.find("\n    }", fire_all_at)] if fire_all_at >= 0 else ""
+    check("PartBroadcast.fanOut(" in fire_all_body,
+          "every machine write fans out to its same-name parts",
+          "MachineBridge.fireAll no longer calls PartBroadcast.fanOut")
+
+    # 22. ...and a fan-out that already covers the group must not fan out again.
+    # Two writers do their own multi-machine loop: PartGroup (one slot, many
+    # parts) and ControlEventSystem (one node, many positions). Both have to set
+    # the scope guard, or a four-rod write delivers sixteen events and a
+    # momentary door_toggle closes the door it just opened.
+    groups = read(os.path.join(SRC, "com/hbmzz/ctrl/PartGroup.java"))
+    events_sys = read(os.path.join(SRC, "com/hbmzz/cecp/ControlEventSystem.java"))
+    check("PartBroadcast.beginScope(" in member_body(groups, "fire"),
+          "a group write scopes its own fan-out",
+          "PartGroup.fire would deliver each part N times")
+    # The file has two broadcastEvent overloads, so the body extractor cannot
+    # be pointed at one of them by name; the guard is asserted per file.
+    check("PartBroadcast.beginScope(" in events_sys and "PartBroadcast.endScope(" in events_sys,
+          "a multi-target broadcast scopes its own fan-out",
+          "ControlEventSystem.broadcastEvent would deliver each position N times")
+
+    # 23. The terminal must be handed the grouped host. Building the raw host at
+    # the call site still compiles and still works - it just quietly goes back to
+    # one tab per linker tag, which is the state this feature exists to end.
+    raw_hosts = []
+    for base, _dirs, files in sorted(os.walk(SRC)):
+        for name in sorted(files):
+            if not name.endswith(".java"):
+                continue
+            path = os.path.join(base, name)
+            for lineno, line in enumerate(code_lines(read(path)), 1):
+                if re.search(r"TerminalShell\.execute\(\s*new\s", line):
+                    raw_hosts.append("%s:%d" % (
+                        os.path.relpath(path, ROOT).replace("\\", "/"), lineno))
+    check(not raw_hosts, "the terminal is always given a grouped host",
+          "TerminalShell.execute gets a raw host: " + ", ".join(raw_hosts))
+
+    # 24. The family table has to know the two reactors the feature was asked
+    # for. An empty or renamed table still compiles - the window would simply
+    # stop folding, one family at a time.
+    types = read(os.path.join(SRC, "com/hbmzz/ctrl/PartTypes.java"))
+    families = re.findall(r"\{\"([^\"]+)\",\s*(\w+),", types)
+    missing = [name for name, key in (("RBMK", "RBMK"), ("DFC", "DFC"))
+               if name not in [entry[0] for entry in families]]
+    check(not missing, "the part-family table covers RBMK and DFC",
+          "no family rule for: " + ", ".join(missing))
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

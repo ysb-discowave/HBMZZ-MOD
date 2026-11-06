@@ -36,13 +36,14 @@ public final class ClientTerminalBridge {
     }
 
     public static void onReply(int kind, BlockPos pos, int index, int slot, boolean clear,
-                               String kinds, String text, String labels, String keys,
-                               String events, String vars) {
+                               String kinds, String text, String labels, String names,
+                               String keys, String events, String vars) {
         Minecraft mc = Minecraft.getMinecraft();
         mc.addScheduledTask(() -> {
             if (mc.currentScreen instanceof GuiCtrlTerminal) {
                 ((GuiCtrlTerminal) mc.currentScreen)
-                        .onReply(kind, pos, index, slot, clear, kinds, text, labels, keys, events, vars);
+                        .onReply(kind, pos, index, slot, clear, kinds, text, labels, names,
+                                keys, events, vars);
             }
         });
     }

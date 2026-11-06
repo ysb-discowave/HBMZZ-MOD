@@ -65,6 +65,7 @@ public class TerminalReplyMessage implements IMessage {
     private String kinds = "";
     private String text = "";
     private String labels = "";
+    private String names = "";
     private String keys = "";
     private String events = "";
     private String vars = "";
@@ -93,10 +94,17 @@ public class TerminalReplyMessage implements IMessage {
 
         if (host != null) {
             List<String> slotLabels = new ArrayList<String>();
+            List<String> slotNames = new ArrayList<String>();
             for (int i = 0; i < host.slots() && i < MAX_SLOTS; i++) {
                 slotLabels.add(host.label(i));
+                slotNames.add(host.name(i));
             }
             this.labels = join(slotLabels, MAX_SLOTS);
+            // Names travel separately from labels: a label is short because it
+            // is also what the operator types ("RBMK"), a name is what the
+            // header shows ("RBMK 反应堆 · 12 部件"). Before grouping they were
+            // the same string, so the window used the label for both.
+            this.names = join(slotNames, MAX_SLOTS);
 
             int target = host.target();
             if (target >= 0 && target < host.slots()) {
@@ -159,6 +167,7 @@ public class TerminalReplyMessage implements IMessage {
         this.kinds = TerminalInputMessage.readString(buf, TerminalShell.MAX_REPLY);
         this.text = TerminalInputMessage.readString(buf, TerminalShell.MAX_REPLY * 256);
         this.labels = TerminalInputMessage.readString(buf, MAX_SLOTS * MAX_WORD);
+        this.names = TerminalInputMessage.readString(buf, MAX_SLOTS * MAX_WORD);
         this.keys = TerminalInputMessage.readString(buf, MAX_WORDS * MAX_WORD);
         this.events = TerminalInputMessage.readString(buf, MAX_WORDS * MAX_WORD);
         this.vars = TerminalInputMessage.readString(buf, MAX_VARS * MAX_WORD * 2);
@@ -174,6 +183,7 @@ public class TerminalReplyMessage implements IMessage {
         TerminalInputMessage.writeString(buf, this.kinds, TerminalShell.MAX_REPLY);
         TerminalInputMessage.writeString(buf, this.text, TerminalShell.MAX_REPLY * 256);
         TerminalInputMessage.writeString(buf, this.labels, MAX_SLOTS * MAX_WORD);
+        TerminalInputMessage.writeString(buf, this.names, MAX_SLOTS * MAX_WORD);
         TerminalInputMessage.writeString(buf, this.keys, MAX_WORDS * MAX_WORD);
         TerminalInputMessage.writeString(buf, this.events, MAX_WORDS * MAX_WORD);
         TerminalInputMessage.writeString(buf, this.vars, MAX_VARS * MAX_WORD * 2);
@@ -193,11 +203,13 @@ public class TerminalReplyMessage implements IMessage {
                     Class.forName("com.hbmzz.client.ClientTerminalBridge")
                             .getMethod("onReply", int.class, BlockPos.class, int.class, int.class,
                                     boolean.class, String.class, String.class,
-                                    String.class, String.class, String.class, String.class)
+                                    String.class, String.class, String.class, String.class,
+                                    String.class)
                             .invoke(null, Integer.valueOf(message.kind), message.pos,
                                     Integer.valueOf(message.index), Integer.valueOf(message.slot),
                                     Boolean.valueOf(message.clear), message.kinds, message.text,
-                                    message.labels, message.keys, message.events, message.vars);
+                                    message.labels, message.names, message.keys,
+                                    message.events, message.vars);
                 } catch (Throwable ignored) {
                 }
             }

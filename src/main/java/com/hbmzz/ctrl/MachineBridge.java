@@ -437,37 +437,20 @@ public final class MachineBridge {
      * {@code DataValueFloat} answers {@code getBoolean()} for them, so 1 and 0
      * are the honest encoding and the extra overload would only be a second way
      * to say the same thing.</p>
+     *
+     * <p>Delegates to {@link #fireAll} so that there is exactly one place where
+     * an event leaves this mod - and therefore exactly one place where a
+     * same-name broadcast can attach.</p>
      */
     public static boolean fire(World world, BlockPos pos, String event, String var, double value, String text) {
-        probe();
-        if (!available || world == null || pos == null || event == null || event.isEmpty()) {
-            return false;
+        Map<String, Object> vars = new LinkedHashMap<String, Object>();
+        if (var != null && !var.isEmpty()) {
+            // A non-empty text is a name (a fluid, a target group); anything
+            // else is a number, which is the encoding NTM reads back out of
+            // getNumber()/getBoolean().
+            vars.put(var, text != null && !text.isEmpty() ? text : Double.valueOf(value));
         }
-        if (!world.isBlockLoaded(pos)) {
-            return false;
-        }
-        TileEntity tile = world.getTileEntity(pos);
-        if (!isControllable(tile)) {
-            return false;
-        }
-        try {
-            Object controlEvent = buildEvent(event);
-            if (controlEvent == null) {
-                return false;
-            }
-            if (var != null && !var.isEmpty()) {
-                if (text != null && !text.isEmpty()) {
-                    setVarString.invoke(controlEvent, var, text);
-                } else {
-                    setVarFloat.invoke(controlEvent, var, Float.valueOf((float) value));
-                }
-            }
-            receiveEvent.invoke(tile, pos, controlEvent);
-            return true;
-        } catch (Throwable throwable) {
-            warn("发送机器事件 " + event + " 失败", throwable);
-            return false;
-        }
+        return fireAll(world, pos, event, vars);
     }
 
     /**
@@ -481,6 +464,12 @@ public final class MachineBridge {
      *
      * <p>Values are {@link String} for text (a fluid name, a target group) and
      * {@link Number} for everything else.</p>
+     *
+     * <p>Every event this mod sends - a knob, a rule, a node graph, a terminal -
+     * arrives here, which is why the same-name broadcast hangs off this method
+     * rather than off each caller: a change made through any of them reaches the
+     * rest of the parts, and a new caller cannot forget to {@code PartBroadcast}
+     * any more than it can forget to send the event.</p>
      */
     public static boolean fireAll(World world, BlockPos pos, String event, Map<String, ?> vars) {
         probe();
@@ -511,6 +500,10 @@ public final class MachineBridge {
                 }
             }
             receiveEvent.invoke(tile, pos, controlEvent);
+            // Same-name parts of the same reactor. No-op unless this position
+            // is linked to a panel that also links its siblings, and a no-op
+            // while a group or the node graph is already writing to all of them.
+            PartBroadcast.fanOut(world, pos, event, vars);
             return true;
         } catch (Throwable throwable) {
             warn("发送机器事件 " + event + " 到 " + describe(tile) + " 失败（变量 "

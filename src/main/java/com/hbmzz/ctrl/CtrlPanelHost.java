@@ -148,10 +148,15 @@ public class CtrlPanelHost implements TerminalHost {
     }
 
     @Override
-    public boolean fire(int slot, String event, Map<String, Object> vars) {
+    public int fire(int slot, String event, Map<String, Object> vars) {
         CtrlLink link = link(slot);
-        return link != null && this.world != null
-                && MachineBridge.fireAll(this.world, link.pos, event, vars);
+        if (link == null || this.world == null) {
+            return 0;
+        }
+        // One, not "all same-name parts": this bridge writes to one position,
+        // and the fan-out to its siblings happens inside MachineBridge so that
+        // it also covers the node graph and the rules.
+        return MachineBridge.fireAll(this.world, link.pos, event, vars) ? 1 : 0;
     }
 
     @Override

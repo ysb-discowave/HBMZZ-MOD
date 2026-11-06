@@ -132,8 +132,8 @@ public class SnapshotHost implements TerminalHost {
     }
 
     @Override
-    public boolean fire(int slot, String event, Map<String, Object> vars) {
-        return false;
+    public int fire(int slot, String event, Map<String, Object> vars) {
+        return 0;
     }
 
     @Override

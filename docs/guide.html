@@ -422,7 +422,69 @@
     </div>
   </section>
 
-  <!-- ================= 05 节点图控制台 ================= -->
+  <!-- ================= 05 RBMK 过热 ================= -->
+  <section class="section" id="rbmk-surge">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 反应堆事故</div>
+        <h2>RBMK 不再是一个 tick 就没了</h2>
+        <p>基座模组把一台过热的堆在一个 tick 内变成废墟。行为是对的，但它是<strong>发生在你身上</strong>，不是<strong>发生给你看</strong>：上一秒还在跑，下一秒就是瓦砾。这一段把那一 tick 换成一分钟，以及一分钟之后真正会飞的东西。</p>
+      </div>
+
+      <div class="panel panel--flat">
+        <h3 style="margin-bottom:10px">什么时候开始</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>条件</th><th>判定</th></tr></thead>
+            <tbody>
+              <tr><td><strong>温度</strong></td><td>这一台堆里<strong>任何一根</strong>柱子的 <code>heat</code> 超过 <strong>1000</strong>（可在 <code>rbmk.heat</code> 改）。1000 是刻意选的：基座模组在 <code>maxHeat()</code>（默认 1500）就自己动手了，取 1500 等于没有警告。</td></tr>
+              <tr><td><strong>ReaSim 蒸汽</strong></td><td>要么所有存着蒸汽的柱子都<strong>顶到容量</strong>，要么<strong>蒸汽总量连续三次采样（约 2 秒）一动不动</strong>。取并集是因为容量这个数在不同整合包里不一样：基座写的是 16000，而几个常见附属把它抬到 80000 却不改字段——只看字段的话 20% 就判满。</td></tr>
+              <tr><td><strong>两者都要</strong></td><td>只有热，是一台正常在跑的堆；只有蒸汽满，是一台在干活的锅炉。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin:18px 0 10px">然后发生什么</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>阶段</th><th>时长</th><th>在做的事</th></tr></thead>
+            <tbody>
+              <tr><td><strong>跳动</strong></td><td>1200 tick（一分钟）</td><td>控制棒在通道里上下砸，棒底喷出蒸汽，落回时发出撞击声。<strong>用的就是诅咒版的跳动函数</strong>：附属在柱子上加的 <code>leafia$damage</code> 字段驱动它，我们只把这一个整数从 240 一路抬到 1150。</td></tr>
+              <tr><td><strong>一次爆炸</strong></td><td>即刻</td><td>顶盖整体离堆，初速 2 格/ tick，升到约 25 格，翻着跟头往下掉。</td></tr>
+              <tr><td><strong>二次爆炸</strong></td><td>落地时</td><td>顶盖砸回堆芯 → 更大的一次爆炸 → 再次掀飞（4.25 格/ tick，约 113 格）。</td></tr>
+              <tr><td><strong>落定</strong></td><td>落地后 1200 tick</td><td>冒烟躺一分钟，随后碎掉消失。堆芯交给基座模组自己的熔毁，瓦砾、碎片、堆芯熔融物都是玩家熟悉的那一套。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:16px">
+          <div>
+            <h4>为什么这一分钟里热量被按住了</h4>
+            <p style="margin:6px 0 0">每根柱子的 <code>heat</code> 在倒计时期间被钉在 <code>maxHeat() - 50</code>。不钉住，基座模组会在头几秒走到自己的熔毁线，倒计时还没走完堆就没了、顶盖永远不会飞——那会是一段看起来能跑、只在真堆上失效的死代码。钉子由爆炸自己拔掉，之后一切照常。</p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>顶盖是实体，不是方块</h4>
+            <p style="margin:6px 0 0">落地时把自己放回世界，会<strong>在原地生成一根活的 RBMK 柱</strong>——一台从瓦砾里长出来、带方块实体、能继续运行的堆。所以它只是实体：带着原堆每根柱子的顶盖、按原样排布、各用各的 <code>cover</code> 贴图；落地只炸、只掉碎块，不改写世界。</p>
+            <p style="margin:6px 0 0">代价同样写在明处：<strong>没有做精细的落点碰撞</strong>，顶盖按五个采样点找最高的地面，落在斜坡上会有一角悬空；落地一分钟后碎掉，不会永久留成一台「切尔诺贝利顶盖」。</p>
+          </div>
+        </div>
+
+        <div class="note note--red" style="margin-top:18px">
+          <div>
+            <h4>已知限制</h4>
+            <p style="margin:6px 0 0"><strong>跳动动画需要诅咒版附属（CE Addon / Leafia）。</strong>没装的时候倒计时照走、爆炸照炸，但棒子不会跳——日志里会写一行说明，而不是让你盯着一台安静了一分钟然后突然爆炸的反应堆。基座模组本身没有这个字段，也没有第二套可借用的跳动实现。</p>
+            <p style="margin:6px 0 0"><strong>只对<b>装好顶盖</b>的堆有完整效果。</strong>顶盖是柱子的元数据，没有盖子的堆（或者控制棒这种自带盖子的柱子）不会被抢走任何东西：一次爆炸照炸，只是没有东西飞。</p>
+            <p style="margin:6px 0 0"><strong>整台堆的边界由基座模组定义。</strong>相邻（上下左右，同高度）的柱子算一台堆，斜着挨在一起的不算——两侧堆在角上碰一下不会被当成一台。这条规则来自基座模组自己的熔毁扫描，不是本模组另立的规矩。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 06 节点图控制台 ================= -->
   <section class="section" id="console">
     <div class="wrap">
       <div class="section-head">
@@ -509,7 +571,7 @@
     </div>
   </section>
 
-  <!-- ================= 06 枪械 / 线圈 / 喷气背包 ================= -->
+  <!-- ================= 07 枪械 / 线圈 / 喷气背包 ================= -->
   <section class="section" id="extras">
     <div class="wrap">
       <div class="section-head">
@@ -535,7 +597,7 @@
     </div>
   </section>
 
-  <!-- ================= 07 视频广播器 ================= -->
+  <!-- ================= 08 视频广播器 ================= -->
   <section class="section" id="video">
     <div class="wrap">
       <div class="section-head">

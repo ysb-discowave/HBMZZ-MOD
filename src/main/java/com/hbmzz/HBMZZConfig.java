@@ -56,6 +56,13 @@ public final class HBMZZConfig {
     public static int videoMaxWidth = 960;
     public static int videoMaxHeight = 540;
 
+    /** Staged RBMK blow-up. Off means the base mod's one-tick meltdown stands. */
+    public static boolean rbmkSurge = true;
+    public static int rbmkSurgeHeat = 1000;
+    public static int rbmkSurgeTicks = 1200;
+    public static float rbmkSurgePower = 10.0F;
+    public static boolean rbmkSurgeMelt = true;
+
     private HBMZZConfig() {
     }
 
@@ -113,6 +120,16 @@ public final class HBMZZConfig {
                     "Video frames wider than this are scaled down on decode.");
             videoMaxHeight = cfg.getInt("maxHeight", "video", 540, 128, 1080,
                     "Video frames taller than this are scaled down on decode.");
+            rbmkSurge = cfg.getBoolean("surge", "rbmk", true,
+                    "Replace the base mod's one-tick RBMK meltdown with the staged one: jumping rods, then the lid thrown off twice. False restores the base behaviour exactly.");
+            rbmkSurgeHeat = cfg.getInt("heat", "rbmk", 1000, 100, 100000,
+                    "Heat above which a reactor is considered ready to blow. The base mod melts a column at maxHeat() (1500 by default); below that line there is time to stage a warning.");
+            rbmkSurgeTicks = cfg.getInt("jumpTicks", "rbmk", 1200, 20, 24000,
+                    "Ticks the rods jump before the lid leaves. 1200 is one minute. The jump animation needs the Cursed Edition addon; without it the countdown still runs, silently.");
+            rbmkSurgePower = (float) cfg.getFloat("blastPower", "rbmk", 10.0F, 1.0F, 30.0F,
+                    "Strength of the two scripted explosions. Vanilla explosion scale, so 10 is roughly a charged creeper going off in the reactor hall.");
+            rbmkSurgeMelt = cfg.getBoolean("melt", "rbmk", true,
+                    "Hand the wrecked reactor to the base mod's own meltdown once the lid has settled, so the aftermath is the wreckage players already know.");
         } finally {
             if (cfg.hasChanged()) {
                 cfg.save();

@@ -595,6 +595,69 @@ def main():
           "broadcast scope is the terminal's own binding list",
           "PartBroadcast.peersOf derives peers from something other than the panel links")
 
+    # ------------------------------------------------------------------ RBMK
+    # The staged blow-up talks to somebody else's reactor. Every rule below is
+    # about keeping that borrowing honest: no compile dependency, no second
+    # reflection layer, no second meltdown line, and nothing that turns the
+    # flying lid back into a block.
+
+    # 27. The base mod is not a build dependency and must not become one. The
+    # build has no NTM on its classpath at all, so an import would not even
+    # compile - but a `compileOnly files('libs/...')` added "just for one field"
+    # would, and then the jar stops loading on a pack without that exact version.
+    base_imports = []
+    for base, _dirs, files in sorted(os.walk(SRC)):
+        for name in sorted(files):
+            if not name.endswith(".java"):
+                continue
+            path = os.path.join(base, name)
+            for lineno, line in enumerate(read(path).splitlines(), 1):
+                if re.match(r"\s*import\s+com\.hbm[.;]", line):
+                    base_imports.append("%s:%d" % (
+                        os.path.relpath(path, ROOT).replace("\\", "/"), lineno))
+    check(not base_imports, "nothing imports the base mod",
+          "compile dependency on NTM crept in: " + ", ".join(base_imports))
+
+    # 28. Reflection lives in one file. MachineBridge already carries the
+    # machine half; the reactor half belongs in RbmkParts and nowhere else, or
+    # the next base-mod rename has to be chased through five call sites.
+    rbmk_dir = os.path.join(SRC, "com/hbmzz/rbmk")
+    stray = []
+    for name in sorted(os.listdir(rbmk_dir)):
+        if not name.endswith(".java") or name == "RbmkParts.java":
+            continue
+        source = read(os.path.join(rbmk_dir, name))
+        for marker in ("Class.forName(", ".getField(", ".getDeclaredField("):
+            if marker in source:
+                stray.append(name + " uses " + marker)
+    check(not stray, "reactor reflection stays in RbmkParts",
+          "; ".join(stray))
+
+    # 29. The jump is asked for in the addon's own damage units, and 1200 of
+    # them is where that addon melts the reactor down itself. One tick at or
+    # above that line and the base meltdown wins the race: the lid never moves
+    # and the whole sequence is dead code nobody notices until a reactor blows.
+    timing = read(os.path.join(rbmk_dir, "RbmkTiming.java"))
+    cap = re.search(r"DAMAGE_END\s*=\s*(\d+)", timing)
+    check(cap is not None and int(cap.group(1)) < 1200,
+          "the requested jump stays under the addon's meltdown",
+          "DAMAGE_END is " + (cap.group(1) if cap else "missing"))
+
+    # 30. The plate is an entity, never a block. A lid that lands as a block
+    # plants a live RBMK column wherever it stops - a new reactor, with a tile
+    # entity, born from rubble. Dropping debris is fine; placing is not.
+    lid = read(os.path.join(SRC, "com/hbmzz/entity/EntityRbmkLid.java"))
+    check("setBlockState(" not in lid,
+          "the flying lid never places a block",
+          "EntityRbmkLid writes a block state; that is how a lid becomes a reactor")
+
+    # 31. The decision layer has to stay runnable without Minecraft, or
+    # tools/rbmkcheck cannot run it and the trip condition goes untested - which
+    # is the one thing that must not be discovered by melting a real save.
+    check("import net.minecraft" not in timing,
+          "the trip logic has no Minecraft in it",
+          "RbmkTiming imports the game; tools/rbmkcheck can no longer run it")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

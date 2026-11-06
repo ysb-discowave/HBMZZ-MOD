@@ -49,6 +49,10 @@ public class ClientProxy extends CommonProxy {
         // are gone and a block cannot swing on a cable.
         net.minecraftforge.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
                 com.hbmzz.entity.EntityFallenScreen.class, RenderFallenScreen::new);
+        // The lid that came off an RBMK. Also an entity: a lid that lands as a
+        // block would plant a live reactor column wherever it stopped.
+        net.minecraftforge.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
+                com.hbmzz.entity.EntityRbmkLid.class, RenderRbmkLid::new);
     }
 
     @Override

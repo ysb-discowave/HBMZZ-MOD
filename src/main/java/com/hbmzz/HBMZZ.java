@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "2.6.1";
+    public static final String VERSION = "2.7.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -95,6 +95,15 @@ public class HBMZZ {
         net.minecraftforge.fml.common.registry.EntityRegistry.registerModEntity(
                 new ResourceLocation(MODID, "fallen_screen"),
                 com.hbmzz.entity.EntityFallenScreen.class, "fallen_screen", 0, instance, 64, 2, true);
+        // The RBMK lid that gets thrown off. Registered with a wide tracking
+        // range: the plate is the point, and half the reactor's neighbourhood
+        // should be able to watch it come back down.
+        net.minecraftforge.fml.common.registry.EntityRegistry.registerModEntity(
+                new ResourceLocation(MODID, "rbmk_lid"),
+                com.hbmzz.entity.EntityRbmkLid.class, "rbmk_lid", 1, instance, 256, 2, true);
+        // The staged RBMK blow-up. Server side only, and inert until a reactor
+        // trips, so it costs one list scan every twenty ticks.
+        MinecraftForge.EVENT_BUS.register(new com.hbmzz.rbmk.RbmkSurge());
         proxy.preInit(event);
         logger.info("HBMZZ loaded (DFC Monitor + coils + jetpack).");
     }

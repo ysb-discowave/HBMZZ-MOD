@@ -81,8 +81,27 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.6.1</span>
+            <span class="tl-ver">v2.7.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>RBMK 不再是一个 tick 就没了</h3>
+          <ul>
+            <li><strong>原来怎样：</strong>过热到 <code>maxHeat()</code>，基座模组在<strong>一个 tick 内</strong>把整台堆变成废墟。行为正确，但它是<strong>发生在你身上</strong>，不是<strong>发生给你看</strong> —— 上一秒还是一台在跑的机器，下一秒就是废墟，唯一的证据是你没来得及截的那张图。</li>
+            <li><strong>现在怎样：</strong>温度超过 <strong>1000°</strong> 且 ReaSim 蒸汽<strong>爆满</strong>时，控制棒开始<strong>上下跳动</strong>；跳满<strong>一分钟</strong>后整个顶盖被炸飞，翻着跟头升空约 25 格，落回堆芯时<strong>引发二次爆炸</strong>，再被掀飞一次（这次约 113 格），最后落地、冒烟，堆芯按基座模组自己的方式熔毁。</li>
+            <li><strong>跳动直接用诅咒版的。</strong>不是新画一套动画：诅咒版附属在 <code>TileEntityRBMKBase</code> 上加了 <code>leafia$damage</code> 字段，它的跳动、棒底喷流、落回时的撞击音全部由这个字段驱动。我们只负责<strong>决定要多少</strong>（一分钟内从 240 抬到 1150），把动画交给它 —— 两套动画叠在同一根棒上只会打起来。</li>
+            <li><strong>为什么停在 1150。</strong>那个字段到 <strong>1200</strong> 时附属<strong>自己</strong>会调 <code>meltdown()</code>。写超过去，堆会在我们的倒计时结束前被基座模组拆掉，顶盖永远不会飞 —— 一段看起来能跑、只在真堆上才失效的死代码。</li>
+            <li><strong>沸腾到爆炸之间，热量被按住了。</strong>这一个小时（一分钟）里每根柱子的 <code>heat</code> 被钉在 <code>maxHeat()-50</code>：不钉住，基座模组会在头几秒内走到自己的熔毁线，倒计时还没走完堆就没了。钉子由爆炸自己拔掉。</li>
+            <li><strong>顶盖是实体，不是方块。</strong>落地时把自己放回世界会<strong>在原地生成一根活的 RBMK 柱</strong>——一台从瓦砾里长出来、带方块实体、能继续运行的堆。所以 <code>EntityRbmkLid</code> 只是实体：带着原堆每根柱子的顶盖、按原样排布、按各自的 <code>cover</code> 贴图上色；落点不改写世界，只炸、只掉碎块。</li>
+            <li><strong>「蒸汽爆满」有两种判法，取并集。</strong>一是对着 <code>maxSteam</code>（16000）比；二是<strong>总量连续两次扫描不涨</strong>。后者是必须的：好几个整合包把容量改到 80000 而字段还是 16000，只看字段的话 20% 就判满，堆会在完全没到极限时炸掉。</li>
+            <li><strong>配置：</strong><code>rbmk.surge</code>（总开关，关掉就是原来的一个 tick）、<code>rbmk.heat</code>（默认 1000）、<code>rbmk.jumpTicks</code>（默认 1200 = 一分钟）、<code>rbmk.blastPower</code>（默认 10）、<code>rbmk.melt</code>（顶盖落定后是否交给基座熔毁）。</li>
+            <li><strong>新增 <code>tools/rbmkcheck</code>（50 项）。</strong>熔毁是唯一没法「跑一遍看看」的功能——跑完存档就烧了。所以判断「什么时候开始、警告多久、哪些柱子是一台堆」的那一层被写成<strong>不含任何 Minecraft 类型</strong>的纯函数，50 项离线用例逐条验：一分钟倒计时不提前、跳幅单调且始终低于 1200、蒸汽只有一半满时不许触发、对角线不算相邻、相邻但不同高度不算一台、顶盖布局字符串往返不丢半格偏移。</li>
+            <li><strong><code>tools/regcheck</code> 加 5 条（共 33 条）：</strong>源码里不许出现 <code>import com.hbm.*</code>（基座模组是反射调用的，一旦变成编译依赖，这个 jar 就只能在那个确切版本上加载）；反射只许待在 <code>RbmkParts</code>；请求的跳动值必须低于 1200；飞行中的顶盖不许写方块（<code>setBlockState</code> 出现即报红——那正是顶盖变成反应堆的写法）；判断层不许 import Minecraft（否则 <code>rbmkcheck</code> 跑不动）。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.6.1</span>
           </div>
           <h3>归类不再量距离：一台终端就是一台反应堆</h3>
           <ul>

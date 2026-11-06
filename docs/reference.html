@@ -484,6 +484,11 @@
             <tr><td><code>video.audio</code></td><td>true</td><td>播放可选音轨；混音器拒绝时静默降级</td></tr>
             <tr><td><code>video.cacheFrames</code></td><td>6</td><td>解码线程领先播放头几帧，越高越顺、越吃内存</td></tr>
             <tr><td><code>video.maxWidth</code> / <code>maxHeight</code></td><td>960 / 540</td><td>超过这个尺寸的帧在解码时等比缩小</td></tr>
+            <tr><td><code>rbmk.surge</code></td><td>true</td><td>分阶段 RBMK 熔毁总开关；关掉就是基座模组原本的「一个 tick 变废墟」</td></tr>
+            <tr><td><code>rbmk.heat</code></td><td>1000</td><td>判定「快炸了」的温度线，必须低于 <code>maxHeat()</code>（默认 1500），否则没有警告可给</td></tr>
+            <tr><td><code>rbmk.jumpTicks</code></td><td>1200</td><td>控制棒跳多久（一分钟）。没有诅咒版附属时倒计时照走，只是看不见跳</td></tr>
+            <tr><td><code>rbmk.blastPower</code></td><td>10</td><td>两次脚本爆炸的强度，原版爆炸当量</td></tr>
+            <tr><td><code>rbmk.melt</code></td><td>true</td><td>顶盖落定后把堆芯交给基座模组自己的 <code>meltdown()</code></td></tr>
           </tbody>
         </table>
       </div>

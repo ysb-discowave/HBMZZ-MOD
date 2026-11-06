@@ -500,7 +500,7 @@ public final class MachineBridge {
                 }
             }
             receiveEvent.invoke(tile, pos, controlEvent);
-            // Same-name parts of the same reactor. No-op unless this position
+            // Same-name parts of the same terminal. No-op unless this position
             // is linked to a panel that also links its siblings, and a no-op
             // while a group or the node graph is already writing to all of them.
             PartBroadcast.fanOut(world, pos, event, vars);

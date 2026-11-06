@@ -20,6 +20,7 @@ import com.hbmzz.ctrl.CtrlPanel;
 import com.hbmzz.ctrl.CtrlPanelHost;
 import com.hbmzz.ctrl.GroupedHost;
 import com.hbmzz.ctrl.PartGroup;
+import com.hbmzz.ctrl.PartTypes;
 import com.hbmzz.ctrl.SnapshotHost;
 import com.hbmzz.ctrl.CtrlType;
 import com.hbmzz.ctrl.CtrlWidget;
@@ -397,6 +398,74 @@ public final class TermCheck {
         // machines exactly as it was.
         TerminalHost plain = new CtrlPanelHost(panel(), 0, null);
         check("no world means no folding", GroupedHost.of(plain, null) == plain);
+
+        // Grouping is a family test, not a distance test. The two rods below are
+        // 120 blocks apart and still one slot - which is the whole point for a
+        // DFC whose core is wider than any radius worth hard-coding. What
+        // separates two reactors is two terminals, so the DFC part at x=200
+        // stays in a slot of its own here only because it is another family.
+        List<BlockPos> spread = new ArrayList<BlockPos>();
+        spread.add(new BlockPos(0, 64, 0));
+        spread.add(new BlockPos(120, 64, 0));
+        spread.add(new BlockPos(200, 64, 0));
+        List<List<BlockPos>> folded = PartTypes.byFamily(spread,
+                pos -> pos.getX() < 150 ? PartTypes.RBMK : PartTypes.DFC);
+        check("same-family parts fold together however far apart they are",
+                folded.size() == 2 && folded.get(0).size() == 2 && folded.get(1).size() == 1,
+                folded.toString());
+        check("a folded slot keeps the order the panel lists it in",
+                folded.size() == 2 && folded.get(0).get(0).getX() == 0
+                        && folded.get(0).get(1).getX() == 120,
+                folded.size() > 0 ? folded.get(0).toString() : "no groups");
+
+        // An unreadable machine gets a slot of its own rather than being pooled
+        // with every other unreadable machine, because two unknown classes have
+        // nothing in common and pooling them would broadcast between them.
+        List<BlockPos> mystery = new ArrayList<BlockPos>();
+        mystery.add(new BlockPos(5, 64, 5));
+        mystery.add(new BlockPos(6, 64, 5));
+        check("parts whose family cannot be told stay in their own slots",
+                PartTypes.byFamily(mystery, pos -> "").size() == 2,
+                PartTypes.byFamily(mystery, pos -> "").toString());
+
+        // A machine bound twice must not become two parts: the panel allows it,
+        // and counting it twice would make a two-rod reactor report ×4.
+        List<BlockPos> twice = new ArrayList<BlockPos>();
+        twice.add(new BlockPos(0, 64, 0));
+        twice.add(new BlockPos(0, 64, 0));
+        check("a position bound twice is still one part",
+                PartTypes.byFamily(twice, pos -> PartTypes.RBMK).get(0).size() == 1,
+                PartTypes.byFamily(twice, pos -> PartTypes.RBMK).toString());
+
+        // The names NTM actually gives its DFC parts. Not one of them contains
+        // the string "DFC" - they are named after what the part does - so a
+        // single "DFC" needle matched nothing and a large DFC fell apart into
+        // one slot per component class, which is the exact machine this feature
+        // exists to make one slot.
+        String[] dfc = {"TileEntityCoreEmitter", "TileEntityCoreInjector",
+                "TileEntityCoreReceiver", "TileEntityCoreStabilizer",
+                "TileEntityCoreDetonator", "TileEntityCoreExchanger", "TileEntityCore"};
+        StringBuilder notDfc = new StringBuilder();
+        for (String name : dfc) {
+            if (!PartTypes.DFC.equals(PartTypes.familyOfClass(name))) {
+                notDfc.append(name).append(' ');
+            }
+        }
+        check("every DFC component class lands in the DFC family",
+                notDfc.length() == 0, "not DFC: " + notDfc);
+
+        // "TileEntityCore" is a prefix of every other DFC part, so as a
+        // substring needle it would swallow the whole namespace - including
+        // whatever an addon puts there next.
+        check("the core entry matches the core, not everything starting with it",
+                PartTypes.DFC.equals(PartTypes.familyOfClass("TileEntityCore"))
+                        && !PartTypes.DFC.equals(PartTypes.familyOfClass("TileEntityCorelessWidget")),
+                PartTypes.familyOfClass("TileEntityCorelessWidget"));
+
+        check("an RBMK part is RBMK, and an unknown class is its own family",
+                PartTypes.RBMK.equals(PartTypes.familyOfClass("TileEntityRBMKControlManual"))
+                        && PartTypes.familyOfClass("TileEntityThingamajig").startsWith("class:"),
+                PartTypes.familyOfClass("TileEntityThingamajig"));
     }
 
     /** A host that is one group, so the shell's own words can be read back. */

@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * What kind of machine this is, and which reactor it belongs to.
+ * What kind of machine this is, and what a 部件类型 is made of.
  *
  * <p>An RBMK is not one block. A working reactor is a column of fuel channels,
  * a row of control rods, a boiler or three, and a crane console - a dozen
@@ -44,33 +44,24 @@ import java.util.Set;
  *       entity class ({@code TileEntityRBMKControlManual} is RBMK,
  *       {@code TileEntityMachineDFC...} is DFC). All members of a family are one
  *       {@code 部件类型} in the window.</li>
- *   <li><b>cluster</b> - which physical reactor those parts belong to. Parts of
- *       one family that are within {@link #CLUSTER} blocks of each other form
- *       one reactor, chained, so a 20-block-wide core is still one cluster while
- *       two reactors with a gap between them are two.</li>
+ *   <li><b>part name</b> - the machine type, which is what "same part" means
+ *       both for the {@code parts} roster and for broadcasting.</li>
  * </ol>
  *
- * <p>Both are geometric/class-based rather than tag-based on purpose: the
- * operator should not have to invent a naming convention before the window
- * works, and a tag is free text that the linker lets people rename at any time.
- * The cost is that two reactors built flush against each other read as one -
- * see {@link #CLUSTER} for why the radius is what it is.</p>
+ * <p>Grouping is by family alone, over the parts <em>one terminal</em> is bound
+ * to. There is no distance test, and that is deliberate: a DFC core can be
+ * thirty blocks across, an RBMK's parts can sit on both sides of a wall, and
+ * neither is a reason to refuse to fold them. Two reactors wired to one panel
+ * therefore do fold together - the way to keep them apart is a second terminal,
+ * which is also the way an operator already thinks about two reactors.</p>
+ *
+ * <p>Class-based rather than tag-based on purpose: the operator should not have
+ * to invent a naming convention before the window works, and a tag is free text
+ * that the linker lets people rename at any time.</p>
  */
 public final class PartTypes {
 
-    /**
-     * Chebyshev distance within which two parts of one family belong to the
-     * same reactor.
-     *
-     * <p>Six, not six hundred: a reactor's parts are adjacent or a few blocks
-     * apart, and a pair of reactors is normally further apart than that. It is
-     * applied along a chain rather than as a bounding box, so distance measures
-     * the gap between neighbours, not the size of the machine - a 7x7x7 core is
-     * still one cluster even though its corners are twelve blocks apart.</p>
-     */
-    public static final int CLUSTER = 6;
-
-    /** Most parts one family slot will fold together. Guards the O(n^2) pass. */
+    /** Most parts one family slot will fold together. Guards the grouping pass. */
     public static final int MAX_MEMBERS = 64;
 
     // Family keys. Not display strings: they go into saved targets and into
@@ -86,10 +77,34 @@ public final class PartTypes {
      * {@code TileEntityMachineFluidTank}, {@code TileEntityBlastDoor} and so on,
      * and a prefix rule would miss two of those three. RBMK and DFC come first
      * because their own subclasses sometimes carry another family's word.</p>
+     *
+     * <p>The DFC entries are not one needle but eight, and that is not
+     * redundancy: NTM names its DFC parts after what they do, not after the
+     * reactor - {@code TileEntityCoreEmitter}, {@code TileEntityCoreInjector},
+     * {@code TileEntityCoreReceiver}, {@code TileEntityCoreStabilizer},
+     * {@code TileEntityCoreDetonator}, {@code TileEntityCoreExchanger}, the CE
+     * variant {@code ...CEmitter}, and the core itself, {@code TileEntityCore}.
+     * A single "DFC" needle would match none of them, and a big DFC would fall
+     * apart into one slot per component class - which is precisely the machine
+     * this table exists to make one slot.</p>
+     *
+     * <p>A needle starting with {@code =} is an exact match instead of a
+     * substring. Only the core uses it: {@code TileEntityCore} is a prefix of
+     * every other DFC component, so as a substring rule it would swallow the
+     * whole {@code TileEntityCore*} namespace - including whatever an addon
+     * puts there next.</p>
      */
     private static final String[][] FAMILIES = {
             {"RBMK", RBMK, "RBMK", "RBMK 反应堆"},
+            {"CEmitter", DFC, "DFC", "DFC 反应堆"},
+            {"CoreEmitter", DFC, "DFC", "DFC 反应堆"},
+            {"CoreInjector", DFC, "DFC", "DFC 反应堆"},
+            {"CoreReceiver", DFC, "DFC", "DFC 反应堆"},
+            {"CoreStabilizer", DFC, "DFC", "DFC 反应堆"},
+            {"CoreDetonator", DFC, "DFC", "DFC 反应堆"},
+            {"CoreExchanger", DFC, "DFC", "DFC 反应堆"},
             {"DFC", DFC, "DFC", "DFC 反应堆"},
+            {"=TileEntityCore", DFC, "DFC", "DFC 反应堆"},
             {"FluidTank", "tank", "储罐", "流体储罐"},
             {"Turret", "turret", "炮塔", "炮塔"},
             {"Siren", "siren", "警报", "警报器"},
@@ -124,7 +139,7 @@ public final class PartTypes {
             return "";
         }
         for (String[] family : FAMILIES) {
-            if (simpleName.contains(family[0])) {
+            if (matches(family[0], simpleName)) {
                 return family[1];
             }
         }
@@ -132,6 +147,14 @@ public final class PartTypes {
         // two addon machines have nothing in common just because neither is in
         // the table, and merging them would silently broadcast between them.
         return "class:" + simpleName;
+    }
+
+    /** {@code =Foo} means the whole simple name must be {@code Foo}. */
+    private static boolean matches(String needle, String simpleName) {
+        if (needle.startsWith("=")) {
+            return needle.substring(1).equals(simpleName);
+        }
+        return simpleName.contains(needle);
     }
 
     /** Family key of the machine at a position, or "" when there is none. */
@@ -188,29 +211,34 @@ public final class PartTypes {
         return name.isEmpty() ? "机器" : name;
     }
 
-    // =============================================================== clustering
+    // ================================================================= grouping
 
-    /** Within {@code radius} on every axis. */
-    public static boolean near(BlockPos a, BlockPos b, int radius) {
-        return Math.abs(a.getX() - b.getX()) <= radius
-                && Math.abs(a.getY() - b.getY()) <= radius
-                && Math.abs(a.getZ() - b.getZ()) <= radius;
+    /** Where a part's family comes from: the world in production, a table in tests. */
+    public interface FamilyOf {
+        String familyOf(BlockPos pos);
     }
 
     /**
-     * Splits positions into reactors: same family, chained within
-     * {@link #CLUSTER}.
+     * Splits one terminal's bound positions into 部件类型 slots: same family,
+     * no geometry involved.
      *
-     * <p>Chained, not mutual: if A is near B and B is near C then all three are
-     * one reactor even when A and C are far apart. That is what makes a long
-     * core one cluster instead of a row of pairs. Positions whose machine cannot
-     * be identified stay alone, because guessing a family for them would put an
-     * unloaded chunk in the same slot as a live reactor.</p>
+     * <p>Family only, because the alternative - measuring distances - answers a
+     * question the operator did not ask. A 30-block DFC, a reactor with its
+     * boilers in the next room, a chain of tanks along a pipe: all of them are
+     * one thing to the person holding the wrench, and none of them would survive
+     * a radius test. What separates two reactors is that they are two terminals
+     * - which is a fact the player states by binding, not one the code has to
+     * infer from coordinates.</p>
+     *
+     * <p>Positions whose machine cannot be identified stay alone instead of
+     * being pooled under a shared "unknown" family, because two unrelated
+     * addon machines have nothing in common just because neither is in the
+     * table - and pooling them would broadcast between them.</p>
      *
      * <p>The result keeps first-seen order, so a window's tabs do not jump
      * around between two commands.</p>
      */
-    public static List<List<BlockPos>> clusters(World world, List<BlockPos> positions) {
+    public static List<List<BlockPos>> byFamily(List<BlockPos> positions, FamilyOf source) {
         List<BlockPos> unique = new ArrayList<BlockPos>();
         Set<BlockPos> seen = new LinkedHashSet<BlockPos>();
         if (positions != null) {
@@ -220,57 +248,32 @@ public final class PartTypes {
                 }
             }
         }
-        int n = unique.size();
-        int[] parent = new int[n];
-        String[] family = new String[n];
-        for (int i = 0; i < n; i++) {
-            parent[i] = i;
-            family[i] = familyAt(world, unique.get(i));
-        }
-        for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
-                if (family[i].isEmpty() || !family[i].equals(family[j])) {
-                    continue;
-                }
-                if (near(unique.get(i), unique.get(j), CLUSTER)) {
-                    union(parent, i, j);
-                }
+        Map<String, List<BlockPos>> groups = new LinkedHashMap<String, List<BlockPos>>();
+        for (int i = 0; i < unique.size(); i++) {
+            BlockPos pos = unique.get(i);
+            String family = source == null ? "" : source.familyOf(pos);
+            // Unidentified parts get a key of their own, derived from the index
+            // rather than the position so it cannot collide with a real family
+            // key and cannot repeat.
+            String key = family == null || family.isEmpty() ? "?" + i : family;
+            List<BlockPos> group = groups.get(key);
+            if (group == null) {
+                group = new ArrayList<BlockPos>();
+                groups.put(key, group);
             }
+            group.add(pos);
         }
-        Map<Integer, List<BlockPos>> byRoot = new LinkedHashMap<Integer, List<BlockPos>>();
-        for (int i = 0; i < n; i++) {
-            Integer root = Integer.valueOf(find(parent, i));
-            List<BlockPos> cluster = byRoot.get(root);
-            if (cluster == null) {
-                cluster = new ArrayList<BlockPos>();
-                byRoot.put(root, cluster);
-            }
-            cluster.add(unique.get(i));
-        }
-        return new ArrayList<List<BlockPos>>(byRoot.values());
+        return new ArrayList<List<BlockPos>>(groups.values());
     }
 
-    private static int find(int[] parent, int i) {
-        int root = i;
-        while (parent[root] != root) {
-            root = parent[root];
-        }
-        while (parent[i] != root) {
-            int next = parent[i];
-            parent[i] = root;
-            i = next;
-        }
-        return root;
-    }
-
-    private static void union(int[] parent, int a, int b) {
-        int ra = find(parent, a);
-        int rb = find(parent, b);
-        if (ra != rb) {
-            // The lower index wins so the root is the earliest position in the
-            // list, which is what keeps the output order stable.
-            parent[Math.max(ra, rb)] = Math.min(ra, rb);
-        }
+    /** {@link #byFamily} against a real world. */
+    public static List<List<BlockPos>> byFamily(final World world, List<BlockPos> positions) {
+        return byFamily(positions, new FamilyOf() {
+            @Override
+            public String familyOf(BlockPos pos) {
+                return familyAt(world, pos);
+            }
+        });
     }
 
     private static String clip(String text, int limit) {

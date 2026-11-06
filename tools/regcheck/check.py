@@ -577,6 +577,24 @@ def main():
     check(not missing, "the part-family table covers RBMK and DFC",
           "no family rule for: " + ", ".join(missing))
 
+    # 25. Grouping must stay a family test, never a distance test. A radius looks
+    # harmless and then quietly refuses to fold a 30-block DFC, or merges two
+    # reactors that happen to be built flush - and the player has no way to
+    # argue with it. What separates two reactors is two terminals.
+    # Math.abs is the canary: no distance test can be written without it.
+    grouped = read(os.path.join(SRC, "com/hbmzz/ctrl/GroupedHost.java"))
+    check("byFamily" in types and "Math.abs(" not in types and "PartTypes.byFamily(" in grouped,
+          "part grouping is by family, not by distance",
+          "PartTypes is back to measuring coordinates, or GroupedHost stopped using byFamily")
+
+    # 26. Broadcast scope comes from the terminals that link the source, not from
+    # geometry either. If peersOf() ever starts grouping by position again, two
+    # reactors on two panels would cross-talk exactly as before.
+    peers = member_body(read(os.path.join(SRC, "com/hbmzz/ctrl/PartBroadcast.java")), "peersOf")
+    check("membersAround(" in peers and "byFamily(" not in peers,
+          "broadcast scope is the terminal's own binding list",
+          "PartBroadcast.peersOf derives peers from something other than the panel links")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

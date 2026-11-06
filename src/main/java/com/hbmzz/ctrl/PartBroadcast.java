@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
- * Makes one part's value change land on every same-named part of the same reactor.
+ * Makes one part's value change land on every same-named part of the same terminal.
  *
  * <p>A control panel drives a machine by sending it an event. With four control
  * rods wired to four slots that means four knobs, four rules, four node edges -
@@ -48,11 +48,16 @@ import java.util.WeakHashMap;
  * and a world edit.</p>
  *
  * <h3>What counts as "the same part"</h3>
- * <p>Same family (RBMK, DFC, ...), same part name (the machine type, e.g.
- * {@code RBMK 控制棒（手动）}), and the same cluster - the parts must chain
- * together within {@link PartTypes#CLUSTER} blocks. Two RBMK reactors 20 blocks
- * apart therefore never cross-talk even though every part is "RBMK control
- * rod".</p>
+ * <p>Same family (RBMK, DFC, ...) and same part name (the machine type, e.g.
+ * {@code RBMK 控制棒（手动）}), both among the machines some panel links
+ * <em>together with the source</em>. Geometry is not consulted: two rods at
+ * opposite ends of a 30-block DFC are the same part, because they are wired to
+ * the same terminal. Two reactors are kept apart by giving them two terminals,
+ * which is also how the person who built them describes them.</p>
+ *
+ * <p>The consequence worth knowing: if one panel is wired to two reactors, one
+ * write moves both. That is the price of not guessing at geometry, and the fix
+ * is a second panel rather than a rebuild.</p>
  *
  * <h3>When it does not fire</h3>
  * <p>When the write already covers the group. Two entry points do that: a
@@ -184,7 +189,8 @@ public final class PartBroadcast {
     }
 
     /**
-     * Same-name parts of the same reactor as {@code source}, excluding itself.
+     * Same-name parts wired to the same terminal as {@code source}, excluding
+     * itself.
      *
      * <p>Public because the window reports the scope of an operation before it
      * happens ({@code parts}) and because a wrong peer set is the kind of bug
@@ -204,34 +210,20 @@ public final class PartBroadcast {
         if (family.isEmpty() || name.isEmpty()) {
             return out;
         }
-        List<BlockPos> sameFamily = new ArrayList<BlockPos>();
         for (BlockPos pos : members) {
-            if (family.equals(PartTypes.familyAt(world, pos))) {
-                sameFamily.add(pos);
-            }
-        }
-        if (sameFamily.size() < 2) {
-            return out;
-        }
-        // Only the cluster that contains the source: the same panel may well be
-        // wired to two reactors, and those are two groups, not one.
-        List<BlockPos> reactor = null;
-        for (List<BlockPos> cluster : PartTypes.clusters(world, sameFamily)) {
-            if (cluster.contains(source)) {
-                reactor = cluster;
+            if (out.size() >= MAX_PEERS) {
                 break;
             }
-        }
-        if (reactor == null) {
-            return out;
-        }
-        for (BlockPos pos : reactor) {
-            if (pos.equals(source) || out.size() >= MAX_PEERS) {
+            if (pos.equals(source)) {
                 continue;
             }
-            if (name.equals(PartTypes.partNameOf(PartTypes.tileAt(world, pos)))) {
-                out.add(pos);
+            if (!family.equals(PartTypes.familyAt(world, pos))) {
+                continue;
             }
+            if (!name.equals(PartTypes.partNameOf(PartTypes.tileAt(world, pos)))) {
+                continue;
+            }
+            out.add(pos);
         }
         return out;
     }

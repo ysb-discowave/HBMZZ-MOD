@@ -81,8 +81,24 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.6.0</span>
+            <span class="tl-ver">v2.6.1</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>归类不再量距离：一台终端就是一台反应堆</h3>
+          <ul>
+            <li><strong>删掉了 6 格距离分簇。</strong>v2.6.0 用「同族零件相距 ≤ 6 格」判断哪些零件属于同一台反应堆。这个半径替玩家回答了一个玩家没问的问题：<strong>30 格宽的 DFC 会被判成好几台</strong>，锅炉装在隔壁房间的反应堆会被拆开，而两台碰巧贴着盖的堆又会被并成一台——三种情况都没法反驳。</li>
+            <li><strong>现在槽位边界＝这块终端绑定的零件。</strong>折叠只看两样：<strong>方块实体类名</strong>（同族）和<strong>绑定关系</strong>（哪块面板／控制台接了它）。坐标完全不参与，所以多大的 DFC、隔几堵墙的反应堆，都还是同一个槽位。</li>
+            <li><strong>顺带补上 DFC 的族表。</strong>NTM 的 DFC 零件不是按反应堆命名，而是按<strong>它干什么</strong>命名：<code>TileEntityCoreEmitter</code>、<code>CoreInjector</code>、<code>CoreReceiver</code>、<code>CoreStabilizer</code>、<code>CoreDetonator</code>、<code>CoreExchanger</code>，加上核心本身 <code>TileEntityCore</code> —— <strong>没有一个含「DFC」三个字</strong>。所以只写一条「含 DFC」的规则，大 DFC 会散成「发射器一个槽、注入器一个槽」。现在七个组件类都归 DFC，核心那一条是<strong>精确匹配</strong>（<code>=TileEntityCore</code>），否则它会把这个命名空间下的所有类一起吞掉。</li>
+            <li><strong>两台反应堆怎么分开：再放一块终端。</strong>这也正是玩家描述「我有两台堆」的方式——按一次绑定，而不是量一段距离。<b>代价写在明处</b>：两台堆接到<strong>同一块</strong>面板上会并成一个槽位、一条 <code>set</code> 两台一起动。</li>
+            <li><strong>同名广播的范围跟着改。</strong>命中条件是<strong>被同一块终端绑在一起 + 同部件类型 + 同部件名称</strong>，不再要求几何相邻。仍然不跨终端、不跨族，单次上限 32 台；整组写入与多目标节点广播仍然不二次扩散。</li>
+            <li><strong>自检加 2 条（<code>tools/regcheck</code>，共 28 条）：</strong>归类不许再出现量坐标的代码（<code>PartTypes</code> 里出现 <code>Math.abs</code> 即报红，因为任何距离判定都得用它），<code>GroupedHost</code> 必须走 <code>byFamily</code>；<code>PartBroadcast.peersOf</code> 的对端必须来自面板绑定表，不许再自己做分组。<code>tools/termcheck</code> 加 7 条纯分类用例（相距 120 格仍折叠、折叠保持面板顺序、认不出族的零件各自成槽、同一位置绑两次只算一台，以及 3 条类名归属），共 67 条。</li>
+            <li><strong>不再有的行为：</strong>槽位标签不会因为两台堆贴在一起而变成 <code>RBMK#2</code>——按绑定分槽之后，同一块面板上的同族零件永远只有一个槽。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.6.0</span>
           </div>
           <h3>一台反应堆就是一个部件类型</h3>
           <ul>

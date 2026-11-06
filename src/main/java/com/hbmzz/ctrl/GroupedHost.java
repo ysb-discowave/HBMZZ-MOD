@@ -37,11 +37,12 @@ import java.util.Set;
  * is to put a host in front of the host: same interface, fewer slots, and every
  * verb keeps working without knowing anything changed.</p>
  *
- * <p>Folding is per family <em>and</em> per reactor - see {@link PartTypes} for
- * both halves. Two RBMK reactors wired to one panel become two slots
- * ({@code RBMK}, {@code RBMK#2}), not one, because a broadcast that reached
- * across the room would be a control system that operates the neighbour's
- * reactor.</p>
+ * <p>Folding is per family, over the slots this host itself owns - see
+ * {@link PartTypes#byFamily}. Distance plays no part, so a reactor spread over
+ * thirty blocks folds exactly like a compact one, and a DFC whose core is
+ * bigger than any radius worth hard-coding still fits in one slot. Two reactors
+ * wired to the same panel do land in the same slot; the answer to that is a
+ * second terminal, not a bigger gap between the machines.</p>
  *
  * <p>A family with a single linked part is <em>not</em> folded: its slot keeps
  * the tag it already had. Folding it would rename {@code A} to {@code RBMK} for
@@ -95,8 +96,8 @@ public final class GroupedHost implements TerminalHost {
         for (int i = 0; i < this.entryOf.length; i++) {
             this.entryOf[i] = -1;
         }
-        // Positions first: the cluster pass needs the geometry, and a slot's
-        // position is the only thing a panel and a console both expose.
+        // Positions first: a slot's position is the only thing a panel and a
+        // console both expose, and it is what the family comes from.
         List<BlockPos> positions = new ArrayList<BlockPos>();
         List<Integer> loose = new ArrayList<Integer>();
         for (int slot = 0; slot < this.base.slots(); slot++) {
@@ -122,9 +123,9 @@ public final class GroupedHost implements TerminalHost {
         }
 
         List<List<Integer>> built = new ArrayList<List<Integer>>();
-        for (List<BlockPos> cluster : PartTypes.clusters(this.world, positions)) {
+        for (List<BlockPos> family : PartTypes.byFamily(this.world, positions)) {
             List<Integer> slots = new ArrayList<Integer>();
-            for (BlockPos pos : cluster) {
+            for (BlockPos pos : family) {
                 List<Integer> here = slotsAt.get(pos);
                 if (here != null) {
                     for (Integer slot : here) {

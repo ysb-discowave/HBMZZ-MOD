@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * One 部件类型 in a terminal: every linked part of one machine family that
- * belongs to the same reactor.
+ * One 部件类型 in a terminal: every linked part of one machine family that this
+ * terminal is bound to.
  *
  * <p>This is where "调节整个反应堆" stops being a slogan. A group is read as a
  * whole - each key reported by any member, with the spread of values when the

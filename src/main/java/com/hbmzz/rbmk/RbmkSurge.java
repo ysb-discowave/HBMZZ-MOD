@@ -79,6 +79,9 @@ public final class RbmkSurge {
     /** Plates in flight, so the settling one can find its reactor back. */
     private static final Map<Integer, Tracked> PLATES = new HashMap<Integer, Tracked>();
 
+    /** Set once, the first time another mod is found driving the same accident. */
+    private static Boolean rival;
+
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.world == null || event.world.isRemote) {
@@ -87,6 +90,7 @@ public final class RbmkSurge {
         if (!HBMZZConfig.rbmkSurge || !RbmkParts.available()) {
             return;
         }
+        rival();
         State state;
         synchronized (WORLDS) {
             state = WORLDS.get(event.world);
@@ -96,6 +100,32 @@ public final class RbmkSurge {
             }
         }
         state.tick(event.world);
+    }
+
+    /**
+     * Says so, once, when ntm-it is installed.
+     *
+     * <p>That mod stages the same accident - its own rod jump, its own lid
+     * plate, its own footprint blast - and it is loaded on the packs this was
+     * tested against. Two implementations of one reactor meltdown on one
+     * reactor means two plates thrown from lids only one of them can clear, two
+     * meltdowns on the same columns, and a blast count nobody designed. The
+     * warning is not politeness: it is the first thing to check when something
+     * goes wrong at the moment the lid leaves.</p>
+     */
+    private static void rival() {
+        if (rival != null) {
+            return;
+        }
+        try {
+            rival = Boolean.valueOf(net.minecraftforge.fml.common.Loader.isModLoaded("ntm-it"));
+        } catch (Throwable ignored) {
+            rival = Boolean.FALSE;
+        }
+        if (rival.booleanValue() && HBMZZ.logger != null) {
+            HBMZZ.logger.warn("[RBMK] ntm-it is installed and stages the same accident. "
+                    + "Both will react to one reactor; remove one of them if the lid behaves oddly.");
+        }
     }
 
     // ================================================================ scanning
@@ -122,12 +152,17 @@ public final class RbmkSurge {
 
     private static final class State {
         private int scanIn;
+        private int failures;
         private final List<Tracked> reactors = new ArrayList<Tracked>();
 
         void tick(World world) {
             if (--this.scanIn <= 0) {
                 this.scanIn = RbmkTiming.SCAN_INTERVAL;
-                rescan(world);
+                try {
+                    rescan(world);
+                } catch (Throwable broken) {
+                    fail("scan", broken);
+                }
             }
             for (Iterator<Tracked> it = this.reactors.iterator(); it.hasNext(); ) {
                 Tracked tracked = it.next();
@@ -135,7 +170,32 @@ public final class RbmkSurge {
                     it.remove();
                     continue;
                 }
-                tracked.tick(world);
+                try {
+                    tracked.tick(world);
+                } catch (Throwable broken) {
+                    // One reactor's accident went wrong. Drop that reactor, keep
+                    // ticking the world: a meltdown that crashes the server has
+                    // taken the save down with it, which is worse than the
+                    // meltdown.
+                    it.remove();
+                    fail("reactor", broken);
+                }
+            }
+        }
+
+        /**
+         * Logs a failure with its stack, then stops reporting after three.
+         *
+         * <p>Three because the interesting ones are the first three; after that
+         * the same broken reactor would print sixty lines a second and bury
+         * everything else in the log.</p>
+         */
+        private void fail(String where, Throwable broken) {
+            if (this.failures++ >= 3) {
+                return;
+            }
+            if (HBMZZ.logger != null) {
+                HBMZZ.logger.error("[RBMK] " + where + " failed; that reactor is no longer watched", broken);
             }
         }
 

@@ -161,6 +161,18 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
             return;
         }
 
+        try {
+            tickFlight();
+        } catch (Throwable broken) {
+            // The plate is scenery with a blast attached. If its own tick is
+            // broken the honest outcome is a plate that vanishes and a line in
+            // the log, not a server that stops ticking.
+            report("flight", broken);
+            setDead();
+        }
+    }
+
+    private void tickFlight() {
         this.age++;
         this.motionY -= RbmkTiming.LID_GRAVITY;
         this.motionX *= RbmkTiming.LID_DRAG;
@@ -264,6 +276,13 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
             if (state.getBlockHardness(this.world, at) < 0.0F) {
                 continue;
             }
+            // A falling block *places itself* when it lands. That is fine for
+            // stone and lethal for a machine: an RBMK column dropped on the
+            // ground is a working reactor column with a fresh tile entity, born
+            // out of rubble. So nothing with a tile entity is ever thrown.
+            if (state.getBlock().hasTileEntity(state) || this.world.getTileEntity(at) != null) {
+                continue;
+            }
             this.world.setBlockToAir(at);
             EntityFallingBlock falling = new EntityFallingBlock(this.world, at.getX() + 0.5D, at.getY() + 0.5D, at.getZ() + 0.5D, state);
             falling.motionY = 0.35D + this.rand.nextDouble() * 0.4D;
@@ -274,6 +293,13 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
             if (breaks <= 0) {
                 return;
             }
+        }
+    }
+
+    /** One line in the log with the whole stack; never a crash. */
+    private static void report(String where, Throwable broken) {
+        if (com.hbmzz.HBMZZ.logger != null) {
+            com.hbmzz.HBMZZ.logger.error("RBMK lid " + where + " failed; the plate is removed", broken);
         }
     }
 

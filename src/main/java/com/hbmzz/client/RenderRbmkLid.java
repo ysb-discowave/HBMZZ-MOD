@@ -60,6 +60,8 @@ public class RenderRbmkLid extends Render<EntityRbmkLid> {
             new WeakHashMap<EntityRbmkLid, String>();
     /** Sprite cache: texture name plus lid kind to the sprite the atlas gave us. */
     private static final Map<String, TextureAtlasSprite> SPRITES = new java.util.HashMap<String, TextureAtlasSprite>();
+    /** Set after a failure so a broken plate does not spam the log every frame. */
+    private static volatile boolean REPORTED;
 
     public RenderRbmkLid(RenderManager manager) {
         super(manager);
@@ -67,35 +69,68 @@ public class RenderRbmkLid extends Render<EntityRbmkLid> {
 
     @Override
     public void doRender(EntityRbmkLid entity, double x, double y, double z, float entityYaw, float partialTicks) {
-        List<int[]> lids = lidsOf(entity);
+        List<int[]> lids;
+        try {
+            lids = lidsOf(entity);
+        } catch (Throwable broken) {
+            report("layout", broken);
+            return;
+        }
         if (lids.isEmpty()) {
             return;
         }
-        List<String> textures = com.hbmzz.rbmk.RbmkLayout.texturesOf(entity.layout());
 
         this.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
         GlStateManager.pushMatrix();
-        GlStateManager.translate(x, y, z);
-        GlStateManager.rotate(entity.rotationYaw, 0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(entity.rotationPitch, 1.0F, 0.0F, 0.0F);
-        GlStateManager.disableLighting();
+        boolean begun = false;
+        try {
+            List<String> textures = com.hbmzz.rbmk.RbmkLayout.texturesOf(entity.layout());
+            GlStateManager.translate(x, y, z);
+            GlStateManager.rotate(entity.rotationYaw, 0.0F, 1.0F, 0.0F);
+            GlStateManager.rotate(entity.rotationPitch, 1.0F, 0.0F, 0.0F);
+            GlStateManager.disableLighting();
 
-        BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_LMAP_COLOR);
+            BufferBuilder buffer = Tessellator.getInstance().getBuffer();
+            buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_LMAP_COLOR);
+            begun = true;
 
-        for (int[] lid : lids) {
-            String texture = lid[3] >= 0 && lid[3] < textures.size() ? textures.get(lid[3]) : "";
-            TextureAtlasSprite sprite = spriteFor(texture, lid[2]);
-            // Offsets are stored doubled: half-block precision on a string.
-            float dx = lid[0] / 2.0F;
-            float dz = lid[1] / 2.0F;
-            box(buffer, sprite, dx, 0.0F, dz, dx + 1.0F, THICKNESS, dz + 1.0F);
+            for (int[] lid : lids) {
+                String texture = lid[3] >= 0 && lid[3] < textures.size() ? textures.get(lid[3]) : "";
+                TextureAtlasSprite sprite = spriteFor(texture, lid[2]);
+                // Offsets are stored doubled: half-block precision on a string.
+                float dx = lid[0] / 2.0F;
+                float dz = lid[1] / 2.0F;
+                box(buffer, sprite, dx, 0.0F, dz, dx + 1.0F, THICKNESS, dz + 1.0F);
+            }
+        } catch (Throwable broken) {
+            // A plate that cannot be textured is a cosmetic problem. Taking the
+            // client down over one missing sprite is not, and the player cannot
+            // even read the crash report to tell us which sprite it was - so the
+            // failure is logged here, once, with the whole stack.
+            report("render", broken);
+        } finally {
+            if (begun) {
+                try {
+                    Tessellator.getInstance().draw();
+                } catch (Throwable ignored) {
+                    // Nothing to draw into: the buffer was already lost.
+                }
+            }
+            GlStateManager.enableLighting();
+            GlStateManager.popMatrix();
         }
-
-        Tessellator.getInstance().draw();
-        GlStateManager.enableLighting();
-        GlStateManager.popMatrix();
         super.doRender(entity, x, y, z, entityYaw, partialTicks);
+    }
+
+    /** Logs a rendering failure once, then stops trying to be clever about it. */
+    private static void report(String where, Throwable broken) {
+        if (REPORTED) {
+            return;
+        }
+        REPORTED = true;
+        if (com.hbmzz.HBMZZ.logger != null) {
+            com.hbmzz.HBMZZ.logger.error("RBMK lid " + where + " failed; the plate will not be drawn", broken);
+        }
     }
 
     private List<int[]> lidsOf(EntityRbmkLid entity) {

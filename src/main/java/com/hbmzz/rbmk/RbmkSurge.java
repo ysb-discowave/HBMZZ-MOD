@@ -21,6 +21,8 @@ package com.hbmzz.rbmk;
 import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.entity.EntityRbmkLid;
+import com.hbmzz.network.NetworkHandler;
+import com.hbmzz.network.ShakeMessage;
 import net.minecraft.block.Block;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
@@ -249,19 +251,31 @@ public final class RbmkSurge {
                     if (tripped(world)) {
                         this.phase = RbmkTiming.Phase.WARMUP;
                         this.elapsed = 0;
-                        report(world, "过热，控制棒开始跳动");
+                        // English, not Chinese: log4j writes the 1.12.2 log in
+                        // the platform charset, and a GBK-encoded Chinese line
+                        // shows up as mojibake in every tool that reads it as
+                        // UTF-8 - including the one used to debug this.
+                        report(world, "overheating, rods start jumping");
+                        if (!this.columns.isEmpty()) {
+                            com.hbmzz.cinematic.CinematicDirector.watchRbmk(
+                                    world, this.columns.get(0), RbmkParts.columnHeight(world));
+                        }
                     }
                     break;
                 case WARMUP:
                     this.elapsed++;
                     jump(world);
                     if (--this.ventCooldown <= 0) {
-                        this.ventCooldown = 8;
+                        this.ventCooldown = 2;
                         vent(world);
                     }
                     if (RbmkTiming.launchDue(this.elapsed, HBMZZConfig.rbmkSurgeTicks)) {
                         this.phase = RbmkTiming.Phase.SPENT;
                         launch(world);
+                        // Hand the camera back at the blast, so the player sees
+                        // the explosion with their own eyes rather than through
+                        // an orbit that outlives its subject.
+                        com.hbmzz.cinematic.CinematicDirector.releaseRbmk(world);
                     }
                     break;
                 default:
@@ -329,11 +343,19 @@ public final class RbmkSurge {
             if (!animated && this.elapsed == 1) {
                 // No Cursed Edition: the rods cannot jump, so say so once in the
                 // log instead of letting the player wonder why nothing moves.
-                report(world, "过热，但没有安装诅咒版附属，控制棒不会跳动");
+                report(world, "overheating, but the Cursed Edition addon is absent; rods cannot jump");
             }
         }
 
-        /** Steam out of the lid, plus the noise of a boiler at its limit. */
+        /**
+         * Steam out of the lid, plus the noise of a boiler at its limit.
+         *
+         * <p>Called every other tick per column while the countdown runs. The
+         * old version drew one CLOUD particle every eight ticks, which at
+         * reactor scale is invisible - the plume is the only warning the player
+         * gets before the lid leaves, so it is drawn as a real jet: several
+         * particles per column with upward velocity and a lazy sideways drift.</p>
+         */
         private void vent(World world) {
             int height = RbmkParts.columnHeight(world);
             for (BlockPos pos : this.columns) {
@@ -343,10 +365,7 @@ public final class RbmkSurge {
                 double x = pos.getX() + 0.5D;
                 double y = pos.getY() + height + 1.0D;
                 double z = pos.getZ() + 0.5D;
-                world.spawnParticle(EnumParticleTypes.CLOUD, x, y, z, 0.0D, 0.18D, 0.0D);
-                if (world.rand.nextInt(6) == 0) {
-                    world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, x, y, z, 0.0D, 0.1D, 0.0D);
-                }
+                RbmkEffects.steam(world, x, y, z, 0.35D, 2, 0.34D);
             }
             BlockPos any = this.columns.get(0);
             world.playSound(null, any, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 1.4F, 0.55F);
@@ -355,10 +374,11 @@ public final class RbmkSurge {
         /**
          * Takes the lid off and throws it.
          *
-         * <p>The lids are harvested one column at a time: each column's own
-         * block carries its lid type in its metadata, so the only honest way to
-         * know what is on top is to ask the base mod's own {@code metaToLid} and
-         * then clear the metadata the same way its own lid-drop does. Nothing
+         * <p>The lids are harvested one column at a time. The lid type is a
+         * metadata value on the column's core - not on the block above it,
+         * which only ever carries the dummy value - so the honest way to know
+         * what is on top is to ask the base mod's own {@code metaToLid} about
+         * the core, and to clear it the same way its own lid-drop does. Nothing
          * is deleted: the columns stay, open.</p>
          */
         private void launch(World world) {
@@ -370,14 +390,13 @@ public final class RbmkSurge {
             int topY = Integer.MIN_VALUE;
             List<int[]> entries = new ArrayList<int[]>();
             List<String> textures = new ArrayList<String>();
-            List<BlockPos> tops = new ArrayList<BlockPos>();
 
             for (BlockPos pos : this.columns) {
                 if (!world.isBlockLoaded(pos)) {
                     continue;
                 }
                 TileEntity te = world.getTileEntity(pos);
-                if (te == null || !RbmkParts.isColumn(te) || !RbmkParts.hasLid(te)) {
+                if (te == null || !RbmkParts.isColumn(te)) {
                     continue;
                 }
                 Block columnBlock = world.getBlockState(pos).getBlock();
@@ -387,17 +406,22 @@ public final class RbmkSurge {
                     // leave a rod floating over an open channel.
                     continue;
                 }
-                BlockPos lidPos = lidAt(world, pos, height);
-                if (lidPos == null) {
-                    continue;
-                }
-                IBlockState state = world.getBlockState(lidPos);
-                Block block = state.getBlock();
-                int lid = RbmkParts.lidType(metaOf(state));
+                // The lid type is metadata on the core, not on the block above
+                // it. See RbmkParts.lidMeta - this is the line that 2.7.x got
+                // wrong, and the reason a reactor with a full set of lids
+                // produced an empty plate.
+                int lid = RbmkParts.lidType(RbmkParts.lidMeta(te));
                 if (lid <= 0) {
                     continue;
                 }
-                String texture = RbmkParts.columnTexture(block);
+                // Where the plate sits is a different question: the lid is drawn
+                // on the top block of the column, which is also where the base
+                // mod drops the item when it is unscrewed.
+                BlockPos lidPos = pos.up(height);
+                if (!world.isBlockLoaded(lidPos)) {
+                    continue;
+                }
+                String texture = RbmkParts.columnTexture(columnBlock);
                 int index = textures.indexOf(texture);
                 if (index < 0) {
                     if (textures.size() >= 8) {
@@ -407,7 +431,6 @@ public final class RbmkSurge {
                     textures.add(texture);
                 }
                 entries.add(new int[]{pos.getX(), pos.getZ(), lid, index});
-                tops.add(lidPos);
                 minX = Math.min(minX, pos.getX());
                 maxX = Math.max(maxX, pos.getX());
                 minZ = Math.min(minZ, pos.getZ());
@@ -417,10 +440,17 @@ public final class RbmkSurge {
 
             if (entries.isEmpty()) {
                 // Nothing to throw - a core with no lids installed. Blow it up
-                // anyway; the reactor was about to go regardless.
+                // anyway; the reactor was about to go regardless. Say so in the
+                // log, because "the lid did not fly" and "there was no lid"
+                // look identical from outside and only one of them is a bug.
                 BlockPos any = this.columns.get(0);
-                world.createExplosion(null, any.getX() + 0.5D, any.getY() + height, any.getZ() + 0.5D,
-                        HBMZZConfig.rbmkSurgePower, true);
+                double ex = any.getX() + 0.5D;
+                double ey = any.getY() + height + 1.0D;
+                double ez = any.getZ() + 0.5D;
+                RbmkEffects.nuclear(world, ex, ey, ez, HBMZZConfig.rbmkSurgePower, true);
+                RbmkEffects.dustRing(world, ex, ey, ez, HBMZZConfig.rbmkSurgePower * 1.6D);
+                shake(world, ex, ey, ez, 7.0F, 160.0F, 45, true);
+                report(world, "no removable lids on this reactor; blew the core instead (" + this.columns.size() + " columns)");
                 return;
             }
 
@@ -435,60 +465,55 @@ public final class RbmkSurge {
                 packed.add(new int[]{dx, dz, entry[2], entry[3]});
             }
 
-            for (BlockPos pos : tops) {
-                clearLid(world, pos);
-            }
             for (BlockPos pos : this.columns) {
                 clearLid(world, pos);
             }
 
             String layout = RbmkLayout.encode(packed, textures);
-            EntityRbmkLid plate = new EntityRbmkLid(world, centreX, topY, centreZ, layout);
+            // +1.0: the plate is the top face of the column, and an entity's
+            // origin is its feet, so spawning at the block's Y would bury the
+            // plate a quarter block inside the reactor it is leaving.
+            double plateY = topY + 1.0D;
+            EntityRbmkLid plate = new EntityRbmkLid(world, centreX, plateY, centreZ, layout);
             world.spawnEntity(plate);
             PLATES.put(Integer.valueOf(plate.getEntityId()), this);
 
-            world.createExplosion(null, centreX, topY, centreZ, HBMZZConfig.rbmkSurgePower, true);
-            world.playSound(null, new BlockPos(centreX, topY, centreZ),
+            RbmkEffects.nuclear(world, centreX, plateY, centreZ, HBMZZConfig.rbmkSurgePower, true);
+            RbmkEffects.dustRing(world, centreX, plateY, centreZ, HBMZZConfig.rbmkSurgePower * 1.8D);
+            RbmkEffects.steam(world, centreX, plateY, centreZ, Math.max(2.0D, (maxX - minX + 1) * 0.5D), 40, 0.42D);
+            world.playSound(null, new BlockPos(centreX, plateY, centreZ),
                     SoundEvents.ENTITY_ENDERDRAGON_FIREBALL_EPLD, SoundCategory.BLOCKS, 6.0F, 0.6F);
-            report(world, "顶盖被炸飞");
+            shake(world, centreX, plateY, centreZ, 9.0F, 220.0F, 60, true);
+            report(world, "lid away: " + packed.size() + " of " + this.columns.size() + " columns");
         }
     }
 
     // ===================================================================== lids
 
-    /** The lid block of a column, or null when it has none. */
-    private static BlockPos lidAt(World world, BlockPos core, int height) {
-        IBlockState coreState = world.getBlockState(core);
-        Block columnBlock = coreState.getBlock();
-        // Search down from one above the column: which block carries the lid
-        // metadata depends on how the base mod assembled the multiblock, and
-        // guessing wrong means either no lid or a hole in a working reactor.
-        for (int dy = height + 1; dy >= 1; dy--) {
-            BlockPos pos = core.up(dy);
-            if (!world.isBlockLoaded(pos)) {
-                continue;
-            }
-            IBlockState state = world.getBlockState(pos);
-            if (state.getBlock() != columnBlock) {
-                continue;
-            }
-            if (RbmkParts.lidType(metaOf(state)) > 0) {
-                return pos;
-            }
-        }
-        return null;
-    }
-
-    /** Clears the lid metadata, exactly as the base mod does when one drops. */
-    private static void clearLid(World world, BlockPos pos) {
-        int meta = RbmkParts.lidNoneMeta();
-        if (meta < 0 || !world.isBlockLoaded(pos)) {
+    /**
+     * Clears the lid metadata on a column's <em>core</em>.
+     *
+     * <p>This is the same write the base mod's screwdriver does: put
+     * {@code META} back to {@code DIR_NO_LID + 10}. It has to happen on the
+     * core, because that is where the lid state lives - the blocks stacked
+     * above carry the plain {@code +6} dummy value and would reject this
+     * write.</p>
+     *
+     * <p>Flag 2 (send to clients) instead of 3 (send + notify neighbours). The
+     * neighbours of a reactor column are other reactor columns, and waking them
+     * up for a texture change is how you get a multiblock re-validating itself
+     * in the middle of being blown apart. It is also the cheaper of the two on
+     * a tick that is already spawning a crater.</p>
+     */
+    private static void clearLid(World world, BlockPos core) {
+        int none = RbmkParts.lidNoneMeta();
+        if (none < 0 || !world.isBlockLoaded(core)) {
             return;
         }
-        IBlockState state = world.getBlockState(pos);
-        if (RbmkParts.lidType(metaOf(state)) <= 0) {
+        if (RbmkParts.lidType(RbmkParts.lidMeta(world.getTileEntity(core))) <= 0) {
             return;
         }
+        IBlockState state = world.getBlockState(core);
         IProperty<?> property = state.getBlock().getBlockState().getProperty("meta");
         if (property == null) {
             return;
@@ -496,7 +521,7 @@ public final class RbmkSurge {
         try {
             @SuppressWarnings("unchecked")
             IProperty<Integer> integerProperty = (IProperty<Integer>) property;
-            world.setBlockState(pos, state.withProperty(integerProperty, Integer.valueOf(meta)), 3);
+            world.setBlockState(core, state.withProperty(integerProperty, Integer.valueOf(none)), 2);
         } catch (Throwable ignored) {
             // A block whose meta property refuses this value is a block whose
             // lid we do not know how to remove; it stays on, and the plate
@@ -504,8 +529,29 @@ public final class RbmkSurge {
         }
     }
 
-    private static int metaOf(IBlockState state) {
-        return state.getBlock().getMetaFromState(state);
+    /**
+     * Asks every client within range to shake.
+     *
+     * <p>Sent to the tracker, not to everyone: a blast two hundred blocks away
+     * that nobody can see should not be shaking somebody's hotbar on the other
+     * side of the map. The packet carries no entities, only a position and a
+     * few numbers, so a radius query is the whole of the cost.</p>
+     */
+    public static void shake(World world, double x, double y, double z, float intensity, float range, int duration, boolean ring) {
+        if (world == null || world.isRemote || !HBMZZConfig.rbmkShake) {
+            return;
+        }
+        try {
+            if (NetworkHandler.INSTANCE == null) {
+                return;
+            }
+            NetworkHandler.INSTANCE.sendToAllAround(
+                    new ShakeMessage(x, y, z, intensity, range, duration, ring),
+                    new net.minecraftforge.fml.common.network.NetworkRegistry.TargetPoint(
+                            world.provider.getDimension(), x, y, z, range));
+        } catch (Throwable ignored) {
+            // A missing channel costs the shake, not the explosion.
+        }
     }
 
     /**

@@ -488,9 +488,42 @@
             <tr><td><code>rbmk.heat</code></td><td>1000</td><td>判定「快炸了」的温度线，必须低于 <code>maxHeat()</code>（默认 1500），否则没有警告可给</td></tr>
             <tr><td><code>rbmk.jumpTicks</code></td><td>1200</td><td>控制棒跳多久（一分钟）。没有诅咒版附属时倒计时照走，只是看不见跳</td></tr>
             <tr><td><code>rbmk.blastPower</code></td><td>10</td><td>两次脚本爆炸的强度，原版爆炸当量</td></tr>
+            <tr><td><code>rbmk.lidBlastPower</code></td><td>30</td><td>顶盖砸回柱芯时那一发爆炸的强度（1–120）。这是「第二声」——把顶盖重新掀上天的那一发；第二下落地只取它的 22%</td></tr>
+            <tr><td><code>rbmk.shake</code></td><td>true</td><td>相机抖动、物品栏平移、贴地尘环。纯客户端：服务器只发一个坐标与强度，动画由客户端生成</td></tr>
             <tr><td><code>rbmk.melt</code></td><td>true</td><td>顶盖落定后把堆芯交给基座模组自己的 <code>meltdown()</code></td></tr>
+            <tr><td><code>cinematic.rbmkSpeed</code></td><td>0.72</td><td>绕 RBMK 的转速，度/tick。0.72 约 25 秒一圈；0 等于不转。需要 <code>zd_tx</code> 打开</td></tr>
+            <tr><td><code>cinematic.dfcSpeed</code></td><td>2.0</td><td>绕 DFC 的转速，度/tick。那一窗口只有 5 秒，所以要快得多</td></tr>
+            <tr><td><code>cinematic.radius</code></td><td>18</td><td>机位与目标的水平距离（格），夹在 6–40</td></tr>
+            <tr><td><code>cinematic.height</code></td><td>7</td><td>机位相对目标的垂直偏移（格），负值从下往上看</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 游戏规则</div>
+        <h2>本模组新增的 gamerule</h2>
+        <p>只有一条。1.12.2 没有 gamerule 注册表，它在<strong>世界加载时</strong>被创建，而且只在<strong>还不存在</strong>时才创建——<code>addGameRule</code> 会覆盖已有的值，无条件调用等于每次开存档都把它重置成 false。</p>
+      </div>
+
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:22%">规则</th><th style="width:12%">默认</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>zd_tx</code></td>
+            <td>false</td>
+            <td>电影机位。打开后：<strong>RBMK 开始跳棒</strong>的那一刻，附近 96 格内玩家的视角开始缓慢绕堆旋转，直到掀盖爆炸为止；<strong>DFC 进入坍缩的最后 5 秒</strong>，视角绕 DFC 旋转，直到它炸为止。两处都<strong>在爆炸那一刻把镜头交还</strong>——留在原地绕一个坑没有意义，玩家要看的是那一下。<br><span style="color:var(--text-dim)">写法：<code>/gamerule zd_tx true</code>。切换即时生效，不需要重开存档；改成 false 时正在进行的镜头会在下一 tick 交还。</span></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="note" style="margin-top:18px">
+        <div>
+          <p><strong>它换的是「眼睛」，不是玩家。</strong>1.12.2 的 Forge 只允许在 <code>CameraSetup</code> 里改视角<strong>角度</strong>，位置来自「渲染器正透过哪个实体看」。所以镜头是一个<strong>从不进入世界</strong>的客户端实体，被装成 <code>renderViewEntity</code>，再让它看向目标。玩家实体全程没动：用传送做轨道，一秒内就会被服务器拉回去，还会把玩家的碰撞箱拖着穿过墙。<strong>因此这是纯客户端演出</strong>——别的玩家看不到你的镜头在转，你的角色在他们眼里也只是站着不动。</p>
+        </div>
       </div>
 
       <div class="note" style="margin-top:18px">

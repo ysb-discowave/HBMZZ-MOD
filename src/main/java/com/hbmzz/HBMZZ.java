@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "2.7.1";
+    public static final String VERSION = "2.8.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -104,6 +104,9 @@ public class HBMZZ {
         // The staged RBMK blow-up. Server side only, and inert until a reactor
         // trips, so it costs one list scan every twenty ticks.
         MinecraftForge.EVENT_BUS.register(new com.hbmzz.rbmk.RbmkSurge());
+        // Gamerule zd_tx + the trigger half of the orbiting camera. Also inert
+        // until something is actually about to explode.
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.cinematic.CinematicDirector.instance());
         proxy.preInit(event);
         logger.info("HBMZZ loaded (DFC Monitor + coils + jetpack).");
     }

@@ -42,6 +42,13 @@ public class ClientProxy extends CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(new ClientEvents());
         MinecraftForge.EVENT_BUS.register(new MonitorHud());
+        // Blast feedback: camera roll, hotbar displacement, ground ring. Driven
+        // by ShakeMessage, ticked here so the animation costs one client tick
+        // per frame instead of a particle packet per point.
+        ClientShake.init();
+        // The zd_tx orbit camera. Purely client-side presentation: the server
+        // only says "watch this block", and this decides where the eye goes.
+        ClientCinematic.init();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
         ClientRegistry.bindTileEntitySpecialRenderer(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,
                 new com.hbmzz.cecp.client.RenderCtrlConsole());

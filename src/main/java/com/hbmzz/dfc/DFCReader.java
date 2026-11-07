@@ -155,6 +155,22 @@ public final class DFCReader {
         return te != null && te.getClass().getName().contains("CableGauge");
     }
 
+    /**
+     * Seconds until this core detonates, or -1 when it is not counting down.
+     *
+     * <p>Exposed for the cinematic camera, which starts orbiting at five
+     * seconds. The monitor already reads this number for its countdown; the
+     * only difference is who is asking.</p>
+     */
+    public static double explosionIn(TileEntity core) {
+        return asDouble(invoke(core, "getDFCExplosionIn"), -1.0D);
+    }
+
+    /** True while the core is in its terminal collapse. */
+    public static boolean collapsing(TileEntity core) {
+        return asDouble(invoke(core, "getDFCCollapsing"), 0.0D) > 0.0D;
+    }
+
     private static void readTanks(TileEntity core, DFCSnapshot s) {
         Object tanksValue = field(core, "tanks");
         if (!(tanksValue instanceof Object[])) {

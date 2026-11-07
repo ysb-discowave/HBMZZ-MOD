@@ -62,6 +62,25 @@ public final class HBMZZConfig {
     public static int rbmkSurgeTicks = 1200;
     public static float rbmkSurgePower = 10.0F;
     public static boolean rbmkSurgeMelt = true;
+    /** The explosion the falling lid sets off when it lands back on the core. */
+    public static float rbmkLidBlast = 30.0F;
+    /** Camera roll, hotbar displacement and the ground ring. */
+    public static boolean rbmkShake = true;
+
+    // ---- zd_tx cinematic ----
+    /**
+     * Degrees per tick the camera travels around the target. 0.72 is a full
+     * lap in 500 ticks (25 s), which is about how long a rod-jump run has left
+     * when the warning starts. The client clamps at 12 (a lap in 1.7 s), past
+     * which the shot is unwatchable rather than dramatic.
+     */
+    public static float cinematicSpeed = 0.72F;
+    /** Same for the DFC, whose final window is only five seconds and needs a faster orbit to read. */
+    public static float cinematicDfcSpeed = 2.0F;
+    /** Distance from the target, in blocks. Small enough to still see the machine. */
+    public static int cinematicRadius = 18;
+    /** Height above the target's core. Positive looks down on it from above. */
+    public static int cinematicHeight = 7;
 
     private HBMZZConfig() {
     }
@@ -130,6 +149,18 @@ public final class HBMZZConfig {
                     "Strength of the two scripted explosions. Vanilla explosion scale, so 10 is roughly a charged creeper going off in the reactor hall.");
             rbmkSurgeMelt = cfg.getBoolean("melt", "rbmk", true,
                     "Hand the wrecked reactor to the base mod's own meltdown once the lid has settled, so the aftermath is the wreckage players already know.");
+            rbmkLidBlast = (float) cfg.getFloat("lidBlastPower", "rbmk", 30.0F, 1.0F, 120.0F,
+                    "Explosion set off when the falling lid lands back on the core. This is the second bang, the one that throws the plate up again. Vanilla explosion scale: 30 makes a real crater.");
+            rbmkShake = cfg.getBoolean("shake", "rbmk", true,
+                    "Shake the camera and the hotbar, and draw the expanding ground ring. Client-side only; the server sends a position and a strength, the client animates it.");
+            cinematicSpeed = (float) cfg.getFloat("rbmkSpeed", "cinematic", 0.72F, 0.0F, 12.0F,
+                    "Degrees per tick the camera orbits an RBMK that has started jumping its rods. The gamerule zd_tx has to be on for this to happen at all. 0.72 is one lap in about 25 seconds; 0 leaves the camera alone.");
+            cinematicDfcSpeed = (float) cfg.getFloat("dfcSpeed", "cinematic", 2.0F, 0.0F, 12.0F,
+                    "Degrees per tick the camera orbits a DFC in the last five seconds before it goes. Faster than the RBMK default because that window is short.");
+            cinematicRadius = cfg.getInt("radius", "cinematic", 18, 6, 40,
+                    "Distance the camera keeps from the target, in blocks.");
+            cinematicHeight = cfg.getInt("height", "cinematic", 7, -8, 40,
+                    "Height of the camera above the target. Negative looks up from below.");
         } finally {
             if (cfg.hasChanged()) {
                 cfg.save();

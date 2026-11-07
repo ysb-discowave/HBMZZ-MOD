@@ -129,4 +129,25 @@ public final class RbmkLayout {
         }
         return textures;
     }
+
+    /**
+     * Half-width of the plate, in blocks, from its own layout.
+     *
+     * <p>The plate has to be kept over its reactor on the way down, and the
+     * only thing that knows how wide it is, is the string describing it. A
+     * one-column reactor is a half-block plate; a 9x9 is four and a half. Using
+     * one constant for both would either pin a small plate too tightly or let a
+     * large one overhang by metres.</p>
+     */
+    public static double radius(String layout) {
+        List<int[]> entries = new ArrayList<int[]>();
+        decode(layout, entries, new ArrayList<String>());
+        double max = 0.0D;
+        for (int[] entry : entries) {
+            double dx = entry[0] / 2.0D;
+            double dz = entry[1] / 2.0D;
+            max = Math.max(max, Math.max(Math.abs(dx), Math.abs(dz)) + 1.0D);
+        }
+        return max;
+    }
 }

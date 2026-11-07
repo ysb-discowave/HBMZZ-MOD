@@ -658,6 +658,27 @@ def main():
           "the trip logic has no Minecraft in it",
           "RbmkTiming imports the game; tools/rbmkcheck can no longer run it")
 
+    # 32. The film camera is a second entity, never a teleported player. Moving
+    # the player would be corrected by the server within a second (and would
+    # drag the hitbox through walls on the way); the one thing that must not
+    # appear here is any call that writes the player's position.
+    cam = read(os.path.join(SRC, "com/hbmzz/client/ClientCinematic.java"))
+    moved = [marker for marker in ("player.setPosition(", "player.setPositionAndUpdate(",
+                                   "player.setLocationAndAngles(", "player.posX =")
+             if marker in cam]
+    check(not moved, "the zd_tx camera never moves the player",
+          "ClientCinematic writes the player's position (" + ", ".join(moved)
+          + "); an orbit is built by swapping the view entity, not by teleporting")
+
+    # 33. addGameRule overwrites whatever value it finds. Registering zd_tx
+    # unconditionally therefore resets it to false on every world load, which
+    # looks exactly like "the gamerule does not work" to a player who set it.
+    director = read(os.path.join(SRC, "com/hbmzz/cinematic/CinematicDirector.java"))
+    check("getString(RULE).isEmpty()" in director,
+          "the zd_tx rule is only created when it is absent",
+          "CinematicDirector adds the rule without checking; addGameRule will "
+          "reset an existing value to false on every world load")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

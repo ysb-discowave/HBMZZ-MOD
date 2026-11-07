@@ -81,8 +81,26 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.7.1</span>
+            <span class="tl-ver">v2.8.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>掀盖真的把盖掀了，还多了一条 zd_tx</h3>
+          <ul>
+            <li><strong>原来怎样：</strong>2.7.x 的「掀盖」在真存档里从来没有发生过。顶盖信息被写在一个<strong>我们找错了的方块</strong>上：RBMK 柱子的顶盖种类记在<strong>柱芯那块</strong>的 <code>META</code> 属性里（<code>10 + 朝向序号</code>），堆在它上面的那些方块带的只是一个不参与判定的占位值。旧代码从柱芯往<strong>上</strong>找，于是永远找不到顶盖，顶盖列表为空，代码安静地走进「没有顶盖，那就只炸一下」的分支。表现就是你说过的那句——<em>连 TNT 都不如的一下，加一个普通的 RBMK 爆炸</em>。</li>
+            <li><strong>现在怎样：</strong>顶盖种类直接读柱芯自己的 <code>getBlockMetadata()</code>。12 是没有盖，15 是钢板，13 是玻璃，其余是外壳。找不到整片顶盖时不再退化成小爆炸，而是在日志里写明「N 根柱子其中 M 根带盖」。</li>
+            <li><strong>落回堆芯那一下换成氢弹尺度。</strong>新增 <code>rbmk.lidBlastPower</code>（默认 <strong>30</strong>）：顶盖砸回柱芯时炸的是这一发，而不是它自己带着的那点炸药。第二下只剩终章的分量（<code>lidBlastPower × 0.22</code>）——第一个坑已经在那儿了，第二发满威力的爆炸只会把第一个坑的证据擦干净。</li>
+            <li><strong>但不要蘑菇云。</strong>蘑菇是<strong>地爆</strong>的产物，而这台机器是<strong>压力容器在露天散架</strong>，而且那个云会把整段演出唯一要展示的东西——顶盖飞上去——挡住。所以拆掉烟柱，剩下的三样照画：白闪光（<code>EXPLOSION_HUGE</code> + 火，没有竖着的烟柱）、贴地扩散的尘环、喷射的水汽。<code>RbmkEffects</code> 只做这三件事。</li>
+            <li><strong>冲击波会打到玩家身上。</strong>新增一套客户端震动，从一发 37 字节的包本地生成动画，而不是从服务器一帧一帧发粒子：相机三个轴各自叠加两条<strong>失谐</strong>正弦波（三轴不会连成一条斜向抖动），振幅按距离平方衰减、按剩余寿命平方收敛；<strong>物品栏</strong>整条平移（不是整个 HUD——准星在那个时刻必须还能看清，玩家正在逃跑）；地上再画一圈向外跑的尘环。参数：<code>rbmk.shake</code>（默认开）。</li>
+            <li><strong>顶盖被拴在堆上。</strong>第一次落地后它带着一个横向分量再起飞，飞行中有一条蒸汽尾迹；下落速度封顶 <code>2.5</code> 格/ tick（否则第二次落点会飞到几百格外）。整个飞行过程它的水平位置被<strong>夹在反应堆上方</strong>（半径 = 顶盖半宽 + 2），只有在最后落定时才松开——不然第二段弧线会把它扔到山坡上，反应堆就等不到第二次撞击了。</li>
+            <li><strong>新 gamerule <code>zd_tx</code>（默认 false）。</strong>打开后：RBMK 开始跳棒的那一刻，附近玩家的视角开始<strong>缓慢绕堆旋转</strong>，一直到掀盖爆炸为止；DFC 进入坍缩的最后 <strong>5 秒</strong>同理，绕到它炸为止。两个都用同一套「服务器说看哪、客户端自己算机位」的管线，一发包开、一发包停，中途不传位置——靠包驱动的相机，卡顿起来和网络一样难看。</li>
+            <li><strong>相机换的是「眼睛」，不是玩家。</strong>1.12.2 的 Forge 只允许在 <code>CameraSetup</code> 里改<strong>角度</strong>，位置来自“渲染器正透过谁看”。所以我们造了一个<strong>从不进入世界</strong>的客户端相机实体，把它装成 <code>renderViewEntity</code>，再在 <code>CameraSetup</code> 里让它<strong>看向目标</strong>。玩家实体一动没动——用传送做轨道，一秒内就会被服务器拉回去，还会把玩家的碰撞箱拖着穿过墙。</li>
+            <li><strong>参数：</strong><code>cinematic.radius</code>（默认 18，夹在 6–40）、<code>cinematic.height</code>（默认 7，可负）、<code>cinematic.rbmkSpeed</code>（默认 <strong>0.72°/tick</strong>，约 25 秒一圈，正好用完一分钟倒数的后半段）、<code>cinematic.dfcSpeed</code>（默认 <strong>2.0°/tick</strong>，5 秒的窗口需要快得多的转速）。起始角度取<strong>玩家当时的方位</strong>，所以第一帧和玩家原来看到的东西是连续的，不会突然甩到某个固定罗盘方位。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.7.1</span>
           </div>
           <h3>掀盖那一刻崩掉的那一类原因</h3>
           <ul>

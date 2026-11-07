@@ -450,9 +450,9 @@
             <thead><tr><th>阶段</th><th>时长</th><th>在做的事</th></tr></thead>
             <tbody>
               <tr><td><strong>跳动</strong></td><td>1200 tick（一分钟）</td><td>控制棒在通道里上下砸，棒底喷出蒸汽，落回时发出撞击声。<strong>用的就是诅咒版的跳动函数</strong>：附属在柱子上加的 <code>leafia$damage</code> 字段驱动它，我们只把这一个整数从 240 一路抬到 1150。</td></tr>
-              <tr><td><strong>一次爆炸</strong></td><td>即刻</td><td>顶盖整体离堆，初速 2 格/ tick，升到约 25 格，翻着跟头往下掉。</td></tr>
-              <tr><td><strong>二次爆炸</strong></td><td>落地时</td><td>顶盖砸回堆芯 → 更大的一次爆炸 → 再次掀飞（4.25 格/ tick，约 113 格）。</td></tr>
-              <tr><td><strong>落定</strong></td><td>落地后 1200 tick</td><td>冒烟躺一分钟，随后碎掉消失。堆芯交给基座模组自己的熔毁，瓦砾、碎片、堆芯熔融物都是玩家熟悉的那一套。</td></tr>
+              <tr><td><strong>一次爆炸</strong></td><td>即刻</td><td>顶盖整体离堆，初速 <strong>3.2 格/ tick</strong>，升到约 <strong>64 格</strong>，翻着跟头往下掉。整段飞行它被<strong>夹在反应堆正上方</strong>（半径 = 顶盖半宽 + 2 格），只有最后落定时才松开。</td></tr>
+              <tr><td><strong>二次爆炸</strong></td><td>落地时</td><td>顶盖砸回堆芯 → <strong>氢弹尺度</strong>的一发（<code>rbmk.lidBlastPower</code>，默认 30）→ 带着横向分量再次掀飞（<strong>4.25 格/ tick</strong>，约 113 格）。</td></tr>
+              <tr><td><strong>落定</strong></td><td>落地后 1200 tick</td><td>最后落地时只炸 <code>lidBlastPower × 0.22</code>：第一个坑已经在，第二发满威力只会把第一个坑的证据擦掉。冒烟躺一分钟，随后碎掉消失。堆芯交给基座模组自己的熔毁。</td></tr>
             </tbody>
           </table>
         </div>
@@ -469,6 +469,22 @@
             <h4>顶盖是实体，不是方块</h4>
             <p style="margin:6px 0 0">落地时把自己放回世界，会<strong>在原地生成一根活的 RBMK 柱</strong>——一台从瓦砾里长出来、带方块实体、能继续运行的堆。所以它只是实体：带着原堆每根柱子的顶盖、按原样排布、各用各的 <code>cover</code> 贴图；落地只炸、只掉碎块，不改写世界。</p>
             <p style="margin:6px 0 0">代价同样写在明处：<strong>没有做精细的落点碰撞</strong>，顶盖按五个采样点找最高的地面，落在斜坡上会有一角悬空；落地一分钟后碎掉，不会永久留成一台「切尔诺贝利顶盖」。</p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>像氢弹，但没有蘑菇云</h4>
+            <p style="margin:6px 0 0">蘑菇是<strong>地爆</strong>的产物：地面上的火球把尘土吸成一根柱子，柱子升到对流层顶再摊开，那是分钟级的画面。这台机器不是地爆，它是一个<strong>压力容器在露天散架</strong>；而且那片云会正好挡住整段演出唯一要展示的东西——顶盖飞上去。所以拆掉烟柱，剩下的三样照画：<strong>白闪光</strong>（几个 <code>EXPLOSION_HUGE</code> 加没有烟柱托底的火）、<strong>贴地扩散的尘环</strong>、<strong>喷射的水汽</strong>。</p>
+            <p style="margin:6px 0 0">冲击波会真的打到玩家身上：相机三轴各叠两条<strong>失谐</strong>正弦波（三轴不会连成一条斜向抖动），振幅按距离平方衰减、按剩余寿命平方收敛；<strong>物品栏</strong>整条平移而不是整个 HUD——准星在那个时刻必须还能看清，玩家正在逃跑；地上再画一圈向外跑的尘环。全部由客户端从<strong>一个 37 字节的包</strong>本地生成，不从服务器一帧一帧发粒子。<code>rbmk.shake</code> 可关。</p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>想看得更清楚：<code>zd_tx</code></h4>
+            <p style="margin:6px 0 0"><code>/gamerule zd_tx true</code>。打开后，堆开始<strong>跳棒</strong>的那一刻你的视角会开始缓慢绕堆旋转，一直到掀盖爆炸为止；<strong>DFC</strong> 进入坍缩最后 5 秒时同理，绕到它炸为止。两处都在爆炸那一刻把镜头交还——留在一个坑上转圈没有意义，你要看的是那一下。</p>
+            <p style="margin:6px 0 0">转速、半径、高度都在 <code>cinematic.*</code> 里（默认 0.72°/tick ≈ 25 秒一圈、18 格、+7 格）。起始角度取你<strong>当时站的方向</strong>，所以第一帧和你原来看到的是连续的。这是纯客户端演出：别的玩家看不到你的镜头在转，你的角色在他们眼里只是站着不动。</p>
           </div>
         </div>
 

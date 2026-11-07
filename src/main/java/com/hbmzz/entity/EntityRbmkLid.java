@@ -18,6 +18,8 @@
 
 package com.hbmzz.entity;
 
+import com.hbmzz.HBMZZConfig;
+import com.hbmzz.rbmk.RbmkLayout;
 import com.hbmzz.rbmk.RbmkTiming;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.Entity;
@@ -83,6 +85,13 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
     private float spinSpeed;
     private String pendingLayout = "";
 
+    /** The reactor this plate came off, and how far it may stray from it. */
+    private double homeX;
+    private double homeZ;
+    private double homeRadius = 8.0D;
+    /** Set once the second landing has happened, so it stops being clamped. */
+    private boolean released;
+
     public EntityRbmkLid(World world) {
         super(world);
         this.noClip = true;
@@ -93,6 +102,12 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
     public EntityRbmkLid(World world, double x, double y, double z, String layout) {
         this(world);
         this.pendingLayout = layout == null ? "" : layout;
+        this.homeX = x;
+        this.homeZ = z;
+        // The plate's own width, not a constant: a 9x9 core throws a plate that
+        // is nine blocks across, and pinning that to a one-column radius would
+        // have it come down on the edge of its own crater.
+        this.homeRadius = RbmkLayout.radius(this.pendingLayout) + RbmkTiming.LID_HOME_PAD;
         setPosition(x, y, z);
         this.motionX = 0.0D;
         this.motionY = RbmkTiming.LID_LAUNCH_VY;
@@ -175,6 +190,12 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
     private void tickFlight() {
         this.age++;
         this.motionY -= RbmkTiming.LID_GRAVITY;
+        if (this.motionY < -RbmkTiming.LID_MAX_FALL) {
+            // Terminal velocity. An 0.08/0.995 integrator otherwise keeps
+            // accelerating to sixteen blocks a tick, and the plate would pass
+            // through the reactor it is supposed to hit.
+            this.motionY = -RbmkTiming.LID_MAX_FALL;
+        }
         this.motionX *= RbmkTiming.LID_DRAG;
         this.motionZ *= RbmkTiming.LID_DRAG;
         this.motionY *= RbmkTiming.LID_DRAG_Y;
@@ -182,13 +203,37 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
         this.posX += this.motionX;
         this.posY += this.motionY;
         this.posZ += this.motionZ;
+
+        // Keep the plate over its own reactor until it has been thrown the
+        // second time. The first landing is the second explosion's trigger; a
+        // plate that drifts down the valley triggers it on a field.
+        if (!this.released && this.homeRadius > 0.0D) {
+            double dx = this.posX - this.homeX;
+            double dz = this.posZ - this.homeZ;
+            double distance = Math.sqrt(dx * dx + dz * dz);
+            if (distance > this.homeRadius) {
+                double nx = dx / distance;
+                double nz = dz / distance;
+                this.posX = this.homeX + nx * this.homeRadius;
+                this.posZ = this.homeZ + nz * this.homeRadius;
+                double outward = this.motionX * nx + this.motionZ * nz;
+                if (outward > 0.0D) {
+                    this.motionX -= nx * outward;
+                    this.motionZ -= nz * outward;
+                }
+            }
+        }
+
         this.rotationYaw += this.spinSpeed;
         this.rotationPitch = MathHelper.clamp(this.rotationPitch + this.spinSpeed * 0.35F, -40.0F, 40.0F);
         syncPose();
 
+        // The plate leaves a trail both ways up and down: it is a slab of
+        // reactor lid with a boiler's worth of steam still coming off it.
+        if (this.age % 2 == 0) {
+            com.hbmzz.rbmk.RbmkEffects.steam(this.world, this.posX, this.posY + 0.2D, this.posZ, 2.0D, 2, 0.04D);
+        }
         if (this.age % 3 == 0) {
-            // A lid that size moving that fast leaves a trail whether or not it
-            // is on fire; without it the plate reads as a floating texture.
             this.world.spawnParticle(EnumParticleTypes.SMOKE_LARGE,
                     this.posX + (this.rand.nextDouble() - 0.5D) * 3.0D,
                     this.posY + 0.2D,
@@ -236,25 +281,67 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
         this.motionZ = 0.0D;
         this.launches++;
         if (this.launches == 1) {
-            blast(9.0F, 3);
+            // The plate hits the core and the core answers. This is the big one:
+            // a hydrogen-bomb-sized charge (rbmk.lidBlastPower, default 30)
+            // rather than the handful of TNT the plate would carry on its own.
+            nuclearBlast(HBMZZConfig.rbmkLidBlast, 8);
             this.motionY = RbmkTiming.launchVy(true);
-            this.motionX = (this.rand.nextDouble() - 0.5D) * 0.12D;
-            this.motionZ = (this.rand.nextDouble() - 0.5D) * 0.12D;
+            // A sideways component as well as the lift: a plate that goes
+            // straight back up lands on the same crater and the shot reads as a
+            // bounce instead of a launch. Nudging it off-axis makes the second
+            // arc visibly different from the first.
+            this.motionX = (this.rand.nextDouble() - 0.5D) * 0.55D;
+            this.motionZ = (this.rand.nextDouble() - 0.5D) * 0.55D;
             this.spinSpeed = (this.rand.nextBoolean() ? 1.0F : -1.0F) * (1.8F + this.rand.nextFloat());
             this.rotationPitch = 0.0F;
             this.age = 0;
+            // It is airborne again, so the home tether comes back on: the second
+            // arc has to end over the reactor too, otherwise the plate lands on
+            // a hillside and the reactor never gets its second hit.
+            this.released = false;
             syncPose();
-            playAt(net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE, 4.0F, 0.55F);
+            playAt(net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE, 6.0F, 0.45F);
             return;
         }
-        blast(4.0F, 1);
-        playAt(net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE, 3.0F, 0.7F);
+        // Second landing: the end of the shot. Enough to shake the ground and
+        // throw the steam up, not a second crater - the crater is already there
+        // and a second full-size blast would just erase the evidence of the
+        // first one.
+        nuclearBlast(Math.max(4.0F, HBMZZConfig.rbmkLidBlast * 0.22F), 2);
+        // After this one the tether lets go: whatever is left of the plate
+        // should stay where it fell, not drift back toward the wreck.
+        this.released = true;
+        playAt(net.minecraft.init.SoundEvents.ENTITY_GENERIC_EXPLODE, 4.0F, 0.62F);
         this.settling = true;
         this.settledFor = 0;
         this.dataManager.set(SETTLED, Boolean.TRUE);
         this.rotationPitch = 0.0F;
         syncPose();
         com.hbmzz.rbmk.RbmkSurge.onLidSettled(this);
+    }
+
+    /**
+     * A blast with the trimmings: white flash, ground ring, steam column, and
+     * the camera shake for everyone in range.
+     *
+     * <p>Kept separate from {@link #blast(float, int)} because that one is the
+     * plain "make a hole" primitive (and it is still used for that). This one is
+     * the scripted event: it is allowed to reach across into {@code RbmkSurge}
+     * for the shake packet, and it draws the parts of a nuclear detonation that
+     * are not the explosion itself.</p>
+     */
+    private void nuclearBlast(float power, int debris) {
+        // blast() is the one that calls createExplosion; flash() only draws the
+        // light, so these two are safe to call in sequence and a single crater
+        // is all that gets carved.
+        blast(power, debris);
+        com.hbmzz.rbmk.RbmkEffects.flash(this.world, this.posX, this.posY + 0.5D, this.posZ, power);
+        double ringRadius = 6.0D + power * 0.55D;
+        com.hbmzz.rbmk.RbmkEffects.dustRing(this.world, this.posX, this.posY, this.posZ, ringRadius);
+        com.hbmzz.rbmk.RbmkEffects.steam(this.world, this.posX, this.posY + 0.6D, this.posZ,
+                Math.min(6.0D, ringRadius * 0.35D), 40, 0.55D);
+        com.hbmzz.rbmk.RbmkSurge.shake(this.world, this.posX, this.posY, this.posZ,
+                Math.min(24.0F, power), 48.0F + power * 2.0F, 30, true);
     }
 
     private void blast(float power, int breaks) {
@@ -392,6 +479,12 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
         compound.setInteger("Launches", this.launches);
         compound.setInteger("SettledFor", this.settledFor);
         compound.setFloat("Spin", this.spinSpeed);
+        // The anchor, so a plate saved mid-flight does not come back from disk
+        // clamped to the world origin.
+        compound.setDouble("HomeX", this.homeX);
+        compound.setDouble("HomeZ", this.homeZ);
+        compound.setDouble("HomeRadius", this.homeRadius);
+        compound.setBoolean("Released", this.released);
     }
 
     @Override
@@ -404,5 +497,10 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
         this.launches = compound.getInteger("Launches");
         this.settledFor = compound.getInteger("SettledFor");
         this.spinSpeed = compound.getFloat("Spin");
+        this.homeX = compound.hasKey("HomeX") ? compound.getDouble("HomeX") : this.posX;
+        this.homeZ = compound.hasKey("HomeZ") ? compound.getDouble("HomeZ") : this.posZ;
+        this.homeRadius = compound.hasKey("HomeRadius") ? compound.getDouble("HomeRadius")
+                : RbmkLayout.radius(layout) + RbmkTiming.LID_HOME_PAD;
+        this.released = compound.getBoolean("Released");
     }
 }

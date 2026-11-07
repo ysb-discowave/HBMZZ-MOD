@@ -120,6 +120,31 @@ final class RbmkParts {
     }
 
     /**
+     * The column's block metadata - which is where the lid type actually lives.
+     *
+     * <p>Not on the block above the core. The base mod stores the whole lid
+     * state in the core's {@code META} property ({@code 10 + facing ordinal}:
+     * 12 none, 15 steel, 13 glass) and gives the blocks stacked on top of it
+     * the plain {@code +6} dummy value. Its own screwdriver code reads and
+     * writes that metadata on the core, and {@code hasLid()} reads it from the
+     * tile entity, so this is the one source that cannot disagree with the
+     * base mod about whether a lid is installed.</p>
+     *
+     * <p>Searching upwards for a block whose metadata looks like a lid is the
+     * mistake that made 2.7.x throw an empty plate: there is no such block.</p>
+     */
+    static int lidMeta(TileEntity column) {
+        if (column == null) {
+            return -1;
+        }
+        try {
+            return column.getBlockMetadata();
+        } catch (Throwable ignored) {
+            return -1;
+        }
+    }
+
+    /**
      * Hands the Cursed Edition a jump amplitude.
      *
      * <p>The field is that addon's own damage counter: it rises, the jump height

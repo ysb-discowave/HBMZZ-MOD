@@ -62,6 +62,11 @@ public final class NetworkHandler {
         // Panel terminal: one typed line up, the lines it printed back down.
         INSTANCE.registerMessage(TerminalInputMessage.Handler.class, TerminalInputMessage.class, 15, Side.SERVER);
         INSTANCE.registerMessage(TerminalReplyMessage.Handler.class, TerminalReplyMessage.class, 16, Side.CLIENT);
+        // RBMK shockwave: position, strength, duration, and whether the client
+        // should also animate a dust ring. The ring is drawn locally.
+        INSTANCE.registerMessage(ShakeMessage.Handler.class, ShakeMessage.class, 17, Side.CLIENT);
+        // Cinematic camera: start orbiting this, or stop. Two packets per event.
+        INSTANCE.registerMessage(CinematicMessage.Handler.class, CinematicMessage.class, 18, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

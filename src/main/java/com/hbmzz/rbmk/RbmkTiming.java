@@ -34,12 +34,14 @@ package com.hbmzz.rbmk;
  *       leafia$damage} field it adds to {@code TileEntityRBMKBase}; we only
  *       decide how much of it to ask for, via {@link #jumpDamage(int)}.</li>
  *   <li><b>blast</b> - the lid leaves. {@link #LID_LAUNCH_VY} up, gravity
- *       {@link #LID_GRAVITY} down: about 25 blocks of apex, three seconds of
- *       flight.</li>
- *   <li><b>second blast</b> - the lid comes down onto the core, detonates it
- *       again and is thrown a second time,
- *       {@link #LID_REBLAST_VY}.</li>
- *   <li><b>rest</b> - it falls a second time and stays where it lands.</li>
+ *       {@link #LID_GRAVITY} down: about sixty blocks of apex, and the plate is
+ *       held inside its own footprint on the way down so that it lands back on
+ *       the core rather than somewhere in the field.</li>
+ *   <li><b>second blast</b> - the plate hits the core, the core detonates
+ *       under it and throws it again, {@link #LID_REBLAST_VY}, this time with a
+ *       sideways kick because the blast is no longer symmetric.</li>
+ *   <li><b>rest</b> - it falls a second time, lands on whatever is left, and
+ *       stays there smoking.</li>
  * </ol>
  *
  * <p>Two launches, not one, because that is the shape of the accident being
@@ -79,8 +81,15 @@ public final class RbmkTiming {
      */
     public static final int DAMAGE_END = 1150;
 
-    /** Upward speed of the lid on the first blast, in blocks a tick. */
-    public static final double LID_LAUNCH_VY = 2.0D;
+    /**
+     * Upward speed of the lid on the first blast, in blocks a tick.
+     *
+     * <p>3.2 puts the apex around sixty blocks up - high enough that the plate
+     * leaves the reactor's own smoke and reads against the sky before it turns
+     * over. The old 2.0 topped out below the treeline, which is why the first
+     * version looked like a hop rather than a launch.</p>
+     */
+    public static final double LID_LAUNCH_VY = 3.2D;
 
     /** Upward speed on the second blast - harder, because the core helped. */
     public static final double LID_REBLAST_VY = 4.25D;
@@ -93,6 +102,26 @@ public final class RbmkTiming {
 
     /** Vertical drag per tick. Barely any: the lid should fall like a lid. */
     public static final double LID_DRAG_Y = 0.995D;
+
+    /**
+     * Fastest a lid may fall, in blocks a tick.
+     *
+     * <p>Without this the terminal velocity of an 0.08/0.005 integrator is
+     * sixteen blocks a tick, and the plate tunnels straight through the reactor
+     * on the way down - the one landing that has to be seen. The reference
+     * implementation caps at 2.5 for the same reason.</p>
+     */
+    public static final double LID_MAX_FALL = 2.5D;
+
+    /**
+     * How far outside its own footprint a plate may drift, in blocks.
+     *
+     * <p>The first landing has to be <em>on the reactor</em>, or the second
+     * blast has nothing to be a second blast of. The plate is allowed to lean
+     * out over the edge - it is a slab, not a ball - but not to sail off and
+     * come down in the field next door.</p>
+     */
+    public static final double LID_HOME_PAD = 2.0D;
 
     /** Give up waiting for a landing after this many ticks and blink it out. */
     public static final int FLIGHT_LIMIT = 400;

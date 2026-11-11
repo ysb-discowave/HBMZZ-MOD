@@ -27,6 +27,15 @@ CONTENT = os.path.join(ROOT, "src/main/java/com/hbmzz/ModContent.java")
 MAIN = os.path.join(ROOT, "src/main/java/com/hbmzz/HBMZZ.java")
 SRC = os.path.join(ROOT, "src/main/java")
 
+# The jar carries a second mod container: com/rsaudio, the redstone audio
+# player ported in 2.9.0, which keeps its own block/item/tile registry, its own
+# proxy and its own screen fonts. The declaration->registration rules below are
+# about *this* mod's tables, so they read com/hbmzz only. Walking all of SRC
+# flags every rsaudio tile entity as "missing a mapping" and every rsaudio
+# window as "no-op on the client" - 23 + 18 false positives, which is exactly
+# how a real regression gets lost in the noise.
+AUDITED = os.path.join(SRC, "com/hbmzz")
+
 # Blocks that deliberately never get an item: the wall screen's filler part is
 # placed by the monitor itself, and handing players one would only produce
 # orphan blocks that break on the first tick.
@@ -214,7 +223,7 @@ def main():
 
     # 4. Every tile entity class has a registry mapping.
     te_classes = set()
-    for dirpath, _dirnames, filenames in os.walk(SRC):
+    for dirpath, _dirnames, filenames in os.walk(AUDITED):
         if os.sep + "client" + os.sep in dirpath + os.sep:
             continue
         for filename in filenames:
@@ -248,7 +257,7 @@ def main():
     common = read(os.path.join(SRC, "com/hbmzz/common/CommonProxy.java"))
     client = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
     wanted = set()
-    for dirpath, _dirnames, filenames in os.walk(SRC):
+    for dirpath, _dirnames, filenames in os.walk(AUDITED):
         for filename in filenames:
             if not filename.endswith(".java"):
                 continue
@@ -363,7 +372,7 @@ def main():
     safe_glyphs = set("\u00b0\u00b7\u00d7\u2013\u2014\u201c\u201d\u2026"
                       "\u2191\u2192\u2193\u25cb")
     offenders = []
-    for base, _, files in sorted(os.walk(SRC)):
+    for base, _, files in sorted(os.walk(AUDITED)):
         for name in sorted(files):
             if not name.endswith(".java"):
                 continue
@@ -678,6 +687,23 @@ def main():
           "the zd_tx rule is only created when it is absent",
           "CinematicDirector adds the rule without checking; addGameRule will "
           "reset an existing value to false on every world load")
+
+    # 34. reasim's arithmetic has to stay runnable without Minecraft for the
+    # same reason the trip logic does: tools/reasimcheck/DspCheck.java runs the
+    # whole chain on a bare JVM, and the moment ReasimDsp or ReasimParams grows
+    # an import from net.minecraft, that check stops being a check. The
+    # environment sampler (ReasimEnvironment) is exempt by design - it is the
+    # one file that has to look at the world.
+    dsp_layer = []
+    for name in ("ReasimDsp.java", "ReasimParams.java"):
+        path = os.path.join(SRC, "com/rsaudio/audio", name)
+        if not os.path.exists(path):
+            dsp_layer.append(name + " missing")
+            continue
+        if "import net.minecraft" in read(path):
+            dsp_layer.append(name + " imports the game")
+    check(not dsp_layer, "the reasim DSP has no Minecraft in it",
+          "; ".join(dsp_layer) + " - tools/reasimcheck can no longer run it")
 
     failed = [name for ok, name, _ in results if not ok]
     print()

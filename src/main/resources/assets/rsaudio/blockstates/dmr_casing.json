@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "normal": {
+      "model": "rsaudio:dmr_casing"
+    }
+  }
+}

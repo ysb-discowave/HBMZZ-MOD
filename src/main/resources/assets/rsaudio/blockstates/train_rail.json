@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "shape=0": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=1": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=2": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=3": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=4": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=5": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=6": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=7": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=8": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=9": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=10": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=11": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=12": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=13": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=14": {
+      "model": "rsaudio:train_rail"
+    },
+    "shape=15": {
+      "model": "rsaudio:train_rail"
+    }
+  }
+}

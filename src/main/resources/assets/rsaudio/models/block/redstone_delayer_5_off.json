@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/delayer_side",
+    "down": "rsaudio:blocks/delayer_bottom",
+    "up": "rsaudio:blocks/delayer_top_5_off",
+    "north": "rsaudio:blocks/delayer_back",
+    "south": "rsaudio:blocks/delayer_front",
+    "east": "rsaudio:blocks/delayer_side",
+    "west": "rsaudio:blocks/delayer_side"
+  }
+}

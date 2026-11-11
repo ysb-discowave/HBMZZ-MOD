@@ -1,0 +1,981 @@
+itemGroup.rsaudio=Redstone Audio
+
+tile.rsaudio.audio_player.name=Audio Player
+tile.rsaudio.redstone_delayer.name=Redstone Delayer
+
+chat.rsaudio.cleared=Cleared the track of this audio player
+chat.rsaudio.empty=No track is set on this audio player
+chat.rsaudio.delay=Delay: %s ticks (%s s)
+chat.rsaudio.delay_set=Delay set to %s ticks (%s)
+chat.rsaudio.door.need_axe=Blast doors are operated with a wooden axe: right-click with one to open/close, sneak + right-click for settings
+
+tooltip.rsaudio.delayer.1=Input on the back (no arrow), output on the front (arrow)
+tooltip.rsaudio.delayer.2=Right-click to type the delay in a screen
+tooltip.rsaudio.delayer.3=Units: 2 (seconds) / 1.5s / 500ms / 10t (ticks) / 1m (minutes)
+tooltip.rsaudio.delayer.4=Optional chat broadcast with a custom colour, sent when the delayed signal fires
+tooltip.rsaudio.player.1=Right-click to choose the music and play mode
+tooltip.rsaudio.player.2=Behaviour depends on the mode (Pulse / Loop / Pulse-Toggle)
+tooltip.rsaudio.player.3=Optional "output on finish": emits a short redstone pulse when a Pulse-mode track ends (it will not re-trigger the player itself)
+tooltip.rsaudio.player.4=Optional chat broadcast with a custom colour, shown once when playback starts
+
+gui.rsaudio.title=Audio Player - Choose music
+gui.rsaudio.preview=Preview
+gui.rsaudio.clear=Clear
+gui.rsaudio.rescan=Rescan
+gui.rsaudio.prev=Previous
+gui.rsaudio.next=Next
+gui.rsaudio.search=Click here to search (mouse wheel scrolls)
+gui.rsaudio.clear_search=Clear search
+gui.rsaudio.page=Page %s/%s · %s
+gui.rsaudio.none=Current: none
+gui.rsaudio.current=Current: %s
+gui.rsaudio.empty=No .ogg file found in config/rsaudio/audio
+gui.rsaudio.empty_hint=Drop your music there, then press "Rescan"
+gui.rsaudio.no_match=No matching music
+gui.rsaudio.playing=Previewing: %s
+gui.rsaudio.no_selection=Nothing selected yet
+gui.rsaudio.found=%s tracks in total
+gui.rsaudio.rescan_failed=Rescan failed, check the game log
+gui.rsaudio.selected=Selected: %s
+gui.rsaudio.cleared_hint=Cleared
+gui.rsaudio.hint=Click a name to set it, plays on redstone signal
+gui.rsaudio.unplayable=Found %s file(s) 1.12.2 cannot play (%s)
+gui.rsaudio.unplayable_hint=Only .ogg (Vorbis) is supported - convert them first
+
+gui.rsaudio.broadcast.label=Broadcast:
+gui.rsaudio.broadcast.hint=Shown in the chat (bottom-left) when it plays; leave empty to disable
+gui.rsaudio.broadcast.saved=Broadcast colour: %s
+
+gui.rsaudio.color.0=Black
+gui.rsaudio.color.1=DkBlue
+gui.rsaudio.color.2=DkGreen
+gui.rsaudio.color.3=DkAqua
+gui.rsaudio.color.4=DkRed
+gui.rsaudio.color.5=DkPurple
+gui.rsaudio.color.6=Gold
+gui.rsaudio.color.7=Gray
+gui.rsaudio.color.8=DkGray
+gui.rsaudio.color.9=Blue
+gui.rsaudio.color.10=Green
+gui.rsaudio.color.11=Aqua
+gui.rsaudio.color.12=Red
+gui.rsaudio.color.13=Pink
+gui.rsaudio.color.14=Yellow
+gui.rsaudio.color.15=White
+
+gui.rsaudio.mode.pulse=Pulse
+gui.rsaudio.mode.pulse.desc=Pulse: plays once per redstone signal, no loop; losing the signal won't stop it - it stops only when the track ends
+gui.rsaudio.mode.loop=Loop
+gui.rsaudio.mode.loop.desc=Loop: loops while powered by redstone, stops the moment the signal goes away
+gui.rsaudio.mode.toggle=Pulse-Toggle
+gui.rsaudio.mode.toggle.desc=Pulse-Toggle: one signal starts looping playback, another signal stops it
+gui.rsaudio.mode.set=Play mode: %s
+gui.rsaudio.finish.off=Output on finish: OFF
+gui.rsaudio.finish.on=Output on finish: ON
+gui.rsaudio.finish.off_hint="Output on finish" disabled
+gui.rsaudio.finish.on_hint=Enabled: a short redstone pulse is emitted when the track ends (Pulse mode)
+
+gui.rsaudio.delayer.title=Redstone Delayer - Set delay
+gui.rsaudio.delayer.current=Current: %s ticks (%s)
+gui.rsaudio.delayer.label=Delay time:
+gui.rsaudio.delayer.preview=Will apply: %s ticks (%s)
+gui.rsaudio.delayer.invalid=Invalid input - try 2 / 1.5s / 500ms / 10t / 1m
+gui.rsaudio.delayer.range=Range: %s-%s ticks (%s-%s seconds)
+gui.rsaudio.delayer.applied=Applied: %s ticks (%s)
+gui.rsaudio.delayer.apply=Apply
+gui.rsaudio.delayer.reset=Default
+gui.rsaudio.delayer.done=Done
+gui.rsaudio.delayer.minus_tick=-1 tick
+gui.rsaudio.delayer.plus_tick=+1 tick
+gui.rsaudio.delayer.minus_second=-1 s
+gui.rsaudio.delayer.plus_second=+1 s
+gui.rsaudio.delayer.hint=Enter = apply. Tab = switch to broadcast. t = tick, s = second, m = minute
+
+tile.rsaudio.structure_loader.name=Structure Loader
+tile.rsaudio.redstone_computer.name=Redstone Signal Computer
+tile.rsaudio.blast_door.name=Blast Door
+tile.rsaudio.blast_door_panel.name=Blast Door Panel
+tile.rsaudio.alarm.red.name=Red Alarm Light
+tile.rsaudio.alarm.orange.name=Orange Alarm Light
+tile.rsaudio.alarm.yellow.name=Yellow Alarm Light
+tile.rsaudio.alarm.green.name=Green Alarm Light
+tile.rsaudio.alarm.blue.name=Blue Alarm Light
+tile.rsaudio.alarm.purple.name=Purple Alarm Light
+
+tooltip.rsaudio.loader.1=Pastes a structure from config/rsaudio/structures into the world
+tooltip.rsaudio.loader.2=Right-click to pick a structure, set the offset and press Load
+tooltip.rsaudio.loader.3=Sneak + right-click loads once with the current settings
+tooltip.rsaudio.loader.4=A redstone rising edge loads once too, so it can build automatically
+tooltip.rsaudio.computer.1=Run a tiny assembly program that drives the redstone output of all six faces
+tooltip.rsaudio.computer.2=Right-click to open the editor and press Run; each face outputs 0-15 independently
+tooltip.rsaudio.computer.3=Read any face as input to build blinkers, pulse trains and telegraphs
+tooltip.rsaudio.computer.4=Sneak + right-click toggles run/stop
+tooltip.rsaudio.alarm.1=Lights up when powered by redstone, and can flash
+tooltip.rsaudio.alarm.2=Right-click to set the flash period and the buzzer
+tooltip.rsaudio.alarm.3=Sneak + right-click toggles the buzzer
+tooltip.rsaudio.door.1=A configurable sliding door whose blast resistance is in another league (survives nukes)
+tooltip.rsaudio.door.2=Right-click with a wooden axe to open/close (bare hands do nothing); sneak + right-click for settings, set width/height/facing then press Build
+tooltip.rsaudio.door.3=Panels grow to the right of the facing and upwards; the controller is always the bottom-left block
+tooltip.rsaudio.door.4=A redstone signal opens it; it waits for entities to leave before closing, so nobody gets crushed
+tooltip.rsaudio.door.5="Lock" means a FAAS remote lockdown: nothing local can open it (closing is always allowed, so a lockdown never leaves a gap)
+tooltip.rsaudio.door.6=Doors on the same channel are interlocked: while one is open the other cannot open, and after one closes the other side must wait out the cycle time. Two facing doors on one channel make an airlock
+tooltip.rsaudio.door.7=Turn on "Heavy": the door rises row by row, one row every "stage" ticks, like a huge armoured gate. (Tartarus is separate: a circular hatch door, its own block)
+
+chat.rsaudio.computer.started=Computer started
+chat.rsaudio.computer.stopped=Computer paused (outputs are held)
+chat.rsaudio.alarm.beep_on=Alarm buzzer: ON
+chat.rsaudio.alarm.beep_off=Alarm buzzer: OFF
+
+gui.rsaudio.wand.title=Structure Wand
+gui.rsaudio.wand.selection=Selection: %s
+gui.rsaudio.wand.name_label=Structure name:
+gui.rsaudio.wand.name_hint=Give this selection a name
+gui.rsaudio.wand.pos=Wand points at: %s
+gui.rsaudio.wand.hint=Left-click sets corner 1, right-click sets corner 2; sneak + left-click clears
+gui.rsaudio.wand.hint_actions=With both corners set, name it and press Save
+gui.rsaudio.wand.save=Save
+gui.rsaudio.wand.clear=Clear
+gui.rsaudio.wand.refresh=Refresh
+gui.rsaudio.wand.done=Done
+
+gui.rsaudio.loader.title=Structure Loader
+gui.rsaudio.loader.current=Current structure: %s
+gui.rsaudio.loader.unknown=(no tile entity here)
+gui.rsaudio.loader.none_selected=(none yet)
+gui.rsaudio.loader.list_label=Available structures:
+gui.rsaudio.loader.empty=No structure has been saved yet
+gui.rsaudio.loader.empty_hint=Save one with the wand, or drop a .nbt into config/rsaudio/structures
+gui.rsaudio.loader.page=Page %s/%s - %s total
+gui.rsaudio.loader.offset_label=Offset:
+gui.rsaudio.loader.offset_range=%s to %s blocks per axis
+gui.rsaudio.loader.offset_invalid=Offsets must be whole numbers within +/-%s
+gui.rsaudio.loader.offset_applied=Offset applied: (%s, %s, %s)
+gui.rsaudio.loader.apply_offset=Apply
+gui.rsaudio.loader.load=Load
+gui.rsaudio.loader.refresh=Rescan
+gui.rsaudio.loader.requested=The loader has started pasting; you will be told when it finishes
+gui.rsaudio.loader.refreshed=Asked the server for the structure list again
+gui.rsaudio.loader.selected=Selected: %s
+gui.rsaudio.loader.prev=Previous
+gui.rsaudio.loader.next=Next
+gui.rsaudio.loader.hint=Click a name to select it; pasting clears the target area first
+gui.rsaudio.loader.done=Done
+
+gui.rsaudio.computer.title=Redstone Computer - Program
+gui.rsaudio.computer.save=Save
+gui.rsaudio.computer.run=Run
+gui.rsaudio.computer.stop=Pause
+gui.rsaudio.computer.reset=Reset
+gui.rsaudio.computer.sample=Sample
+gui.rsaudio.computer.done=Done
+gui.rsaudio.computer.saved=Program saved
+gui.rsaudio.computer.run_hint=Program restarted from the beginning
+gui.rsaudio.computer.stop_hint=Paused: registers and outputs are held
+gui.rsaudio.computer.reset_hint=Reset: registers and outputs cleared
+gui.rsaudio.computer.sample_hint=Sample loaded into the editor; press Save to apply
+gui.rsaudio.computer.hint=Just type on the left; arrows move the caret, Enter breaks a line, Tab inserts four spaces
+gui.rsaudio.computer.panel=Live panel
+gui.rsaudio.computer.waiting=Waiting for the server to push its state...
+gui.rsaudio.computer.status_running=Running
+gui.rsaudio.computer.status_idle=Stopped
+gui.rsaudio.computer.pc=Program counter: %s
+gui.rsaudio.computer.ticks=Elapsed: %s ticks
+gui.rsaudio.computer.regs=Registers
+gui.rsaudio.computer.outputs=Output per face
+gui.rsaudio.computer.error=Error on line %s:
+gui.rsaudio.computer.face.down=down
+gui.rsaudio.computer.face.up=up
+gui.rsaudio.computer.face.north=north
+gui.rsaudio.computer.face.south=south
+gui.rsaudio.computer.face.west=west
+gui.rsaudio.computer.face.east=east
+
+gui.rsaudio.alarm.title=Alarm Light
+gui.rsaudio.alarm.color=Colour: %s
+gui.rsaudio.alarm.current=Current: %s
+gui.rsaudio.alarm.beep_state=Buzzer: %s
+gui.rsaudio.alarm.beep_hint=The buzzer beeps on every off-to-on edge, so shorter periods beep faster
+gui.rsaudio.alarm.range=Flash period %s to %s ticks (0 = steady)
+gui.rsaudio.alarm.applied=Set to: %s
+gui.rsaudio.alarm.hint=Dark without redstone; in steady mode it just stays lit while powered
+gui.rsaudio.alarm.always=Steady
+gui.rsaudio.alarm.always_text=steady
+gui.rsaudio.alarm.period_text=%s ticks (%s s per cycle)
+gui.rsaudio.alarm.minus10=-10
+gui.rsaudio.alarm.minus1=-1
+gui.rsaudio.alarm.plus1=+1
+gui.rsaudio.alarm.plus10=+10
+gui.rsaudio.alarm.beep_on=Buzzer: ON
+gui.rsaudio.alarm.beep_off=Buzzer: OFF
+gui.rsaudio.alarm.done=Done
+
+gui.rsaudio.door.title=Blast Door
+gui.rsaudio.door.range=Size %s to %s blocks
+gui.rsaudio.door.resistance=Blast resistance 6000 (obsidian is 1200) - it survives nukes
+gui.rsaudio.door.facing_line=Facing: %s - Retracts: %s - Size %s to %s
+gui.rsaudio.door.facing.north=North
+gui.rsaudio.door.facing.east=East
+gui.rsaudio.door.facing.south=South
+gui.rsaudio.door.facing.west=West
+gui.rsaudio.door.retract_up=Up
+gui.rsaudio.door.retract_down=Down
+gui.rsaudio.door.invert_on=Inverted: ON
+gui.rsaudio.door.invert_off=Inverted: OFF
+gui.rsaudio.door.width_minus=W -1
+gui.rsaudio.door.width_plus=W +1
+gui.rsaudio.door.height_minus=H -1
+gui.rsaudio.door.height_plus=H +1
+gui.rsaudio.door.build=Build
+gui.rsaudio.door.build_hint=Panels generated inside the frame
+gui.rsaudio.door.remove=Remove
+gui.rsaudio.door.remove_hint=Panels removed
+gui.rsaudio.door.open=Open
+gui.rsaudio.door.open_hint=Opened (it waits if entities are inside)
+gui.rsaudio.door.close=Close
+gui.rsaudio.door.close_hint=Closed (it waits if entities are inside)
+gui.rsaudio.door.applied=Applied: %s
+gui.rsaudio.door.state_built= - built
+gui.rsaudio.door.state_unbuilt= - not built
+gui.rsaudio.door.state_open= - open
+gui.rsaudio.door.state_closed= - closed
+gui.rsaudio.door.state_moving= - moving %s%%
+gui.rsaudio.door.state_invert= - inverted
+gui.rsaudio.door.state_channel= - channel %s
+gui.rsaudio.door.state_interlock= - interlocked
+gui.rsaudio.door.state_heavy= - heavy
+gui.rsaudio.door.state_locked= - locked
+gui.rsaudio.door.hint=Changing size or retract direction removes the old panels; press Build again. Channel/interlock/cycle/heavy apply instantly
+
+gui.rsaudio.door.channel_minus=Ch -
+gui.rsaudio.door.channel_plus=Ch +
+gui.rsaudio.door.channel_none=none
+gui.rsaudio.door.channel_value=channel %s
+gui.rsaudio.door.interlock_on=Interlock ON
+gui.rsaudio.door.interlock_off=Interlock OFF
+gui.rsaudio.door.heavy_on=Heavy ON
+gui.rsaudio.door.heavy_off=Heavy OFF
+gui.rsaudio.door.cycle_minus=Cycle -
+gui.rsaudio.door.cycle_plus=Cycle +
+gui.rsaudio.door.stage_minus=Stage -
+gui.rsaudio.door.stage_plus=Stage +
+gui.rsaudio.door.lock=Lock
+gui.rsaudio.door.unlock=Unlock
+gui.rsaudio.door.on=on
+gui.rsaudio.door.off=off
+gui.rsaudio.door.params=channel %s - interlock %s - heavy %s - cycle %s ticks - stage %s ticks
+
+gui.rsaudio.door.access_free=Access: can open
+gui.rsaudio.door.access_unbuilt=Access: not built yet
+gui.rsaudio.door.access_manual=Access: manually locked (press Unlock to release)
+gui.rsaudio.door.access_remote=Access: FAAS remote lockdown (only the side that locked it can release)
+gui.rsaudio.door.access_cycle=Access: airlock cycling, %s ticks left
+gui.rsaudio.door.access_airlock=Access: sealed by the airlock controller (wait for the cycle or hit E-STOP)
+gui.rsaudio.door.access_interlock=Access: interlocked - another door on this channel is still open
+gui.rsaudio.door.done=Done
+gui.rsaudio.door.alarm_on=Alarm:On
+gui.rsaudio.door.alarm_off=Alarm:Off
+gui.rsaudio.door.alarm_color=Alarm color:%s
+
+# ---------------- Announcer (bottom-right popup + TTS voice)
+tile.rsaudio.announcer.name=Announcer
+
+tooltip.rsaudio.announcer.1=Sends a bottom-right popup to nearby players and speaks it with TTS
+tooltip.rsaudio.announcer.2=Right-click to open: set popup title, popup content and spoken text
+tooltip.rsaudio.announcer.3=Sneak + right-click broadcasts once with the current settings
+tooltip.rsaudio.announcer.4=A redstone rising edge also broadcasts once (hook it up to reactor alarms)
+
+gui.rsaudio.announcer.title=Announcer - Send Notice
+gui.rsaudio.announcer.label.title=Title:
+gui.rsaudio.announcer.label.content=Content:
+gui.rsaudio.announcer.label.tts=Spoken text:
+gui.rsaudio.announcer.hint.title=Shown on the first line of the popup (optional)
+gui.rsaudio.announcer.hint.content=Popup body; long text wraps automatically (optional)
+gui.rsaudio.announcer.hint.tts=Synthesized by TTS; leave empty for popup only (keep it short, 100 chars max)
+gui.rsaudio.announcer.params=Range %s blocks - Popup %s s - Speed %s
+gui.rsaudio.announcer.engine=Local TTS engine: %s
+gui.rsaudio.announcer.engine_ok=ready
+gui.rsaudio.announcer.engine_missing=not installed (popup only, no sound)
+gui.rsaudio.announcer.preview_label=Preview:
+gui.rsaudio.announcer.preview_hint=(same wrapping as the real popup)
+gui.rsaudio.announcer.preview_empty=Type something above to see what players will get
+gui.rsaudio.announcer.preview_local=Test locally
+gui.rsaudio.announcer.preview_started=Synthesizing a local preview...
+gui.rsaudio.announcer.broadcast=Broadcast
+gui.rsaudio.announcer.done=Done
+gui.rsaudio.announcer.range_minus=Range-
+gui.rsaudio.announcer.range_plus=Range+
+gui.rsaudio.announcer.notice_minus=Time-
+gui.rsaudio.announcer.notice_plus=Time+
+gui.rsaudio.announcer.speed_minus=Speed-
+gui.rsaudio.announcer.speed_plus=Speed+
+gui.rsaudio.announcer.saved=Settings saved (not broadcast)
+gui.rsaudio.announcer.sending=Broadcast request sent
+gui.rsaudio.announcer.send_failed=Send failed (connection lost?)
+gui.rsaudio.announcer.tips=Tab switches fields, Enter = broadcast; closing the screen saves
+
+chat.rsaudio.announcer.empty=Announcer: all three fields are empty, nothing to send
+chat.rsaudio.announcer.sent=Broadcast sent (%s players in range)
+chat.rsaudio.announcer.sent_silent=Broadcast sent (%s players in range; no spoken text, popup only)
+chat.rsaudio.announcer.no_tts=The server has no TTS engine installed; this time there is no sound
+chat.rsaudio.announcer.preview_start=Synthesizing a local preview...
+chat.rsaudio.announcer.preview_empty=Spoken text is empty, nothing to preview
+chat.rsaudio.announcer.preview_no_engine=Local TTS engine is not ready: %s
+chat.rsaudio.announcer.preview_failed=Local synthesis failed (model mismatch or engine startup error), check the game log
+
+# ---------------- DMR (dark matter reactor: controller + multiblock)
+tile.rsaudio.dmr_controller.name=DMR Controller
+tile.rsaudio.dmr_casing.name=DMR Casing
+tile.rsaudio.dmr_core.name=DMR Core Chamber
+
+# State names (keys carry no rsaudio prefix: GuiDmrController looks up dmr.state.<name>)
+dmr.state.offline=Offline
+dmr.state.startup=Ignition sequence
+dmr.state.online=Online
+dmr.state.maintenance=Maintenance
+dmr.state.stalled=Flameout
+dmr.state.meltdown_p1=Meltdown phase 1
+dmr.state.meltdown_p2=Meltdown phase 2
+dmr.state.safe=Safely shut down
+dmr.state.imploded=Imploded
+
+tooltip.rsaudio.dmr_controller.1=The only entry point of the DMR: right-click to open the control panel
+tooltip.rsaudio.dmr_controller.2=Layout: a 3x3x3 shell of DMR Casing with a DMR Core Chamber in the exact center; place the controller against the center of one face
+tooltip.rsaudio.dmr_controller.3=Enable the five subsystems in order, then ignite; overheating runs all the way to meltdown, and the panel shows the four-digit shutdown code
+
+tooltip.rsaudio.dmr_casing.1=DMR Casing: builds the 3x3x3 body so the controller recognises the reactor
+tooltip.rsaudio.dmr_casing.2=The casing itself never breaks, but removing any block voids the multiblock
+
+tooltip.rsaudio.dmr_core.1=DMR Core Chamber: the center block of the multiblock, only one per reactor
+tooltip.rsaudio.dmr_core.2=Standing inside the chamber during the ignition sequence cooks you instantly
+tooltip.rsaudio.dmr_core.3=At the end of a meltdown it implodes and leaves a crater
+tooltip.rsaudio.dmr_core.4=A spinning plasma orb hangs in the chamber, wrapped by two counter-rotating confinement rings; it convulses during a meltdown
+
+gui.rsaudio.dmr.title=DMR Controller - Dark Matter Reactor
+gui.rsaudio.dmr.waiting=Waiting for the server to push readouts...
+gui.rsaudio.dmr.sub.0=Fuel cells locked
+gui.rsaudio.dmr.sub.1=Power laser pumps
+gui.rsaudio.dmr.sub.2=Auxiliary grid
+gui.rsaudio.dmr.sub.3=Ignition key
+gui.rsaudio.dmr.sub.4=Thermal systems
+gui.rsaudio.dmr.sub.5=Key #2 (emergency)
+gui.rsaudio.dmr.on=ON
+gui.rsaudio.dmr.off=OFF
+gui.rsaudio.dmr.ignite=Ignite
+gui.rsaudio.dmr.cooldown=Shut down
+gui.rsaudio.dmr.maint_in=Maintenance
+gui.rsaudio.dmr.install_cell=Install cell
+gui.rsaudio.dmr.maint_out=Restart reactor
+gui.rsaudio.dmr.submit_code=Submit code
+gui.rsaudio.dmr.repair_laser=Restart power lasers
+gui.rsaudio.dmr.pull_cell=Pull fuel cell
+gui.rsaudio.dmr.code_hint=6-digit code
+gui.rsaudio.dmr.state=State
+gui.rsaudio.dmr.temp=Core temp
+gui.rsaudio.dmr.integrity=Integrity
+gui.rsaudio.dmr.fuel=Avg fuel
+gui.rsaudio.dmr.efss=EFSS level
+gui.rsaudio.dmr.lasers=Power lasers
+gui.rsaudio.dmr.power=Output
+gui.rsaudio.dmr.eff=Catalyzer eff.
+gui.rsaudio.dmr.load=Load
+gui.rsaudio.dmr.structure=Multiblock
+gui.rsaudio.dmr.struct_ok=intact
+gui.rsaudio.dmr.struct_bad=broken
+gui.rsaudio.dmr.phase=phase
+gui.rsaudio.dmr.countdown=left
+gui.rsaudio.dmr.meltdown=Meltdown
+gui.rsaudio.dmr.shutdown=Shutdown reqs
+gui.rsaudio.dmr.blockers_ready=all met, ready to shut down
+gui.rsaudio.dmr.blockers_left=missing
+gui.rsaudio.dmr.code=Shutdown code
+gui.rsaudio.dmr.code_note=find the note on site
+gui.rsaudio.dmr.order=Power order
+gui.rsaudio.dmr.orders=Orders done/failed/total
+
+chat.rsaudio.dmr.structure_ok=Multiblock is intact, ready to ignite
+chat.rsaudio.dmr.structure_lost=Multiblock broken, the reactor cannot run
+chat.rsaudio.dmr.struct_pending=The structure reading just changed and has not been confirmed yet - wait a moment and press Ignite again
+chat.rsaudio.dmr.no_structure_core=No DMR core found: none of the six directions 2 blocks out has a core chamber; build the 3x3x3 from the tooltip (core in the middle, controller centred outside one face)
+chat.rsaudio.dmr.no_structure_shell=Core chamber found, but the 3x3x3 shell is still missing %s blocks - all 26 must be DMR casing
+chat.rsaudio.dmr.no_structure_unloaded=Nearby chunks are not loaded yet, so the shell cannot be read - step closer and try again
+chat.rsaudio.dmr.code_note=The shutdown code note is now scattered somewhere in the facility - go find it (six digits, written on paper)
+chat.rsaudio.dmr.pull_too_far=You must get down into the reactor chamber to reach the fuel cells
+
+chat.rsaudio.dmr.event.ignition_start=Ignition sequence started: facility power cut, gravity laser lifting the core
+chat.rsaudio.dmr.event.denied_subsys=Ignition denied: fuel cells, power laser pumps, auxiliary grid and ignition key must all be online
+chat.rsaudio.dmr.event.denied_fuel=Ignition denied: the fuel cells are empty
+chat.rsaudio.dmr.event.online=Reactor is online
+chat.rsaudio.dmr.event.cooldown=Reactor shut down normally
+chat.rsaudio.dmr.event.cooldown_need_thermal=Shutdown refused: the core is still above 3500K - inserting the rods now only makes it less stable. Run the thermal systems to cool it down first
+chat.rsaudio.dmr.event.cooldown_need_efss=Shutdown refused: EFSS level is below 70% - the decay heat has to go somewhere. Refill the loop first
+chat.rsaudio.dmr.event.temp_safe=Core temperature passed the 1120K safety line
+chat.rsaudio.dmr.event.temp_warn=Overheat warning: core passed 2300K, structural integrity is dropping
+chat.rsaudio.dmr.event.integrity_drop=Structural integrity is dropping
+chat.rsaudio.dmr.event.fuel_low=Fuel below 20%, maintenance mode is available
+chat.rsaudio.dmr.event.fuel_monitor_fail=Fuel monitoring failure: readouts are no longer trustworthy
+chat.rsaudio.dmr.event.sustain_loss=Reaction sustainability is failing (core overcooled)
+chat.rsaudio.dmr.event.stall=Flameout: the reaction can no longer sustain itself, maintenance restart required
+chat.rsaudio.dmr.event.maintenance_in=Entered maintenance mode
+chat.rsaudio.dmr.event.maintenance_out=Maintenance complete, reactor restarted
+chat.rsaudio.dmr.event.need_cells=All three fuel cells must be installed first
+chat.rsaudio.dmr.event.meltdown=* MELTDOWN: phase 1. The shutdown code is scattered in the facility - find the note
+chat.rsaudio.dmr.event.phase2=** MELTDOWN phase 2, %s seconds left; submit the code, or climb down and pull all three fuel cells
+chat.rsaudio.dmr.event.shutdown_p1=All shutdown requirements met, the reactor is safe
+chat.rsaudio.dmr.event.shutdown_p2=Cell-removal route complete, the reactor is offline
+chat.rsaudio.dmr.event.code_rejected=Wrong shutdown code
+chat.rsaudio.dmr.event.need_thermal=Not cool enough: the core is still above 3500K, activate the thermal systems first
+chat.rsaudio.dmr.event.need_efss=EFSS level is below 70%, refill the suppression loop first
+chat.rsaudio.dmr.event.need_laser=Some power lasers are offline, hard-restart them
+chat.rsaudio.dmr.event.need_keys=Both keys must be turned at the same time (key #1 and #2)
+chat.rsaudio.dmr.event.need_cells_shutdown=The cell-removal route is not finished
+chat.rsaudio.dmr.event.laser_lost=A power laser burned out and needs a hard restart
+chat.rsaudio.dmr.event.laser_repaired=Power lasers are back online
+chat.rsaudio.dmr.event.efss_low=EFSS level is low - below 70% you can never shut the reactor down
+chat.rsaudio.dmr.event.cell_pulled=Fuel cell pulled: %s / %s
+chat.rsaudio.dmr.event.cell_trap=■ Someone pulled a second fuel cell - the cell route is permanently locked
+chat.rsaudio.dmr.event.code_located=The shutdown code note has been found
+chat.rsaudio.dmr.event.code_black=# CODE BLACK: the shutdown order was silently skipped
+chat.rsaudio.dmr.event.implode=# Reactor imploded
+chat.rsaudio.dmr.event.order_new=New power order: %s
+chat.rsaudio.dmr.event.order_done=Power order completed
+chat.rsaudio.dmr.event.order_fail=Power order failed
+
+# ---------------- F9 PWR (Foxtrot Mk.9 / Project Helios: controller + multiblock)
+tile.rsaudio.f9_controller.name=F9 Controller
+tile.rsaudio.f9_casing.name=F9 Casing
+tile.rsaudio.f9_core.name=F9 Pressure Vessel
+
+# State names (keys carry no rsaudio prefix; GuiF9Controller looks up f9.state.<name>)
+f9.state.cold=Cold shutdown
+f9.state.running=Running
+f9.state.synced=Synced
+f9.state.scrammed=Scrammed
+f9.state.meltdown=Meltdown
+f9.state.blown=Blown out
+f9.state.unknown=Unknown
+
+tooltip.rsaudio.f9_controller.1=The only way into the F9 PWR: right-click to open the control panel
+tooltip.rsaudio.f9_controller.2=Layout: a 3x3x3 shell of F9 Casing, one F9 Pressure Vessel in the very centre, controller on the centre of any outer face
+tooltip.rsaudio.f9_controller.3=The Reactor Safety System must be ON before you can start; 9 control rods, 4 converter pistons and 4 relief valves all live on the panel
+tooltip.rsaudio.f9_controller.4=Above 3700 PSI or 950C it auto-SCRAMs; above 4000 PSI it blows out
+
+tooltip.rsaudio.f9_casing.1=F9 Casing: builds the 3x3x3 body so the controller recognises the reactor
+tooltip.rsaudio.f9_casing.2=The casing itself never breaks, but removing any block invalidates the multiblock (a hot reactor then shuts itself down)
+
+tooltip.rsaudio.f9_core.1=F9 Pressure Vessel: the centre block of the multiblock, only one allowed per machine
+tooltip.rsaudio.f9_core.2=It glows while running; temperature and pressure readouts are on the controller panel
+tooltip.rsaudio.f9_core.3=A blowout or meltdown takes it out along with the casing; it regenerates fresh a few minutes later
+
+gui.rsaudio.f9.title=F9 Controller - PWR (Project Helios)
+gui.rsaudio.f9.waiting=Waiting for the server to push readouts...
+gui.rsaudio.f9.sub.0=Safety System
+gui.rsaudio.f9.sub.1=Continuous CR Transit
+gui.rsaudio.f9.sub.2=Control Rod Speed 2x
+gui.rsaudio.f9.sub.3=Thermal Loop
+gui.rsaudio.f9.on=ON
+gui.rsaudio.f9.off=OFF
+gui.rsaudio.f9.start=Start
+gui.rsaudio.f9.sync=Synchronize
+gui.rsaudio.f9.desync=Desynchronize
+gui.rsaudio.f9.shutdown=Shut down
+gui.rsaudio.f9.converters=Converter pistons (must be engaged to generate)
+gui.rsaudio.f9.valves=Relief valves (open valves bleed pressure)
+gui.rsaudio.f9.rods=Control rods: which one
+gui.rsaudio.f9.sectors=Sectors: which one
+gui.rsaudio.f9.rod_all=Global
+gui.rsaudio.f9.sector_all=All sectors
+gui.rsaudio.f9.hold_up=^ Pull
+gui.rsaudio.f9.hold_down=v Insert
+gui.rsaudio.f9.hold_stop=Stop
+gui.rsaudio.f9.state=State
+gui.rsaudio.f9.temp=Vessel temp
+gui.rsaudio.f9.psi=System pressure
+gui.rsaudio.f9.flux=Neutron flux
+gui.rsaudio.f9.kw=Thermal power
+gui.rsaudio.f9.output=To grid
+gui.rsaudio.f9.integrity=Vessel integrity
+gui.rsaudio.f9.needle=Synchroscope
+gui.rsaudio.f9.sync_cond=Sync conditions
+gui.rsaudio.f9.sync_ready=All ready
+gui.rsaudio.f9.structure=Multiblock
+gui.rsaudio.f9.struct_ok=Valid
+gui.rsaudio.f9.struct_bad=Invalid
+gui.rsaudio.f9.regen=Regen in
+gui.rsaudio.f9.scram=SCRAM reason
+gui.rsaudio.f9.rod_moving=Lever direction
+gui.rsaudio.f9.avg_insert=Avg insertion
+
+chat.rsaudio.f9.structure_ok=Multiblock is valid - with the Safety System on you can press Start
+chat.rsaudio.f9.structure_lost=Multiblock invalid, the reactor cannot run
+chat.rsaudio.f9.struct_pending=The structure verdict just changed and is not confirmed yet - press Start again in a moment
+chat.rsaudio.f9.no_structure_core=No F9 Pressure Vessel found: 2 blocks out in all six directions is empty. Build the 3x3x3 from the tooltip (vessel in the centre, controller on the centre of a face)
+chat.rsaudio.f9.no_structure_shell=Pressure vessel found, but the 3x3x3 shell is still missing %s blocks - all 26 must be F9 Casing
+chat.rsaudio.f9.no_structure_unloaded=Nearby chunks are not loaded yet, cannot read the shell - step closer and try again
+chat.rsaudio.f9.start_need_safety=Start refused: turn the Safety System ON first
+
+chat.rsaudio.f9.event.rod_moving=Control rods are moving
+chat.rsaudio.f9.event.rod_jammed=A control rod is jammed: pushing it further only raises neutron flux very slowly - repeat SCRAMs to free it
+chat.rsaudio.f9.event.rod_cleared=The jammed control rod came free
+chat.rsaudio.f9.event.scram=* Automatic SCRAM: %s - all rods have dropped, pressure will spike before it falls
+chat.rsaudio.f9.event.temp_alarm=Vessel over-temperature: past 850C, a bit higher and it auto-SCRAMs
+chat.rsaudio.f9.event.psi_danger=System pressure is in the danger band (above 3500 PSI): open relief valves
+chat.rsaudio.f9.event.psi_safe_again=System pressure is back in the safe band
+chat.rsaudio.f9.event.safety_disabled=# Safety System disabled: high pressure / temperature / flux no longer auto-SCRAM
+chat.rsaudio.f9.event.safety_enabled=Safety System enabled
+chat.rsaudio.f9.event.sync_ok=Synced to the auxiliary grid, the reactor is now generating
+chat.rsaudio.f9.event.sync_fail_needle=Sync failed: the synchroscope needle is outside -1..1 (Lag = pressure too low, Lead = pressure too high)
+chat.rsaudio.f9.event.sync_fail_kw=Sync failed: thermal power is outside 39000-41000 kW (too low: raise rods at 1x; too high: open relief valves)
+chat.rsaudio.f9.event.sync_fail_rods=Sync failed: average rod insertion must be near 40%
+chat.rsaudio.f9.event.sync_fail_valves=Sync failed: all four relief valves must be closed
+chat.rsaudio.f9.event.desync=Desynchronized, the reactor no longer feeds the grid
+chat.rsaudio.f9.event.blowout=# Blowout: pressure burst the vessel, the reactor regenerates in a few minutes
+chat.rsaudio.f9.event.meltdown=# Meltdown: vessel integrity hit zero, the reactor regenerates in a few minutes
+chat.rsaudio.f9.event.regen=The reactor has regenerated brand new
+chat.rsaudio.f9.event.shutdown_denied_power=Shutdown refused: thermal power is still above 1200 kW, bleed it with the relief valves first
+chat.rsaudio.f9.event.shutdown_denied_temp=Shutdown refused: temperature/pressure have not returned to idle (75C / 1060 PSI)
+chat.rsaudio.f9.event.shutdown_ok=Shut down, the reactor is back to a cold shutdown
+chat.rsaudio.f9.event.thermal_locked=The Thermal Loop is locked by the Safety System: disable it first
+chat.rsaudio.f9.event.flux_high=Neutron flux too high (Safety System limit 14%): stop pulling the rods
+
+# ---------------------------------------------------------------- Surveillance
+tile.rsaudio.monitor_camera.name=Surveillance Camera
+tile.rsaudio.monitor_console.name=Surveillance Console
+
+tooltip.rsaudio.camera.1=Right-click to configure: channel (1-16), field of view, gimbal angle, and a name
+tooltip.rsaudio.camera.2=The base facing is fixed when placed (wall: into the room, ceiling: down, floor: up); the gimbal then pans up to ±180° and tilts up to ±90° from there
+tooltip.rsaudio.camera.3=Ceiling and floor cameras only respond to tilt — pan starts working once you have tilted it off vertical
+tooltip.rsaudio.camera.4=No wiring or pairing: any console on the same channel picks it up
+tooltip.rsaudio.console.1=Right-click to open: live feed on the left, camera list and targets on the right
+tooltip.rsaudio.console.2=Channel-based: it shows the nearest enabled camera on its channel
+tooltip.rsaudio.console.3=The same feed is drawn on the block's own face, no GUI needed
+
+gui.rsaudio.camera.title=Camera Settings
+gui.rsaudio.camera.where=at %d, %d, %d  |  lens faces %s
+gui.rsaudio.camera.channel_value=Channel %d / 16
+gui.rsaudio.camera.fov_value=Field of view %d°
+gui.rsaudio.camera.yaw_value=Pan %s°
+gui.rsaudio.camera.pitch_value=Tilt %s°
+gui.rsaudio.camera.label_hint=Name (optional, shown instead of coordinates)
+gui.rsaudio.camera.reset_gimbal=Reset gimbal
+gui.rsaudio.camera.hint=The buttons beside each row change that row; ceiling/floor cameras only respond to tilt
+gui.rsaudio.camera.enabled_on=Enabled (click to disable)
+gui.rsaudio.camera.enabled_off=Disabled (click to enable)
+gui.rsaudio.camera.state_on=Consoles on the same channel will use this camera
+gui.rsaudio.camera.state_off=Disabled: consoles on the same channel will skip it
+gui.rsaudio.camera.facing_north=north
+gui.rsaudio.camera.facing_south=south
+gui.rsaudio.camera.facing_west=west
+gui.rsaudio.camera.facing_east=east
+gui.rsaudio.camera.facing_up=up
+gui.rsaudio.camera.facing_down=down
+
+gui.rsaudio.monitor.title=Surveillance Console
+gui.rsaudio.monitor.done=Done
+gui.rsaudio.monitor.channel_label=Channel
+gui.rsaudio.monitor.channel_value=%d / 16
+gui.rsaudio.monitor.channel_tag=CH%d
+gui.rsaudio.monitor.overlay_on=On-screen bar: on
+gui.rsaudio.monitor.overlay_off=On-screen bar: off
+gui.rsaudio.monitor.cameras=Cameras here
+gui.rsaudio.monitor.in_frame=In frame
+gui.rsaudio.monitor.none=(none)
+gui.rsaudio.monitor.nobody=no targets
+gui.rsaudio.monitor.more=...and %d more
+gui.rsaudio.monitor.legend=Live %s  |  ← → or 1-9 to change channel
+gui.rsaudio.monitor.no_signal=NO SIGNAL
+gui.rsaudio.monitor.connecting=Establishing feed...
+gui.rsaudio.monitor.no_camera=No camera is registered on this channel
+gui.rsaudio.monitor.all_disabled=Every camera on this channel is disabled
+gui.rsaudio.monitor.watching=Watching: %s
+gui.rsaudio.monitor.overlay_clear=CLEAR
+gui.rsaudio.monitor.overlay_seen=TARGET %d
+
+# ---------------------------------------------------------------- FAAS access terminal
+tile.rsaudio.access_terminal.name=FAAS Access Terminal
+
+tooltip.rsaudio.access.1=Locks or releases every door on one channel - a zone rule, not a remote control
+tooltip.rsaudio.access.2=Right-click to open: pick a channel, write the lock/release announcements, then hit "Lock all"
+tooltip.rsaudio.access.3=Doors built after a lockdown get locked too; releasing only clears the terminal's own lock, never a player's
+tooltip.rsaudio.access.4=A redstone signal means LOCK by default (wire it straight to a reactor trip); invertible in the GUI
+
+gui.rsaudio.access.title=FAAS Access Terminal
+gui.rsaudio.access.zone_locked=# ZONE LOCKED - %s / %s doors locked
+gui.rsaudio.access.zone_released=# ZONE RELEASED - %s / %s doors locked
+gui.rsaudio.access.params=Channel %s  |  Redstone %s  |  Range %s blocks  |  Notice %s s
+gui.rsaudio.access.label.title=Title
+gui.rsaudio.access.label.lock=Lock text
+gui.rsaudio.access.label.release=Release text
+gui.rsaudio.access.hint.title=Top line of the notice
+gui.rsaudio.access.hint.lock=Spoken on lockdown
+gui.rsaudio.access.hint.release=Spoken on release
+gui.rsaudio.access.channel_minus=Channel -
+gui.rsaudio.access.channel_plus=Channel +
+gui.rsaudio.access.invert_on=Invert  ON
+gui.rsaudio.access.invert_off=Invert  OFF
+gui.rsaudio.access.invert_on_short=inverted
+gui.rsaudio.access.invert_off_short=normal
+gui.rsaudio.access.announce_on=Announce  ON
+gui.rsaudio.access.announce_off=Announce  OFF
+gui.rsaudio.access.range_minus=Range -
+gui.rsaudio.access.range_plus=Range +
+gui.rsaudio.access.notice_minus=Notice -
+gui.rsaudio.access.notice_plus=Notice +
+gui.rsaudio.access.lock_all=Lock all
+gui.rsaudio.access.release_all=Release
+gui.rsaudio.access.broadcast_now=Announce now
+gui.rsaudio.access.done=Done
+gui.rsaudio.access.applied_locked=Lockdown sent - every door on the channel is now remote-locked
+gui.rsaudio.access.applied_released=Release sent - only the terminal's lock was cleared; player locks stay
+gui.rsaudio.access.broadcasting=Terminal is announcing with the current settings
+gui.rsaudio.access.send_failed=Send failed (connection may be closed)
+gui.rsaudio.access.hint=Doors built after the lockdown are picked up automatically; releasing never touches player locks
+# ---------------------------------------------------------------- Airlock controller (QSERF airlock)
+tile.rsaudio.airlock_controller=Airlock Controller
+tooltip.rsaudio.airlock.1=Place it between two facing doors on the same channel
+tooltip.rsaudio.airlock.2=Bare right-click = run a cycle: close whichever side is open -> decontaminate -> open the other side
+tooltip.rsaudio.airlock.3=Sneak right-click = open the settings screen
+tooltip.rsaudio.airlock.4=Needs two built doors on the same channel within 8 blocks (interlock optional - the airlock seals both itself)
+tooltip.rsaudio.airlock.5=Entrance = whichever side is currently open; the other side opens after decontamination
+gui.rsaudio.airlock.title=Airlock Controller
+gui.rsaudio.airlock.state_idle=Idle - both sides move freely
+gui.rsaudio.airlock.state_locking=Sealing both sides...
+gui.rsaudio.airlock.state_decon=Decontaminating - %s ticks left
+gui.rsaudio.airlock.state_unlocking=Releasing...
+gui.rsaudio.airlock.sides=Paired: %s
+gui.rsaudio.airlock.sides_none=Not paired yet (found %s / %s doors)
+gui.rsaudio.airlock.params=%s - %s - %s
+gui.rsaudio.airlock.channel_value=Channel %s
+gui.rsaudio.airlock.decon_value=Decon %s ticks
+gui.rsaudio.airlock.timeout_value=Timeout %s ticks
+gui.rsaudio.airlock.channel_minus=Channel -
+gui.rsaudio.airlock.channel_plus=Channel +
+gui.rsaudio.airlock.decon_minus=Decon -
+gui.rsaudio.airlock.decon_plus=Decon +
+gui.rsaudio.airlock.timeout_minus=Timeout -
+gui.rsaudio.airlock.timeout_plus=Timeout +
+gui.rsaudio.airlock.announce_on=Announce on
+gui.rsaudio.airlock.announce_off=Announce off
+gui.rsaudio.airlock.start=Start airlock
+gui.rsaudio.airlock.cancel=E-STOP
+gui.rsaudio.airlock.done=Done
+gui.rsaudio.airlock.start_hint=Start requested - decontamination begins once both sides are sealed
+gui.rsaudio.airlock.cancel_hint=E-STOP requested - both sides stay closed
+gui.rsaudio.airlock.applied=Saved: %s
+gui.rsaudio.airlock.hint=Press Start inside the chamber; whichever side is open counts as the entrance. Neither side opens while decontaminating
+
+# ---------------------------------------------------------------- Remote control panel
+tile.rsaudio.remote_panel=Remote Control Panel
+tooltip.rsaudio.panel.1=Six buttons on the front (3 columns x 2 rows). Bare-hand right-click presses one - no menu
+tooltip.rsaudio.panel.2=Sneak + right-click opens settings (reactor / gate mode, channel)
+tooltip.rsaudio.panel.3=Reactor mode: ignite / cooldown / maintenance / fuel cell / lasers / subsystems
+tooltip.rsaudio.panel.4=Gate mode: open / close / lock / unlock / interlock / heavy (same channel, heavy preferred)
+gui.rsaudio.panel.title=Remote Control Panel
+gui.rsaudio.panel.title.dmr=Reactor Control
+gui.rsaudio.panel.title.gate=Gate Control
+gui.rsaudio.panel.mode.dmr=Reactor
+gui.rsaudio.panel.mode.gate=Gate
+gui.rsaudio.panel.mode_toggle=Mode: %s
+gui.rsaudio.panel.ch_minus=Channel -
+gui.rsaudio.panel.ch_plus=Channel +
+gui.rsaudio.panel.params=%s - channel %s
+gui.rsaudio.panel.target=Linked: %s
+gui.rsaudio.panel.target_none_dmr=No DMR controller within %s blocks
+gui.rsaudio.panel.target_none_gate=No built blast door on channel %s within %s blocks
+gui.rsaudio.panel.legend=Button legend (facing the panel, top row above bottom row)
+gui.rsaudio.panel.legend_row=Row %s: %s
+gui.rsaudio.panel.press_hint=Bare-hand right-click the front to press a button; buttons dim when unlinked
+gui.rsaudio.panel.done=Done
+gui.rsaudio.panel.btn.ignite=Ignite
+gui.rsaudio.panel.btn.cooldown=Shutdown
+gui.rsaudio.panel.btn.maint=Maint
+gui.rsaudio.panel.btn.cell=Cell
+gui.rsaudio.panel.btn.laser=Lasers
+gui.rsaudio.panel.btn.subsys=Aux sys
+gui.rsaudio.panel.btn.open=Open
+gui.rsaudio.panel.btn.close=Close
+gui.rsaudio.panel.btn.lock=Lock
+gui.rsaudio.panel.btn.unlock=Unlock
+gui.rsaudio.panel.btn.interlock=Interlock
+gui.rsaudio.panel.btn.heavy=Heavy
+chat.rsaudio.panel.no_target=This panel is not linked to any machine yet - sneak + right-click to see what it targets
+
+# ---------------------------------------------------------------- Tartarus (circular hatch door)
+tile.rsaudio.tartarus.name=Tartarus Hatch Door
+tooltip.rsaudio.tartarus.1=A circular, giant hatch door (trapdoor) that slowly descends to open and close
+tooltip.rsaudio.tartarus.2=Bare right-click = open/close manually; sneak + right-click with a wooden axe = open the settings, set the radius then Build
+tooltip.rsaudio.tartarus.3=After building, a full ring of circular hatch tiles is generated around the controller within "radius squared"; closed it is a solid floor, open it sinks into the shaft and you can pass through
+tooltip.rsaudio.tartarus.4=Blast resistance 6000 (obsidian is 1200), survives nukes; closing waits if someone is under the hatch
+tooltip.rsaudio.tartarus.5=The whole hatch is a ring of wedge-shaped steel plates (count scales with radius) inside yellow-black hazard stripes, with an indicator-lit hub at the centre
+tooltip.rsaudio.tartarus.6=Bigger radius looks more imposing: max 32 (64 blocks across, around 3200 hatch tiles); resize by removing and rebuilding
+chat.rsaudio.tartarus.orphan_cleared=Cleared %s orphaned hatch tiles (the controller is gone; these tiles do not drop items)
+chat.rsaudio.tartarus.orphan_unloaded=There is a patch of orphaned hatch here, but nearby chunks are not loaded yet - step closer and mine again
+chat.rsaudio.tartarus.orphan_too_big=That patch of orphaned hatch is too big (over 4096 tiles); mine again from the middle to clear it in parts
+chat.rsaudio.tartarus.orphan_cleared=Cleared %s orphaned hatch tiles (the controller is gone; these tiles do not drop items)
+chat.rsaudio.tartarus.orphan_unloaded=There is a patch of orphaned hatch here, but nearby chunks are not loaded yet - step closer and mine again
+chat.rsaudio.tartarus.orphan_too_big=That patch of orphaned hatch is too big (over 4096 tiles); mine again from the middle to clear it in parts
+
+gui.rsaudio.tartarus.title=Tartarus Hatch Door
+gui.rsaudio.tartarus.params=Radius %s (range %s ~ %s blocks)
+gui.rsaudio.tartarus.radius_minus=Radius -1
+gui.rsaudio.tartarus.radius_plus=Radius +1
+gui.rsaudio.tartarus.radius_set=Radius set to %s
+gui.rsaudio.tartarus.build=Build
+gui.rsaudio.tartarus.build_hint=Circular hatch generated around it
+gui.rsaudio.tartarus.remove=Remove
+gui.rsaudio.tartarus.remove_hint=Hatch removed
+gui.rsaudio.tartarus.btn_open=Open
+gui.rsaudio.tartarus.btn_close=Close
+gui.rsaudio.tartarus.open_hint=Opened (it waits if entities are under the hatch)
+gui.rsaudio.tartarus.close_hint=Closed (it waits if entities are under the hatch)
+gui.rsaudio.tartarus.open=Open
+gui.rsaudio.tartarus.closed=Closed
+gui.rsaudio.tartarus.moving=Moving %s%%
+gui.rsaudio.tartarus.unbuilt=Not built
+gui.rsaudio.tartarus.done=Done
+
+# ---------------------------------------------------------------- Train (laid rails + stations + multi-stop commuting)
+#   ★ The name and tooltips are what the player reads first. "shape is decided by neighbours"
+#     must be spelled out -- otherwise players hunt for a "make it a curve" switch, which we
+#     deliberately did not add because it would inevitably disagree with the real shape once
+#     one cell is broken.
+tile.rsaudio.train_rail.name=Train Rail
+tooltip.rsaudio.train_rail.1=A rail you just lay on the ground; straight runs, curves and slopes are all inferred from neighbours, no shape to pick
+tooltip.rsaudio.train_rail.2=Just keep laying it: join the two ends for a loop, or lay a straight line (the train turns around at the end)
+tooltip.rsaudio.train_rail.3=Only 1/8 of a block tall, so it will not step you up
+tooltip.rsaudio.train_rail.4=Sneak + right-click the rail to release a train (empty hand or not, both work; refused if one is within 4 blocks)
+tile.rsaudio.train_station.name=Train Station
+tooltip.rsaudio.train_station.1=Lay it out cell by cell on a 3x3 for one station; the train stops here, opens the doors and waits for passengers
+tooltip.rsaudio.train_station.2=Bare right-click to see its name, dwell time and anchor; sneak + right-click with a wooden axe to rename it and set the dwell
+tooltip.rsaudio.train_station.3=A station must hug the rail (beside it or one block below) to be picked up by the train
+tooltip.rsaudio.train_station.4=Multiple stations form a timetable in the order they appear along the track; the train calls at each in turn
+#   ★ The three below are assembled by BlockTrainStation.onBlockActivated via I18n.
+#     Argument order for the two with %s is fixed: name, dwell duration, [anchor x, y, z].
+chat.rsaudio.train.station_info=Train station "%s" - dwell %s
+chat.rsaudio.train.station_info_anchor=Train station "%s" - dwell %s - anchor %s,%s,%s
+chat.rsaudio.train.station_no_tile=This station cell has no tile entity (likely left over from an old save; break and replace it)
+
+# ---- Train entity (right-click to board / sneak + right-click for status / fault reports)
+chat.rsaudio.train.status=Train - %s cars - passengers %s/%s
+chat.rsaudio.train.door_closed=The doors are not open yet (currently: %s)
+chat.rsaudio.train.full=This train is full - wait for the next one
+chat.rsaudio.train.fail=Train fault: %s - %s
+chat.rsaudio.train.gap_hint=The line is one block short at %s - place a rail block in each of those cells to join it up
+#   Seven phase names, assembled by EntityTrain.phaseKey(phase)
+train.phase.run=Running
+train.phase.braking=Braking for station
+train.phase.door_opening=Opening doors
+train.phase.dwell=At station
+train.phase.door_closing=Closing doors
+train.phase.accel=Departing
+train.phase.stalled=Stalled
+#   Eight fault names, assembled by EntityTrain.failKey(reason).
+#   ★ Each one must point at what to fix (add rail / close the loop / repair the
+#     station / couple a car) -- that is this project's "a fault must name its cause" rule.
+train.fail.none=None
+train.fail.no_rail=Derailed (the rail under it is gone)
+train.fail.dead_end=Hit a dead end (the rail does not connect)
+train.fail.blocked=Blocked ahead
+train.fail.station_gone=Station removed, or not touching the rail
+train.fail.no_loop=The track is not a loop
+train.fail.no_station=No station on the line at all
+train.fail.door_jammed=Doors jammed (someone in the doorway)
+train.fail.no_car=No carriages coupled - cannot carry anyone
+#   Spawning a train (sneak + right-click a rail)
+chat.rsaudio.train.spawned=Train placed - right-click to board; sneak + right-click for status
+chat.rsaudio.train.already_here=This stretch of track already has a train (move the existing one first)
+chat.rsaudio.train.removed=Train removed (rails and stations are kept)
+chat.rsaudio.train.gone=The train vanished from the world - the game log records why (search for the line containing the train removal)
+#   Entity display name. Used by the F3 entity list, death messages and name tags.
+#   Not optional polish: without this key the UI shows the raw key
+#   entity.rsaudio.train.name.
+entity.rsaudio.train.name=Train
+
+# ---------------------------------------------------------------- Elevator (passenger / freight / inclined)
+#   Shaft = the column you stack up; Car = placed and moved by the controller (you cannot
+#   place or pick it up); Door = one per floor, right-click = call; Controller = the only
+#   entry point, right-click opens the panel.
+tile.rsaudio.elevator_shaft.name=Elevator Shaft
+tile.rsaudio.elevator_car.name=Elevator Car
+tile.rsaudio.elevator_door.name=Elevator Landing Door
+tile.rsaudio.elevator_controller_passenger.name=Passenger Elevator Controller
+tile.rsaudio.elevator_controller_freight.name=Freight Elevator Controller
+tile.rsaudio.elevator_controller_inclined.name=Inclined Elevator Controller
+
+tooltip.rsaudio.elevator_shaft.1=Elevator shaft: stack it from the lowest floor to the highest without gaps (a gap makes the controller report "no shaft")
+tooltip.rsaudio.elevator_shaft.2=The shaft is only a guide rail: you can pass through it, it carries nobody and blocks nobody
+tooltip.rsaudio.elevator_shaft.3=For an inclined elevator the shaft shifts one block to the same side on every level (the direction is shown in the controller GUI)
+
+tooltip.rsaudio.elevator_car.1=Elevator car: placed and moved by the controller - you can neither place nor pick it up
+tooltip.rsaudio.elevator_car.2=Breaking it does not break the elevator - the controller puts it back on the next tick
+
+tooltip.rsaudio.elevator_door.1=Landing door: mount one on the shaft wall of every floor; right-click calls the car to this floor
+tooltip.rsaudio.elevator_door.2=An open door never suffocates anything; a closed door has collision and does block you
+tooltip.rsaudio.elevator_door.3=Right-click with a wooden axe is treated as "select a corner"; bare-handed right-click is the call
+
+tooltip.rsaudio.elevator_controller_passenger.1=Passenger elevator controller: right-click to open the panel and pick a floor
+tooltip.rsaudio.elevator_controller_passenger.2=How to place: build a shaft column first, then mount the controller against it (it faces you when placed)
+tooltip.rsaudio.elevator_controller_passenger.3=Car is 3x3 and carries up to 8 cells, up to 32 floors; every floor needs a landing door or it is not registered
+tooltip.rsaudio.elevator_controller_passenger.4=The floor list is derived from the landing doors - no manual registration
+
+tooltip.rsaudio.elevator_controller_freight.1=Freight elevator controller: right-click to open the panel and pick a floor
+tooltip.rsaudio.elevator_controller_freight.2=Placed like the passenger type: one shaft column plus a controller mounted against it
+tooltip.rsaudio.elevator_controller_freight.3=Car is 5x3 and carries up to 24 cells; it travels slower and holds the door open longer (loading takes time)
+tooltip.rsaudio.elevator_controller_freight.4=Leave a 5x3 shaft clearance - too narrow and the car jams against the shaft wall and reports "shaft blocked"
+
+tooltip.rsaudio.elevator_controller_inclined.1=Inclined elevator controller: the shaft rises and shifts sideways at the same time (like a minecart ramp)
+tooltip.rsaudio.elevator_controller_inclined.2=How to place: shift the shaft one block to the same side on every level, and mount the controller at the starting level
+tooltip.rsaudio.elevator_controller_inclined.3=The car always stays level (it does not tilt with the shaft) and can serve up to 32 floors
+tooltip.rsaudio.elevator_controller_inclined.4=The GUI states the horizontal shift direction; if it does not match the shaft you get "no shaft"
+
+# Type / state / fault names. Note: no rsaudio prefix - the GUI builds elevator.<group>.<name>
+elevator.type.passenger=Passenger
+elevator.type.freight=Freight
+elevator.type.inclined=Inclined
+
+elevator.state.idle=Idle
+elevator.state.opening=Opening
+elevator.state.open=Open
+elevator.state.closing=Closing
+elevator.state.moving=Moving
+elevator.state.fault=Fault
+
+elevator.fault.none=None
+elevator.fault.shaft=No shaft found
+elevator.fault.no_floor=No landing door on the shaft
+elevator.fault.blocked=Shaft blocked (the car's cells are occupied)
+elevator.fault.overload=Overload
+
+gui.rsaudio.elevator.title=Elevator Controller
+gui.rsaudio.elevator.waiting=Waiting for the server to push readings...
+gui.rsaudio.elevator.type=Type
+gui.rsaudio.elevator.state=State
+gui.rsaudio.elevator.floor=Floor
+gui.rsaudio.elevator.target=Target
+gui.rsaudio.elevator.index=Car position (blocks)
+gui.rsaudio.elevator.speed=Speed
+gui.rsaudio.elevator.door=Door
+gui.rsaudio.elevator.trips=Trips
+gui.rsaudio.elevator.floors=Floors
+gui.rsaudio.elevator.calls=Calls queued
+gui.rsaudio.elevator.shaft=Shaft
+gui.rsaudio.elevator.shaft_ok=Found
+gui.rsaudio.elevator.shaft_bad=Not found
+gui.rsaudio.elevator.fault=Fault
+gui.rsaudio.elevator.missing=Shaft gaps
+gui.rsaudio.elevator.more_floors=Only the first 32 floors have buttons; %d more floors have none
+gui.rsaudio.elevator.inclined_note=Inclined elevator: the car moves up and sideways at the same time - this is normal
+gui.rsaudio.elevator.hold_door=Hold door
+gui.rsaudio.elevator.close_door=Close door
+gui.rsaudio.elevator.clear=Clear calls
+gui.rsaudio.elevator.rescan=Rescan shaft
+gui.rsaudio.elevator.none=None
+
+chat.rsaudio.elevator.no_controller=No elevator controller next to this landing door (none within six blocks) - place a controller first
+chat.rsaudio.elevator.shaft_ok=Elevator controller found the shaft
+chat.rsaudio.elevator.shaft_lost=Elevator controller lost the shaft - check the column for a gap
+chat.rsaudio.elevator.repaired=Elevator fault cleared
+chat.rsaudio.elevator.call_denied=Call refused (the door is closing - wait, or press "Hold door")
+chat.rsaudio.elevator.door_orphan=This landing door is not wired to the shaft (its floor is not in the floor list)
+chat.rsaudio.elevator.fault.none=No fault
+chat.rsaudio.elevator.fault.shaft=Elevator fault: no shaft found
+chat.rsaudio.elevator.fault.no_floor=Elevator fault: the shaft has no landing door
+chat.rsaudio.elevator.fault.blocked=Elevator fault: the shaft is blocked
+chat.rsaudio.elevator.fault.overload=Elevator fault: overload
+
+chat.rsaudio.elevator.event.arrive=Elevator arrived at floor %s
+chat.rsaudio.elevator.event.depart=Elevator left floor %s
+chat.rsaudio.elevator.event.door_opening=Opening door on floor %s
+chat.rsaudio.elevator.event.door_closing=Closing door on floor %s
+chat.rsaudio.elevator.event.call=Queued: floor %s
+chat.rsaudio.elevator.event.fault=Elevator fault (floor %s)
+chat.rsaudio.elevator.event.repaired=Elevator fault cleared (floor %s)
+chat.rsaudio.elevator.event.call_denied=Call refused: floor %s
+chat.rsaudio.elevator.event.overload=Overload: floor %s
+#   unknown is the out-of-range fallback of the kernel's eventName() (EVENT_TEXT only
+#   walks [0, EV_COUNT), so it is never actually broadcast). It exists to keep the
+#   kernel-name-table <-> lang comparison in verify_jar §[2d] strict - same reason
+#   f9.state.unknown exists.
+chat.rsaudio.elevator.event.unknown=Elevator event (unknown event id: %s)
+
+# ---------------- Decoration set: giant pipe / exhaust fan / giant sign ----------------
+tile.rsaudio.giant_pipe.name=Giant Pipe
+tooltip.rsaudio.giant_pipe.1=Connects on all six sides: any adjacent pipe (or exhaust fan) grows an arm.
+tooltip.rsaudio.giant_pipe.2=No wrench, no setup - it lines itself up as soon as you place it.
+tooltip.rsaudio.giant_pipe.3=The collision box follows the shape, so wherever an arm reaches, it blocks.
+
+tile.rsaudio.exhaust_fan.name=Exhaust Fan
+tooltip.rsaudio.exhaust_fan.1=A large axial fan. It is already spinning when you place it.
+tooltip.rsaudio.exhaust_fan.2=Right-click to toggle running / stopped (the state is saved).
+tooltip.rsaudio.exhaust_fan.3=The blades face the side you clicked; pipes can connect to it.
+
+chat.rsaudio.exhaust_fan.on=Exhaust fan: running
+chat.rsaudio.exhaust_fan.off=Exhaust fan: stopped
+
+tile.rsaudio.giant_sign.name=Giant Sign
+tooltip.rsaudio.giant_sign.1=A wall-sized sign panel with three lines of text and eight colours.
+tooltip.rsaudio.giant_sign.2=Right-click to edit; the text shrinks to fit the longest line.
+tooltip.rsaudio.giant_sign.3=With Lighting on, the panel glows and stays readable at night.
+tooltip.rsaudio.giant_sign.4=The lettering faces you - the side you stood on when placing it.
+
+# Eight text colours. The names must match TileGiantSign.COLOR_NAMES exactly
+# (verify_jar §[2e] pulls the literals out of that class and compares both ways).
+tile.rsaudio.giant_sign.color.white=White
+tile.rsaudio.giant_sign.color.amber=Amber
+tile.rsaudio.giant_sign.color.red=Red
+tile.rsaudio.giant_sign.color.green=Green
+tile.rsaudio.giant_sign.color.cyan=Cyan
+tile.rsaudio.giant_sign.color.blue=Blue
+tile.rsaudio.giant_sign.color.violet=Violet
+tile.rsaudio.giant_sign.color.yellow=Yellow
+
+gui.rsaudio.giant_sign.title=Giant Sign
+gui.rsaudio.giant_sign.where=At %d, %d, %d
+gui.rsaudio.giant_sign.hint=Up to %s characters per line; an empty line is not drawn
+gui.rsaudio.giant_sign.color_label=Colour: %s
+gui.rsaudio.giant_sign.lit_on=Lighting: on
+gui.rsaudio.giant_sign.lit_off=Lighting: off
+gui.rsaudio.giant_sign.preview=Preview
+gui.rsaudio.giant_sign.apply=Apply
+gui.rsaudio.giant_sign.done=Done
+
+# ---------------- Lifting group: crane / freight truck ----------------
+tile.rsaudio.crane.name=Crane
+tooltip.rsaudio.crane.1=Portal crane: a gantry, a rotating jib and a hook on top of the base box.
+tooltip.rsaudio.crane.2=Right-click to toggle running / stowed (state is saved).
+tooltip.rsaudio.crane.3=The jib points where you stood when placing it; it stays there while stowed.
+
+chat.rsaudio.crane.on=Crane: running
+chat.rsaudio.crane.off=Crane: stowed
+
+tile.rsaudio.truck_pad.name=Freight Truck Pad
+tooltip.rsaudio.truck_pad.1=A parking pad: sneak + right-click to place a freight truck on it.
+tooltip.rsaudio.truck_pad.2=The arrow shows the way the truck will face.
+tooltip.rsaudio.truck_pad.3=Will not spawn if another truck is within 4 blocks or the space above is solid.
+
+entity.rsaudio.freight_truck.name=Freight Truck
+chat.rsaudio.truck.spawn=Freight truck deployed (right-click to start, sneak + right-click to reverse)
+chat.rsaudio.truck.duplicate=A freight truck is already nearby
+chat.rsaudio.truck.no_space=No clearance above, cannot place
+chat.rsaudio.truck.start=Freight truck: started
+chat.rsaudio.truck.stop=Freight truck: stopped
+chat.rsaudio.truck.reverse=Freight truck: reversed
+chat.rsaudio.truck.blocked=Freight truck: blocked ahead, stopped
+chat.rsaudio.truck.still_blocked=Freight truck: still blocked, will not start
+chat.rsaudio.truck.removed=The freight truck was dismantled
+
+# ---- reasim speaker simulation ----
+gui.rsaudio.on=on
+gui.rsaudio.off=off
+gui.rsaudio.reasim.title=REASIM Speaker Simulation
+gui.rsaudio.reasim.enable=REASIM
+gui.rsaudio.reasim.auto=Auto echo
+gui.rsaudio.reasim.auto_hint=Measured from the room: %s%%
+gui.rsaudio.reasim.volume=Volume
+gui.rsaudio.reasim.echo=Echo
+gui.rsaudio.reasim.distortion=Distortion
+gui.rsaudio.reasim.hiss=Mains hum
+gui.rsaudio.reasim.static_noise=Static
+gui.rsaudio.reasim.preview=Preview (with effects)
+gui.rsaudio.reasim.done=Done
+gui.rsaudio.reasim.off_hint=With REASIM off this player sounds exactly like it did before
+gui.rsaudio.reasim.unavailable=This client cannot reach the sound engine; REASIM is unavailable (see the log)

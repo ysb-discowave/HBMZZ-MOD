@@ -136,6 +136,22 @@ def installed_jars(mods):
     )
 
 
+def standalone_rsaudio(mods):
+    """独立的 rsaudio jar。
+
+    2.9.0 起 rsaudio 并进了 hbmzz 这一个 jar：一个 jar 里装两个模组容器
+    （hbmzz + rsaudio），所以 rsaudio 的方块、贴图和存档 id 都没变。代价是
+    独立的 rsaudio-*.jar 现在会声明同一个容器 id —— 两份同时在 mods 里就是
+    duplicate modid，FML 在加载阶段直接崩，而且报错文字完全指不到
+    "你装了两份"这件事上。所以部署时顺手把它停用掉。
+    """
+    return sorted(
+        os.path.join(mods, name)
+        for name in os.listdir(mods)
+        if name.lower().startswith("rsaudio-") and name.lower().endswith(".jar")
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="把当前版本装进游戏 mods 目录")
     parser.add_argument("--mods", help="游戏 mods 目录")
@@ -159,12 +175,25 @@ def main():
         return 0
 
     stale = [path for path in installed_jars(mods) if os.path.abspath(path) != os.path.abspath(target)]
+    duplicates = standalone_rsaudio(mods)
     plan = [("改名 .bak", path) for path in stale] + [("复制", jar)]
 
     if args.dry_run:
         for action, path in plan:
             print("[dry-run] %s %s" % (action, path))
+        for path in duplicates:
+            print("[dry-run] 停用独立 rsaudio %s" % path)
         return 0
+
+    for path in duplicates:
+        # 后缀不用 .bak：目录里本来就有一堆同名 .bak，会撞上
+        backup = path + ".merged"
+        try:
+            os.replace(path, backup)
+        except PermissionError:
+            die("改不动 %s —— 游戏还开着？先退出游戏再跑一次" % os.path.basename(path))
+        print("独立 rsaudio 已停用 %s（已并进 hbmzz，两份同时装会 duplicate modid）"
+              % os.path.basename(backup))
 
     for path in stale:
         backup = path + ".bak"

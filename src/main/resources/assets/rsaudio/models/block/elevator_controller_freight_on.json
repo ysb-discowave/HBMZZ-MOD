@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/elevator_controller_freight_side",
+    "down": "rsaudio:blocks/elevator_controller_freight_bottom",
+    "up": "rsaudio:blocks/elevator_controller_freight_top",
+    "north": "rsaudio:blocks/elevator_controller_freight_front_on",
+    "south": "rsaudio:blocks/elevator_controller_freight_side",
+    "east": "rsaudio:blocks/elevator_controller_freight_side",
+    "west": "rsaudio:blocks/elevator_controller_freight_side"
+  }
+}

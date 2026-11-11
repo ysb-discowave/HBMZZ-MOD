@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "active=false,pulse=false": {
+      "model": "rsaudio:audio_player"
+    },
+    "active=false,pulse=true": {
+      "model": "rsaudio:audio_player"
+    },
+    "active=true,pulse=false": {
+      "model": "rsaudio:audio_player_on"
+    },
+    "active=true,pulse=true": {
+      "model": "rsaudio:audio_player_on"
+    }
+  }
+}

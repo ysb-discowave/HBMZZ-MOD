@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "open=false": {
+      "model": "rsaudio:tartarus_hatch"
+    },
+    "open=true": {
+      "model": "rsaudio:tartarus_hatch"
+    }
+  }
+}

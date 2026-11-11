@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "rsaudio:monitor_console"
+    },
+    "facing=east": {
+      "model": "rsaudio:monitor_console",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "rsaudio:monitor_console",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "rsaudio:monitor_console",
+      "y": 270
+    }
+  }
+}

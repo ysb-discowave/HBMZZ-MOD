@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "open=false": {
+      "model": "rsaudio:tartarus_block"
+    },
+    "open=true": {
+      "model": "rsaudio:tartarus_block"
+    }
+  }
+}

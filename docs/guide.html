@@ -690,6 +690,71 @@
     </div>
   </section>
 
+  <!-- ================= 红石音频 + reasim ================= -->
+  <section class="section" id="rsaudio">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 红石音频 · reasim</div>
+        <h2>这台播放器现在会「破」了</h2>
+      </div>
+      <p>
+        2.9.0 把 <strong>Redstone Audio（红石音频）</strong>整个并了进来：音频播放器、红石延迟器、结构加载器、
+        自动化红石计算机、六色警报灯、防核门、广播器、DMR 与 F9 两台反应堆、电梯、监控、门禁与气闸、
+        远程面板、列车和货运卡车，全部都在。
+        <strong>它仍然是一个独立模组</strong>（<code>modid = rsaudio</code>），只是打在同一枚 jar 里——
+        因为 <code>rsaudio:</code> 的方块 id 已经写进了存档，改名等于让老存档里所有红石音频的机器凭空消失。
+      </p>
+      <p>
+        <strong>装 2.9.0 之前请把 <code>mods/</code> 里独立的 <code>rsaudio-*.jar</code> 拿掉。</strong>
+        两份同时存在就是 duplicate modid，FML 会在加载阶段直接崩，而且报错文字完全指不到这件事上。
+        <code>tools/deploy.py</code> 现在会自动把它改名成 <code>.jar.merged</code>。
+      </p>
+
+      <h3 style="margin-top:26px">开 reasim</h3>
+      <p>
+        右键播放器 → 模式那一行最右边多了一个 <code>REASIM</code> 按钮 → 进去把总开关打开。
+        之后这台机器放出来的就不再是"干净的音乐"，而是一只装在铁皮箱里的喇叭。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:20%">滑条</th><th style="width:22%">范围（默认）</th><th>它到底做了什么</th></tr></thead>
+          <tbody>
+            <tr><td><strong>音量</strong></td><td>0 – 200%（100%）</td><td>功放增益。拧到 0 也还有一点嗡嗡声，因为底噪在增益之后。</td></tr>
+            <tr><td><strong>回声</strong></td><td>0 – 100%（30%）</td><td>带反馈的延迟线：延迟 90–280 ms，重复四次左右，每次更闷。</td></tr>
+            <tr><td><strong>自动回声</strong></td><td>开 / 关（关）</td><td>按周围空间实时算，见下。</td></tr>
+            <tr><td><strong>失真</strong></td><td>0 – 100%（0%）</td><td>软削波 + 位深从 16 位掉到 6 位。是"廉价 DAC"而不是"重金属"。</td></tr>
+            <tr><td><strong>电流声</strong></td><td>0 – 100%（18%）</td><td>50 Hz 工频哼声加二、三次谐波——铜线在磁场里的那个调子。</td></tr>
+            <tr><td><strong>沙沙声</strong></td><td>0 – 100%（10%）</td><td>带限白噪 + 稀疏爆裂，像接触不良的电位器。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:26px">自动回声是怎么量的</h3>
+      <p>
+        从方块中心朝六个方向各打一条最长 16 格的射线，取平均自由距离（空间感），
+        再统计半径 4 格内实心方块的占比（吸收面），最后一条：<strong>头顶能看见天就把混响砍到 35%</strong>。
+        三件事加起来已经足够区分「砌在铁皮机房里」和「插在旷野上」。
+        数值每 20 tick 重新量一次，显示在滑条右边。
+      </p>
+      <div class="note" style="margin-top:16px">
+        <div>
+          <p><strong>这不是假的。</strong>失真要波形整形，沙沙声要加噪声，回声要一条带反馈的延迟线——
+          这三件事都必须拿到采样才谈得上。普通的 <code>ISound</code> 只给了音量和音高（一个是线性缩放，
+          一个是重采样），做不出来。所以 reasim 绕开了它，直接解码 ogg、跑一遍 DSP、
+          再把 PCM 喂进 Minecraft 自带的 paulscode 声音引擎。</p>
+          <p>代价是这部分要碰引擎的私有字段。拿不到的时候（改过声音库的客户端、非官方启动器），
+          reasim 会安静地退回普通播放——<strong>只是没有那些效果，音乐不会不响</strong>，日志里会写明原因。</p>
+        </div>
+      </div>
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>音色是机器的，不是听的人的。</strong>参数存在方块实体上：多人服务器里所有人听到同一种破喇叭，
+          重进世界也还在。只有服务端能改，客户端改本地文件不会让别人的服务器上放出干净的声音。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 常见操作速查 ================= -->
   <section class="section" id="cheatsheet">
     <div class="wrap">

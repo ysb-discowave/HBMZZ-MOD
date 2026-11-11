@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "rsaudio:f9_core"
+    },
+    "lit=true": {
+      "model": "rsaudio:f9_core"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,locked=false": {
+      "model": "rsaudio:access_terminal"
+    },
+    "facing=north,locked=true": {
+      "model": "rsaudio:access_terminal_locked"
+    },
+    "facing=east,locked=false": {
+      "model": "rsaudio:access_terminal",
+      "y": 90
+    },
+    "facing=east,locked=true": {
+      "model": "rsaudio:access_terminal_locked",
+      "y": 90
+    },
+    "facing=south,locked=false": {
+      "model": "rsaudio:access_terminal",
+      "y": 180
+    },
+    "facing=south,locked=true": {
+      "model": "rsaudio:access_terminal_locked",
+      "y": 180
+    },
+    "facing=west,locked=false": {
+      "model": "rsaudio:access_terminal",
+      "y": 270
+    },
+    "facing=west,locked=true": {
+      "model": "rsaudio:access_terminal_locked",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "running=false": {
+      "model": "rsaudio:redstone_computer"
+    },
+    "running=true": {
+      "model": "rsaudio:redstone_computer_on"
+    }
+  }
+}

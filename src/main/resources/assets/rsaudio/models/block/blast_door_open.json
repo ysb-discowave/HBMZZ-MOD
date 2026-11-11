@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/door_side",
+    "down": "rsaudio:blocks/door_bottom",
+    "up": "rsaudio:blocks/door_top",
+    "north": "rsaudio:blocks/door_front_open",
+    "south": "rsaudio:blocks/door_side",
+    "east": "rsaudio:blocks/door_side",
+    "west": "rsaudio:blocks/door_side"
+  }
+}

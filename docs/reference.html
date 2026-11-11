@@ -500,6 +500,29 @@
       </div>
 
       <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 红石音频 · reasim</div>
+        <h2>音频播放器的 reasim 参数</h2>
+        <p>存在<strong>方块实体</strong>上（不是客户端、也不是配置文件）：<code>NBT</code> 键 <code>ReOn</code> / <code>ReAuto</code> / <code>ReVol</code> / <code>ReEcho</code> / <code>ReDist</code> / <code>ReHiss</code> / <code>ReStat</code>。没有这些键的存档一律按「关闭」读，所以从 2.8.0 升上来不会出问题。只有服务端能改（<code>PacketSetReasim</code>，距离校验 64 格）。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:16%">参数</th><th style="width:10%">键</th><th style="width:14%">范围（默认）</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>总开关</td><td><code>ReOn</code></td><td>false / true（false）</td><td>关闭时整条 DSP 旁路，声音与原版完全一致。播放中途关掉<strong>不会重开</strong>，只是立刻变回干净的声音。</td></tr>
+            <tr><td>音量</td><td><code>ReVol</code></td><td>0.0 – 2.0（1.0）</td><td>功放增益。2.0 会把大多素材推到软限幅，听起来更像"拧到底"。</td></tr>
+            <tr><td>回声</td><td><code>ReEcho</code></td><td>0.0 – 1.0（0.30）</td><td>湿声比例。延迟 = 90 + 190×回声 ms，反馈 = 0.20 + 0.45×回声。</td></tr>
+            <tr><td>自动回声</td><td><code>ReAuto</code></td><td>false / true（false）</td><td>开着时回声值由 <code>ReasimEnvironment</code> 按六向射线 + 实心占比算出，滑条只显示不接收。</td></tr>
+            <tr><td>失真</td><td><code>ReDist</code></td><td>0.0 – 1.0（0.0）</td><td>驱动 1→25 的 tanh 软削波，同时位深 16→6 位。带一阶高通去直流。</td></tr>
+            <tr><td>电流声</td><td><code>ReHiss</code></td><td>0.0 – 1.0（0.18）</td><td>50 Hz + 100 Hz + 150 Hz 工频哼声，不乘增益（所以音量 0 仍在）。</td></tr>
+            <tr><td>沙沙声</td><td><code>ReStat</code></td><td>0.0 – 1.0（0.10）</td><td>带限白噪 + 稀疏爆裂脉冲，概率与幅度都跟着这个值走。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
         <div class="kicker">// 游戏规则</div>
         <h2>本模组新增的 gamerule</h2>
         <p>只有一条。1.12.2 没有 gamerule 注册表，它在<strong>世界加载时</strong>被创建，而且只在<strong>还不存在</strong>时才创建——<code>addGameRule</code> 会覆盖已有的值，无条件调用等于每次开存档都把它重置成 false。</p>

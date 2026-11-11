@@ -1,0 +1,244 @@
+{
+  "variants": {
+    "facing=north,level=1,powered=false": {
+      "model": "rsaudio:redstone_delayer_1_off"
+    },
+    "facing=north,level=1,powered=true": {
+      "model": "rsaudio:redstone_delayer_1_on"
+    },
+    "facing=north,level=2,powered=false": {
+      "model": "rsaudio:redstone_delayer_2_off"
+    },
+    "facing=north,level=2,powered=true": {
+      "model": "rsaudio:redstone_delayer_2_on"
+    },
+    "facing=north,level=3,powered=false": {
+      "model": "rsaudio:redstone_delayer_3_off"
+    },
+    "facing=north,level=3,powered=true": {
+      "model": "rsaudio:redstone_delayer_3_on"
+    },
+    "facing=north,level=4,powered=false": {
+      "model": "rsaudio:redstone_delayer_4_off"
+    },
+    "facing=north,level=4,powered=true": {
+      "model": "rsaudio:redstone_delayer_4_on"
+    },
+    "facing=north,level=5,powered=false": {
+      "model": "rsaudio:redstone_delayer_5_off"
+    },
+    "facing=north,level=5,powered=true": {
+      "model": "rsaudio:redstone_delayer_5_on"
+    },
+    "facing=north,level=6,powered=false": {
+      "model": "rsaudio:redstone_delayer_6_off"
+    },
+    "facing=north,level=6,powered=true": {
+      "model": "rsaudio:redstone_delayer_6_on"
+    },
+    "facing=north,level=7,powered=false": {
+      "model": "rsaudio:redstone_delayer_7_off"
+    },
+    "facing=north,level=7,powered=true": {
+      "model": "rsaudio:redstone_delayer_7_on"
+    },
+    "facing=north,level=8,powered=false": {
+      "model": "rsaudio:redstone_delayer_8_off"
+    },
+    "facing=north,level=8,powered=true": {
+      "model": "rsaudio:redstone_delayer_8_on"
+    },
+    "facing=east,level=1,powered=false": {
+      "model": "rsaudio:redstone_delayer_1_off",
+      "y": 90
+    },
+    "facing=east,level=1,powered=true": {
+      "model": "rsaudio:redstone_delayer_1_on",
+      "y": 90
+    },
+    "facing=east,level=2,powered=false": {
+      "model": "rsaudio:redstone_delayer_2_off",
+      "y": 90
+    },
+    "facing=east,level=2,powered=true": {
+      "model": "rsaudio:redstone_delayer_2_on",
+      "y": 90
+    },
+    "facing=east,level=3,powered=false": {
+      "model": "rsaudio:redstone_delayer_3_off",
+      "y": 90
+    },
+    "facing=east,level=3,powered=true": {
+      "model": "rsaudio:redstone_delayer_3_on",
+      "y": 90
+    },
+    "facing=east,level=4,powered=false": {
+      "model": "rsaudio:redstone_delayer_4_off",
+      "y": 90
+    },
+    "facing=east,level=4,powered=true": {
+      "model": "rsaudio:redstone_delayer_4_on",
+      "y": 90
+    },
+    "facing=east,level=5,powered=false": {
+      "model": "rsaudio:redstone_delayer_5_off",
+      "y": 90
+    },
+    "facing=east,level=5,powered=true": {
+      "model": "rsaudio:redstone_delayer_5_on",
+      "y": 90
+    },
+    "facing=east,level=6,powered=false": {
+      "model": "rsaudio:redstone_delayer_6_off",
+      "y": 90
+    },
+    "facing=east,level=6,powered=true": {
+      "model": "rsaudio:redstone_delayer_6_on",
+      "y": 90
+    },
+    "facing=east,level=7,powered=false": {
+      "model": "rsaudio:redstone_delayer_7_off",
+      "y": 90
+    },
+    "facing=east,level=7,powered=true": {
+      "model": "rsaudio:redstone_delayer_7_on",
+      "y": 90
+    },
+    "facing=east,level=8,powered=false": {
+      "model": "rsaudio:redstone_delayer_8_off",
+      "y": 90
+    },
+    "facing=east,level=8,powered=true": {
+      "model": "rsaudio:redstone_delayer_8_on",
+      "y": 90
+    },
+    "facing=south,level=1,powered=false": {
+      "model": "rsaudio:redstone_delayer_1_off",
+      "y": 180
+    },
+    "facing=south,level=1,powered=true": {
+      "model": "rsaudio:redstone_delayer_1_on",
+      "y": 180
+    },
+    "facing=south,level=2,powered=false": {
+      "model": "rsaudio:redstone_delayer_2_off",
+      "y": 180
+    },
+    "facing=south,level=2,powered=true": {
+      "model": "rsaudio:redstone_delayer_2_on",
+      "y": 180
+    },
+    "facing=south,level=3,powered=false": {
+      "model": "rsaudio:redstone_delayer_3_off",
+      "y": 180
+    },
+    "facing=south,level=3,powered=true": {
+      "model": "rsaudio:redstone_delayer_3_on",
+      "y": 180
+    },
+    "facing=south,level=4,powered=false": {
+      "model": "rsaudio:redstone_delayer_4_off",
+      "y": 180
+    },
+    "facing=south,level=4,powered=true": {
+      "model": "rsaudio:redstone_delayer_4_on",
+      "y": 180
+    },
+    "facing=south,level=5,powered=false": {
+      "model": "rsaudio:redstone_delayer_5_off",
+      "y": 180
+    },
+    "facing=south,level=5,powered=true": {
+      "model": "rsaudio:redstone_delayer_5_on",
+      "y": 180
+    },
+    "facing=south,level=6,powered=false": {
+      "model": "rsaudio:redstone_delayer_6_off",
+      "y": 180
+    },
+    "facing=south,level=6,powered=true": {
+      "model": "rsaudio:redstone_delayer_6_on",
+      "y": 180
+    },
+    "facing=south,level=7,powered=false": {
+      "model": "rsaudio:redstone_delayer_7_off",
+      "y": 180
+    },
+    "facing=south,level=7,powered=true": {
+      "model": "rsaudio:redstone_delayer_7_on",
+      "y": 180
+    },
+    "facing=south,level=8,powered=false": {
+      "model": "rsaudio:redstone_delayer_8_off",
+      "y": 180
+    },
+    "facing=south,level=8,powered=true": {
+      "model": "rsaudio:redstone_delayer_8_on",
+      "y": 180
+    },
+    "facing=west,level=1,powered=false": {
+      "model": "rsaudio:redstone_delayer_1_off",
+      "y": 270
+    },
+    "facing=west,level=1,powered=true": {
+      "model": "rsaudio:redstone_delayer_1_on",
+      "y": 270
+    },
+    "facing=west,level=2,powered=false": {
+      "model": "rsaudio:redstone_delayer_2_off",
+      "y": 270
+    },
+    "facing=west,level=2,powered=true": {
+      "model": "rsaudio:redstone_delayer_2_on",
+      "y": 270
+    },
+    "facing=west,level=3,powered=false": {
+      "model": "rsaudio:redstone_delayer_3_off",
+      "y": 270
+    },
+    "facing=west,level=3,powered=true": {
+      "model": "rsaudio:redstone_delayer_3_on",
+      "y": 270
+    },
+    "facing=west,level=4,powered=false": {
+      "model": "rsaudio:redstone_delayer_4_off",
+      "y": 270
+    },
+    "facing=west,level=4,powered=true": {
+      "model": "rsaudio:redstone_delayer_4_on",
+      "y": 270
+    },
+    "facing=west,level=5,powered=false": {
+      "model": "rsaudio:redstone_delayer_5_off",
+      "y": 270
+    },
+    "facing=west,level=5,powered=true": {
+      "model": "rsaudio:redstone_delayer_5_on",
+      "y": 270
+    },
+    "facing=west,level=6,powered=false": {
+      "model": "rsaudio:redstone_delayer_6_off",
+      "y": 270
+    },
+    "facing=west,level=6,powered=true": {
+      "model": "rsaudio:redstone_delayer_6_on",
+      "y": 270
+    },
+    "facing=west,level=7,powered=false": {
+      "model": "rsaudio:redstone_delayer_7_off",
+      "y": 270
+    },
+    "facing=west,level=7,powered=true": {
+      "model": "rsaudio:redstone_delayer_7_on",
+      "y": 270
+    },
+    "facing=west,level=8,powered=false": {
+      "model": "rsaudio:redstone_delayer_8_off",
+      "y": 270
+    },
+    "facing=west,level=8,powered=true": {
+      "model": "rsaudio:redstone_delayer_8_on",
+      "y": 270
+    }
+  }
+}

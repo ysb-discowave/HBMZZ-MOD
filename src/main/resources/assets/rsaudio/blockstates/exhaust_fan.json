@@ -1,0 +1,50 @@
+{
+  "variants": {
+    "facing=north,running=false": {
+      "model": "rsaudio:exhaust_fan"
+    },
+    "facing=north,running=true": {
+      "model": "rsaudio:exhaust_fan"
+    },
+    "facing=east,running=false": {
+      "model": "rsaudio:exhaust_fan",
+      "y": 90
+    },
+    "facing=east,running=true": {
+      "model": "rsaudio:exhaust_fan",
+      "y": 90
+    },
+    "facing=south,running=false": {
+      "model": "rsaudio:exhaust_fan",
+      "y": 180
+    },
+    "facing=south,running=true": {
+      "model": "rsaudio:exhaust_fan",
+      "y": 180
+    },
+    "facing=west,running=false": {
+      "model": "rsaudio:exhaust_fan",
+      "y": 270
+    },
+    "facing=west,running=true": {
+      "model": "rsaudio:exhaust_fan",
+      "y": 270
+    },
+    "facing=down,running=false": {
+      "model": "rsaudio:exhaust_fan",
+      "x": 90
+    },
+    "facing=down,running=true": {
+      "model": "rsaudio:exhaust_fan",
+      "x": 90
+    },
+    "facing=up,running=false": {
+      "model": "rsaudio:exhaust_fan",
+      "x": 270
+    },
+    "facing=up,running=true": {
+      "model": "rsaudio:exhaust_fan",
+      "x": 270
+    }
+  }
+}

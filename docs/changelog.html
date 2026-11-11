@@ -81,8 +81,25 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.8.0</span>
+            <span class="tl-ver">v2.9.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>红石音频并了进来，播放器学会了装破喇叭</h3>
+          <ul>
+            <li><strong>rsaudio 整套并入。</strong>音频播放器、红石延迟器、结构加载器、自动化红石计算机、六色警报灯、防核门、广播器、DMR 与 F9 两台反应堆、电梯、监控、门禁与气闸、远程面板、列车与货运卡车，191 个源文件、367 个资源全部进来，<strong>逐文件原样</strong>，没有重命名、没有降级语法。</li>
+            <li><strong>但它仍然是一个独立模组。</strong>保留自己的 <code>@Mod</code> 容器与 <code>modid = rsaudio</code>，只是和 <code>hbmzz</code> 打在同一枚 jar 里同时加载。这不是偷懒：<code>rsaudio:</code> 的方块与方块实体 id 已经写进玩家存档，改成 <code>hbmzz:</code> 等于让所有老存档里的红石音频机器凭空消失。</li>
+            <li><strong>装之前要拿掉旧的独立 jar。</strong>两份同时在 <code>mods/</code> 里就是 duplicate modid，FML 会在加载阶段直接崩，报错文字还完全指不到这件事上。<code>tools/deploy.py</code> 现在会自动把它改名成 <code>.jar.merged</code> 并打印原因。</li>
+            <li><strong>播放器新增 reasim 总开关（默认关）。</strong>关闭时走原来的 <code>ISound</code> 路径，声音与 2.8.0 完全一致；打开后换成一条自己推流的 DSP 链。开关<strong>只在开播那一刻决定走哪条路</strong>，播放中途关掉不重开，只是把整条链旁路掉——重开会"咔"一下。</li>
+            <li><strong>五个可调项：</strong>音量 0–200%、回声 0–100%、失真 0–100%、电流声（50 Hz 工频哼声）0–100%、沙沙声（带限白噪 + 稀疏爆裂）0–100%。另有"自动回声"：从方块朝六个方向各打一条 16 格射线量空间感，再统计半径 4 格内实心方块占比，头顶能看见天就把混响砍到 35%，每 20 tick 重算一次。</li>
+            <li><strong>为什么非要自己推流：</strong><code>ISound</code> 只给了音量和音高——一个是线性缩放，一个是重采样。失真需要波形整形、沙沙声需要加噪声、回声需要一条带反馈的延迟线，三件事都必须拿到采样。所以 reasim 直接解码 ogg、跑一遍 DSP、再把 PCM 喂进 Minecraft 自带的 paulscode 引擎（<code>rawDataStream</code> + <code>feedRawAudioData</code>）。</li>
+            <li><strong>拿不到引擎也不会静音。</strong>反射失败时（改过声音库的客户端、非官方启动器）reasim 安静地退回普通播放，只是没有那些效果，日志里写明原因。界面上对应那行会直接说"REASIM 不可用"。</li>
+            <li><strong>参数存在机器上，不在客户端。</strong>多人服务器里所有人听到同一种破喇叭，重进世界还在；只有服务端能改（<code>PacketSetReasim</code>，64 格距离校验），改本地文件不会让别人的服务器上放出干净的声音。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.8.0</span>
           </div>
           <h3>掀盖真的把盖掀了，还多了一条 zd_tx</h3>
           <ul>

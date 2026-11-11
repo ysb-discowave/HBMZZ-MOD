@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "rsaudio:truck_pad"
+    },
+    "facing=east": {
+      "model": "rsaudio:truck_pad",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "rsaudio:truck_pad",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "rsaudio:truck_pad",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "normal": {
+      "model": "rsaudio:train_station"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "rsaudio:alarm_purple_off"
+    },
+    "lit=true": {
+      "model": "rsaudio:alarm_purple_on"
+    }
+  }
+}

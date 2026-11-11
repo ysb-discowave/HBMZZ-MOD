@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "open=false,retract=false": {
+      "model": "rsaudio:blast_door_panel_closed"
+    },
+    "open=false,retract=true": {
+      "model": "rsaudio:blast_door_panel_closed"
+    },
+    "open=true,retract=false": {
+      "model": "rsaudio:blast_door_panel_open"
+    },
+    "open=true,retract=true": {
+      "model": "rsaudio:blast_door_panel_open"
+    }
+  }
+}

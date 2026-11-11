@@ -1,0 +1,980 @@
+itemGroup.rsaudio=红石音频
+
+tile.rsaudio.audio_player.name=音频播放器
+tile.rsaudio.redstone_delayer.name=红石延迟器
+
+chat.rsaudio.cleared=已清除这个音频播放器的音乐
+chat.rsaudio.empty=这个音频播放器还没有设置音乐
+chat.rsaudio.delay=延迟：%s 刻（%s 秒）
+chat.rsaudio.delay_set=延迟已设为 %s 刻（%s）
+chat.rsaudio.door.need_axe=防核门要用木斧开关：手持木斧右键 = 开/关门，木斧潜行右键 = 设置界面
+
+tooltip.rsaudio.delayer.1=背面（无箭头面）输入，正面（箭头面）输出，延迟后发出红石信号
+tooltip.rsaudio.delayer.2=右键打开界面，直接输入延迟时间
+tooltip.rsaudio.delayer.3=单位写法：2（秒）/ 1.5s / 500ms / 10t（刻）/ 1m（分）
+tooltip.rsaudio.delayer.4=可设置广播文字与颜色：延迟到点输出红石信号时在聊天栏显示
+tooltip.rsaudio.player.1=右键打开界面选择音乐与播放模式
+tooltip.rsaudio.player.2=播放行为由所选模式决定（脉冲 / 循环 / 脉冲循环）
+tooltip.rsaudio.player.3=可开启「播完输出红石」：脉冲模式整首放完时对外发一次短脉冲（该脉冲不会触发它自己，不会自己反复重播）
+tooltip.rsaudio.player.4=可设置广播文字与颜色：开始播放时在聊天栏显示（循环播放只显示一次）
+
+gui.rsaudio.title=音频播放器 - 选择音乐
+gui.rsaudio.preview=试听
+gui.rsaudio.clear=清除选择
+gui.rsaudio.rescan=重新扫描
+gui.rsaudio.prev=上一页
+gui.rsaudio.next=下一页
+gui.rsaudio.search=点这里输入关键词搜索（滚轮可翻页）
+gui.rsaudio.clear_search=清空搜索
+gui.rsaudio.page=第 %s/%s 页 · %s 首
+gui.rsaudio.none=当前：未设置
+gui.rsaudio.current=当前：%s
+gui.rsaudio.empty=config/rsaudio/audio 里没有找到 .ogg 文件
+gui.rsaudio.empty_hint=把音乐文件放进去，然后点「重新扫描」
+gui.rsaudio.no_match=没有匹配的音乐
+gui.rsaudio.playing=试听：%s
+gui.rsaudio.no_selection=还没有选择音乐
+gui.rsaudio.found=共 %s 首音乐
+gui.rsaudio.rescan_failed=扫描失败，请看游戏日志
+gui.rsaudio.selected=已选择：%s
+gui.rsaudio.cleared_hint=已清除选择
+gui.rsaudio.hint=点歌名即可设置，收到红石信号时播放
+gui.rsaudio.unplayable=发现 %s 个 1.12.2 放不了的文件（%s）
+gui.rsaudio.unplayable_hint=游戏只支持 ogg（Vorbis），请先把它转成 .ogg 再放进来
+
+gui.rsaudio.broadcast.label=广播：
+gui.rsaudio.broadcast.hint=留空则不广播；在聊天栏（左下角）显示这段文字
+gui.rsaudio.broadcast.saved=广播颜色：%s
+
+gui.rsaudio.color.0=黑
+gui.rsaudio.color.1=深蓝
+gui.rsaudio.color.2=深绿
+gui.rsaudio.color.3=深青
+gui.rsaudio.color.4=深红
+gui.rsaudio.color.5=深紫
+gui.rsaudio.color.6=金
+gui.rsaudio.color.7=灰
+gui.rsaudio.color.8=深灰
+gui.rsaudio.color.9=蓝
+gui.rsaudio.color.10=绿
+gui.rsaudio.color.11=青
+gui.rsaudio.color.12=红
+gui.rsaudio.color.13=粉
+gui.rsaudio.color.14=黄
+gui.rsaudio.color.15=白
+
+gui.rsaudio.mode.pulse=脉冲
+gui.rsaudio.mode.pulse.desc=脉冲模式：收到红石信号播放一遍，不循环；中途掉信号也不会停，整首放完才停
+gui.rsaudio.mode.loop=循环
+gui.rsaudio.mode.loop.desc=循环模式：有红石信号就一直循环播放，信号消失立刻停止
+gui.rsaudio.mode.toggle=脉冲循环
+gui.rsaudio.mode.toggle.desc=脉冲循环模式：收到一次红石信号开始循环播放，再次收到信号才停止
+gui.rsaudio.mode.set=播放模式：%s
+gui.rsaudio.finish.off=播完输出红石：关
+gui.rsaudio.finish.on=播完输出红石：开
+gui.rsaudio.finish.off_hint=已关闭「播完输出红石」
+gui.rsaudio.finish.on_hint=已开启：整首播完后对外输出一次短红石脉冲（脉冲模式）
+
+gui.rsaudio.delayer.title=红石延迟器 - 设置延迟
+gui.rsaudio.delayer.current=当前：%s 刻（%s）
+gui.rsaudio.delayer.label=延迟时间：
+gui.rsaudio.delayer.preview=将设为：%s 刻（%s）
+gui.rsaudio.delayer.invalid=输入无效，可以试试 2 / 1.5s / 500ms / 10t / 1m
+gui.rsaudio.delayer.range=范围：%s~%s 刻（%s~%s 秒）
+gui.rsaudio.delayer.applied=已应用：%s 刻（%s）
+gui.rsaudio.delayer.apply=应用
+gui.rsaudio.delayer.reset=恢复默认
+gui.rsaudio.delayer.done=完成
+gui.rsaudio.delayer.minus_tick=-1 刻
+gui.rsaudio.delayer.plus_tick=+1 刻
+gui.rsaudio.delayer.minus_second=-1 秒
+gui.rsaudio.delayer.plus_second=+1 秒
+gui.rsaudio.delayer.hint=回车应用；Tab 切到广播输入；t = 刻，s = 秒，m = 分
+
+tile.rsaudio.structure_loader.name=结构加载器
+tile.rsaudio.redstone_computer.name=自动化红石信号输出计算机
+tile.rsaudio.blast_door.name=防核门
+tile.rsaudio.blast_door_panel.name=防核门板
+tile.rsaudio.alarm.red.name=红色警报灯
+tile.rsaudio.alarm.orange.name=橙色警报灯
+tile.rsaudio.alarm.yellow.name=黄色警报灯
+tile.rsaudio.alarm.green.name=绿色警报灯
+tile.rsaudio.alarm.blue.name=蓝色警报灯
+tile.rsaudio.alarm.purple.name=紫色警报灯
+
+tooltip.rsaudio.loader.1=把 config/rsaudio/structures 里的结构贴到世界上
+tooltip.rsaudio.loader.2=右键打开界面：选结构、调相对偏移、点加载
+tooltip.rsaudio.loader.3=潜行右键=立刻按当前设置加载一次
+tooltip.rsaudio.loader.4=收到红石上升沿也会加载一次，可以做成自动建筑机
+tooltip.rsaudio.computer.1=写一段极简汇编程序来控制六个面的红石输出强度
+tooltip.rsaudio.computer.2=右键打开编程界面，点运行即可；六个面各自独立输出 0~15
+tooltip.rsaudio.computer.3=可以读入某个面的强度做条件判断，做成闪烁、序列脉冲、发报机
+tooltip.rsaudio.computer.4=潜行右键=快捷运行/停止
+tooltip.rsaudio.alarm.1=通上红石信号就点亮，可以爆闪
+tooltip.rsaudio.alarm.2=右键打开界面调爆闪频率与蜂鸣开关
+tooltip.rsaudio.alarm.3=潜行右键=快速开关蜂鸣
+tooltip.rsaudio.door.1=可设置尺寸的滑门，爆炸抗性和黑曜石不在一个量级（能扛核爆）
+tooltip.rsaudio.door.2=手持木斧右键 = 开/关门（空手不行）；木斧潜行右键 = 设置界面，设宽/高/朝向后点建造
+tooltip.rsaudio.door.3=会沿着「门朝方向的右手边、往上」长出整片门板，控制器永远在左下角
+tooltip.rsaudio.door.4=红石信号开门，关门时会先确认门里没有实体，不会夹人
+tooltip.rsaudio.door.5=「封锁」= 被 FAAS 远程锁定，本地怎么按都开不了（关门永远允许，不会留下缺口）
+tooltip.rsaudio.door.6=同一「频道」上的门互相联锁：一扇开着另一扇就开不了，关门后另一侧还要等「循环」时间 —— 两道面对面放、设同一频道就是气闸
+tooltip.rsaudio.door.7=打开「重型」：门变成逐行升起，每行之间隔「分级」刻，看起来才像巨大的装甲闸门（塔塔鲁斯是另一回事：圆形舱盖门，单独一个方块）
+
+chat.rsaudio.computer.started=计算机已开始运行
+chat.rsaudio.computer.stopped=计算机已暂停（输出保持现状）
+chat.rsaudio.alarm.beep_on=警报灯蜂鸣：开
+chat.rsaudio.alarm.beep_off=警报灯蜂鸣：关
+
+gui.rsaudio.wand.title=结构魔杖
+gui.rsaudio.wand.selection=选区：%s
+gui.rsaudio.wand.name_label=结构名：
+gui.rsaudio.wand.name_hint=给这段选区起个名字
+gui.rsaudio.wand.pos=魔杖指向：%s
+gui.rsaudio.wand.hint=左键选第一个角，右键选第二个角；潜行+左键清空
+gui.rsaudio.wand.hint_actions=选好两个角之后起名并点「保存」
+gui.rsaudio.wand.save=保存
+gui.rsaudio.wand.clear=清空选区
+gui.rsaudio.wand.refresh=刷新
+gui.rsaudio.wand.done=完成
+
+gui.rsaudio.loader.title=结构加载器
+gui.rsaudio.loader.current=当前结构：%s
+gui.rsaudio.loader.unknown=（读不到方块实体）
+gui.rsaudio.loader.none_selected=（还没选）
+gui.rsaudio.loader.list_label=可选结构：
+gui.rsaudio.loader.empty=还没有保存过任何结构
+gui.rsaudio.loader.empty_hint=用木斧选好区域后存一个，或者往 config/rsaudio/structures 里放 .nbt
+gui.rsaudio.loader.page=第 %s/%s 页 · 共 %s 个
+gui.rsaudio.loader.offset_label=偏移：
+gui.rsaudio.loader.offset_range=每轴 %s ~ %s 格
+gui.rsaudio.loader.offset_invalid=偏移要填整数，范围是 ±%s
+gui.rsaudio.loader.offset_applied=偏移已应用：(%s, %s, %s)
+gui.rsaudio.loader.apply_offset=应用偏移
+gui.rsaudio.loader.load=加载
+gui.rsaudio.loader.refresh=刷新列表
+gui.rsaudio.loader.requested=已经让加载器开始粘贴，贴完会提示
+gui.rsaudio.loader.refreshed=已向服务端重新请求结构清单
+gui.rsaudio.loader.selected=已选择：%s
+gui.rsaudio.loader.prev=上一页
+gui.rsaudio.loader.next=下一页
+gui.rsaudio.loader.hint=点清单里的名字直接选中；粘贴会先把目标区域清空再放方块
+gui.rsaudio.loader.done=完成
+
+gui.rsaudio.computer.title=红石信号输出计算机 - 编程
+gui.rsaudio.computer.save=保存
+gui.rsaudio.computer.run=运行
+gui.rsaudio.computer.stop=暂停
+gui.rsaudio.computer.reset=复位
+gui.rsaudio.computer.sample=示例程序
+gui.rsaudio.computer.done=完成
+gui.rsaudio.computer.saved=已保存程序
+gui.rsaudio.computer.run_hint=程序已从头开始运行
+gui.rsaudio.computer.stop_hint=已暂停：寄存器与输出保持现状
+gui.rsaudio.computer.reset_hint=已复位：寄存器与输出清零
+gui.rsaudio.computer.sample_hint=已填入示例程序，点「保存」生效
+gui.rsaudio.computer.hint=直接在左边打字；上下左右移动光标，回车换行，Tab 插入四个空格
+gui.rsaudio.computer.panel=实时面板
+gui.rsaudio.computer.waiting=正在等服务端把状态推过来…
+gui.rsaudio.computer.status_running=运行中
+gui.rsaudio.computer.status_idle=已停止
+gui.rsaudio.computer.pc=指令指针：%s
+gui.rsaudio.computer.ticks=已运行：%s 刻
+gui.rsaudio.computer.regs=寄存器
+gui.rsaudio.computer.outputs=六个面的输出
+gui.rsaudio.computer.error=第 %s 行有错：
+gui.rsaudio.computer.face.down=下
+gui.rsaudio.computer.face.up=上
+gui.rsaudio.computer.face.north=北
+gui.rsaudio.computer.face.south=南
+gui.rsaudio.computer.face.west=西
+gui.rsaudio.computer.face.east=东
+
+gui.rsaudio.alarm.title=警报灯设置
+gui.rsaudio.alarm.color=颜色：%s
+gui.rsaudio.alarm.current=当前：%s
+gui.rsaudio.alarm.beep_state=蜂鸣：%s
+gui.rsaudio.alarm.beep_hint=蜂鸣只在每次「灭 → 亮」的时候响一声，周期越短叫得越急
+gui.rsaudio.alarm.range=爆闪周期 %s ~ %s 刻（0 = 常亮）
+gui.rsaudio.alarm.applied=已设置：%s
+gui.rsaudio.alarm.hint=没有红石信号时不亮；常亮模式下有信号就一直亮着
+gui.rsaudio.alarm.always=常亮
+gui.rsaudio.alarm.always_text=常亮
+gui.rsaudio.alarm.period_text=%s 刻（%s 秒一轮）
+gui.rsaudio.alarm.minus10=-10
+gui.rsaudio.alarm.minus1=-1
+gui.rsaudio.alarm.plus1=+1
+gui.rsaudio.alarm.plus10=+10
+gui.rsaudio.alarm.beep_on=蜂鸣：开
+gui.rsaudio.alarm.beep_off=蜂鸣：关
+gui.rsaudio.alarm.done=完成
+
+gui.rsaudio.door.title=防核门设置
+gui.rsaudio.door.range=尺寸范围 %s ~ %s 格
+gui.rsaudio.door.resistance=爆炸抗性 6000（黑曜石是 1200），扛得住核爆
+gui.rsaudio.door.facing_line=朝向：%s · 收进方向：%s · 尺寸 %s~%s 格
+gui.rsaudio.door.facing.north=北
+gui.rsaudio.door.facing.east=东
+gui.rsaudio.door.facing.south=南
+gui.rsaudio.door.facing.west=西
+gui.rsaudio.door.retract_up=向上收
+gui.rsaudio.door.retract_down=向下收
+gui.rsaudio.door.invert_on=反向：开
+gui.rsaudio.door.invert_off=反向：关
+gui.rsaudio.door.width_minus=宽 -1
+gui.rsaudio.door.width_plus=宽 +1
+gui.rsaudio.door.height_minus=高 -1
+gui.rsaudio.door.height_plus=高 +1
+gui.rsaudio.door.build=建造
+gui.rsaudio.door.build_hint=已在门框里生成门板
+gui.rsaudio.door.remove=拆除
+gui.rsaudio.door.remove_hint=门板已拆除
+gui.rsaudio.door.open=开门
+gui.rsaudio.door.open_hint=已开门（门里有实体时会先等一等）
+gui.rsaudio.door.close=关门
+gui.rsaudio.door.close_hint=已关门（门里有实体时会先等一等）
+gui.rsaudio.door.applied=已应用：%s
+gui.rsaudio.door.state_built= · 已建
+gui.rsaudio.door.state_unbuilt= · 未建
+gui.rsaudio.door.state_open= · 已开
+gui.rsaudio.door.state_closed= · 已关
+gui.rsaudio.door.state_moving= · 开合中 %s%%
+gui.rsaudio.door.state_invert= · 反向
+gui.rsaudio.door.state_channel= · 频道%s
+gui.rsaudio.door.state_interlock= · 联锁
+gui.rsaudio.door.state_heavy= · 重型
+gui.rsaudio.door.state_locked= · 已封锁
+gui.rsaudio.door.hint=改变尺寸或收进方向会先拆掉旧门板，改完记得重新点「建造」；频道/联锁/循环/重型是就地生效的
+
+gui.rsaudio.door.channel_minus=频道 -
+gui.rsaudio.door.channel_plus=频道 +
+gui.rsaudio.door.channel_none=无
+gui.rsaudio.door.channel_value=频道 %s
+gui.rsaudio.door.interlock_on=联锁 开
+gui.rsaudio.door.interlock_off=联锁 关
+gui.rsaudio.door.heavy_on=重型 开
+gui.rsaudio.door.heavy_off=重型 关
+gui.rsaudio.door.cycle_minus=循环 -
+gui.rsaudio.door.cycle_plus=循环 +
+gui.rsaudio.door.stage_minus=分级 -
+gui.rsaudio.door.stage_plus=分级 +
+gui.rsaudio.door.lock=封锁
+gui.rsaudio.door.unlock=解除封锁
+gui.rsaudio.door.on=开
+gui.rsaudio.door.off=关
+gui.rsaudio.door.params=频道 %s · 联锁 %s · 重型 %s · 循环 %s 刻 · 分级 %s 刻
+
+gui.rsaudio.door.access_free=门禁状态：可开启
+gui.rsaudio.door.access_unbuilt=门禁状态：还没建造
+gui.rsaudio.door.access_manual=门禁状态：已手动封锁（点「解除封锁」放行）
+gui.rsaudio.door.access_remote=门禁状态：已被 FAAS 远程锁定（要由下发锁定的一侧解除）
+gui.rsaudio.door.access_cycle=门禁状态：气闸循环中，还剩 %s 刻
+gui.rsaudio.door.access_airlock=门禁状态：气闸控制器正封着这一侧（等循环走完或按急停）
+gui.rsaudio.door.access_interlock=门禁状态：联锁中 —— 同频道另一扇门还开着
+gui.rsaudio.door.done=完成
+gui.rsaudio.door.alarm_on=警报灯:开
+gui.rsaudio.door.alarm_off=警报灯:关
+gui.rsaudio.door.alarm_color=警报色:%s
+
+# ---------------- 广播器（右下角弹窗 + TTS 语音）
+tile.rsaudio.announcer.name=广播器
+
+tooltip.rsaudio.announcer.1=向范围内的玩家发右下角弹窗，并用 TTS 把文字念出来
+tooltip.rsaudio.announcer.2=右键打开界面：分别填弹窗标题、弹窗内容、朗读文本
+tooltip.rsaudio.announcer.3=潜行+右键=按当前设置立刻广播一次
+tooltip.rsaudio.announcer.4=收到红石上升沿也会自动广播一次，可以接反应堆报警
+
+gui.rsaudio.announcer.title=广播器 - 发送通知
+gui.rsaudio.announcer.label.title=弹窗标题：
+gui.rsaudio.announcer.label.content=弹窗内容：
+gui.rsaudio.announcer.label.tts=朗读文本：
+gui.rsaudio.announcer.hint.title=弹窗最上面那一行（可留空）
+gui.rsaudio.announcer.hint.content=弹窗正文，太长会自动折行（可留空）
+gui.rsaudio.announcer.hint.tts=交给 TTS 念的文字；留空则只弹窗不发声（建议短句，最长 100 字）
+gui.rsaudio.announcer.params=范围 %s 格 · 弹窗 %s 秒 · 语速 %s
+gui.rsaudio.announcer.engine=本机语音引擎：%s
+gui.rsaudio.announcer.engine_ok=已就绪
+gui.rsaudio.announcer.engine_missing=未安装（只弹窗、不出声）
+gui.rsaudio.announcer.preview_label=预览：
+gui.rsaudio.announcer.preview_hint=（和实际弹窗用同一套折行）
+gui.rsaudio.announcer.preview_empty=上面填点东西，这里就是玩家看到的样子
+gui.rsaudio.announcer.preview_local=本机试听
+gui.rsaudio.announcer.preview_started=正在用本机引擎合成试听…
+gui.rsaudio.announcer.broadcast=广播
+gui.rsaudio.announcer.done=完成
+gui.rsaudio.announcer.range_minus=范围-
+gui.rsaudio.announcer.range_plus=范围+
+gui.rsaudio.announcer.notice_minus=时长-
+gui.rsaudio.announcer.notice_plus=时长+
+gui.rsaudio.announcer.speed_minus=语速-
+gui.rsaudio.announcer.speed_plus=语速+
+gui.rsaudio.announcer.saved=设置已保存（没有广播）
+gui.rsaudio.announcer.sending=已发出广播请求
+gui.rsaudio.announcer.send_failed=发送失败（可能已经断开连接）
+gui.rsaudio.announcer.tips=Tab 切换输入框，回车 = 广播；关界面时自动保存
+
+chat.rsaudio.announcer.empty=广播器：三个框都是空的，没有内容可发
+chat.rsaudio.announcer.sent=广播已发出（%s 人在范围内）
+chat.rsaudio.announcer.sent_silent=广播已发出（%s 人在范围内；没填朗读文本，只有弹窗）
+chat.rsaudio.announcer.no_tts=服务端没有装 TTS 引擎，这次只有弹窗没有声音
+chat.rsaudio.announcer.preview_start=正在用本机引擎合成试听…
+chat.rsaudio.announcer.preview_empty=朗读文本是空的，没法试听
+chat.rsaudio.announcer.preview_no_engine=本机语音引擎没装好：%s
+chat.rsaudio.announcer.preview_failed=本机合成失败（模型不匹配或引擎启动异常），请看游戏日志
+
+# ---------------- DMR 暗物质反应堆（控制柜 + 多方块结构）
+tile.rsaudio.dmr_controller.name=DMR 控制柜
+tile.rsaudio.dmr_casing.name=DMR 外壳
+tile.rsaudio.dmr_core.name=DMR 堆芯腔体
+
+# 状态机状态名（键名不带 rsaudio 前缀，由 GuiDmrController 按 dmr.state.<name> 查）
+dmr.state.offline=未点火
+dmr.state.startup=点火序列中
+dmr.state.online=在线运行
+dmr.state.maintenance=维护中
+dmr.state.stalled=燃烧失速
+dmr.state.meltdown_p1=熔毁 第一阶段
+dmr.state.meltdown_p2=熔毁 第二阶段
+dmr.state.safe=已安全停机
+dmr.state.imploded=已内爆
+
+tooltip.rsaudio.dmr_controller.1=DMR 暗物质反应堆的唯一入口：右键打开控制面板
+tooltip.rsaudio.dmr_controller.2=摆法：3×3×3 的 DMR 外壳，正中间放一块 DMR 堆芯腔体，控制柜贴着某一面的中心外侧放
+tooltip.rsaudio.dmr_controller.3=面板里按顺序开五个子系统再点火；过热会一路烧到熔毁，熔毁时面板上会显示四位停机码
+
+tooltip.rsaudio.dmr_casing.1=DMR 外壳：砌出 3×3×3 的机体，让控制柜认出这台反应堆
+tooltip.rsaudio.dmr_casing.2=外壳本身不会坏，但拆掉任意一块都会让多方块结构失效
+
+tooltip.rsaudio.dmr_core.1=DMR 堆芯腔体：多方块结构的中心那一格，一台机器上只能放一处
+tooltip.rsaudio.dmr_core.2=点火序列期间站在腔体里会被直接烤死
+tooltip.rsaudio.dmr_core.3=熔毁走到尽头时它会被内爆炸开，在原地留下一个坑
+tooltip.rsaudio.dmr_core.4=腔体中央悬着一团自转的等离子体，两道磁约束环反向环绕；熔毁时会剧烈抖动
+
+gui.rsaudio.dmr.title=DMR 控制柜 - 暗物质反应堆
+gui.rsaudio.dmr.waiting=正在等服务端把读数推过来…
+gui.rsaudio.dmr.sub.0=燃料单元锁定
+gui.rsaudio.dmr.sub.1=功率激光给水泵
+gui.rsaudio.dmr.sub.2=辅助电网
+gui.rsaudio.dmr.sub.3=点火钥匙
+gui.rsaudio.dmr.sub.4=热管理系统
+gui.rsaudio.dmr.sub.5=2 号钥匙（应急停机）
+gui.rsaudio.dmr.on=开
+gui.rsaudio.dmr.off=关
+gui.rsaudio.dmr.ignite=主点火
+gui.rsaudio.dmr.cooldown=正常停堆
+gui.rsaudio.dmr.maint_in=进入维护
+gui.rsaudio.dmr.install_cell=装燃料单元
+gui.rsaudio.dmr.maint_out=重启反应堆
+gui.rsaudio.dmr.submit_code=提交停机码
+gui.rsaudio.dmr.repair_laser=硬重启功率激光
+gui.rsaudio.dmr.pull_cell=拔燃料单元
+gui.rsaudio.dmr.code_hint=六位停机码
+gui.rsaudio.dmr.state=状态
+gui.rsaudio.dmr.temp=堆芯温度
+gui.rsaudio.dmr.integrity=结构完整性
+gui.rsaudio.dmr.fuel=平均燃料
+gui.rsaudio.dmr.efss=EFSS 消防水位
+gui.rsaudio.dmr.lasers=功率激光
+gui.rsaudio.dmr.power=输出功率
+gui.rsaudio.dmr.eff=催化器效率
+gui.rsaudio.dmr.load=输出负荷
+gui.rsaudio.dmr.structure=多方块结构
+gui.rsaudio.dmr.struct_ok=成立
+gui.rsaudio.dmr.struct_bad=不成立
+gui.rsaudio.dmr.phase=阶段
+gui.rsaudio.dmr.countdown=剩余
+gui.rsaudio.dmr.meltdown=熔毁
+gui.rsaudio.dmr.shutdown=停机前置条件
+gui.rsaudio.dmr.blockers_ready=全部就绪，可以停机
+gui.rsaudio.dmr.blockers_left=还差
+gui.rsaudio.dmr.code=停机码
+gui.rsaudio.dmr.code_note=在设施里找便签
+gui.rsaudio.dmr.order=功率订单
+gui.rsaudio.dmr.orders=订单 完成/失败/总数
+
+chat.rsaudio.dmr.structure_ok=多方块结构已成立，可以点火了
+chat.rsaudio.dmr.structure_lost=多方块结构失效，反应堆无法运行
+chat.rsaudio.dmr.struct_pending=结构判定刚变化，这一轮还没确认 —— 稍等一下再按一次「点火」
+chat.rsaudio.dmr.no_structure_core=找不到 DMR 堆芯腔体：控制柜六个方向往外 2 格都没有堆芯，按 tooltip 砌成 3×3×3（堆芯在正中间，控制柜贴某一面的中心外侧）
+chat.rsaudio.dmr.no_structure_shell=找到堆芯腔体了，但 3×3×3 外壳还缺 %s 格 —— 那 26 格必须全是 DMR 外壳
+chat.rsaudio.dmr.no_structure_unloaded=附近区块还没加载完，暂时读不到外壳 —— 走近一点再试
+chat.rsaudio.dmr.code_note=停机码便签已散落到设施里，去把它找回来（六位数字，写在纸上）
+chat.rsaudio.dmr.pull_too_far=得下到反应堆腔体里才够得着燃料单元
+
+chat.rsaudio.dmr.event.ignition_start=点火序列启动：全设施断电，重力激光正在抬升堆芯
+chat.rsaudio.dmr.event.denied_subsys=点火被拒：燃料单元、功率激光给水泵、辅助电网、点火钥匙必须全部就位
+chat.rsaudio.dmr.event.denied_fuel=点火被拒：燃料单元是空的
+chat.rsaudio.dmr.event.online=反应堆已上线
+chat.rsaudio.dmr.event.cooldown=已正常停堆
+chat.rsaudio.dmr.event.cooldown_need_thermal=停堆被拒：堆芯还在 3500K 以上，插控制棒只会更不稳，先去开热管理系统降温
+chat.rsaudio.dmr.event.cooldown_need_efss=停堆被拒：EFSS 消防水位不足 70%，余热靠它带走，先去把水补起来
+chat.rsaudio.dmr.event.temp_safe=堆芯温度越过安全线 1120K
+chat.rsaudio.dmr.event.temp_warn=超温警告：堆芯越过 2300K，结构完整性开始下降
+chat.rsaudio.dmr.event.integrity_drop=结构完整性正在下降
+chat.rsaudio.dmr.event.fuel_low=燃料不足 20%，可以进入维护模式换料了
+chat.rsaudio.dmr.event.fuel_monitor_fail=燃料监控系统故障：读数已不可信
+chat.rsaudio.dmr.event.sustain_loss=反应可持续性正在丧失（堆芯过冷）
+chat.rsaudio.dmr.event.stall=燃烧失速：反应已无法自持，必须走维护重启
+chat.rsaudio.dmr.event.maintenance_in=已进入维护模式
+chat.rsaudio.dmr.event.maintenance_out=维护完成，反应堆已重启
+chat.rsaudio.dmr.event.need_cells=要先把三个燃料单元全部换上去
+chat.rsaudio.dmr.event.meltdown=★ 熔毁：进入第一阶段，停机码散落在设施里，去把便签找回来
+chat.rsaudio.dmr.event.phase2=★★ 熔毁进入第二阶段，剩余 %s 秒；要么提交停机码，要么下到腔体里拔掉三个燃料单元
+chat.rsaudio.dmr.event.shutdown_p1=停机条件全部满足，反应堆已安全停机
+chat.rsaudio.dmr.event.shutdown_p2=换料通道走完，反应堆已安全下线
+chat.rsaudio.dmr.event.code_rejected=停机码错误
+chat.rsaudio.dmr.event.need_thermal=温度没压下来：堆芯还在 3500K 以上，先去开热管理系统
+chat.rsaudio.dmr.event.need_efss=EFSS 消防水位不足 70%，先去把水补起来
+chat.rsaudio.dmr.event.need_laser=有功率激光没在工作，去硬重启那几根激光
+chat.rsaudio.dmr.event.need_keys=两把钥匙没有同时转到位（1 号 + 2 号）
+chat.rsaudio.dmr.event.need_cells_shutdown=换料通道还没走完
+chat.rsaudio.dmr.event.laser_lost=一根功率激光被烧毁，需要硬重启
+chat.rsaudio.dmr.event.laser_repaired=功率激光已恢复工作
+chat.rsaudio.dmr.event.efss_low=EFSS 消防水位偏低，低于 70% 就再也停不下来了
+chat.rsaudio.dmr.event.cell_pulled=已拔下燃料单元 %s / %s
+chat.rsaudio.dmr.event.cell_trap=■ 有人拔了第二块燃料单元 —— 换料通道永久锁死（QSERF 原设定）
+chat.rsaudio.dmr.event.code_located=停机码便签已被找到
+chat.rsaudio.dmr.event.code_black=■ CODE BLACK：停机指令被设施静默跳过
+chat.rsaudio.dmr.event.implode=◼ 反应堆内爆
+chat.rsaudio.dmr.event.order_new=新的功率订单：%s
+chat.rsaudio.dmr.event.order_done=功率订单完成
+chat.rsaudio.dmr.event.order_fail=功率订单失败
+
+# ---------------- F9 压水堆（Foxtrot Mk.9 / Project Helios：控制柜 + 多方块结构）
+tile.rsaudio.f9_controller.name=F9 控制柜
+tile.rsaudio.f9_casing.name=F9 外壳
+tile.rsaudio.f9_core.name=F9 压力容器
+
+# 状态机状态名（键名不带 rsaudio 前缀，由 GuiF9Controller 按 f9.state.<name> 查）
+f9.state.cold=冷停堆
+f9.state.running=运行中
+f9.state.synced=已并网
+f9.state.scrammed=已 SCRAM
+f9.state.meltdown=熔毁
+f9.state.blown=已爆堆
+f9.state.unknown=未知
+
+tooltip.rsaudio.f9_controller.1=F9 压水堆的唯一入口：右键打开控制面板
+tooltip.rsaudio.f9_controller.2=摆法：3×3×3 的 F9 外壳，正中间放一块 F9 压力容器，控制柜贴着某一面的中心外侧放
+tooltip.rsaudio.f9_controller.3=启动前「安全系统」必须是开着的；9 根控制棒、4 个转换器活塞、4 个泄压阀都在面板上
+tooltip.rsaudio.f9_controller.4=压力过 3700 PSI 或温度过 950°C 会自动 SCRAM，压力过 4000 PSI 直接爆堆
+
+tooltip.rsaudio.f9_casing.1=F9 外壳：砌出 3×3×3 的机体，让控制柜认出这台反应堆
+tooltip.rsaudio.f9_casing.2=外壳本身不会坏，但拆掉任意一块都会让多方块结构失效（热着的堆会就地停机）
+
+tooltip.rsaudio.f9_core.1=F9 压力容器：多方块结构的中心那一格，一台机器上只能放一处
+tooltip.rsaudio.f9_core.2=运行时容器会自己发亮；温度与压力读数在控制柜的面板上
+tooltip.rsaudio.f9_core.3=爆堆或熔毁时会连外壳一起炸开，几分钟后自行刷新成一台全新的
+
+gui.rsaudio.f9.title=F9 控制柜 - 压水堆（Project Helios）
+gui.rsaudio.f9.waiting=正在等服务端把读数推过来…
+gui.rsaudio.f9.sub.0=安全系统
+gui.rsaudio.f9.sub.1=控制棒连续移动
+gui.rsaudio.f9.sub.2=控制棒速度 2x
+gui.rsaudio.f9.sub.3=热循环
+gui.rsaudio.f9.on=开
+gui.rsaudio.f9.off=关
+gui.rsaudio.f9.start=启动
+gui.rsaudio.f9.sync=同步并网
+gui.rsaudio.f9.desync=解列
+gui.rsaudio.f9.shutdown=停机
+gui.rsaudio.f9.converters=转换器活塞（接上才发电）
+gui.rsaudio.f9.valves=泄压阀（开着的阀降压）
+gui.rsaudio.f9.rods=控制棒：选哪一根
+gui.rsaudio.f9.sectors=分区：选哪一区
+gui.rsaudio.f9.rod_all=全局
+gui.rsaudio.f9.sector_all=全部分区
+gui.rsaudio.f9.hold_up=▲ 拔棒
+gui.rsaudio.f9.hold_down=▼ 插棒
+gui.rsaudio.f9.hold_stop=停住
+gui.rsaudio.f9.state=状态
+gui.rsaudio.f9.temp=容器温度
+gui.rsaudio.f9.psi=系统压力
+gui.rsaudio.f9.flux=中子通量
+gui.rsaudio.f9.kw=热功率
+gui.rsaudio.f9.output=上网功率
+gui.rsaudio.f9.integrity=容器完整性
+gui.rsaudio.f9.needle=同步仪指针
+gui.rsaudio.f9.sync_cond=并网条件
+gui.rsaudio.f9.sync_ready=全部就绪
+gui.rsaudio.f9.structure=多方块结构
+gui.rsaudio.f9.struct_ok=成立
+gui.rsaudio.f9.struct_bad=不成立
+gui.rsaudio.f9.regen=刷新倒计时
+gui.rsaudio.f9.scram=SCRAM 原因
+gui.rsaudio.f9.rod_moving=拉杆方向
+gui.rsaudio.f9.avg_insert=平均插入度
+
+chat.rsaudio.f9.structure_ok=多方块结构已成立，安全系统开着就可以按「启动」
+chat.rsaudio.f9.structure_lost=多方块结构失效，反应堆无法运行
+chat.rsaudio.f9.struct_pending=结构判定刚变化，这一轮还没确认 —— 稍等一下再按一次「启动」
+chat.rsaudio.f9.no_structure_core=找不到 F9 压力容器：控制柜六个方向往外 2 格都没有容器，按 tooltip 砌成 3×3×3（容器在正中间，控制柜贴某一面的中心外侧）
+chat.rsaudio.f9.no_structure_shell=找到压力容器了，但 3×3×3 外壳还缺 %s 格 —— 那 26 格必须全是 F9 外壳
+chat.rsaudio.f9.no_structure_unloaded=附近区块还没加载完，暂时读不到外壳 —— 走近一点再试
+chat.rsaudio.f9.start_need_safety=启动被拒：先把「安全系统」打开
+
+chat.rsaudio.f9.event.rod_moving=控制棒正在移动
+chat.rsaudio.f9.event.rod_jammed=一根控制棒卡住了：继续推它只会极慢地升中子通量，得靠反复打到 SCRAM 才能冲开
+chat.rsaudio.f9.event.rod_cleared=卡住的控制棒已冲开
+chat.rsaudio.f9.event.scram=★ 自动 SCRAM 停堆：%s —— 控制棒已全部落棒，压力会先冲高再回落
+chat.rsaudio.f9.event.temp_alarm=容器超温警告：越过 850°C，再高就会自动 SCRAM
+chat.rsaudio.f9.event.psi_danger=系统压力进入危险区（3500 PSI 以上）：开泄压阀降压
+chat.rsaudio.f9.event.psi_safe_again=系统压力已回到安全区
+chat.rsaudio.f9.event.safety_disabled=■ 安全系统已关闭：压力/温度/通量过高不再自动 SCRAM
+chat.rsaudio.f9.event.safety_enabled=安全系统已打开
+chat.rsaudio.f9.event.sync_ok=已同步到辅助电网，反应堆开始送电
+chat.rsaudio.f9.event.sync_fail_needle=并网失败：同步仪指针不在 -1~1 之间（Lag = 压力太低，Lead = 压力太高）
+chat.rsaudio.f9.event.sync_fail_kw=并网失败：热功率不在 39000–41000 kW（低了用 1x 速度升棒，高了开泄压阀）
+chat.rsaudio.f9.event.sync_fail_rods=并网失败：控制棒平均插入度不在 40% 附近
+chat.rsaudio.f9.event.sync_fail_valves=并网失败：四个泄压阀必须全关
+chat.rsaudio.f9.event.desync=已解列，反应堆不再送电
+chat.rsaudio.f9.event.blowout=◼ 爆堆：压力冲破容器，反应堆数分钟后自行刷新
+chat.rsaudio.f9.event.meltdown=◼ 熔毁：容器完整性归零，反应堆数分钟后自行刷新
+chat.rsaudio.f9.event.regen=反应堆已刷新成一台全新的
+chat.rsaudio.f9.event.shutdown_denied_power=停机被拒：热功率还在 1200 kW 以上，先用泄压阀压下来
+chat.rsaudio.f9.event.shutdown_denied_temp=停机被拒：温度/压力还没回到待机值（75°C / 1060 PSI）
+chat.rsaudio.f9.event.shutdown_ok=已停机，反应堆回到冷停堆
+chat.rsaudio.f9.event.thermal_locked=热循环被安全系统锁住：先关掉安全系统才动得了它
+chat.rsaudio.f9.event.flux_high=中子通量过高（安全系统上限 14%）：松手，别再拔了
+
+# ---------------------------------------------------------------- 监控
+tile.rsaudio.monitor_camera.name=监控摄像头
+tile.rsaudio.monitor_console.name=监控控制台
+
+tooltip.rsaudio.camera.1=右键打开设置：选频道（1-16）、调视野、用云台转角度、给这一台起个名字
+tooltip.rsaudio.camera.2=基础朝向在放置时定死（贴墙就朝房间、吸顶朝下、落地朝上）；云台可在水平 ±180°／俯仰 ±90° 内接着微调
+tooltip.rsaudio.camera.3=吸顶或落地的镜头只有俯仰有用：把它掰斜之后水平才会生效
+tooltip.rsaudio.camera.4=不用拉线也不用配对，画面由同频道的监控控制台实时取用
+tooltip.rsaudio.console.1=右键打开监控界面：左边是实时画面，右边是本频道的摄像头清单与画面内目标
+tooltip.rsaudio.console.2=只认频道号：同一频道上「离控制台最近的那台启用中的摄像头」出画面
+tooltip.rsaudio.console.3=没人开界面时，正面上也会显示同一张画面 —— 路过就能看见
+
+gui.rsaudio.camera.title=监控摄像头设置
+gui.rsaudio.camera.where=坐标 %d, %d, %d ｜ 镜头朝向：%s
+gui.rsaudio.camera.channel_value=频道 %d / 16
+gui.rsaudio.camera.fov_value=视野 %d°
+gui.rsaudio.camera.yaw_value=水平 %s°
+gui.rsaudio.camera.pitch_value=俯仰 %s°
+gui.rsaudio.camera.label_hint=名字（可留空，留空就显示坐标）
+gui.rsaudio.camera.reset_gimbal=云台归零
+gui.rsaudio.camera.hint=每行两侧的按钮改中间那一项；吸顶／落地镜头只有俯仰有用
+gui.rsaudio.camera.enabled_on=启用中（点一下停用）
+gui.rsaudio.camera.enabled_off=已停用（点一下启用）
+gui.rsaudio.camera.state_on=同频道的监控控制台会取用这一台
+gui.rsaudio.camera.state_off=已停用：同频道的控制台会跳过这一台
+gui.rsaudio.camera.facing_north=北
+gui.rsaudio.camera.facing_south=南
+gui.rsaudio.camera.facing_west=西
+gui.rsaudio.camera.facing_east=东
+gui.rsaudio.camera.facing_up=上
+gui.rsaudio.camera.facing_down=下
+
+gui.rsaudio.monitor.title=监控控制台
+gui.rsaudio.monitor.done=完成
+gui.rsaudio.monitor.channel_label=频道
+gui.rsaudio.monitor.channel_value=%d / 16
+gui.rsaudio.monitor.channel_tag=CH%d
+gui.rsaudio.monitor.overlay_on=屏幕字幕条：开
+gui.rsaudio.monitor.overlay_off=屏幕字幕条：关
+gui.rsaudio.monitor.cameras=本频道摄像头
+gui.rsaudio.monitor.in_frame=画面内
+gui.rsaudio.monitor.none=（无）
+gui.rsaudio.monitor.nobody=无目标
+gui.rsaudio.monitor.more=……另有 %d 台
+gui.rsaudio.monitor.legend=实时画面 %s ｜ ← → 或 1-9 换频道
+gui.rsaudio.monitor.no_signal=无信号
+gui.rsaudio.monitor.connecting=正在建立画面…
+gui.rsaudio.monitor.no_camera=这个频道上还没有任何摄像头
+gui.rsaudio.monitor.all_disabled=这个频道的摄像头都被停用了
+gui.rsaudio.monitor.watching=正在看：%s
+gui.rsaudio.monitor.overlay_clear=CLEAR
+gui.rsaudio.monitor.overlay_seen=目标 %d
+
+# ---------------------------------------------------------------- FAAS 门禁终端
+tile.rsaudio.access_terminal.name=FAAS 门禁终端
+
+tooltip.rsaudio.access.1=把一个「频道」里的所有门整体锁死或放行 —— 一片区域的规定，不是遥控器
+tooltip.rsaudio.access.2=右键打开界面：选频道、填封锁/解除的播报文案，再点「封锁全部」
+tooltip.rsaudio.access.3=封锁之后新建的门也会被自动锁上；解除时只撤终端自己上的锁，玩家手动上的封锁原样保留
+tooltip.rsaudio.access.4=收到红石信号默认=封锁（反应堆出事直接接线），可在界面里改成反向
+
+gui.rsaudio.access.title=FAAS 门禁终端
+gui.rsaudio.access.zone_locked=■ 区域封锁中 · 已锁定 %s / %s 扇门
+gui.rsaudio.access.zone_released=□ 区域放行 · 锁定 %s / %s 扇门
+gui.rsaudio.access.params=频道 %s · 红石 %s · 广播范围 %s 格 · 弹窗 %s 秒
+gui.rsaudio.access.label.title=播报标题
+gui.rsaudio.access.label.lock=封锁播报
+gui.rsaudio.access.label.release=解除播报
+gui.rsaudio.access.hint.title=弹窗最上面那一行
+gui.rsaudio.access.hint.lock=封锁时念出来的话
+gui.rsaudio.access.hint.release=解除时念出来的话
+gui.rsaudio.access.channel_minus=频道 -
+gui.rsaudio.access.channel_plus=频道 +
+gui.rsaudio.access.invert_on=红石反向 开
+gui.rsaudio.access.invert_off=红石反向 关
+gui.rsaudio.access.invert_on_short=反向
+gui.rsaudio.access.invert_off_short=正向
+gui.rsaudio.access.announce_on=播报 开
+gui.rsaudio.access.announce_off=播报 关
+gui.rsaudio.access.range_minus=范围 -
+gui.rsaudio.access.range_plus=范围 +
+gui.rsaudio.access.notice_minus=时长 -
+gui.rsaudio.access.notice_plus=时长 +
+gui.rsaudio.access.lock_all=封锁全部
+gui.rsaudio.access.release_all=解除封锁
+gui.rsaudio.access.broadcast_now=立即播报
+gui.rsaudio.access.done=完成
+gui.rsaudio.access.applied_locked=已下发封锁 —— 频道里所有门都上了远程锁
+gui.rsaudio.access.applied_released=已下发放行 —— 只撤掉了终端上的锁，玩家自己的封锁还在
+gui.rsaudio.access.broadcasting=已让终端按当前设置播报一次
+gui.rsaudio.access.send_failed=发送失败（可能已断开连接）
+gui.rsaudio.access.hint=封锁之后造的门也会被自动补上；解除不影响玩家在门上手动上的锁
+# ---------------------------------------------------------------- 气闸控制器（QSERF airlock）
+tile.rsaudio.airlock_controller=气闸控制器
+tooltip.rsaudio.airlock.1=放在两扇面对面的门中间，频道设成和门一样
+tooltip.rsaudio.airlock.2=空手右键 = 走一轮：关上开着的那一侧 → 净化 → 打开另一侧
+tooltip.rsaudio.airlock.3=潜行右键 = 打开设置界面
+tooltip.rsaudio.airlock.4=需要 8 格内两扇同频道、已建造的门（不必开「联锁」，气闸自己封两侧）
+tooltip.rsaudio.airlock.5=入口侧 = 当前开着的那一侧，净化完开另一侧
+gui.rsaudio.airlock.title=气闸控制器
+gui.rsaudio.airlock.state_idle=待机 · 两侧可自由开合
+gui.rsaudio.airlock.state_locking=正在密封两侧…
+gui.rsaudio.airlock.state_decon=净化中 · 还剩 %s 刻
+gui.rsaudio.airlock.state_unlocking=正在放行…
+gui.rsaudio.airlock.sides=配对：%s
+gui.rsaudio.airlock.sides_none=还没配对到两扇门（找到 %s / %s 扇）
+gui.rsaudio.airlock.params=%s · %s · %s
+gui.rsaudio.airlock.channel_value=频道 %s
+gui.rsaudio.airlock.decon_value=净化 %s 刻
+gui.rsaudio.airlock.timeout_value=超时 %s 刻
+gui.rsaudio.airlock.channel_minus=频道 -
+gui.rsaudio.airlock.channel_plus=频道 +
+gui.rsaudio.airlock.decon_minus=净化 -
+gui.rsaudio.airlock.decon_plus=净化 +
+gui.rsaudio.airlock.timeout_minus=超时 -
+gui.rsaudio.airlock.timeout_plus=超时 +
+gui.rsaudio.airlock.announce_on=播报 开
+gui.rsaudio.airlock.announce_off=播报 关
+gui.rsaudio.airlock.start=启动气闸
+gui.rsaudio.airlock.cancel=急停
+gui.rsaudio.airlock.done=完成
+gui.rsaudio.airlock.start_hint=已请求启动 —— 两侧关上之后开始净化
+gui.rsaudio.airlock.cancel_hint=已请求急停 —— 两侧保持关闭
+gui.rsaudio.airlock.applied=已保存：%s
+gui.rsaudio.airlock.hint=在舱室里按「启动气闸」；哪一侧开着哪一侧就是入口，净化期间两侧都开不了
+
+# ---------------------------------------------------------------- 远程控制面板（QSERF 遥控盘）
+tile.rsaudio.remote_panel=远程控制面板
+tooltip.rsaudio.panel.1=正面上 3 列 2 行共 6 个按钮，空手右键直接按，不是开菜单
+tooltip.rsaudio.panel.2=潜行右键 = 打开设置界面（切换控制反应堆 / 大门，改频道）
+tooltip.rsaudio.panel.3=反应堆模式：点火 / 停机 / 维护 / 装料 / 修激光 / 子系统
+tooltip.rsaudio.panel.4=大门模式：开 / 关 / 封锁 / 解除 / 联锁 / 重型（同频道的门，优先重型的）
+gui.rsaudio.panel.title=远程控制面板
+gui.rsaudio.panel.title.dmr=反应堆控制
+gui.rsaudio.panel.title.gate=大门控制
+gui.rsaudio.panel.mode.dmr=反应堆
+gui.rsaudio.panel.mode.gate=大门
+gui.rsaudio.panel.mode_toggle=模式：%s
+gui.rsaudio.panel.ch_minus=频道 -
+gui.rsaudio.panel.ch_plus=频道 +
+gui.rsaudio.panel.params=%s · 频道 %s
+gui.rsaudio.panel.target=已连接：%s
+gui.rsaudio.panel.target_none_dmr=附近 %s 格内没有 DMR 控制柜
+gui.rsaudio.panel.target_none_gate=频道 %s 上没有已建造的防核门（%s 格内）
+gui.rsaudio.panel.legend=按钮对照（面对面板正面，上排在下排上面）
+gui.rsaudio.panel.legend_row=第 %s 排：%s
+gui.rsaudio.panel.press_hint=空手右键面板正面 = 按下对应的按钮；没接上目标时按钮是暗的
+gui.rsaudio.panel.done=完成
+# 按钮文案：一律 <= 3 个汉字（面板一格只有六分之一面宽）
+gui.rsaudio.panel.btn.ignite=点火
+gui.rsaudio.panel.btn.cooldown=停机
+gui.rsaudio.panel.btn.maint=维护
+gui.rsaudio.panel.btn.cell=装料
+gui.rsaudio.panel.btn.laser=修激光
+gui.rsaudio.panel.btn.subsys=子系统
+gui.rsaudio.panel.btn.open=开门
+gui.rsaudio.panel.btn.close=关门
+gui.rsaudio.panel.btn.lock=封锁
+gui.rsaudio.panel.btn.unlock=解除
+gui.rsaudio.panel.btn.interlock=联锁
+gui.rsaudio.panel.btn.heavy=重型
+chat.rsaudio.panel.no_target=这块面板还没连上目标机器 —— 潜行右键可以看它接的是什么
+
+# ---------------------------------------------------------------- 塔塔鲁斯（圆形舱盖门）
+tile.rsaudio.tartarus.name=塔塔鲁斯舱盖门
+tooltip.rsaudio.tartarus.1=圆形、巨型、向下缓慢开合的舱盖门（活板门）
+tooltip.rsaudio.tartarus.2=空手右键 = 手动开/关；手持木斧潜行右键 = 打开设置界面，调半径后点建造
+tooltip.rsaudio.tartarus.3=建造后在控制器周围按「半径²」生成整片圆形舱盖格，关着是实心地板，开了沉进竖井可通过
+tooltip.rsaudio.tartarus.4=爆炸抗性 6000（黑曜石是 1200），扛得住核爆；关门时舱盖下有人会先等它离开
+tooltip.rsaudio.tartarus.5=整扇舱盖由一圈扇形钢板拼成（块数随半径自动加密），外缘一圈黄黑危险条，中心是带指示灯的枢纽
+tooltip.rsaudio.tartarus.6=半径越大越壮观：最大 32（直径 64 格，约 3200 格舱盖）；改尺寸要先拆除再重建
+chat.rsaudio.tartarus.orphan_cleared=已连带清理 %s 格无主舱盖（控制器已经不在了；这些格子不掉落物品）
+chat.rsaudio.tartarus.orphan_unloaded=这里有一片无主舱盖，但邻近区块还没加载完 —— 走近一点再挖
+chat.rsaudio.tartarus.orphan_too_big=这一片无主舱盖太大（超过 4096 格），从中间再挖一次分几次清
+chat.rsaudio.tartarus.orphan_cleared=已连带清理 %s 格无主舱盖（控制器已经不在了；这些格子不掉落物品）
+chat.rsaudio.tartarus.orphan_unloaded=这里有一片无主舱盖，但邻近区块还没加载完 —— 走近一点再挖
+chat.rsaudio.tartarus.orphan_too_big=这一片无主舱盖太大（超过 4096 格），从中间再挖一次分几次清
+
+gui.rsaudio.tartarus.title=塔塔鲁斯舱盖门
+gui.rsaudio.tartarus.params=半径 %s（范围 %s ~ %s 格）
+gui.rsaudio.tartarus.radius_minus=半径 -1
+gui.rsaudio.tartarus.radius_plus=半径 +1
+gui.rsaudio.tartarus.radius_set=半径已设为 %s
+gui.rsaudio.tartarus.build=建造
+gui.rsaudio.tartarus.build_hint=已在周围生成圆形舱盖
+gui.rsaudio.tartarus.remove=拆除
+gui.rsaudio.tartarus.remove_hint=舱盖已拆除
+gui.rsaudio.tartarus.btn_open=开启
+gui.rsaudio.tartarus.btn_close=关闭
+gui.rsaudio.tartarus.open_hint=已开启（舱盖下有人会先等一等）
+gui.rsaudio.tartarus.close_hint=已关闭（舱盖下有人会先等一等）
+gui.rsaudio.tartarus.open=已开
+gui.rsaudio.tartarus.closed=已关
+gui.rsaudio.tartarus.moving=开合中 %s%%
+gui.rsaudio.tartarus.unbuilt=未建造
+gui.rsaudio.tartarus.done=完成
+
+# ---------------------------------------------------------------- 列车（自建轨道 + 站台 + 多点通勤）
+#   ★ 名字和 tooltip 都是玩家第一眼要读到的东西。"形状由邻居自动决定"这句必须写出来 ——
+#     否则玩家会去找"怎么变成弯轨"的开关（我们刻意没做那个开关，因为它必然和
+#     拆一格之后的实际形状对不上）。
+tile.rsaudio.train_rail.name=列车轨道
+tooltip.rsaudio.train_rail.1=铺在地上就能跑车的轨道；直行、转弯、上坡全靠邻居自动判断，不用手动选形状
+tooltip.rsaudio.train_rail.2=只管一路铺下去：尽头接回头就是环线，铺成一条直线也行（车到终点会自己倒回来）
+tooltip.rsaudio.train_rail.3=轨道只有 1/8 格高，走上去不会把你垫起来
+tooltip.rsaudio.train_rail.4=潜行 + 右键轨道：放出一列车（空手、手里拿着东西都行；附近 4 格已有车会被拒绝）
+tile.rsaudio.train_station.name=列车站台
+tooltip.rsaudio.train_station.1=3×3 一格一块地铺出来就是一座站台；车会在这里停靠、开门、等乘客
+tooltip.rsaudio.train_station.2=空手右键看它叫什么、停多久、锚点在哪；手持木斧潜行右键可以改站名和停站时间
+tooltip.rsaudio.train_station.3=站台必须紧贴轨道（旁边或正下方一格）才会被列车认出来
+tooltip.rsaudio.train_station.4=多座站台按沿轨道的先后顺序排成时刻表，车会依次停靠
+#   ★ 下面三条由 BlockTrainStation.onBlockActivated 经 I18n 拼出来。
+#     带 %s 的两条参数顺序是固定的：站名、停站时长、[锚点 x、y、z]。
+chat.rsaudio.train.station_info=列车站台「%s」· 停站 %s
+chat.rsaudio.train.station_info_anchor=列车站台「%s」· 停站 %s · 锚点 %s,%s,%s
+chat.rsaudio.train.station_no_tile=这一格站台没有方块实体（多半是旧存档残留，拆掉重放一次就好）
+
+# ---- 列车实体（右键上车 / 潜行右键看车况 / 故障播报）
+chat.rsaudio.train.status=列车 · %s 节车厢 · 载客 %s/%s
+chat.rsaudio.train.door_closed=车门没开，现在上不去（当前：%s）
+chat.rsaudio.train.full=这列车满载了，等下一班
+chat.rsaudio.train.fail=列车故障：%s —— %s
+chat.rsaudio.train.gap_hint=线路在 %s 处差一格就能接上另一段轨道 —— 在那些格各补一格轨道即可
+#   七个相位名，由 EntityTrain.phaseKey(phase) 按下标拼出来
+train.phase.run=正线行驶
+train.phase.braking=进站减速
+train.phase.door_opening=开门中
+train.phase.dwell=停站待客
+train.phase.door_closing=关门中
+train.phase.accel=出站加速
+train.phase.stalled=停摆
+#   八个故障名，由 EntityTrain.failKey(reason) 按下标拼出来。
+#   ★ 这八条是"故障必须自报成因"约定的落实：玩家看到的每一句都要能指到
+#     该去改哪个方块（补轨道 / 接回环线 / 修站台 / 挂车厢）。
+train.fail.none=没问题
+train.fail.no_rail=脱轨（脚下的轨道不见了）
+train.fail.dead_end=开到断头路（轨道没接上）
+train.fail.blocked=前方被挡住
+train.fail.station_gone=站台被拆了或没贴到轨道上
+train.fail.no_loop=轨道不成环
+train.fail.no_station=线路上一个站台都没有
+train.fail.door_jammed=车门卡住了（门口有人）
+train.fail.no_car=没挂车厢，载不了人
+#   放车（潜行右键轨道）
+chat.rsaudio.train.spawned=列车已就位 —— 右键上车；潜行右键可以看车况
+chat.rsaudio.train.already_here=这段轨道上已经有一列车了（先把那一列开走或移走）
+chat.rsaudio.train.removed=车头已拆除（轨道和站台都留着）
+chat.rsaudio.train.gone=车头从这个世界上消失了 —— 游戏日志里有成因（搜「车头消失」那一行）
+#   实体显示名。F3 的实体列表、聊天的"XX 死了"、名字标签都用它。
+#   ★ 不是可选装饰：没有这个键，界面上显示的是原始键名 entity.rsaudio.train.name。
+entity.rsaudio.train.name=列车
+
+# ---------------------------------------------------------------- 电梯（客运 / 货运 / 斜面 三件套）
+#   井道 = 一层一层砌上去的柱子；轿厢 = 内核搬到哪就出现在哪（玩家放不了、也拿不到）；
+#   层门 = 贴在每一层的井道壁上，右键就是「呼梯」；控制柜 = 唯一入口，右键开界面。
+tile.rsaudio.elevator_shaft.name=电梯井道
+tile.rsaudio.elevator_car.name=电梯轿厢
+tile.rsaudio.elevator_door.name=电梯层门
+tile.rsaudio.elevator_controller_passenger.name=客运电梯控制柜
+tile.rsaudio.elevator_controller_freight.name=货运电梯控制柜
+tile.rsaudio.elevator_controller_inclined.name=斜面电梯控制柜
+
+tooltip.rsaudio.elevator_shaft.1=电梯井道：从最底层一路砌到最高层，中间不能断（断了控制柜会报「找不到井道」）
+tooltip.rsaudio.elevator_shaft.2=井道只当导轨用：碰撞上可以穿过，不载人也不挡人
+tooltip.rsaudio.elevator_shaft.3=斜面型电梯的井道每一层要往同一侧偏一格（方向在控制柜界面里会写）
+
+tooltip.rsaudio.elevator_car.1=电梯轿厢：由控制柜自动摆放和搬动，玩家放不了也拿不到
+tooltip.rsaudio.elevator_car.2=拆掉它不会拆掉整台电梯 —— 控制柜下一轮会把它摆回来
+
+tooltip.rsaudio.elevator_door.1=电梯层门：贴在每一层的井道壁上，右键就是「呼梯」（把轿厢叫到这一层）
+tooltip.rsaudio.elevator_door.2=门开着的那一格不会夹死生物；关着的门有碰撞，也挡得住人
+tooltip.rsaudio.elevator_door.3=手持木斧时右键会被当成「选角」；平时空手右键就是呼梯
+
+tooltip.rsaudio.elevator_controller_passenger.1=客运电梯控制柜：右键打开面板，选楼层呼梯
+tooltip.rsaudio.elevator_controller_passenger.2=摆法：先砌好一列井道，再把控制柜贴着井道放（放置时自动朝向玩家）
+tooltip.rsaudio.elevator_controller_passenger.3=轿厢 3×3、最多载 8 格，可停 32 层；每一层都要有一扇层门，否则那一层不进层表
+tooltip.rsaudio.elevator_controller_passenger.4=层表是控制柜自己按层门数出来的，不用手动登记
+
+tooltip.rsaudio.elevator_controller_freight.1=货运电梯控制柜：右键打开面板，选楼层呼梯
+tooltip.rsaudio.elevator_controller_freight.2=摆法同客运型：一列井道 + 贴边放的控制柜
+tooltip.rsaudio.elevator_controller_freight.3=轿厢 5×3、最多载 24 格；升降比客运型慢，门也开得更久（装卸要时间）
+tooltip.rsaudio.elevator_controller_freight.4=井道净空要按 5×3 留，留窄了轿厢会被井道壁卡住并报「井道被占」
+
+tooltip.rsaudio.elevator_controller_inclined.1=斜面电梯控制柜：井道一边上升一边水平位移（像矿车坡道）
+tooltip.rsaudio.elevator_controller_inclined.2=摆法：井道每一层往同一侧偏一格砌上去，控制柜贴在起始层的井道旁
+tooltip.rsaudio.elevator_controller_inclined.3=轿厢始终保持水平（不会跟着井道一起歪），最多停 32 层
+tooltip.rsaudio.elevator_controller_inclined.4=界面里会写水平偏移方向；偏移方向和井道对不上会报「找不到井道」
+
+# 类型 / 状态 / 故障名。★ 键名不带 rsaudio 前缀 —— GUI 用 elevator.<类别>.<名字> 现拼
+elevator.type.passenger=客运
+elevator.type.freight=货运
+elevator.type.inclined=斜面
+
+elevator.state.idle=待机
+elevator.state.opening=开门中
+elevator.state.open=门开着
+elevator.state.closing=关门中
+elevator.state.moving=运行中
+elevator.state.fault=故障
+
+elevator.fault.none=无
+elevator.fault.shaft=找不到井道
+elevator.fault.no_floor=井道里一扇层门都没有
+elevator.fault.blocked=井道被占（轿厢位置被别的方块堵住）
+elevator.fault.overload=超载
+
+gui.rsaudio.elevator.title=电梯控制柜
+gui.rsaudio.elevator.waiting=正在等服务端把读数推过来…
+gui.rsaudio.elevator.type=类型
+gui.rsaudio.elevator.state=状态
+gui.rsaudio.elevator.floor=当前层
+gui.rsaudio.elevator.target=目标层
+gui.rsaudio.elevator.index=轿厢位置（格）
+gui.rsaudio.elevator.speed=速度
+gui.rsaudio.elevator.door=门开度
+gui.rsaudio.elevator.trips=已运行次数
+gui.rsaudio.elevator.floors=层数
+gui.rsaudio.elevator.calls=已登记的呼叫
+gui.rsaudio.elevator.shaft=井道
+gui.rsaudio.elevator.shaft_ok=已找到
+gui.rsaudio.elevator.shaft_bad=未找到
+gui.rsaudio.elevator.fault=故障
+gui.rsaudio.elevator.missing=井道缺口
+gui.rsaudio.elevator.more_floors=只画了前 32 层按钮，还有 %d 层没有按钮
+gui.rsaudio.elevator.inclined_note=斜面电梯：轿厢会同时往上和往旁边移动，这是正常的
+gui.rsaudio.elevator.hold_door=保持开门
+gui.rsaudio.elevator.close_door=关门
+gui.rsaudio.elevator.clear=清空呼叫
+gui.rsaudio.elevator.rescan=重新扫描井道
+gui.rsaudio.elevator.none=无
+
+chat.rsaudio.elevator.no_controller=这一扇层门旁边没有电梯控制柜（六格内找不到），先摆一台控制柜
+chat.rsaudio.elevator.shaft_ok=电梯控制柜已找到井道
+chat.rsaudio.elevator.shaft_lost=电梯控制柜失去井道 —— 检查井道有没有断开
+chat.rsaudio.elevator.repaired=电梯故障已排除
+chat.rsaudio.elevator.call_denied=呼梯被拒（门正在关，稍等一下或按「保持开门」）
+chat.rsaudio.elevator.door_orphan=这一扇层门没接上井道（它所在的那一层不在层表里）
+chat.rsaudio.elevator.fault.none=无故障
+chat.rsaudio.elevator.fault.shaft=电梯故障：找不到井道
+chat.rsaudio.elevator.fault.no_floor=电梯故障：井道里一扇层门都没有
+chat.rsaudio.elevator.fault.blocked=电梯故障：井道被别的方块占了
+chat.rsaudio.elevator.fault.overload=电梯故障：超载
+
+chat.rsaudio.elevator.event.arrive=电梯已到达第 %s 层
+chat.rsaudio.elevator.event.depart=电梯离开第 %s 层
+chat.rsaudio.elevator.event.door_opening=第 %s 层正在开门
+chat.rsaudio.elevator.event.door_closing=第 %s 层正在关门
+chat.rsaudio.elevator.event.call=已登记：第 %s 层
+chat.rsaudio.elevator.event.fault=电梯故障（第 %s 层）
+chat.rsaudio.elevator.event.repaired=电梯故障已排除（第 %s 层）
+chat.rsaudio.elevator.event.call_denied=呼梯被拒：第 %s 层
+chat.rsaudio.elevator.event.overload=超载：第 %s 层
+#   ★ unknown 是内核 eventName() 的**越界兜底名**（EVENT_TEXT 只遍历 [0, EV_COUNT)，
+#     正常运行永远用不到它）。留着不是为了用，而是让 verify_jar 的 [2d] 段
+#     「内核名字表 <-> lang 双向比对」保持严格 —— 和 f9.state.unknown 是同一个理由：
+#     兜底名也是从内核里 return 出来的字面量，双向比对会把它当成"缺了一条"。
+chat.rsaudio.elevator.event.unknown=电梯事件（未知事件号：%s）
+
+# ---------------- 装饰组：巨大管道 / 排风扇 / 巨大标志牌 ----------------
+tile.rsaudio.giant_pipe.name=巨大管道
+tooltip.rsaudio.giant_pipe.1=六向自动连接：旁边是管道（或排风扇）就自动长出管臂。
+tooltip.rsaudio.giant_pipe.2=不用扳手、不用设置，摆下去就自己对齐。
+tooltip.rsaudio.giant_pipe.3=碰撞箱跟着形状走 —— 管臂伸到哪儿，哪儿就挡人。
+
+tile.rsaudio.exhaust_fan.name=排风扇
+tooltip.rsaudio.exhaust_fan.1=大型轴流风扇，装好之后默认就在转。
+tooltip.rsaudio.exhaust_fan.2=右键切换运行 / 停转（状态会跟着存档）。
+tooltip.rsaudio.exhaust_fan.3=扇叶朝向 = 放置时右击的那一面；管道可以接到它上面。
+
+chat.rsaudio.exhaust_fan.on=排风扇：运行
+chat.rsaudio.exhaust_fan.off=排风扇：停转
+
+tile.rsaudio.giant_sign.name=巨大标志牌
+tooltip.rsaudio.giant_sign.1=一整面墙大小的标识板，三行文字、八种字色。
+tooltip.rsaudio.giant_sign.2=右键打开编辑界面；字号会按最长的那一行自动缩放。
+tooltip.rsaudio.giant_sign.3=打开「照明」后板面会发光，夜里远处也读得出来。
+tooltip.rsaudio.giant_sign.4=字面朝向你 —— 也就是放置时你站的那一侧。
+
+# 八种字色。★ 名字必须和 TileGiantSign.COLOR_NAMES 一字不差
+#   （verify_jar 的 §[2e] 会从那个类的常量池里抽字面量再和这里双向比对）
+tile.rsaudio.giant_sign.color.white=白色
+tile.rsaudio.giant_sign.color.amber=琥珀色
+tile.rsaudio.giant_sign.color.red=红色
+tile.rsaudio.giant_sign.color.green=绿色
+tile.rsaudio.giant_sign.color.cyan=青色
+tile.rsaudio.giant_sign.color.blue=蓝色
+tile.rsaudio.giant_sign.color.violet=紫色
+tile.rsaudio.giant_sign.color.yellow=黄色
+
+gui.rsaudio.giant_sign.title=巨大标志牌
+gui.rsaudio.giant_sign.where=位置：%d, %d, %d
+gui.rsaudio.giant_sign.hint=每行最多 %s 个字；留空的那一行不显示
+gui.rsaudio.giant_sign.color_label=字色：%s
+gui.rsaudio.giant_sign.lit_on=照明：开
+gui.rsaudio.giant_sign.lit_off=照明：关
+gui.rsaudio.giant_sign.preview=预览
+gui.rsaudio.giant_sign.apply=应用
+gui.rsaudio.giant_sign.done=完成
+
+# ---------------- 起组团：起重机 / 货运卡车 ----------------
+tile.rsaudio.crane.name=起重机
+tooltip.rsaudio.crane.1=门式起重机：底座机箱上面是龙门架、回转臂和吊钩。
+tooltip.rsaudio.crane.2=右键切换运行 / 停臂（状态会跟着存档）。
+tooltip.rsaudio.crane.3=回转臂朝向 = 放置时你站的那一侧；停着时臂就停在这个方向上。
+
+chat.rsaudio.crane.on=起重机：运行
+chat.rsaudio.crane.off=起重机：停臂
+
+tile.rsaudio.truck_pad.name=货运卡车车位
+tooltip.rsaudio.truck_pad.1=一块停机坪：潜行 + 右键在这上面放出一台货运卡车。
+tooltip.rsaudio.truck_pad.2=箭头指的方向 = 放出来的车要来的方向。
+tooltip.rsaudio.truck_pad.3=4 格内已经有一台车、或者顶上顶着实心方块时放不出来。
+
+entity.rsaudio.freight_truck.name=货运卡车
+chat.rsaudio.truck.spawn=货运卡车就位（右键点火，潜行右键调头）
+chat.rsaudio.truck.duplicate=附近已经有一台货运卡车
+chat.rsaudio.truck.no_space=顶上没有净空，放不下
+chat.rsaudio.truck.start=货运卡车：点火
+chat.rsaudio.truck.stop=货运卡车：熄火
+chat.rsaudio.truck.reverse=货运卡车：调头
+chat.rsaudio.truck.blocked=货运卡车：前方受阻，已停车
+chat.rsaudio.truck.still_blocked=货运卡车：前方仍有障碍，点不着
+chat.rsaudio.truck.removed=货运卡车被拆除了
+
+# ---- reasim 扬声器模拟 ----
+gui.rsaudio.on=开
+gui.rsaudio.off=关
+gui.rsaudio.reasim.title=REASIM 扬声器模拟
+gui.rsaudio.reasim.enable=REASIM
+gui.rsaudio.reasim.auto=自动回声
+gui.rsaudio.reasim.auto_hint=环境测算 %s%%（越密闭越大）
+gui.rsaudio.reasim.volume=音量
+gui.rsaudio.reasim.echo=回声
+gui.rsaudio.reasim.distortion=失真
+gui.rsaudio.reasim.hiss=电流声
+gui.rsaudio.reasim.static_noise=沙沙声
+gui.rsaudio.reasim.preview=试听（带效果）
+gui.rsaudio.reasim.done=完成
+gui.rsaudio.reasim.off_hint=REASIM 关闭时，这台播放器放出来的就是原样的声音
+gui.rsaudio.reasim.unavailable=这个客户端拿不到声音引擎，REASIM 不可用（详见日志）
+

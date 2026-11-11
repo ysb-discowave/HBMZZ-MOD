@@ -37,6 +37,27 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)
 `client/screen` 中的界面绘制（AHBSSMFI-OS 各页面、双环量表、事件日志）、`HBMZZConfig`、
 以及 `tools/` 下的全部验证脚本，均为本项目实现。
 
+### 内置的第二模组：Redstone Audio（`rsaudio`）
+
+2.9.0 起，作者自有的独立模组 **Redstone Audio（红石音频）** 以源码形式并入本仓库
+（`src/main/java/com/rsaudio/**`、`src/main/resources/assets/rsaudio/**`），
+但**保留自己的 `@Mod` 容器与 `modid = "rsaudio"`**，与 `hbmzz` 一起打在同一枚 jar 里。
+
+- **作者与许可**：与本项目同一作者（Yang Sibo）。两个模组都是 GPL-3.0-only，合并后仍是 GPL-3.0-only。
+- **为什么保留独立 modid**：`rsaudio:` 的方块与方块实体 id 已经写进玩家存档。
+  把它改成 `hbmzz:` 会让所有已经放下的红石音频机器在旧存档里变成"消失的方块"。
+  保留 modid 是**存档兼容**的必要条件，不是偷懒。
+- **对上游代码的改动**：移植本身**逐文件原样复制**，不重命名、不降级语法
+  （原工程本来就是 Java 8 + 1.12.2）。只在两个地方做了修改，均记录在
+  `## 3` 的对应条目里：`TileAudioPlayer` 增加 reasim 参数，`ClientSoundPlayer` /
+  `PacketPlaySound` 增加 reasim 分支。新增的 reasim 文件
+  （`com/rsaudio/audio/*`、`client/Reasim*`、`client/GuiSlider`、`client/GuiReasim`、
+  `network/PacketSetReasim`）带 GPL-3.0 文件头。
+- **播放链路**：reasim 通过反射调用 Minecraft 自带的 `paulscode` 声音库
+  （`SoundSystem.rawDataStream` / `feedRawAudioData`）与 `CodecJOrbis` 解码器。
+  这两者随 Minecraft 分发，本项目**不打包也不修改**它们；`paulscode` 的许可证见
+  其自身发行说明。反射拿不到引擎时，reasim 自动退回普通播放，不影响其它功能。
+
 ---
 
 ## 3. 本项目对上游代码做过的修改（GPL-3.0 §5(a)）

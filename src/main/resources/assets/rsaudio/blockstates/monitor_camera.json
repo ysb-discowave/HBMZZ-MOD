@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "rsaudio:monitor_camera_down"
+    },
+    "facing=up": {
+      "model": "rsaudio:monitor_camera_up"
+    },
+    "facing=north": {
+      "model": "rsaudio:monitor_camera_north"
+    },
+    "facing=south": {
+      "model": "rsaudio:monitor_camera_south"
+    },
+    "facing=west": {
+      "model": "rsaudio:monitor_camera_west"
+    },
+    "facing=east": {
+      "model": "rsaudio:monitor_camera_east"
+    }
+  }
+}

@@ -86,6 +86,7 @@
           </div>
           <h3>红石音频并了进来，播放器学会了装破喇叭</h3>
           <ul>
+            <li><strong>先澄清归属：Redstone Audio（红石音频 / <code>rsaudio</code>）是作者自己写的另一个独立模组，不是第三方模组。</strong>和 HBMZZ 同一个作者，以前单独发布成 <code>rsaudio-1.0.0.jar</code>。本版只是把它从「另外下一份」改成「同一枚 jar 一起带」，作者与代码来源都没有变——它和 <a href="license.html#notice">许可页里那几条第三方来源</a>不是一回事。</li>
             <li><strong>rsaudio 整套并入。</strong>音频播放器、红石延迟器、结构加载器、自动化红石计算机、六色警报灯、防核门、广播器、DMR 与 F9 两台反应堆、电梯、监控、门禁与气闸、远程面板、列车与货运卡车，191 个源文件、367 个资源全部进来，<strong>逐文件原样</strong>，没有重命名、没有降级语法。</li>
             <li><strong>但它仍然是一个独立模组。</strong>保留自己的 <code>@Mod</code> 容器与 <code>modid = rsaudio</code>，只是和 <code>hbmzz</code> 打在同一枚 jar 里同时加载。这不是偷懒：<code>rsaudio:</code> 的方块与方块实体 id 已经写进玩家存档，改成 <code>hbmzz:</code> 等于让所有老存档里的红石音频机器凭空消失。</li>
             <li><strong>装之前要拿掉旧的独立 jar。</strong>两份同时在 <code>mods/</code> 里就是 duplicate modid，FML 会在加载阶段直接崩，报错文字还完全指不到这件事上。<code>tools/deploy.py</code> 现在会自动把它改名成 <code>.jar.merged</code> 并打印原因。</li>

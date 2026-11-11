@@ -93,6 +93,7 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)</pre>
         <div class="kicker">// 02 — 第三方来源</div>
         <h2>每一部分代码来自谁</h2>
         <p>下表列出本项目中所有取自上游的代码与素材、其许可证，以及使用位置。逐条依据 <code>NOTICE.md</code>。</p>
+        <p><strong>注意区分：</strong>2.9.0 起内置的 <strong>Redstone Audio（红石音频 / <code>rsaudio</code>）不在下表里</strong>——它也是本模组作者自己写的独立模组（以前单独发布），属于「本项目自有」，见本节末尾。</p>
       </div>
 
       <div class="table-wrap">
@@ -129,6 +130,8 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)</pre>
           <li><code>com.hbmzz.dfc.DFCReader</code>、<code>com.hbmzz.panel</code></li>
           <li><code>client/screen</code> 中的界面绘制（AHBSSMFI-OS 各页面、双环量表、事件日志）</li>
           <li><code>HBMZZConfig</code> 配置</li>
+          <li><code>com.rsaudio</code> 与 <code>assets/rsaudio</code>（<strong>Redstone Audio / 红石音频</strong>）：<strong>作者自己写的另一个独立模组</strong>，此前单独发布，2.9.0 起以内置形式随本 jar 分发；保留自己的 <code>@Mod</code> 容器与 <code>modid = rsaudio</code>，依据 <code>NOTICE.md</code>「内置的第二模组」一节</li>
+          <li>reasim 音频链（<code>com.rsaudio.audio</code>、<code>client/Reasim*</code>、<code>GuiReasim</code>、<code>GuiSlider</code>）：2.9.0 新写，独立发布的 rsaudio 1.0.0 中不存在</li>
           <li><code>tools/</code> 下的全部验证脚本</li>
         </ul>
       </div>

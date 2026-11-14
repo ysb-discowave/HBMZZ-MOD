@@ -720,6 +720,173 @@ td code { white-space: nowrap; }
 .foot-bottom .spacer { margin-left: auto; }
 
 /* --------------------------------------------------------------------------
+   原声播放器（首页 #ost）
+   造型照抄模组自己的机柜面板：琥珀磷光、等宽数字、分段电平表。
+   没有封面图，因为这首曲子本来就是黑屏导出的纯音频，硬配一张等于伪造。
+   -------------------------------------------------------------------------- */
+.deck { padding: 16px 18px 14px; }
+
+.deck-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-soft);
+  font: 600 10px/1 var(--mono);
+  letter-spacing: .2em;
+  color: var(--amber-dim);
+}
+.deck-top .r { color: var(--text-mute); letter-spacing: .1em; }
+
+.deck-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* 那个方块：按下就是播放，没有第二层菜单 */
+.deck-key {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--amber-dim);
+  border-radius: 2px;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(245, 165, 36, .15), rgba(245, 165, 36, .03) 72%),
+    var(--panel-3);
+  color: var(--amber);
+  cursor: pointer;
+  transition: border-color .16s, box-shadow .16s, color .16s, background .16s;
+}
+.deck-key:hover {
+  border-color: var(--amber);
+  color: var(--amber-hi);
+  box-shadow: 0 0 0 1px rgba(245, 165, 36, .28) inset;
+}
+.deck-key:active { transform: translateY(1px); }
+.deck-key:focus-visible { outline: 2px solid var(--amber-hi); outline-offset: 2px; }
+.deck.is-on .deck-key {
+  border-color: var(--amber);
+  color: var(--amber-hi);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(245, 165, 36, .32), rgba(245, 165, 36, .08) 72%),
+    var(--panel-3);
+  box-shadow: 0 0 18px rgba(245, 165, 36, .22), 0 0 0 1px rgba(245, 165, 36, .34) inset;
+}
+
+.deck-ico { display: block; width: 20px; height: 20px; fill: currentColor; }
+.deck-ico--pause { display: none; }
+.deck.is-on .deck-ico--play { display: none; }
+.deck.is-on .deck-ico--pause { display: block; }
+
+.deck-id { flex: 1 1 220px; min-width: 0; }
+.deck-title { font: 600 19px/1.25 var(--sans); letter-spacing: .01em; }
+.deck-sub {
+  margin-top: 5px;
+  font: 11px/1.5 var(--mono);
+  letter-spacing: .05em;
+  color: var(--text-mute);
+}
+
+/* 电平表：播放时是一条从左往右走的波，静止时只留一排暗格 */
+.deck-meter {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 34px;
+}
+.deck-seg {
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, #333d48, #232b34);
+  transform: scaleY(.16);
+  transform-origin: bottom;
+  transition: background .2s;
+}
+/* 静止时不是一排等长短横：给几条固定的残余电平，像设备待机时那样 */
+.deck-seg:nth-child(3n)   { transform: scaleY(.32); }
+.deck-seg:nth-child(4n+1) { transform: scaleY(.5); }
+.deck-seg:nth-child(5n)   { transform: scaleY(.22); }
+.deck-seg:nth-child(7n)   { transform: scaleY(.64); }
+
+.deck.is-on .deck-seg {
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber-dim));
+  animation: deck-vu 820ms ease-in-out infinite alternate;
+  animation-delay: var(--d, 0ms);
+}
+/* 等长周期会让二十格连成一道规整的弧；错开时长才有表头该有的抖动 */
+.deck.is-on .deck-seg:nth-child(3n)   { animation-duration: 640ms; }
+.deck.is-on .deck-seg:nth-child(3n+1) { animation-duration: 980ms; }
+.deck.is-on .deck-seg:nth-child(4n)   { animation-duration: 1140ms; }
+@keyframes deck-vu {
+  from { transform: scaleY(.14); }
+  to   { transform: scaleY(1); }
+}
+
+.deck audio { display: none; }
+
+/* 进度条整条都是点击区，不做「只有小圆点能拖」那种 */
+.deck-bar {
+  position: relative;
+  height: 8px;
+  margin-top: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 1px;
+  background: #0a0d11;
+  cursor: pointer;
+}
+.deck-bar:focus-visible { outline: 2px solid var(--amber-hi); outline-offset: 3px; }
+.deck-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: linear-gradient(90deg, #7a4f12, var(--amber));
+  box-shadow: 0 0 10px rgba(245, 165, 36, .3);
+}
+.deck-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--amber-hi);
+  box-shadow: 0 0 0 1px rgba(8, 10, 13, .85), 0 0 9px rgba(245, 165, 36, .6);
+  transform: translate(-50%, -50%);
+}
+
+.deck-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 9px;
+  font: 11px/1.6 var(--mono);
+  letter-spacing: .06em;
+  color: var(--text-mute);
+}
+.deck-state { display: inline-flex; align-items: center; gap: 7px; }
+.deck-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.deck.is-on .deck-dot {
+  background: var(--mint);
+  box-shadow: 0 0 8px rgba(67, 217, 163, .6);
+}
+
+/* --------------------------------------------------------------------------
    响应式
    -------------------------------------------------------------------------- */
 @media (max-width: 980px) {
@@ -770,6 +937,12 @@ td code { white-space: nowrap; }
   .screen-bar { font-size: 8px; letter-spacing: .06em; }
   .readout .v { font-size: 10px; }
   .ring-core .big { font-size: 24px; }
+  /* 播放器：手机上没有横向空间给电平表，删掉它比压扁它好看 */
+  .deck { padding: 14px 14px 12px; }
+  .deck-meter { display: none; }
+  .deck-key { width: 50px; height: 50px; }
+  .deck-title { font-size: 17px; }
+  .deck-top { letter-spacing: .12em; font-size: 9.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

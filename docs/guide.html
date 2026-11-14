@@ -38,7 +38,8 @@
       <h1>从放下监控屏，到真的操控一台机器</h1>
       <p class="lead">
         HBMZZ 在方块正面画了一台工业控制台：你能用终端调它、用面板工坊给它写报警规则，
-        再接上节点图控制台去操控反应堆。下面按六块功能拆开讲，每块都只说仓库文档里写明的操作与行为。
+        再接上节点图控制台去操控反应堆，最后用一套设施广播把整栋厂房的状况同步到每一块屏上。
+        下面按功能拆开讲，每块都只说仓库文档里写明的操作与行为。
       </p>
     </div>
   </div>
@@ -871,6 +872,108 @@
     </div>
   </section>
 
+  <!-- ================= 核事故系统 ================= -->
+  <section class="section" id="alert">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 核事故系统</div>
+        <h2>五个方块，一套设施广播，和一枚全图只有一颗的核弹</h2>
+        <p>这一套东西解决的是「设施里出事了，谁来说，说给谁听」这个问题。答案刻意做得很窄：
+          权威状态只有一份，显示器一个业务字段都不存，所以「所有屏幕显示一致」不是一条要靠自觉遵守的规矩，
+          而是结构上没有第二种可能。下面按方块职责、联动手势、代码含义三块讲。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-num">01</div>
+          <h3>五个方块，职责互不重叠</h3>
+          <p>每一块只做一件事，是因为跨维度引爆要求它们互不知情。</p>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>方块</th><th>它只负责</th></tr></thead>
+              <tbody>
+                <tr><td><strong>核弹</strong></td><td>长方形壳体、倒计时、起爆。不读红石，不知道自己被谁引爆。</td></tr>
+                <tr><td><strong>信号控制器</strong></td><td>红石上升沿，触发一次全图引爆。不持倒计时、不判当量。</td></tr>
+                <tr><td><strong>核弹监视屏</strong></td><td>按间隔采样绑定设备，推给半径内玩家，画最后一帧。不写世界。</td></tr>
+                <tr><td><strong>代码广播器</strong></td><td>红石上升沿把预设代码写进设施状态。不给谁单独发通知。</td></tr>
+                <tr><td><strong>事故显示器</strong></td><td><strong>零字段</strong>，纯读客户端那份缓存来画图。不记录、不推导。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-num">02</div>
+          <h3>联动：木斧蹲下右键</h3>
+          <p>和 HBM 自己的核弹一个手势。不新增工具，因为斧子本来就在每个建筑玩家包里，
+            而且「潜行右键方块」在原版里什么也不做，这个手势是免费的。</p>
+          <div class="steps" style="margin-top:14px">
+            <div class="step"><h3>记录核弹</h3><p>蹲下右键它。再点<strong>同一颗</strong>是取消记录——玩家记录完通常紧接着就想确认「我刚才记的是哪一颗」。</p></div>
+            <div class="step"><h3>中止倒计时</h3><p>倒计时中蹲下右键它即可中止。慌的时候手上是什么就用什么，不该还要去找一台屏幕。</p></div>
+            <div class="step"><h3>绑定控制器 / 监视屏</h3><p>记录过之后，蹲下右键控制器或监视屏，即绑定到那台设备。</p></div>
+            <div class="step"><h3>解绑监视屏</h3><p>手上没有记录时蹲下右键监视屏 = 解绑。这是唯一不砸掉屏幕就能停止注视的办法。</p></div>
+          </div>
+          <div class="note" style="margin-top:14px">
+            <div><p>用手直接右键这些方块，永远只给读数（状态、当量、引信、绑定坐标、当前设施代码），
+              不会被工具抢走。</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 设施代码</div>
+        <h2>八级，从「一切正常」到「设施没了」</h2>
+        <p>代码广播器右键升一级，潜行右键降一级；红石上升沿把当前预设广播给<strong>全场</strong>。
+          只有 <code>ALPHA</code> 是系统自己升的，其余都由人决定。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:14%">代码</th><th style="width:34%">含义</th><th>谁触发</th></tr></thead>
+          <tbody>
+            <tr><td><code>GREEN</code></td><td>正常运行</td><td>广播器手动复位。处理完事故的人必须能把 <code>RED</code> 压回这里</td></tr>
+            <tr><td><code>YELLOW</code></td><td>发生小插曲</td><td>广播器（默认预设就是这一级）</td></tr>
+            <tr><td><code>ORANGE</code></td><td>小型暴乱</td><td>广播器</td></tr>
+            <tr><td><code>RED</code></td><td>重大事故</td><td>广播器。<strong><code>RED</code> 及以上视为警报</strong></td></tr>
+            <tr><td><code>MED</code></td><td>堆芯融毁事故</td><td>广播器</td></tr>
+            <tr><td><code>OMEGA</code></td><td>堆芯爆炸事故</td><td>广播器</td></tr>
+            <tr><td><code>ALPHA</code></td><td>核弹事件</td><td><strong>自动</strong>：起爆程序一开始就升，爆炸时再升一次并带上当量与坐标</td></tr>
+            <tr><td><code>DELTA</code></td><td>设施毁灭级事故</td><td>广播器。最高一级</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>为什么两块屏不可能显示不同的代码。</strong>服务端只有一份设施状态（挂在主世界
+          <code>MapStorage</code> 的 <code>WorldSavedData</code>，全维度共用），客户端也只有一份副本。
+          每块事故显示器都不保存任何业务字段——它们不是在各自跟随同一条数据流，而是在读同样三行内容。
+          所以变更走的是全服广播的<strong>整条记录</strong>而不是增量：漏收三个包的客户端下一包就正确，
+          两块屏之间也没有地方可以产生分歧。</p>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <div>
+          <p><strong>显示器超过 5 秒收不到包就画 <code>NO LINK</code>。</strong>
+          <em>一块死了还在报正常的警报屏，是这套系统里唯一真正危险的失效模式</em>——
+          冻结在过期的 <code>GREEN</code> 上比黑屏危害大得多，所以宁可不显示。</p>
+        </div>
+      </div>
+
+      <div class="note note--mint" style="margin-top:14px">
+        <div>
+          <p><strong>调参：</strong><code>[nuke]</code> 节里是 <code>yield</code>（当量，默认 100 kT）、
+          <code>fuseTicks</code>（引信，默认 100 = 5 秒，够警报响完）、
+          <code>blastBase</code> / <code>blastPerKt</code> / <code>blastCap</code>（威力曲线，默认 6 / 0.28 / 48）；
+          <code>[alert]</code> 节里是 <code>refreshTicks</code>（显示器补发间隔）与
+          <code>klaxon</code>（广播代码时全服警报声）。当量与引信<strong>在放置那一刻抄进方块</strong>，
+          所以中途改配置不会悄悄动掉已经立在井里的那一颗。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 常见操作速查 ================= -->
   <section class="section" id="cheatsheet">
     <div class="wrap">
@@ -895,6 +998,10 @@
             <tr><td>看一台机器有什么可改</td><td><code>field</code> 列出全部可写字段与当前值；<code>read heat</code> 单独读一个。</td></tr>
             <tr><td>绕过控制棒改温度</td><td><code>temp 9000</code>（等价 <code>set heat 9000</code>）。监测屏会在 3 秒内断链，随后 30 秒读数显示 Err。</td></tr>
             <tr><td>让所有屏一起黑掉</td><td><code>cut</code>；敲 <code>restore</code> 立即恢复，不敲则 60 秒后自己回来。</td></tr>
+            <tr><td>放下一颗核弹</td><td>全图只能有一台。第二台放下去会被拒，并在聊天栏说明原因。</td></tr>
+            <tr><td>把控制器接到核弹上</td><td>木斧蹲下右键核弹记录 → 蹲下右键控制器绑定 → 给控制器一个红石上升沿。</td></tr>
+            <tr><td>中止正在进行的倒计时</td><td>木斧蹲下右键那颗核弹。不需要屏幕，也不需要拆掉它。</td></tr>
+            <tr><td>广播一级设施代码</td><td>右键代码广播器升一级、潜行右键降一级，再给它一个红石上升沿。</td></tr>
           </tbody>
         </table>
       </div>

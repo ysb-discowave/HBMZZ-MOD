@@ -81,8 +81,27 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.0.0</span>
+            <span class="tl-ver">v3.1.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>五个方块，一套设施广播，和一枚全图只有一颗的核弹</h3>
+          <ul>
+            <li><strong>新增整套核事故系统：五个方块 + 八级设施代码。</strong>分工刻意切成互不重叠的：<strong>核弹</strong>只管倒计时与起爆，<strong>信号控制器</strong>只管红石上升沿，<strong>监视屏</strong>只管把采样画出来，<strong>代码广播器</strong>只管改设施状态，<strong>事故显示器一个业务字段都不存</strong>。切成这样之后跨维度引爆才成立——控制器不需要理解爆炸，爆炸也不需要知道自己是被谁叫醒的。</li>
+            <li><strong>核弹是长方形壳体（10/16 宽、9/16 高），全图只允许放一颗。</strong>这条不是配方成本，是<strong>存档规则</strong>：由挂在主世界 <code>MapStorage</code> 上的 <code>NukeRegistry</code>（<code>WorldSavedData</code>）强制。放第二颗时先被 <code>canPlaceBlockAt</code> 拒一次，再被物品的 <code>onItemUse</code> 拒一次并给出文字理由，而不是让方块先建出来再被拆掉。爆炸摧毁方块<strong>不走 <code>breakBlock</code></strong>，所以查询时会顺手清理指向空气的失效登记；未加载的区块一律当作「还在」——宁可拒绝第二台，也不允许重复。</li>
+            <li><strong>联动沿用 HBM 的手感：木斧蹲下右键。</strong>对着核弹点一下是<strong>记录</strong>，再点同一颗是<strong>取消记录</strong>；如果它正在倒计时，这一下是<strong>中止</strong>——慌起来的时候手上有什么就用什么，不该还要去找一台屏幕。对着控制器或监视屏点是<strong>绑定</strong>到已记录的设备；监视屏在没有记录时点一下是<strong>解绑</strong>，这是唯一不砸掉屏幕就停止注视的办法。用手直接右键方块则永远只给读数，不会被工具抢走。</li>
+            <li><strong>信号控制器只认上升沿。</strong>每 2 tick 轮询 <code>isBlockPowered</code>，结果分四态：<strong>已引爆 / 没有设备 / 区块没加载 / 无动作</strong>。用轮询而不是 <code>neighborChanged</code>，是为了避开存档加载时那一次误触发——不是靠人记得别踩，是结构上踩不到。</li>
+            <li><strong>八级代码：</strong><code>GREEN</code>（正常运行）、<code>YELLOW</code>（发生小插曲）、<code>ORANGE</code>（小型暴乱）、<code>RED</code>（重大事故）、<code>MED</code>（堆芯融毁事故）、<code>OMEGA</code>（堆芯爆炸事故）、<code>ALPHA</code>（核弹事件）、<code>DELTA</code>（设施毁灭级事故）。<code>RED</code> 及以上视为警报。代码广播器右键升一级、潜行右键降一级，红石上升沿把当前预设广播出去；<code>ALPHA</code> 是唯一由系统自己升的——起爆程序一开始就升，爆炸时再升一次并带上当量与坐标。手动 <code>raise</code> 是<strong>无条件覆盖</strong>的，因为处理完事故的人必须能把 <code>RED</code> 压回 <code>GREEN</code>；自动源走的是「只升不降」那条阶梯。</li>
+            <li><strong>「全图显示器画面一致」是构造出来的，不是靠自觉。</strong>服务端只有一份 <code>FacilityState</code>，客户端只有一份 <code>ClientAlertState</code>，两条路都发<strong>整条记录而不是增量</strong>。漏收三个包的客户端下一包就正确，而不是永远落后三个事件；两块屏之间也不可能出现信息差，因为谁都没存自己的副本——一百块屏的成本是一百次绘制加每次变更一个包，而不是一百个可能各自掉队的订阅。</li>
+            <li><strong>显示器超过 5 秒没收到包会画 <code>NO LINK</code></strong>，而不是停在过期的 <code>GREEN</code> 上。一块死了还在报正常的警报屏，是这套系统里唯一真正危险的失效模式。</li>
+            <li><strong>核弹监视屏沿用 DFC 监视器的采样模型。</strong>服务端按 <code>display.interval</code> 把跨维度的设备读成扁平的值对象，只发给 <code>display.range</code> 内的玩家；客户端不轮询，只画最后一帧。没绑定设备时画的是操作说明而不是黑屏——刚放下方块的玩家需要知道下一步做什么。</li>
+            <li><strong>威力映射是浅曲线加硬上限：</strong><code>clamp(6 + 当量 × 0.28, 4, 48)</code>。做成立方根那种物理上诚实的映射没有意义，原版爆炸威力到 40 就已经在一个 tick 内复查 90 格半径内所有方块了。100 kT 和 1000 kT 的差别主要在坑里有多少东西在烧，而不是坑有多大。</li>
+            <li><strong>配置项新增两节：</strong><code>[nuke]</code>（<code>yield</code> / <code>fuseTicks</code> / <code>blastBase</code> / <code>blastPerKt</code> / <code>blastCap</code>）与 <code>[alert]</code>（<code>refreshTicks</code> / <code>klaxon</code>）。配方按「贵但不荒诞」定价：核弹是黑曜石 + 末影珍珠 + 红石块；<strong>控制器便宜到可以一个拉杆配一个</strong>，因为它的作用就是被复制。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.0.0</span>
           </div>
           <h3>一台能改写任意机器数值的平板，和它捅出来的三种屏幕</h3>
           <ul>

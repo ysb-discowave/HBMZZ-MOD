@@ -402,6 +402,31 @@
               <td><code>hacker_tablet</code></td>
               <td>右键打开终端，输入指令直接改写任意机器方块实体的数值字段，绕开控制逻辑与事件表。写入会让监视该坐标的监测屏依次进入「连接节点断开 / 读数污染」；<code>cut</code> 会让所有屏满屏 <code>ERROR#！</code>。见 <a href="guide.html#hacker">使用指南 · 黑客入侵</a>。</td>
             </tr>
+            <tr>
+              <td>核弹</td>
+              <td><code>nuke</code></td>
+              <td>长方形壳体（10/16 宽 × 9/16 高），<strong>全图只允许放一颗</strong>，由 <code>NukeRegistry</code> 强制。倒计时结束后用 <code>RbmkEffects</code> 起爆；<code>primed</code> 状态换模型（正面灯变红），让没有屏幕的人也能隔着院子看出它在倒数。见 <a href="guide.html#alert">使用指南 · 核事故系统</a>。</td>
+            </tr>
+            <tr>
+              <td>核弹信号控制器</td>
+              <td><code>nuke_controller</code></td>
+              <td>每 2 tick 轮询 <code>isBlockPowered</code>，只认<strong>上升沿</strong>；跨越维度引爆已绑定的那台设备。右键报告四态结果：已引爆 / 没有设备 / 区块没加载 / 无动作。</td>
+            </tr>
+            <tr>
+              <td>核弹监视屏</td>
+              <td><code>nuke_monitor</code></td>
+              <td>1×1 面板，方块本体不渲染（<code>INVISIBLE</code> + 空模型 + 2/16 厚碰撞板），整屏由 TESR 画。按 <code>display.interval</code> 采样绑定设备并画最后一帧：状态、当量、引信、倒计时、坐标、控制器位置、当前设施代码。没有绑定设备时画操作说明而不是黑屏。</td>
+            </tr>
+            <tr>
+              <td>代码广播器</td>
+              <td><code>code_broadcaster</code></td>
+              <td>右键升一级、潜行右键降一级，红石上升沿把当前预设写进设施状态并广播全服。默认预设 <code>YELLOW</code>；代码是 <code>GREEN</code> / <code>YELLOW</code> / <code>ORANGE</code> / <code>RED</code> / <code>MED</code> / <code>OMEGA</code> / <code>ALPHA</code> / <code>DELTA</code>。</td>
+            </tr>
+            <tr>
+              <td>事故显示器</td>
+              <td><code>alert_display</code></td>
+              <td>1×1 面板，同样由 TESR 画。<strong>不存任何业务字段</strong>：读客户端那份唯一副本，画当前代码、中文含义、英文副标题、距上次变更多久，以及最近三条事件。超过 5 秒没收到包画 <code>NO LINK</code>，而不是停在过期的 <code>GREEN</code> 上。</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -447,6 +472,45 @@
           <pre>玻璃板 红石    玻璃板
 铁锭   末影珍珠 铁锭
 铁锭   比较器  铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>核弹</h4>
+          <pre>铁锭   黑曜石  铁锭
+末影珍珠 红石块 末影珍珠
+铁锭   黑曜石  铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>核弹信号控制器</h4>
+          <pre>铁锭  末影珍珠 铁锭
+红石  比较器   红石
+铁锭  铁锭     铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>核弹监视屏</h4>
+          <pre>铁锭   黑曜石  铁锭
+玻璃板 红石    玻璃板
+铁锭   比较器  铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>代码广播器</h4>
+          <pre>铁锭   红石    铁锭
+玻璃板 红石灯  玻璃板
+铁锭   红石    铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>事故显示器</h4>
+          <pre>铁锭   玻璃板  铁锭
+玻璃板 红石    玻璃板
+铁锭   末影珍珠 铁锭</pre>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:18px">
+        <div>
+          <p><strong>核弹监视屏不是监控屏。</strong>它的形状比监控屏多一块黑曜石、少一块玻璃板，
+          两者<strong>不能共用同一张配方</strong>：1.12.2 的配对方是「返回第一个匹配的配方」，
+          两张一模一样的图纸会让后注册的那张<strong>永远合不出来</strong>——玩家做出来的是监控屏，
+          而且不会有任何提示告诉他哪里错了。</p>
         </div>
       </div>
 
@@ -510,6 +574,13 @@
             <tr><td><code>cinematic.dfcSpeed</code></td><td>2.0</td><td>绕 DFC 的转速，度/tick。那一窗口只有 5 秒，所以要快得多</td></tr>
             <tr><td><code>cinematic.radius</code></td><td>18</td><td>机位与目标的水平距离（格），夹在 6–40</td></tr>
             <tr><td><code>cinematic.height</code></td><td>7</td><td>机位相对目标的垂直偏移（格），负值从下往上看</td></tr>
+            <tr><td><code>nuke.yield</code></td><td>100</td><td>核弹当量（kT，1–10000）。<strong>放置那一刻抄进方块</strong>，之后改配置不会动掉已经立在井里的那一颗</td></tr>
+            <tr><td><code>nuke.fuseTicks</code></td><td>100</td><td>引信长度（0–1200）。100 = 5 秒，够警报响完</td></tr>
+            <tr><td><code>nuke.blastBase</code></td><td>6.0</td><td>零当量时的原版爆炸威力，曲线从这里起步（1–60）</td></tr>
+            <tr><td><code>nuke.blastPerKt</code></td><td>0.28</td><td>每 kT 追加的爆炸威力（0–4.0）。曲线刻意做浅：威力到 40 就已经在一个 tick 内复查 90 格半径</td></tr>
+            <tr><td><code>nuke.blastCap</code></td><td>48.0</td><td>硬上限（4–120）。超过这个值单发爆炸会把整片坑在一个 tick 里重算一遍</td></tr>
+            <tr><td><code>alert.refreshTicks</code></td><td>20</td><td>事故显示器向附近玩家补发快照的间隔（5–200）。用于覆盖「从别的维度走回来」的空窗</td></tr>
+            <tr><td><code>alert.klaxon</code></td><td>true</td><td>广播设施代码时的全服警报声。服务端触发、客户端发声，全场所有人都听得到</td></tr>
           </tbody>
         </table>
       </div>

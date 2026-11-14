@@ -19,6 +19,7 @@
 package com.hbmzz.network;
 
 import com.hbmzz.HBMZZ;
+import com.hbmzz.alert.AlertSyncMessage;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -74,6 +75,14 @@ public final class NetworkHandler {
                 19, Side.SERVER);
         INSTANCE.registerMessage(HackerReplyMessage.Handler.class, HackerReplyMessage.class,
                 20, Side.CLIENT);
+        // Facility code: one record, broadcast to everyone on change and by each
+        // display to whoever is standing near it.
+        INSTANCE.registerMessage(AlertSyncMessage.Handler.class, AlertSyncMessage.class,
+                21, Side.CLIENT);
+        // Nuke monitor: its own device's numbers, to the players close enough to
+        // read the screen.
+        INSTANCE.registerMessage(NukeDataMessage.Handler.class, NukeDataMessage.class,
+                22, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

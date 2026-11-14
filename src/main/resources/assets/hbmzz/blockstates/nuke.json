@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=south,primed=false": {
+      "model": "hbmzz:nuke"
+    },
+    "facing=south,primed=true": {
+      "model": "hbmzz:nuke_primed"
+    },
+    "facing=north,primed=false": {
+      "model": "hbmzz:nuke",
+      "y": 180
+    },
+    "facing=north,primed=true": {
+      "model": "hbmzz:nuke_primed",
+      "y": 180
+    },
+    "facing=east,primed=false": {
+      "model": "hbmzz:nuke",
+      "y": 270
+    },
+    "facing=east,primed=true": {
+      "model": "hbmzz:nuke_primed",
+      "y": 270
+    },
+    "facing=west,primed=false": {
+      "model": "hbmzz:nuke",
+      "y": 90
+    },
+    "facing=west,primed=true": {
+      "model": "hbmzz:nuke_primed",
+      "y": 90
+    }
+  }
+}

@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.0.0";
+    public static final String VERSION = "3.1.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -56,6 +56,9 @@ public class HBMZZ {
         MinecraftForge.EVENT_BUS.register(ModContent.class);
         MinecraftForge.EVENT_BUS.register(new CommonEvents());
         MinecraftForge.EVENT_BUS.register(new GunHandler());
+        // The wooden-axe wiring tool. An event handler rather than an item,
+        // because the tool is a plain vanilla axe - see NukeLinkHandler for why.
+        MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.NukeLinkHandler());
         GameRegistry.registerTileEntity(TileEntityDFCMonitor.class, new ResourceLocation(MODID, "dfc_monitor"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityCtrlPanel.class,
                 new ResourceLocation(MODID, "control_panel"));
@@ -63,6 +66,16 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "ctrl_console"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoBroadcaster.class,
                 new ResourceLocation(MODID, "video_broadcaster"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNuke.class,
+                new ResourceLocation(MODID, "nuke"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNukeController.class,
+                new ResourceLocation(MODID, "nuke_controller"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNukeMonitor.class,
+                new ResourceLocation(MODID, "nuke_monitor"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityCodeBroadcaster.class,
+                new ResourceLocation(MODID, "code_broadcaster"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlertDisplay.class,
+                new ResourceLocation(MODID, "alert_display"));
         // The camera syncs its name/channel/aim through SPacketUpdateTileEntity, so
         // the very first setName() in onBlockPlacedBy calls writeToNBT(). Without a
         // mapping that throws "TileEntityMonitorCamera is missing a mapping!" and the

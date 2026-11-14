@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "hbmzz:nuke_monitor_empty"
+    },
+    "facing=north": {
+      "model": "hbmzz:nuke_monitor_empty",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "hbmzz:nuke_monitor_empty",
+      "y": 270
+    },
+    "facing=west": {
+      "model": "hbmzz:nuke_monitor_empty",
+      "y": 90
+    }
+  }
+}

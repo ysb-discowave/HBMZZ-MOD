@@ -79,6 +79,27 @@ public final class HBMZZConfig {
     /** Camera roll, hotbar displacement and the ground ring. */
     public static boolean rbmkShake = true;
 
+    // ---- nuclear accident system ----
+    /**
+     * Yield, in kilotons, copied into a device when it is placed. The default is
+     * a strategic warhead rather than a tactical one: this is the block that
+     * exists to end a facility, and a small one would make the ALPHA code look
+     * like an overreaction.
+     */
+    public static int nukeYieldKt = 100;
+    /** Fuse, in ticks. 100 = five seconds, which is long enough for the siren. */
+    public static int nukeFuseTicks = 100;
+    /** Vanilla explosion power for a zero-yield device; the curve starts here. */
+    public static double nukeBlastBase = 6.0D;
+    /** Additional explosion power per kiloton. */
+    public static double nukeBlastPerKt = 0.28D;
+    /** Hard ceiling: past ~50 one explosion re-checks the whole crater in one tick. */
+    public static double nukeBlastCap = 48.0D;
+    /** Ticks between catch-up pushes from a display to the players near it. */
+    public static int alertRefreshTicks = 20;
+    /** Facility-wide klaxon on a code broadcast. Client-side sound, server-side trigger. */
+    public static boolean alertKlaxon = true;
+
     // ---- zd_tx cinematic ----
     /**
      * Degrees per tick the camera travels around the target. 0.72 is a full
@@ -176,6 +197,20 @@ public final class HBMZZConfig {
                     "Explosion set off when the falling lid lands back on the core. This is the second bang, the one that throws the plate up again. Vanilla explosion scale: 30 makes a real crater.");
             rbmkShake = cfg.getBoolean("shake", "rbmk", true,
                     "Shake the camera and the hotbar, and draw the expanding ground ring. Client-side only; the server sends a position and a strength, the client animates it.");
+            nukeYieldKt = cfg.getInt("yield", "nuke", 100, 1, 10000,
+                    "Yield in kilotons, copied into a device when it is placed. Blast power is derived from it.");
+            nukeFuseTicks = cfg.getInt("fuseTicks", "nuke", 100, 0, 1200,
+                    "Fuse in ticks between the signal and the bang. 100 = 5 s; 0 detonates on the signal.");
+            nukeBlastBase = cfg.getFloat("blastBase", "nuke", 6.0F, 1.0F, 60.0F,
+                    "Vanilla explosion power at zero yield. TNT is 4.");
+            nukeBlastPerKt = cfg.getFloat("blastPerKt", "nuke", 0.28F, 0.0F, 4.0F,
+                    "Explosion power added per kiloton of yield.");
+            nukeBlastCap = cfg.getFloat("blastCap", "nuke", 48.0F, 4.0F, 120.0F,
+                    "Hard ceiling on explosion power. Above ~50 the crater is expensive to compute.");
+            alertRefreshTicks = cfg.getInt("refreshTicks", "alert", 20, 5, 200,
+                    "Ticks between catch-up pushes from an accident display to nearby players.");
+            alertKlaxon = cfg.getBoolean("klaxon", "alert", true,
+                    "Play a facility-wide sound when a code is broadcast.");
             cinematicSpeed = (float) cfg.getFloat("rbmkSpeed", "cinematic", 0.72F, 0.0F, 12.0F,
                     "Degrees per tick the camera orbits an RBMK that has started jumping its rods. The gamerule zd_tx has to be on for this to happen at all. 0.72 is one lap in about 25 seconds; 0 leaves the camera alone.");
             cinematicDfcSpeed = (float) cfg.getFloat("dfcSpeed", "cinematic", 2.0F, 0.0F, 12.0F,

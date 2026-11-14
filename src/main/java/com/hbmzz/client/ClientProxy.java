@@ -50,6 +50,12 @@ public class ClientProxy extends CommonProxy {
         // only says "watch this block", and this decides where the eye goes.
         ClientCinematic.init();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
+        // The two nuclear-system panels: one cell each, same housing hardware as
+        // the DFC monitor, different canvas.
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.tile.TileEntityNukeMonitor.class, new RenderNukeMonitor());
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.tile.TileEntityAlertDisplay.class, new RenderAlertDisplay());
         ClientRegistry.bindTileEntitySpecialRenderer(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,
                 new com.hbmzz.cecp.client.RenderCtrlConsole());
         // The panel that was knocked off its mount: an entity, because blocks
@@ -95,6 +101,11 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("control_panel"));
         list.add(loc("ctrl_console"));
         list.add(loc("video_broadcaster"));
+        list.add(loc("nuke"));
+        list.add(loc("nuke_controller"));
+        list.add(loc("nuke_monitor"));
+        list.add(loc("code_broadcaster"));
+        list.add(loc("alert_display"));
         return list;
     }
 
@@ -116,6 +127,11 @@ public class ClientProxy extends CommonProxy {
         list.add(Item.getItemFromBlock(ModContent.BLOCK_CTRL_PANEL));
         list.add(ModContent.ITEM_BLOCK_CTRL_CONSOLE);
         list.add(ModContent.ITEM_BLOCK_VIDEO_BROADCASTER);
+        list.add(ModContent.ITEM_BLOCK_NUKE);
+        list.add(ModContent.ITEM_BLOCK_NUKE_CONTROLLER);
+        list.add(ModContent.ITEM_BLOCK_NUKE_MONITOR);
+        list.add(ModContent.ITEM_BLOCK_CODE_BROADCASTER);
+        list.add(ModContent.ITEM_BLOCK_ALERT_DISPLAY);
         return list;
     }
 
@@ -127,6 +143,11 @@ public class ClientProxy extends CommonProxy {
         list.add(0);
         list.add(1);
         list.add(2);
+        list.add(0);
+        list.add(0);
+        list.add(0);
+        list.add(0);
+        list.add(0);
         list.add(0);
         list.add(0);
         list.add(0);

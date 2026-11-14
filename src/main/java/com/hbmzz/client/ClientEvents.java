@@ -84,6 +84,12 @@ public class ClientEvents {
         if (event.getWorld() != null && event.getWorld().isRemote) {
             RenderDFCMonitor.clearCaches();
             RenderFallenScreen.clearCaches();
+            RenderNukeMonitor.clearCaches();
+            RenderAlertDisplay.clearCaches();
+            // The facility code belongs to the world that was just left. Keeping
+            // it would make the first frame of the next world show the previous
+            // facility's DELTA until a packet arrived.
+            ClientAlertState.reset();
         }
     }
 

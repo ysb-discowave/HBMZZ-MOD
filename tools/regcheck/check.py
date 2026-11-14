@@ -946,6 +946,29 @@ def main():
           "the monitor reads the intrusion state off the world",
           "the screen would keep showing the last good numbers after a write")
 
+    # ---- no two shaped recipes may resolve to the same grid ---------------
+    # 1.12.2 answers a crafting query with the first matching recipe, so an
+    # identical pattern makes the later registration unreachable: the player
+    # crafts a different block and is never told why. Nothing else catches this -
+    # it compiles, the item exists, the recipe "is registered", and the only
+    # symptom is that one of the two is unobtainable. This is exactly how the
+    # nuke monitor shipped with the DFC monitor's grid and could not be crafted.
+    content = read(os.path.join(ROOT, "src/main/java/com/hbmzz/ModContent.java"))
+    grids = {}
+    for recipe_name, body in re.findall(
+            r'new ShapedOreRecipe\(\s*new ResourceLocation\(HBMZZ\.MODID, "([a-z_0-9]+)"\),'
+            r'(.*?)\.setRegistryName',
+            content, re.S):
+        rows = re.findall(r'"([A-Z ]{1,3})"', body)
+        keys = dict(re.findall(r"'([A-Z])',\s*([^,\n]+)", body))
+        if len(rows) < 3:
+            continue
+        canon = tuple("".join(keys.get(c, c).strip() for c in row) for row in rows[:3])
+        grids.setdefault(canon, []).append(recipe_name)
+    clashes = [" vs ".join(v) for v in grids.values() if len(v) > 1]
+    check(not clashes, "no two shaped recipes share the same crafting grid",
+          "the later registration can never be crafted: " + "; ".join(clashes))
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

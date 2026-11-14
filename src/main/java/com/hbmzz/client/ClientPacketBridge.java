@@ -19,6 +19,8 @@
 package com.hbmzz.client;
 
 import com.hbmzz.dfc.DFCSnapshot;
+import com.hbmzz.alert.AlertSyncMessage;
+import com.hbmzz.network.NukeDataMessage;
 import com.hbmzz.network.HackerReplyMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -64,6 +66,37 @@ public final class ClientPacketBridge {
      * into a window that is no longer open would at best paint one frame of
      * stale output and at worst drive a widget that has already been disposed.</p>
      */
+    /**
+     * Stores the facility record and repaints nothing directly: every display
+     * reads the same static fields on its next frame, so there is exactly one
+     * place the value can be and no list of screens to keep in step.
+     */
+    public static void onAlertSync(AlertSyncMessage message) {
+        if (message == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.addScheduledTask(() -> ClientAlertState.accept(message));
+    }
+
+    /** Hands a nuke sample to the monitor tile entity that asked for it. */
+    public static void onNukeData(NukeDataMessage message) {
+        if (message == null || message.pos() == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.addScheduledTask(() -> {
+            WorldClient world = mc.world;
+            if (world == null) {
+                return;
+            }
+            TileEntity te = world.getTileEntity(message.pos());
+            if (te instanceof com.hbmzz.tile.TileEntityNukeMonitor) {
+                ((com.hbmzz.tile.TileEntityNukeMonitor) te).accept(message.snapshot());
+            }
+        });
+    }
+
     public static void onHackerReply(HackerReplyMessage message) {
         if (message == null) {
             return;

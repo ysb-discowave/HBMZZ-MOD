@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "hbmzz:blocks/nuke_controller_front",
+    "down": "hbmzz:blocks/nuke_controller_side",
+    "up": "hbmzz:blocks/nuke_controller_side",
+    "north": "hbmzz:blocks/nuke_controller_side",
+    "south": "hbmzz:blocks/nuke_controller_front",
+    "east": "hbmzz:blocks/nuke_controller_side",
+    "west": "hbmzz:blocks/nuke_controller_side"
+  }
+}

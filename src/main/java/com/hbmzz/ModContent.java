@@ -69,6 +69,19 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_CTRL_CONSOLE = new ItemBlock(BLOCK_CTRL_CONSOLE);
     public static final Item ITEM_BLOCK_VIDEO_BROADCASTER = new ItemBlock(BLOCK_VIDEO_BROADCASTER);
 
+    // ---- nuclear accident system -------------------------------------------
+    /** The one bomb. A plain ItemBlock would do, except it cannot explain a refusal. */
+    public static final Block BLOCK_NUKE = new com.hbmzz.block.BlockNuke();
+    public static final Block BLOCK_NUKE_CONTROLLER = new com.hbmzz.block.BlockNukeController();
+    public static final Block BLOCK_NUKE_MONITOR = new com.hbmzz.block.BlockNukeMonitor();
+    public static final Block BLOCK_CODE_BROADCASTER = new com.hbmzz.block.BlockCodeBroadcaster();
+    public static final Block BLOCK_ALERT_DISPLAY = new com.hbmzz.block.BlockAlertDisplay();
+    public static final Item ITEM_BLOCK_NUKE = new com.hbmzz.item.ItemBlockNuke(BLOCK_NUKE);
+    public static final Item ITEM_BLOCK_NUKE_CONTROLLER = new ItemBlock(BLOCK_NUKE_CONTROLLER);
+    public static final Item ITEM_BLOCK_NUKE_MONITOR = new ItemBlock(BLOCK_NUKE_MONITOR);
+    public static final Item ITEM_BLOCK_CODE_BROADCASTER = new ItemBlock(BLOCK_CODE_BROADCASTER);
+    public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
+
     public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
     public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
     public static final Item ITEM_REGEN_COIL = new ItemCoil(ItemCoil.CoilType.REGEN);
@@ -90,6 +103,11 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_CTRL_PANEL);
         event.getRegistry().register(BLOCK_CTRL_CONSOLE);
         event.getRegistry().register(BLOCK_VIDEO_BROADCASTER);
+        event.getRegistry().register(BLOCK_NUKE);
+        event.getRegistry().register(BLOCK_NUKE_CONTROLLER);
+        event.getRegistry().register(BLOCK_NUKE_MONITOR);
+        event.getRegistry().register(BLOCK_CODE_BROADCASTER);
+        event.getRegistry().register(BLOCK_ALERT_DISPLAY);
     }
 
     @SubscribeEvent
@@ -104,6 +122,16 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_CTRL_CONSOLE);
         ITEM_BLOCK_VIDEO_BROADCASTER.setRegistryName(BLOCK_VIDEO_BROADCASTER.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_VIDEO_BROADCASTER);
+        ITEM_BLOCK_NUKE.setRegistryName(BLOCK_NUKE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NUKE);
+        ITEM_BLOCK_NUKE_CONTROLLER.setRegistryName(BLOCK_NUKE_CONTROLLER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NUKE_CONTROLLER);
+        ITEM_BLOCK_NUKE_MONITOR.setRegistryName(BLOCK_NUKE_MONITOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NUKE_MONITOR);
+        ITEM_BLOCK_CODE_BROADCASTER.setRegistryName(BLOCK_CODE_BROADCASTER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_CODE_BROADCASTER);
+        ITEM_BLOCK_ALERT_DISPLAY.setRegistryName(BLOCK_ALERT_DISPLAY.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_ALERT_DISPLAY);
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_HACKER_TABLET);
         event.getRegistry().register(ITEM_SPEED_COIL);
@@ -202,6 +230,78 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'O', Item.getItemFromBlock(Blocks.OBSERVER)
         ).setRegistryName(HBMZZ.MODID, "video_broadcaster"));
+
+        // ---- nuclear accident system ----
+        // The bomb is the most expensive thing in the mod by design: it ends a
+        // world, and "one per save" is a rule about the save, not a cost.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "nuke"),
+                new ItemStack(BLOCK_NUKE),
+                "IOI",
+                "PRP",
+                "IOI",
+                'I', Items.IRON_INGOT,
+                'O', Item.getItemFromBlock(Blocks.OBSIDIAN),
+                'P', Items.ENDER_PEARL,
+                'R', Item.getItemFromBlock(Blocks.REDSTONE_BLOCK)
+        ).setRegistryName(HBMZZ.MODID, "nuke"));
+
+        // The controller is cheap on purpose: it is the part you want several of,
+        // one per lever or per alarm circuit.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "nuke_controller"),
+                new ItemStack(BLOCK_NUKE_CONTROLLER),
+                "IEI",
+                "RCR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'E', Items.ENDER_PEARL,
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "nuke_controller"));
+
+        // Deliberately NOT the DFC monitor's pattern. 1.12.2 resolves crafting by
+        // returning the first recipe that matches, so an identical grid makes the
+        // later registration silently unreachable - the player would craft a DFC
+        // monitor and never learn why the bomb screen is missing. The top row's
+        // glass pane becomes obsidian instead: same monitor, with the blast
+        // shielding the job calls for.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "nuke_monitor"),
+                new ItemStack(BLOCK_NUKE_MONITOR),
+                "IOI",
+                "GRG",
+                "ICI",
+                'I', Items.IRON_INGOT,
+                'O', Item.getItemFromBlock(Blocks.OBSIDIAN),
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "nuke_monitor"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "code_broadcaster"),
+                new ItemStack(BLOCK_CODE_BROADCASTER),
+                "IRI",
+                "GLG",
+                "IRI",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'L', Item.getItemFromBlock(Blocks.REDSTONE_LAMP)
+        ).setRegistryName(HBMZZ.MODID, "code_broadcaster"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "alert_display"),
+                new ItemStack(BLOCK_ALERT_DISPLAY),
+                "IGI",
+                "GRG",
+                "IEI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'E', Items.ENDER_PEARL
+        ).setRegistryName(HBMZZ.MODID, "alert_display"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "monitor_camera"),

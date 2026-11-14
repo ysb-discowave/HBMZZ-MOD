@@ -3,7 +3,7 @@
     "modid": "hbmzz",
     "name": "HBMZZ",
     "description": "A live DFC wall screen plus a resizable terminal, a machine control panel that drives NTM machines through the IControllable protocol, a video broadcaster that takes over a selected player's screen on a redstone edge, Roblox-style Speed/Jump/Regeneration coils, a wearable jetpack and a small hitscan arsenal (sidearm, carbine, breaker) with three ammo calibers, for HBM's Nuclear Tech Mod Community Edition. Ships Redstone Audio (rsaudio) inside the same jar: audio player, redstone delayer, structure loader, redstone computer, alarm lights, blast doors, announcer, DMR / F9 reactors, elevators, monitors, access terminals, airlocks, remote panels, trains and freight trucks.",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "mcversion": "1.12.2",
     "authorList": ["HBMZZ"],
     "credits": "Built for NTM:CE and Leafia's Cursed Addon. The machine control panel and the node-graph console are derived from NTM: Cursed Edition (com.hbm.inventory.control_panel, GPL-3.0); the addon nodes and controls come from NTM Cursed Addon / Leafia (GPL-3.0, partly LGPL-3.0). Monitor panel design inspired by JiezhiMod (DFC-Map-Creation-Tool) by Shushangde Jiezhi - https://gitee.com/jiezhi-bililbli/DFC-Map-Creation-Tool - used under written permission, see AUTHORIZATION.md. Redstone Audio (rsaudio) is ported in unchanged from the same author's standalone mod and keeps its own modid so existing saves keep their block ids. Full provenance in NOTICE.md.",

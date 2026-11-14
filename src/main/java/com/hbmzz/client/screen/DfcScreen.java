@@ -19,6 +19,7 @@
 package com.hbmzz.client.screen;
 
 import com.hbmzz.dfc.DFCSnapshot;
+import com.hbmzz.hack.HackState;
 import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -204,6 +205,17 @@ public final class DfcScreen {
     /** Event log, newest last. Owned by the canvas so each screen keeps its own history. */
     private final List<Entry> log = new ArrayList<Entry>();
     private DFCSnapshot previous;
+
+    /**
+     * True while the sample is marked as tampered with.
+     *
+     * <p>A field rather than a parameter because it is read from four different
+     * page painters that were written before this state existed, and threading
+     * it through all of them would mean changing a signature that
+     * {@code RenderDFCMonitor}, {@code GuiDFCMonitor} and the terminal all
+     * call. One field, set once per frame, keeps that blast radius at zero.</p>
+     */
+    private boolean degraded;
 
     /** Rendered phase bookkeeping, also used to decide the redraw cadence. */
     private int phase = PHASE_MAIN;
@@ -566,7 +578,13 @@ public final class DfcScreen {
         }
         long now = System.currentTimeMillis();
         this.phase = powered ? phaseAt(sinceOnMs) : PHASE_MAIN;
-        boolean animated = !powered || this.phase != PHASE_MAIN || faultElapsedMs >= 0L;
+        // The intrusion state drives a blink, so a frame that carries one has to
+        // be redrawn at the animated cadence. At the quiet 5 fps an alarm does
+        // not read as an alarm, it reads as a rendering bug.
+        int hack = data == null ? HackState.NORMAL : data.hackState;
+        this.degraded = hack == HackState.DEGRADED;
+        boolean animated = !powered || this.phase != PHASE_MAIN || faultElapsedMs >= 0L
+                || hack != HackState.NORMAL;
         long step = animated ? 50L : 200L;
         long bucket = now / step;
         if (bucket == this.lastBucket && !this.dirty) {
@@ -588,6 +606,13 @@ public final class DfcScreen {
         resetCanvas();
         if (!powered) {
             drawOff();
+        } else if (hack == HackState.CUT) {
+            // Above every other page, including the fault page: a cut screen
+            // has no data at all, and painting yesterday's numbers over it is
+            // the one thing a cut is meant to prevent.
+            drawSignalCut(data);
+        } else if (hack == HackState.DISCONNECT) {
+            drawLinkLost(data);
         } else if (faultElapsedMs >= 0L && faultElapsedMs < FAULT_MS) {
             drawFault(faultElapsedMs);
         } else if (this.phase == PHASE_BOOT) {
@@ -616,7 +641,14 @@ public final class DfcScreen {
             pageCore(data, tempRate);
         }
         drawScanlines();
-        drawAlarmFrame();
+        if (this.degraded) {
+            // The degraded frame replaces the ordinary alarm strip rather than
+            // stacking on top of it: two red bars, one saying "panel rule fired"
+            // and one saying "the numbers are lies", would just read as noise.
+            drawIntrusionOverlay(data);
+        } else {
+            drawAlarmFrame();
+        }
         this.dirty = true;
     }
 
@@ -897,11 +929,13 @@ public final class DfcScreen {
         // Whole degrees only: six characters is what fits inside the inner ring
         // at a size worth reading across a room, and two decimals on a wall
         // gauge are noise. The graph page and the terminal keep the precision.
-        String value = String.format(Locale.ROOT, "%.0f", d.temperature);
+        // Once the core has been written to, the value is not merely imprecise,
+        // it is unsourced - so it says Err rather than a number nobody can trust.
+        String value = this.degraded ? "Err" : String.format(Locale.ROOT, "%.0f", d.temperature);
         Font valueFont = fitMono(value, 60, 22, 10, true);
         int valueW = textWidth(value, valueFont);
         this.g.setFont(valueFont);
-        this.g.setColor(new Color(heatLevel == 0 ? TXT : heatColor, true));
+        this.g.setColor(new Color(this.degraded ? CRIT : (heatLevel == 0 ? TXT : heatColor), true));
         this.g.drawString(value, cx - valueW / 2 - 3, cy + 14);
         text("\u00b0C", cx + valueW / 2 - 1, cy + 14, DIM, ScreenFonts.mono(8));
         textCenterAt("\u7a33\u5b9a " + DfcFormat.percentShort(stabRatio), cx, cy + 30,
@@ -950,8 +984,16 @@ public final class DfcScreen {
 
     /** Storage / output / gain, three aligned rows shared by two pages. */
     private void energyRows(DFCSnapshot d, int y) {
-        row(RACK_X, y, RACK_W, "\u50a8\u80fd", DfcFormat.spk(d.containedEnergy), MINT);
-        row(RACK_X, y + 9, RACK_W, "\u8f93\u51fa", DfcFormat.spkRate(d.expellingEnergy), TXT);
+        // Both of the first two come out of the core's own accumulators, which
+        // is exactly the path a field write lands in - so after an intrusion
+        // they read Err. Gain is derived from the fuel columns instead and is
+        // left alone, which is what makes the page look "mostly working".
+        row(RACK_X, y, RACK_W, "\u50a8\u80fd",
+                this.degraded ? "Err" : DfcFormat.spk(d.containedEnergy),
+                this.degraded ? CRIT : MINT);
+        row(RACK_X, y + 9, RACK_W, "\u8f93\u51fa",
+                this.degraded ? "Err" : DfcFormat.spkRate(d.expellingEnergy),
+                this.degraded ? CRIT : TXT);
         row(RACK_X, y + 18, RACK_W, "\u589e\u76ca", DfcFormat.gain(d.potentialGain), NEEDLE);
     }
 
@@ -1046,9 +1088,11 @@ public final class DfcScreen {
 
         // Two chips name the traces; the plot itself carries no legend clutter.
         text("\u6e29\u5ea6", 8, 33, DIM, ScreenFonts.cjk(7));
-        text(DfcFormat.temperature(d.temperature), 30, 33, AMBER, ScreenFonts.monoBold(9));
+        text(this.degraded ? "Err" : DfcFormat.temperature(d.temperature), 30, 33,
+                this.degraded ? CRIT : AMBER, ScreenFonts.monoBold(9));
         text("\u53d1\u7535", 130, 33, DIM, ScreenFonts.cjk(7));
-        text(DfcFormat.spk(d.containedEnergy), 152, 33, MINT, ScreenFonts.monoBold(9));
+        text(this.degraded ? "Err" : DfcFormat.spk(d.containedEnergy), 152, 33,
+                this.degraded ? CRIT : MINT, ScreenFonts.monoBold(9));
 
         int x0 = 30;
         int x1 = 248;
@@ -1305,6 +1349,136 @@ public final class DfcScreen {
         }
     }
 
+    // ========================================================= intrusion pages
+
+    /**
+     * 链路中断：3 秒里屏幕只承认一件事 —— 它和堆芯之间那条线断了。
+     *
+     * <p>Deliberately not the ordinary "no signal" page. That page means the
+     * operator switched the feed off; this one means somebody reached in and
+     * changed the core underneath it, so the iconography is a broken link
+     * rather than a dead channel, and the countdown is the recovery, not a
+     * power-on delay.</p>
+     *
+     * <p>Length is {@link HackState#disconnectTicks} - three seconds - after
+     * which the page comes back with its compromised readouts marked Err.</p>
+     */
+    private void drawLinkLost(DFCSnapshot d) {
+        rect(0, 0, BASE_W, BASE_H, 0xFF0B0604);
+        hazard(0, 0, BASE_W, 7);
+        hazard(0, BASE_H - 7, BASE_W, 7);
+
+        boolean on = blink(this.frameMs);
+        int accent = on ? CRIT : 0xFF7E2A18;
+
+        // Three nodes: this screen, the link, the core. The middle one is the
+        // one that has failed, and it is the one that is lit.
+        int[] xs = {30, 108, 186};
+        String[] tags = {"MONITOR", "LINK", "CORE"};
+        for (int i = 0; i < 3; i++) {
+            int x = xs[i];
+            rect(x, 52, 40, 26, 0xFF171009);
+            hline(x, 52, 40, 0xFF4A3A2A);
+            hline(x, 77, 40, 0xFF4A3A2A);
+            vline(x, 52, 26, 0xFF4A3A2A);
+            vline(x + 39, 52, 26, 0xFF4A3A2A);
+            textCenterIn(tags[i], x, 40, 46, DIM, ScreenFonts.mono(5));
+            // Status lamp inside each node.
+            rect(x + 6, 62, 8, 6, i == 1 ? accent : 0xFF3A2A1A);
+        }
+
+        // The wire, broken between the monitor and the link node.
+        line(70, 65, 86, 65, 0xFF4A3A2A);
+        line(98, 65, 108, 65, 0xFF4A3A2A);
+        line(148, 65, 186, 65, 0xFF4A3A2A);
+        line(86, 58, 98, 72, accent);
+        line(98, 58, 86, 72, accent);
+
+        textCenter("\u8fde\u63a5\u8282\u70b9\u65ad\u5f00", 108, on ? CRIT : 0xFF8A3A28,
+                ScreenFonts.cjkBold(16));
+        textCenter("LINK TO CORE NODE LOST", 122, 0xFF7E4A38, ScreenFonts.mono(7));
+        textCenter("ERR 0x1F   NODE UNREACHABLE", 134, 0xFF5E3A2C, ScreenFonts.mono(7));
+
+        int left = d == null ? 0 : Math.max(0, d.hackTicksLeft);
+        int secs = (int) Math.ceil(left / 20.0D);
+        textCenter("\u94fe\u8def\u5c06\u5728 " + secs + " \u79d2\u540e\u91cd\u5efa", 152,
+                0xFF8A5C44, ScreenFonts.cjk(7));
+
+        // Segments fill as the three seconds run out.
+        int cells = 18;
+        int cellW = 6;
+        int barW = cells * (cellW + 2) - 2;
+        int bx = (BASE_W - barW) / 2;
+        double done = 1.0D - left / (double) HackState.disconnectTicks;
+        int lit = (int) Math.round(cells * Math.max(0.0D, Math.min(1.0D, done)));
+        for (int i = 0; i < cells; i++) {
+            rect(bx + i * (cellW + 2), 162, cellW, 4, i < lit ? accent : 0xFF2A1610);
+        }
+    }
+
+    /**
+     * 中断堆芯信号：没有页面，没有数值，只有 {@code ERROR#！}。
+     *
+     * <p>This is the one state where the screen does not pretend to know
+     * anything. It is not a warning about a reading; it is the absence of the
+     * feed the reading would have come from, so no gauge, no rack and no
+     * sparkline is drawn underneath.</p>
+     */
+    private void drawSignalCut(DFCSnapshot d) {
+        boolean on = blink(this.frameMs);
+        rect(0, 0, BASE_W, BASE_H, on ? 0xFF2A0806 : 0xFF0B0302);
+        hazard(0, 0, BASE_W, 10);
+        hazard(0, BASE_H - 10, BASE_W, 10);
+
+        textCenter("ERROR#\uFF01", 92, on ? 0xFFFF3B2A : 0xFF8A1410, ScreenFonts.cjkBold(32));
+        textCenter("CORE SIGNAL SEVERED", 116, on ? 0xFFFF8A70 : 0xFF6E2020,
+                ScreenFonts.mono(9));
+        textCenter("\u5806\u82af\u4fe1\u53f7\u5df2\u4e2d\u65ad", 130, on ? 0xFFFFA088 : 0xFF7E2A18,
+                ScreenFonts.cjk(9));
+
+        int left = d == null ? 0 : Math.max(0, d.hackTicksLeft);
+        textCenter("AUTO-RECOVER IN " + (int) Math.ceil(left / 20.0D) + "s", 150,
+                0xFF8A3A28, ScreenFonts.mono(7));
+        textCenter("\u8f93\u5165 restore \u7acb\u5373\u6062\u590d", 162, 0xFF6E3A2C,
+                ScreenFonts.cjk(7));
+    }
+
+    /**
+     * 入侵残留：页面回来了，但温度、储能、输出已经不可信。
+     *
+     * <p>Only these three. The structure rack, the collapse risk and the fuel
+     * columns are all still drawn honestly - they come from paths a field write
+     * does not touch, and a screen where <em>everything</em> reads Err tells the
+     * operator less than one where two numbers are visibly wrong. The red frame
+     * blinks at one second on, one second off so it reads as a warning rather
+     * than as a page decoration.</p>
+     */
+    private void drawIntrusionOverlay(DFCSnapshot d) {
+        boolean on = blink(this.frameMs);
+        int color = on ? CRIT : 0xFF7E2A18;
+
+        rect(0, HDR_H, BASE_W, 12, 0xFF24100B);
+        rect(0, HDR_H, 3, 12, color);
+        text("!! \u68c0\u6d4b\u5230\u5165\u4fb5\u5199\u5165 \u00b7 \u6e29\u5ea6\u4e0e\u50a8\u80fd\u4e0d\u53ef\u4fe1",
+                9, HDR_H + 9, on ? CRIT : ALERT_TXT, ScreenFonts.cjk(8));
+        textRight("INTRUSION", BASE_W - 6, HDR_H + 9, color, ScreenFonts.mono(6));
+
+        if (!on) {
+            return;
+        }
+        // Corner brackets, the same shape the alarm frame uses, so an operator
+        // who has seen one alarm knows where to look.
+        int arm = 6;
+        rect(0, HDR_H + 12, arm, 1, color);
+        rect(0, BASE_H - 1, arm, 1, color);
+        rect(BASE_W - arm, HDR_H + 12, arm, 1, color);
+        rect(BASE_W - arm, BASE_H - 1, arm, 1, color);
+        rect(0, HDR_H + 12, 1, arm, color);
+        rect(BASE_W - 1, HDR_H + 12, 1, arm, color);
+        rect(0, BASE_H - arm, 1, arm, color);
+        rect(BASE_W - 1, BASE_H - arm, 1, arm, color);
+    }
+
     // ============================================================ special pages
 
     private void drawOff() {
@@ -1422,7 +1596,9 @@ public final class DfcScreen {
         int w = 120;
         int x = (BASE_W - w) / 2;
         hline(x, 140, w, LINE);
-        row(x, 152, w, "\u6e29\u5ea6", DfcFormat.temperature(d.temperature), WARN);
+        row(x, 152, w, "\u6e29\u5ea6",
+                this.degraded ? "Err" : DfcFormat.temperature(d.temperature),
+                this.degraded ? CRIT : WARN);
         row(x, 164, w, "\u7a33\u5b9a\u5ea6", DfcFormat.stabilization(d.stabilization), DIM);
         textCenter("\u8fbe\u5230 " + DfcFormat.celsiusMark(ONLINE_MIN_TEMP) + " \u540e\u8fdb\u5165\u5728\u7ebf",
                 176, 0xFF6B5C44, ScreenFonts.cjk(7));

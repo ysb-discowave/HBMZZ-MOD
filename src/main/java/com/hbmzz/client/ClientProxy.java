@@ -157,4 +157,11 @@ public class ClientProxy extends CommonProxy {
     public void openTerminal(int kind, BlockPos pos, int index) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiCtrlTerminal(kind, pos, index));
     }
+
+    @Override
+    public void openHackerTablet() {
+        // No position argument: the tablet is not bound to a block. What it
+        // writes to is decided by the "target" command, server side.
+        Minecraft.getMinecraft().displayGuiScreen(new GuiHackerTablet());
+    }
 }

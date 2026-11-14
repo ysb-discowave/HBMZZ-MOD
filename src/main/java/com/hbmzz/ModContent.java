@@ -26,6 +26,7 @@ import com.hbmzz.item.ItemAmmo;
 import com.hbmzz.item.ItemBlockMonitor;
 import com.hbmzz.item.ItemCoil;
 import com.hbmzz.item.ItemGun;
+import com.hbmzz.item.ItemHackerTablet;
 import com.hbmzz.item.ItemJetpack;
 import com.hbmzz.item.ItemMonitorLinker;
 import net.minecraft.block.Block;
@@ -60,6 +61,8 @@ public final class ModContent {
     /** Takes over the screens of the players a selector names. */
     public static final Block BLOCK_VIDEO_BROADCASTER = new com.hbmzz.block.BlockVideoBroadcaster();
     public static final Item ITEM_LINKER = new ItemMonitorLinker();
+    /** The hacker tablet: opens a terminal that writes machine fields directly. */
+    public static final Item ITEM_HACKER_TABLET = new ItemHackerTablet();
     public static final Item ITEM_BLOCK_MONITOR = new ItemBlockMonitor(BLOCK_MONITOR);
     public static final Item ITEM_BLOCK_MONITOR_CAMERA = new ItemBlock(BLOCK_MONITOR_CAMERA);
     public static final Item ITEM_BLOCK_CTRL_PANEL = new ItemBlock(BLOCK_CTRL_PANEL);
@@ -102,6 +105,7 @@ public final class ModContent {
         ITEM_BLOCK_VIDEO_BROADCASTER.setRegistryName(BLOCK_VIDEO_BROADCASTER.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_VIDEO_BROADCASTER);
         event.getRegistry().register(ITEM_LINKER);
+        event.getRegistry().register(ITEM_HACKER_TABLET);
         event.getRegistry().register(ITEM_SPEED_COIL);
         event.getRegistry().register(ITEM_JUMP_COIL);
         event.getRegistry().register(ITEM_REGEN_COIL);
@@ -166,6 +170,24 @@ public final class ModContent {
                 'G', Items.GOLD_INGOT,
                 'E', Items.ENDER_PEARL
         ).setRegistryName(HBMZZ.MODID, "monitor_linker"));
+
+        // Hacker tablet: a glass face for the screen, a pearl for the uplink, a
+        // comparator for the logic that reads a machine's internals. Kept
+        // deliberately expensive - it is the one item in the mod that can skip
+        // the control rods entirely, and it should not be something a player
+        // crafts before they have built their first reactor.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "hacker_tablet"),
+                new ItemStack(ITEM_HACKER_TABLET),
+                "GRG",
+                "IPI",
+                "ICI",
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'I', Items.IRON_INGOT,
+                'P', Items.ENDER_PEARL,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "hacker_tablet"));
 
         // Video broadcaster: a glass face to be the screen, an observer because
         // it is the block that watches for a signal, and redstone to carry it.

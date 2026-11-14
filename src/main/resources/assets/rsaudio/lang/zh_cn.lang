@@ -630,7 +630,7 @@ gui.rsaudio.access.broadcasting=已让终端按当前设置播报一次
 gui.rsaudio.access.send_failed=发送失败（可能已断开连接）
 gui.rsaudio.access.hint=封锁之后造的门也会被自动补上；解除不影响玩家在门上手动上的锁
 # ---------------------------------------------------------------- 气闸控制器（QSERF airlock）
-tile.rsaudio.airlock_controller=气闸控制器
+tile.rsaudio.airlock_controller.name=气闸控制器
 tooltip.rsaudio.airlock.1=放在两扇面对面的门中间，频道设成和门一样
 tooltip.rsaudio.airlock.2=空手右键 = 走一轮：关上开着的那一侧 → 净化 → 打开另一侧
 tooltip.rsaudio.airlock.3=潜行右键 = 打开设置界面
@@ -664,7 +664,7 @@ gui.rsaudio.airlock.applied=已保存：%s
 gui.rsaudio.airlock.hint=在舱室里按「启动气闸」；哪一侧开着哪一侧就是入口，净化期间两侧都开不了
 
 # ---------------------------------------------------------------- 远程控制面板（QSERF 遥控盘）
-tile.rsaudio.remote_panel=远程控制面板
+tile.rsaudio.remote_panel.name=远程控制面板
 tooltip.rsaudio.panel.1=正面上 3 列 2 行共 6 个按钮，空手右键直接按，不是开菜单
 tooltip.rsaudio.panel.2=潜行右键 = 打开设置界面（切换控制反应堆 / 大门，改频道）
 tooltip.rsaudio.panel.3=反应堆模式：点火 / 停机 / 维护 / 装料 / 修激光 / 子系统
@@ -702,6 +702,7 @@ chat.rsaudio.panel.no_target=这块面板还没连上目标机器 —— 潜行�
 
 # ---------------------------------------------------------------- 塔塔鲁斯（圆形舱盖门）
 tile.rsaudio.tartarus.name=塔塔鲁斯舱盖门
+tile.rsaudio.tartarus_hatch.name=塔塔鲁斯舱盖格
 tooltip.rsaudio.tartarus.1=圆形、巨型、向下缓慢开合的舱盖门（活板门）
 tooltip.rsaudio.tartarus.2=空手右键 = 手动开/关；手持木斧潜行右键 = 打开设置界面，调半径后点建造
 tooltip.rsaudio.tartarus.3=建造后在控制器周围按「半径²」生成整片圆形舱盖格，关着是实心地板，开了沉进竖井可通过

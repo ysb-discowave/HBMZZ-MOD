@@ -58,4 +58,12 @@ public class CommonProxy {
      */
     public void openTerminal(int kind, BlockPos pos, int index) {
     }
+
+    /**
+     * Opens the hacker tablet's terminal. Client only, like every other window
+     * this mod has: a dedicated server only ever sees the two packets, and the
+     * command itself is parsed against the server's own world.
+     */
+    public void openHackerTablet() {
+    }
 }

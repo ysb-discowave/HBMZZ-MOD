@@ -67,6 +67,13 @@ public final class NetworkHandler {
         INSTANCE.registerMessage(ShakeMessage.Handler.class, ShakeMessage.class, 17, Side.CLIENT);
         // Cinematic camera: start orbiting this, or stop. Two packets per event.
         INSTANCE.registerMessage(CinematicMessage.Handler.class, CinematicMessage.class, 18, Side.CLIENT);
+        // Hacker tablet: one typed line up, the printed lines and the world's
+        // intrusion state down. The state travels with every reply because a
+        // cut is global and can be fired from somebody else's tablet.
+        INSTANCE.registerMessage(HackerCommandMessage.Handler.class, HackerCommandMessage.class,
+                19, Side.SERVER);
+        INSTANCE.registerMessage(HackerReplyMessage.Handler.class, HackerReplyMessage.class,
+                20, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

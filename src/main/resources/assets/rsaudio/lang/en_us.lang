@@ -630,7 +630,7 @@ gui.rsaudio.access.broadcasting=Terminal is announcing with the current settings
 gui.rsaudio.access.send_failed=Send failed (connection may be closed)
 gui.rsaudio.access.hint=Doors built after the lockdown are picked up automatically; releasing never touches player locks
 # ---------------------------------------------------------------- Airlock controller (QSERF airlock)
-tile.rsaudio.airlock_controller=Airlock Controller
+tile.rsaudio.airlock_controller.name=Airlock Controller
 tooltip.rsaudio.airlock.1=Place it between two facing doors on the same channel
 tooltip.rsaudio.airlock.2=Bare right-click = run a cycle: close whichever side is open -> decontaminate -> open the other side
 tooltip.rsaudio.airlock.3=Sneak right-click = open the settings screen
@@ -664,7 +664,7 @@ gui.rsaudio.airlock.applied=Saved: %s
 gui.rsaudio.airlock.hint=Press Start inside the chamber; whichever side is open counts as the entrance. Neither side opens while decontaminating
 
 # ---------------------------------------------------------------- Remote control panel
-tile.rsaudio.remote_panel=Remote Control Panel
+tile.rsaudio.remote_panel.name=Remote Control Panel
 tooltip.rsaudio.panel.1=Six buttons on the front (3 columns x 2 rows). Bare-hand right-click presses one - no menu
 tooltip.rsaudio.panel.2=Sneak + right-click opens settings (reactor / gate mode, channel)
 tooltip.rsaudio.panel.3=Reactor mode: ignite / cooldown / maintenance / fuel cell / lasers / subsystems
@@ -701,6 +701,7 @@ chat.rsaudio.panel.no_target=This panel is not linked to any machine yet - sneak
 
 # ---------------------------------------------------------------- Tartarus (circular hatch door)
 tile.rsaudio.tartarus.name=Tartarus Hatch Door
+tile.rsaudio.tartarus_hatch.name=Tartarus Hatch Cell
 tooltip.rsaudio.tartarus.1=A circular, giant hatch door (trapdoor) that slowly descends to open and close
 tooltip.rsaudio.tartarus.2=Bare right-click = open/close manually; sneak + right-click with a wooden axe = open the settings, set the radius then Build
 tooltip.rsaudio.tartarus.3=After building, a full ring of circular hatch tiles is generated around the controller within "radius squared"; closed it is a solid floor, open it sinks into the shaft and you can pass through

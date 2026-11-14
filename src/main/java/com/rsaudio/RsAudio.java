@@ -27,6 +27,7 @@ import com.rsaudio.tile.TileTrainStation;
 import com.rsaudio.tile.TileStructureLoader;
 import com.rsaudio.util.TtsServer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -89,6 +90,18 @@ public class RsAudio {
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
         Config.init(event.getModConfigurationDirectory());
+        // ★★ 方块 / 物品的注册入口 —— 必须在这里显式挂总线，不能只靠
+        //   ModBlocks 身上的 @Mod.EventBusSubscriber。
+        //
+        //   为什么：rsaudio 是同一枚 jar 里的第二个 @Mod 容器，注解注入走的是 FML 的
+        //   ASM 类扫描 + 「这个类归哪个容器」的判定。那条链一旦漏掉 com.rsaudio.ModBlocks，
+        //   失败是**完全静默**的 —— 模组照常加载、下面这 21 条方块实体照常注册、
+        //   创造模式里那一页空着、方块放下去变空气，日志里一个字都不会有。
+        //   （对照 com.hbmzz.HBMZZ#preInit：那边从一开始就是显式 register(ModContent.class)。）
+        //
+        //   注册事件（RegistryEvent.Register<Block/Item>）在所有模组的 preInit 之后才发，
+        //   所以写在这里不算晚；ModBlocks 里另有幂等闸门，两条路都挂着也不会重复注册。
+        MinecraftForge.EVENT_BUS.register(ModBlocks.class);
         GameRegistry.registerTileEntity(TileAudioPlayer.class, new ResourceLocation(MODID, "audio_player"));
         GameRegistry.registerTileEntity(TileRedstoneDelayer.class, new ResourceLocation(MODID, "redstone_delayer"));
         // ★ 结构加载器 / 红石计算机 / 警报灯 / 防核门 的方块实体
@@ -208,6 +221,16 @@ public class RsAudio {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         proxy.init(event);
+        // ★ 注册自检。放在 init 而不是 preInit：这时所有 RegistryEvent 都已发完，
+        //   注册表是终态，查起来才是准的。
+        //   通过 = 日志里一行 info；缺项 = 每一项一行 warn（带具体注册名），
+        //   不用进游戏翻创造模式也能知道漏了什么。
+        int missing = ModBlocks.verifyRegistered();
+        if (missing == 0) {
+            log("方块/物品注册自检通过：%d 个方块实例全部在册", ModBlocks.declaredBlockCount());
+        } else {
+            warn("方块/物品注册自检发现 %d 项缺失，逐条见上面的 [注册自检] 行", missing);
+        }
     }
 
     @Mod.EventHandler

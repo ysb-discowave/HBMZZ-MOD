@@ -19,6 +19,7 @@
 package com.hbmzz.client;
 
 import com.hbmzz.dfc.DFCSnapshot;
+import com.hbmzz.network.HackerReplyMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.tileentity.TileEntity;
@@ -50,6 +51,28 @@ public final class ClientPacketBridge {
             GuiScreen screen = mc.currentScreen;
             if (screen instanceof GuiDFCMonitor && ((GuiDFCMonitor) screen).matches(pos)) {
                 ((GuiDFCMonitor) screen).onData(snapshot);
+            }
+        });
+    }
+
+    /**
+     * Hands a command reply to the tablet window, if that is what is open.
+     *
+     * <p>The window is checked rather than assumed: the reply arrives on the
+     * client tick thread some time after the request, and the player may have
+     * closed the tablet or been kicked to another screen in between. Replying
+     * into a window that is no longer open would at best paint one frame of
+     * stale output and at worst drive a widget that has already been disposed.</p>
+     */
+    public static void onHackerReply(HackerReplyMessage message) {
+        if (message == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.addScheduledTask(() -> {
+            GuiScreen screen = mc.currentScreen;
+            if (screen instanceof GuiHackerTablet) {
+                ((GuiHackerTablet) screen).accept(message);
             }
         });
     }

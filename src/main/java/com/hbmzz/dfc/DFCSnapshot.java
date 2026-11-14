@@ -72,6 +72,22 @@ public class DFCSnapshot {
     public int predictionMode;
     public int predictedSeconds = -1;
 
+    // ---- intrusion state ----------------------------------------------------
+    //
+    // Carried on the sample rather than on a separate packet on purpose: every
+    // consumer of a sample (the block face, the HUD, the terminal, the window)
+    // already paints from this object, so one field here makes all four agree
+    // without a second round trip or a second source of truth.
+
+    /**
+     * {@code HackState} value for the core this sample came from: 0 normal,
+     * 1 link lost, 2 degraded, 3 signal cut.
+     */
+    public int hackState;
+
+    /** Ticks left in the current intrusion state, for the on-screen countdown. */
+    public int hackTicksLeft;
+
     public void write(ByteBuf buf) {
         buf.writeInt(panelW);
         buf.writeInt(panelH);
@@ -107,6 +123,8 @@ public class DFCSnapshot {
         buf.writeLong(meterPerSecond);
         buf.writeInt(predictionMode);
         buf.writeInt(predictedSeconds);
+        buf.writeByte(hackState);
+        buf.writeInt(hackTicksLeft);
     }
 
     public static DFCSnapshot read(ByteBuf buf) {
@@ -145,6 +163,8 @@ public class DFCSnapshot {
         s.meterPerSecond = buf.readLong();
         s.predictionMode = buf.readInt();
         s.predictedSeconds = buf.readInt();
+        s.hackState = buf.readByte();
+        s.hackTicksLeft = buf.readInt();
         return s;
     }
 }

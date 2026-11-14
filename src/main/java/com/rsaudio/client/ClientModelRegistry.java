@@ -11,20 +11,23 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
 
 /**
  * 方块/物品模型的注册（客户端）。
  * <p>
- * {@code ModelRegistryEvent} 是 Forge 在主事件总线上 post 的（FMLClientHandler#fireSidedRegistryEvents
- * 里就是 {@code MinecraftForge.EVENT_BUS.post(new ModelRegistryEvent())}），
- * 所以用 {@link Mod.EventBusSubscriber} 标注即可，不需要再手动注册。
+ * {@code ModelRegistryEvent} 与 {@code TextureStitchEvent} 都是 Forge 在主事件总线上 post 的，
+ * 所以本类只要挂上 {@code MinecraftForge.EVENT_BUS} 就行 —— 由
+ * {@code ClientProxy#preInit} 显式 {@code register(ClientModelRegistry.class)} 完成，
+ * 和方块/物品那边（{@code RsAudio#preInit} 注册 {@link com.rsaudio.ModBlocks}）同一条纪律：
+ * <b>不依赖 {@code @Mod.EventBusSubscriber} 的注解扫描</b>。
+ * <p>
+ * 理由见 {@code ModBlocks} 的类注释：rsaudio 是同一枚 jar 里的第二个 {@code @Mod} 容器，
+ * 注解注入一旦漏掉这个类，失败是完全静默的 —— 方块放得出来，手上和物品栏里是紫黑块，
+ * 日志里一个字都没有。显式注册把这条链变成确定的。
  * <p>
  * ★ 每加一个有物品的方块，这里都要补一行 —— 漏了的症状是"方块放得出来，但手上/物品栏里是紫黑块"。
  */
-@Mod.EventBusSubscriber(modid = RsAudio.MODID, value = Side.CLIENT)
 public class ClientModelRegistry {
 
     @SubscribeEvent
@@ -47,7 +50,7 @@ public class ClientModelRegistry {
      * （DMR 堆芯 2 张、列车车体 6 张同样中招）。
      *
      * <h3>为什么修在这里</h3>
-     * 本类已经是 {@code @Mod.EventBusSubscriber(Side.CLIENT)}，自动挂在主事件总线上，
+     * 本类由 {@code ClientProxy#preInit} 显式挂到 {@code MinecraftForge.EVENT_BUS} 上，
      * 而 {@code TextureStitchEvent} 正是在主事件总线上 post 的 —— 不用额外注册。
      * 并且这里是客户端资源注册的枢纽，"要缝哪些贴图"和"要注册哪些模型"放一起最不容易漏。
      *

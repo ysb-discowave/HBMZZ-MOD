@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "2.9.0";
+    public static final String VERSION = "3.0.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -114,5 +114,21 @@ public class HBMZZ {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         proxy.init(event);
+    }
+
+    /**
+     * Drops the intrusion table when the world goes away.
+     *
+     * <p>That table is process-wide and stamped with world ticks. A client that
+     * hops between single-player saves without restarting the JVM would
+     * otherwise carry one world's marks into the next - and because the marks
+     * are tick-stamped, they would not merely linger, they would fire
+     * immediately on load: the new world starts counting from a smaller number
+     * than the mark, and every screen that watched a hacked position would go
+     * dark for three seconds for no reason at all.</p>
+     */
+    @Mod.EventHandler
+    public void serverStopping(net.minecraftforge.fml.common.event.FMLServerStoppingEvent event) {
+        com.hbmzz.hack.HackRegistry.clearAll();
     }
 }

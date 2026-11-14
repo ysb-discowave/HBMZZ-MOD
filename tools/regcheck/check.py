@@ -705,6 +705,247 @@ def main():
     check(not dsp_layer, "the reasim DSP has no Minecraft in it",
           "; ".join(dsp_layer) + " - tools/reasimcheck can no longer run it")
 
+    # ---- 36..42: the rsaudio container (com/rsaudio) ---------------------
+    # This script used to audit com/hbmzz only. The exclusion was deliberate -
+    # walking all of SRC flags every rsaudio tile entity as "missing a mapping"
+    # because that module keeps its own tables - but the side effect was that a
+    # 199-file module with 39 blocks, 36 items and 21 tile entities had no audit
+    # at all. These checks read the module's own tables instead of excluding it.
+    #
+    # The three blocks below are the "only the machine may place this" ones
+    # (see their class comments): no item, on purpose, and that list is frozen.
+    RS_NO_ITEM = {"BLAST_DOOR_PANEL", "TARTARUS_HATCH", "ELEVATOR_CAR"}
+    RS_NO_ITEM_NAMES = {"blast_door_panel", "tartarus_hatch", "elevator_car"}
+
+    rs = os.path.join(SRC, "com/rsaudio")
+    rs_modblocks_path = os.path.join(rs, "ModBlocks.java")
+    rs_main_path = os.path.join(rs, "RsAudio.java")
+    if not os.path.exists(rs_modblocks_path) or not os.path.exists(rs_main_path):
+        check(False, "the rsaudio container is where the jar expects it",
+              "com/rsaudio/ModBlocks.java or RsAudio.java missing")
+        modblocks = rs_main = ""
+        rs_block_fields = set()
+        rs_block_classes = []
+        rs_blocks_body = rs_items_body = ""
+    else:
+        modblocks = read(rs_modblocks_path)
+        rs_main = read(rs_main_path)
+        rs_blocks_body = member_body(modblocks, "registerBlocks")
+        rs_items_body = member_body(modblocks, "registerItems")
+
+        # The registration entry point has to be explicit. @Mod.EventBusSubscriber
+        # would also work, but a miss in FML's class scan for the *second* mod
+        # container in this jar fails silently: no crash, no log line, empty
+        # creative tab, blocks that place as air.
+        check("EVENT_BUS.register(ModBlocks.class)" in rs_main,
+              "the rsaudio block/item tables are registered explicitly",
+              "RsAudio.preInit must call MinecraftForge.EVENT_BUS.register(ModBlocks.class); "
+              "relying on @Mod.EventBusSubscriber for a second container fails silently")
+
+        # 36. Every Block subclass in the module is actually instantiated.
+        block_dir = os.path.join(rs, "block")
+        rs_block_classes = []
+        for name in sorted(os.listdir(block_dir)):
+            if not name.endswith(".java"):
+                continue
+            src = read(os.path.join(block_dir, name))
+            match = re.search(r"class\s+(\w+)\s+extends\s+Block\b", src)
+            if match:
+                rs_block_classes.append(match.group(1))
+        orphans = [c for c in rs_block_classes if ("new " + c + "(") not in modblocks]
+        check(not orphans, "every rsaudio block class reaches ModBlocks",
+              ", ".join(orphans) + " - a block class nobody news never reaches the registry")
+
+        # 37. Every declared block field is handed to the block registry, either
+        #     by its own line or through the loop that walks its array.
+        # Non-capturing group: field_names() returns findall() results, and a
+        # capturing group here would turn every field name into a tuple.
+        rs_block_fields = field_names(modblocks, r"Block(?:\[\])?")
+        unregistered = []
+        for field in sorted(rs_block_fields):
+            if ("register(" + field + ")") in rs_blocks_body or (": " + field + ")") in rs_blocks_body:
+                continue
+            unregistered.append(field)
+        check(not unregistered, "every rsaudio block field is registered",
+              ", ".join(unregistered) + " - declared in ModBlocks but never passed to the registry")
+
+        # 38. Every placeable block gets an ItemBlock; the itemless three stay itemless.
+        itemless_ok = [f for f in sorted(rs_block_fields) if f in RS_NO_ITEM]
+        missing_items = []
+        for field in sorted(rs_block_fields):
+            if field in RS_NO_ITEM:
+                continue
+            if ("makeItemBlock(" + field + ")") in rs_items_body or (": " + field + ")") in rs_items_body:
+                continue
+            missing_items.append(field)
+        check(not missing_items, "every placeable rsaudio block has an item",
+              ", ".join(missing_items) + " - block is registered, item is not, so it cannot be held")
+        check(len(itemless_ok) == len(RS_NO_ITEM),
+              "the three generated-only rsaudio blocks still exist under those names",
+              "expected " + ", ".join(sorted(RS_NO_ITEM)) + ", found " + (", ".join(itemless_ok) or "none"))
+
+        # 39. Every tile entity class is registered. Missing here is not "no
+        #     ticking" - it is a crash the first time the chunk is saved.
+        rs_tes = []
+        for root, _dirs, files in os.walk(rs):
+            for name in files:
+                if not name.endswith(".java"):
+                    continue
+                src = read(os.path.join(root, name))
+                match = re.search(r"class\s+(\w+)\s+extends\s+(?:TileEntity|TileEntityLockable)\b", src)
+                if match:
+                    rs_tes.append(match.group(1))
+        unregistered_tes = [t for t in sorted(set(rs_tes)) if (t + ".class") not in rs_main]
+        check(not unregistered_tes, "every rsaudio tile entity is registered",
+              ", ".join(unregistered_tes) + " - writeToNBT throws 'is missing a mapping!' on save")
+
+        # Registry names, read from the block classes themselves. Two of them are
+        # built from a NAMES array (six alarm colours, three elevator types), so
+        # those are expanded against the array in the same file.
+        rs_names = set()
+        for cls in rs_block_classes:
+            src = read(os.path.join(block_dir, cls + ".java"))
+            for literal in re.findall(r'setRegistryName\(RsAudio\.MODID,\s*"([a-z0-9_]+)"\s*\)', src):
+                rs_names.add(literal)
+            for prefix in re.findall(r'setRegistryName\(RsAudio\.MODID,\s*"([a-z0-9_]+)"\s*\+', src):
+                names_array = re.search(r"String\[\]\s+\w*NAMES\s*=\s*\{([^}]*)\}", src)
+                for suffix in re.findall(r'"([a-z0-9_]+)"', names_array.group(1) if names_array else ""):
+                    rs_names.add(prefix + suffix)
+
+        # 40. Every registered block has a blockstate file, and no blockstate file
+        #     is orphaned (an orphan means a registry name was renamed and half the
+        #     pair was missed - the block then renders as the purple/black cube).
+        assets = os.path.join(ROOT, "src/main/resources/assets/rsaudio")
+        states = set(n[:-5] for n in os.listdir(os.path.join(assets, "blockstates")) if n.endswith(".json"))
+        check(not (rs_names - states), "every rsaudio block has a blockstate",
+              ", ".join(sorted(rs_names - states)) + " - places fine, renders as a missing model")
+        check(not (states - rs_names), "no orphan rsaudio blockstate",
+              ", ".join(sorted(states - rs_names)) + " - file exists but no block registers that name")
+
+        # 41. Every block that has an item has an item model AND a model
+        #     registration on the client. Both halves are needed: the json alone
+        #     is never looked up, and the lookup alone has nothing to load.
+        want_items = rs_names - RS_NO_ITEM_NAMES
+        item_models = set(n[:-5] for n in
+                          os.listdir(os.path.join(assets, "models/item")) if n.endswith(".json"))
+        check(not (want_items - item_models), "every rsaudio item has an item model",
+              ", ".join(sorted(want_items - item_models)) + " - held in hand as a purple/black cube")
+
+        cm_path = os.path.join(rs, "client/ClientModelRegistry.java")
+        cm = read(cm_path) if os.path.exists(cm_path) else ""
+        cm_names = set(re.findall(r'registerItem\(\s*ModBlocks\.[A-Z_0-9]+,\s*"([a-z0-9_]+)"\s*\)', cm))
+        alarm = re.search(r"COLOR_NAMES\s*=\s*\{([^}]*)\}",
+                          read(os.path.join(block_dir, "BlockAlarmLight.java")))
+        for colour in re.findall(r'"([a-z0-9_]+)"', alarm.group(1) if alarm else ""):
+            cm_names.add("alarm_" + colour)
+        lifts = re.search(r"TYPE_NAMES\s*=\s*\{([^}]*)\}",
+                          read(os.path.join(block_dir, "BlockElevatorController.java")))
+        for kind in re.findall(r'"([a-z0-9_]+)"', lifts.group(1) if lifts else ""):
+            cm_names.add("elevator_controller_" + kind)
+        check(not (want_items - cm_names), "every rsaudio item model is registered on the client",
+              ", ".join(sorted(want_items - cm_names)) + " - ClientModelRegistry is missing the line")
+
+        # 42. Display names. An ItemBlock looks up "tile.<block unlocalized
+        #     name>.name" - not its registry name, and not without the suffix.
+        #     A key written without .name is never read: the tooltip prints the
+        #     raw key, which reads exactly like "this item was never registered".
+        lang = ""
+        for locale in ("en_us", "zh_cn"):
+            lang += read(os.path.join(assets, "lang", locale + ".lang"))
+        no_unlocalized = []
+        for cls in rs_block_classes:
+            src = read(os.path.join(block_dir, cls + ".java"))
+            if "setUnlocalizedName(" not in src:
+                no_unlocalized.append(cls)
+        check(not no_unlocalized, "every rsaudio block class sets an unlocalized name",
+              ", ".join(no_unlocalized) + " - shows up as tile.null.name")
+
+        expected = set()
+        for cls in rs_block_classes:
+            src = read(os.path.join(block_dir, cls + ".java"))
+            for suffix in re.findall(r'setUnlocalizedName\(RsAudio\.MODID\s*\+\s*"([^"]+)"\s*\)', src):
+                expected.add("tile.rsaudio" + suffix + ".name")
+            for prefix in re.findall(r'setUnlocalizedName\(RsAudio\.MODID\s*\+\s*"([^"]+)"\s*\+', src):
+                names_array = re.search(r"String\[\]\s+\w*NAMES\s*=\s*\{([^}]*)\}", src)
+                for value in re.findall(r'"([a-z0-9_]+)"', names_array.group(1) if names_array else ""):
+                    expected.add("tile.rsaudio" + prefix + value + ".name")
+        unnamed = [key for key in sorted(expected) if (key + "=") not in lang]
+        check(not unnamed, "every rsaudio block has a display name",
+              ", ".join(unnamed) + " - the tooltip shows the raw translation key")
+
+        # The exact shape of the bug above: a key that should end in .name spelled
+        # without it, so nothing ever looks it up.
+        truncated = [key[:-5] for key in sorted(expected) if (key[:-5] + "=") in lang]
+        check(not truncated, "no rsaudio name key is missing its .name suffix",
+              ", ".join(truncated) + " - an ItemBlock looks up tile.<name>.name, never tile.<name>")
+
+    # ---------------------------------------------------------------- hacker
+    #
+    # The tablet is the first thing in this mod that writes into another mod's
+    # tile entities without going through that mod's event contract. Every
+    # failure mode it has is silent: an unregistered item is a purple square, a
+    # packet discriminator collision drops the reply, a missing lang key prints
+    # the raw key, and a monitor that computes an intrusion state without a
+    # branch to draw it looks exactly like a monitor that never noticed. So the
+    # checks below are about the wiring, not the values.
+
+    hk_dir = os.path.join(ROOT, "src/main/java/com/hbmzz/hack")
+    hk_files = set(os.listdir(hk_dir)) if os.path.isdir(hk_dir) else set()
+    hk_want = {"HackState.java", "HackRegistry.java", "HackService.java"}
+    check(hk_want <= hk_files, "the hacker package carries state, registry and service",
+          "missing: " + ", ".join(sorted(hk_want - hk_files)))
+
+    hk_content = read(CONTENT)
+    check("ITEM_HACKER_TABLET" in hk_content
+          and re.search(r"register\(ITEM_HACKER_TABLET\)", hk_content) is not None,
+          "the hacker tablet is declared and registered",
+          "declared in ModContent but never handed to the item registry")
+
+    hk_lang = ""
+    for hk_locale in ("en_us", "zh_cn"):
+        hk_lang += read(os.path.join(ROOT, "src/main/resources/assets/hbmzz/lang",
+                                     hk_locale + ".lang"))
+    check("item.hbmzz.hacker_tablet.name=" in hk_lang,
+          "the hacker tablet has a name in both languages",
+          "the tooltip would show item.hbmzz.hacker_tablet.name")
+
+    hk_assets = os.path.join(ROOT, "src/main/resources/assets/hbmzz")
+    check(os.path.exists(os.path.join(hk_assets, "models/item/hacker_tablet.json")),
+          "the hacker tablet has an item model", "it would render as a purple square")
+    check(os.path.exists(os.path.join(hk_assets, "textures/items/hacker_tablet.png")),
+          "the hacker tablet has a texture", "the model points at a missing layer0")
+
+    hk_net = read(os.path.join(ROOT, "src/main/java/com/hbmzz/network/NetworkHandler.java"))
+    hk_ids = [int(n) for n in re.findall(r"registerMessage\([^;]*?,\s*(\d+)\s*,\s*Side\.", hk_net)]
+    hk_dupes = sorted({i for i in hk_ids if hk_ids.count(i) > 1})
+    check(not hk_dupes, "every packet discriminator is unique",
+          "duplicates: " + ", ".join(str(i) for i in hk_dupes))
+    check("HackerCommandMessage" in hk_net and "HackerReplyMessage" in hk_net,
+          "the hacker packets are on the channel",
+          "the tablet would send into nothing and hang")
+
+    hk_screen = read(os.path.join(ROOT, "src/main/java/com/hbmzz/client/screen/DfcScreen.java"))
+    hk_missing = [s for s in ("CUT", "DISCONNECT", "DEGRADED")
+                  if ("HackState." + s) not in hk_screen]
+    check(not hk_missing, "the monitor paints all three intrusion states",
+          "computed but never drawn: " + ", ".join(hk_missing))
+
+    hk_snapshot = read(os.path.join(ROOT, "src/main/java/com/hbmzz/dfc/DFCSnapshot.java"))
+    check(hk_snapshot.count("hackState") >= 3 and "hackTicksLeft" in hk_snapshot,
+          "the intrusion state travels on the sample",
+          "the field, its write and its read are all required or the client never sees it")
+
+    hk_service = read(os.path.join(hk_dir, "HackService.java"))
+    check(all(token in hk_service for token in
+              ("Modifier.isStatic", "Modifier.isFinal", "ownerAllowed", "isInfinite")),
+          "reflective writes are fenced by owner, static, final and range",
+          "an unfenced reflective write is a griefing primitive against every mod")
+
+    hk_monitor = read(os.path.join(ROOT, "src/main/java/com/hbmzz/tile/TileEntityDFCMonitor.java"))
+    check("HackRegistry.stateFor" in hk_monitor and "attachIntrusion" in hk_monitor,
+          "the monitor reads the intrusion state off the world",
+          "the screen would keep showing the last good numbers after a write")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

@@ -35,10 +35,17 @@ import com.rsaudio.block.BlockTrainStation;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 方块与物品注册。
@@ -50,9 +57,24 @@ import net.minecraftforge.registries.IForgeRegistry;
  * ★ DMR 那三个方块（控制柜 / 外壳 / 堆芯腔体）是<b>纯几何</b>：
  * 它们自己不记得任何反应堆状态，状态全在控制柜的方块实体里。拆掉外壳不会动到状态，
  * 只会在下一次结构扫描时被判成"结构不成立"。
+ * <p>
+ * ★★ <b>本类不是靠 {@code @Mod.EventBusSubscriber} 自动挂到总线上的</b>，而是由
+ * {@link RsAudio#preInit} 显式 {@code MinecraftForge.EVENT_BUS.register(ModBlocks.class)} ——
+ * 和 {@code com.hbmzz.ModContent}（{@code HBMZZ#preInit} 里那行 register）完全同款。
+ * <p>
+ * 为什么不用注解：{@code rsaudio} 是同一枚 jar 里的<b>第二个</b> {@code @Mod} 容器，
+ * 注解注入走的是 FML 的 ASM 类扫描 + 容器归属判定，而这条链一旦漏掉这个类，
+ * 失败是<b>完全静默</b>的 —— 模组照常加载、方块实体照常注册、创造模式那一页空着、
+ * 方块放下去变空气，日志里一个字都没有。显式注册把这条链变成确定的。
+ * <p>
+ * {@link #verifyRegistered()} 是这条链的闸门，由 {@link RsAudio#init} 在注册事件全部
+ * 发完之后调用；它把「声明了」和「注册表里真的有」逐项比对，缺了就写日志。
  */
-@Mod.EventBusSubscriber(modid = RsAudio.MODID)
-public class ModBlocks {
+public final class ModBlocks {
+
+    /** block 与 item 两个注册事件各来一次；各记一个标志，防止同一条总线被挂两次时重复注册。 */
+    private static boolean blocksRegistered;
+    private static boolean itemsRegistered;
 
     public static final Block AUDIO_PLAYER = new BlockAudioPlayer();
     public static final Block REDSTONE_DELAYER = new BlockRedstoneDelayer();
@@ -210,6 +232,12 @@ public class ModBlocks {
 
     @SubscribeEvent
     public static void registerBlocks(RegistryEvent.Register<Block> event) {
+        // 幂等闸门：本类可能同时被「显式 register」和「注解注入」两条路各挂一次，
+        // 那样同一个事件会派发两遍，第二遍会直接抛 Duplicate entry 崩在加载阶段。
+        if (blocksRegistered) {
+            return;
+        }
+        blocksRegistered = true;
         IForgeRegistry<Block> registry = event.getRegistry();
         registry.register(AUDIO_PLAYER);
         registry.register(REDSTONE_DELAYER);
@@ -261,6 +289,10 @@ public class ModBlocks {
 
     @SubscribeEvent
     public static void registerItems(RegistryEvent.Register<Item> event) {
+        if (itemsRegistered) {
+            return;
+        }
+        itemsRegistered = true;
         IForgeRegistry<Item> registry = event.getRegistry();
         registry.register(makeItemBlock(AUDIO_PLAYER));
         registry.register(makeItemBlock(REDSTONE_DELAYER));
@@ -312,6 +344,84 @@ public class ModBlocks {
             registry.register(makeItemBlock(alarm));
         }
         // 门板没有物品（见类注释）
+    }
+
+    // ------------------------------------------------------------------
+    // 注册自检
+    // ------------------------------------------------------------------
+
+    /**
+     * 「本类声明了哪些方块」的唯一一份真源：反射扫 {@code Block} / {@code Block[]} 静态字段。
+     * <p>
+     * ★ 刻意不另抄一份清单。手抄的清单会漂：加了字段忘了加进清单，自检就会漏掉那一项，
+     * 而漏掉的恰好是要查的对象 —— 那种自检比没有更糟。
+     */
+    private static List<Block> declaredBlocks() {
+        List<Block> out = new ArrayList<Block>();
+        for (Field field : ModBlocks.class.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            Class<?> type = field.getType();
+            try {
+                if (Block.class.isAssignableFrom(type)) {
+                    Block block = (Block) field.get(null);
+                    if (block != null) {
+                        out.add(block);
+                    }
+                } else if (type.isArray() && Block.class.isAssignableFrom(type.getComponentType())) {
+                    Block[] group = (Block[]) field.get(null);
+                    if (group != null) {
+                        Collections.addAll(out, group);
+                    }
+                }
+            } catch (IllegalAccessException impossible) {
+                // 全是 public static 字段；真出问题也会被下面那句 warn 兜住
+            }
+        }
+        return out;
+    }
+
+    /** 声明了多少个方块实例（{@code Block[]} 会展开）。只给自检日志用。 */
+    public static int declaredBlockCount() {
+        return declaredBlocks().size();
+    }
+
+    /**
+     * 注册自检：把「本类声明了」与「注册表里真的有」逐项比对，返回缺失条数。
+     * <p>
+     * ★ 为什么非要单独写一个方法：这条链上的失败全是<b>静默</b>的。
+     * 少一行 {@code registry.register(...)} 不报错，玩家看到的是「创造模式那一页空着」
+     * 或「方块放下去变空气」；少一行 {@code makeItemBlock(...)} 则是「写了却根本拿不到」。
+     * 没有任何异常会把这两件事指出来 —— 所以这里反过来查：注册表里查不到，就自己吼一声。
+     * <p>
+     * ★ 只能在 {@link RsAudio#init} 调用：那时所有 {@code RegistryEvent} 都已发完，
+     * 注册表是终态。写在 preInit 里会一片假阳性。
+     */
+    public static int verifyRegistered() {
+        int missing = 0;
+        for (Block block : declaredBlocks()) {
+            ResourceLocation name = block.getRegistryName();
+            if (name == null) {
+                RsAudio.warn("[注册自检] %s 没有 registry name，注册表不会收它",
+                        block.getClass().getSimpleName());
+                missing++;
+                continue;
+            }
+            if (ForgeRegistries.BLOCKS.getValue(name) != block) {
+                RsAudio.warn("[注册自检] 方块 %s 不在 BLOCKS 注册表里（registerBlocks 少了一行）", name);
+                missing++;
+            }
+            // 这三个是「只能由机器生成」的方块，故意没有物品 —— 见各自的类注释
+            if (block == BLAST_DOOR_PANEL || block == TARTARUS_HATCH || block == ELEVATOR_CAR) {
+                continue;
+            }
+            if (ForgeRegistries.ITEMS.getValue(name) == null) {
+                RsAudio.warn("[注册自检] 方块 %s 有方块没物品（registerItems 少了一行）", name);
+                missing++;
+            }
+        }
+        return missing;
     }
 
     private static Item makeItemBlock(Block block) {

@@ -64,8 +64,10 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new ClientNoticeRenderer());
         // ★ 监控画面的离屏渲染：挂在 RenderWorldLastEvent 上"世界画完、界面没画"的那一刻
         com.rsaudio.client.CameraFeedRenderer.register();
-        // 模型注册由 ClientModelRegistry 上的 @Mod.EventBusSubscriber 自动完成
-        // （已确认 Forge 的 ModelRegistryEvent 是 post 到 MinecraftForge.EVENT_BUS 的）
+        // 模型 / 贴图的注册入口。和方块、物品那边同一条纪律：显式挂总线，
+        // 不依赖 @Mod.EventBusSubscriber 的注解扫描（理由见 ModBlocks 的类注释）。
+        // 只在这里注册 = 天然只有客户端会挂，不需要再写 Side.CLIENT 守卫。
+        MinecraftForge.EVENT_BUS.register(com.rsaudio.client.ClientModelRegistry.class);
         // ★★★ 列车实体（车头 + 拖着的车厢）的渲染器 —— 只能在 preInit 注册，绝不能写在 init。
         //   Forge 的实体渲染器表是**一次性装载**的：RenderManager 的构造函数最后一行会调
         //   RenderingRegistry.loadEntityRenderers(this, this.entityRenderMap)，从此

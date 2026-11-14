@@ -26,6 +26,7 @@ import com.hbmzz.HBMZZConfig;
 import com.hbmzz.dfc.ConsoleRig;
 import com.hbmzz.dfc.DFCReader;
 import com.hbmzz.dfc.DFCSnapshot;
+import com.hbmzz.hack.HackRegistry;
 import com.hbmzz.network.DFCDataMessage;
 import com.hbmzz.network.DFCRequestMessage;
 import com.hbmzz.network.NetworkHandler;
@@ -401,7 +402,32 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             }
         }
         refinePrediction(snapshot);
+        attachIntrusion(snapshot);
         return snapshot;
+    }
+
+    /**
+     * Stamps the sample with the intrusion state of the core it describes.
+     *
+     * <p>This is where "the monitor notices" actually happens. The monitor does
+     * not inspect the core's values and guess whether they look tampered with -
+     * a temperature step is also what a control rod does, and a heuristic would
+     * cry wolf on every rod pull. What it reads instead is the world-level
+     * record of writes that bypassed the machines' own event contract: if
+     * somebody assigned to a field of the position this screen watches, the
+     * screen learns it here, on the next sample, without any packet of its
+     * own.</p>
+     *
+     * <p>Called for every sample, including the ones a monitor with nothing
+     * bound produces - a cut is a property of the world, so an unbound screen
+     * still has to show it.</p>
+     */
+    private void attachIntrusion(DFCSnapshot snapshot) {
+        if (this.world == null) {
+            return;
+        }
+        snapshot.hackState = HackRegistry.stateFor(this.world, this.corePos);
+        snapshot.hackTicksLeft = HackRegistry.ticksLeft(this.world, this.corePos);
     }
 
     /**
@@ -453,6 +479,10 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         }
         if (evalDue) {
             this.evalTimer = PanelEngine.EVAL_TICKS;
+            // Intrusion marks age out on their own. Sweeping them here keeps
+            // the bookkeeping next to the read that consumes it, so a world
+            // with no monitors never pays for the table at all.
+            HackRegistry.prune(this.world, this.pos);
         }
 
         List<EntityPlayerMP> watchers = watchers();

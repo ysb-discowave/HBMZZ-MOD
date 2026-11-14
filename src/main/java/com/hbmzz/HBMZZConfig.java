@@ -18,6 +18,7 @@
 
 package com.hbmzz;
 
+import com.hbmzz.hack.HackState;
 import net.minecraftforge.common.config.Configuration;
 
 import java.io.File;
@@ -55,6 +56,17 @@ public final class HBMZZConfig {
     public static int videoCacheFrames = 6;
     public static int videoMaxWidth = 960;
     public static int videoMaxHeight = 540;
+
+    // ---- hacker tablet ----
+    /**
+     * Master switch for the intrusion storyline.
+     *
+     * <p>Off makes the tablet refuse every command, and the monitor never
+     * enters an intrusion state. A server that does not want the mechanic has
+     * to be able to take it out without uninstalling the item, because the
+     * item may already be sitting in somebody's world.</p>
+     */
+    public static boolean hackEnabled = true;
 
     /** Staged RBMK blow-up. Off means the base mod's one-tick meltdown stands. */
     public static boolean rbmkSurge = true;
@@ -139,6 +151,17 @@ public final class HBMZZConfig {
                     "Video frames wider than this are scaled down on decode.");
             videoMaxHeight = cfg.getInt("maxHeight", "video", 540, 128, 1080,
                     "Video frames taller than this are scaled down on decode.");
+            hackEnabled = cfg.getBoolean("enabled", "hacker", true,
+                    "Allow the hacker tablet to write machine fields. Off makes every command refuse.");
+            // Written straight into the state class rather than copied here:
+            // the canvas reads the same field to size its recovery bar, so one
+            // value has to be the truth for both the server and the screen.
+            HackState.disconnectTicks = cfg.getInt("disconnectTicks", "hacker", 60, 10, 400,
+                    "Ticks a monitor shows the broken-node page after a value is written. 60 = 3 s.");
+            HackState.degradedTicks = cfg.getInt("degradedTicks", "hacker", 600, 20, 12000,
+                    "Ticks the tampered readouts keep showing Err afterwards. 600 = 30 s.");
+            HackState.cutTicks = cfg.getInt("cutTicks", "hacker", 1200, 20, 24000,
+                    "Ticks a cut core signal lasts before the feed returns on its own. 1200 = 60 s.");
             rbmkSurge = cfg.getBoolean("surge", "rbmk", true,
                     "Replace the base mod's one-tick RBMK meltdown with the staged one: jumping rods, then the lid thrown off twice. False restores the base behaviour exactly.");
             rbmkSurgeHeat = cfg.getInt("heat", "rbmk", 1000, 100, 100000,

@@ -233,6 +233,17 @@
             <span class="tag">modid = rsaudio</span>
           </p>
         </div>
+
+        <div class="card">
+          <div class="icon">09</div>
+          <h3>黑客平板：不拉控制棒，直接改堆</h3>
+          <p>右键打开一个终端，输入指令就能改写全图任意一台机器的<strong>数值字段</strong>——温度、通量、控制棒插入量、储能。它不按按钮也不经过机器的事件表，所以控制逻辑整段被绕过去。写入会被监测屏当场发现：先断链 3 秒，再让温度 / 储能 / 输出 / 发电显示 <code>Err</code> 30 秒；一条 <code>cut</code> 能让所有屏满屏 <code>ERROR#！</code>。</p>
+          <p style="margin-top:12px">
+            <span class="tag tag--amber">3.0.0 新玩法</span>
+            <span class="tag">反射写字段</span>
+            <span class="tag tag--dim">可关：hacker.enabled</span>
+          </p>
+        </div>
       </div>
     </div>
   </section>

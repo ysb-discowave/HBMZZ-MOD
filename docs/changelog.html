@@ -81,8 +81,29 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v2.9.0</span>
+            <span class="tl-ver">v3.0.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>一台能改写任意机器数值的平板，和它捅出来的三种屏幕</h3>
+          <ul>
+            <li><strong>新玩法：黑客入侵。</strong>核心是一件道具<strong>黑客平板</strong>，右键打开一个终端。输入指令就能直接改写全图任意一台机器的<strong>数值字段</strong>——反应堆的 <code>heat</code>、通量、控制棒插入量，储能、蒸汽，都在可写范围里。<strong>它不按按钮、不拉控制棒，也不经过机器自己的事件表</strong>，所以「温度该涨到哪」这条控制逻辑被整段绕过去了。这正是它存在的意义：常规玩法里你得靠控制棒把堆压住，而它直接改堆本身。</li>
+            <li><strong>作用范围是「你加载着的区块」，不是「附近的机器」。</strong><code>target</code> 接受绝对坐标，也接受 <code>~</code> 相对写法；只要那个区块被加载、那个方块实体属于 <code>com.hbm</code> / 本模组，就能写。写入前有四道闸：类名必须以 <code>com.hbm.</code> / <code>com.hbmzz.</code> / <code>com.rsaudio.</code> 开头（<strong>带点</strong>，否则 <code>com.hbmzz</code> 会被 <code>com.hbm</code> 误匹配）、字段不能是 <code>static</code> 或 <code>final</code>、只接受 7 种原始数值类型、拒绝 <code>NaN</code> 与 <code>Infinity</code>。</li>
+            <li><strong>监测屏当场就能发现，而且不是靠猜。</strong>它<strong>不比较温度跳变</strong>——拉一根控制棒也是跳变，那种启发式会天天误报。屏读的是<strong>世界级的写入记录</strong>：谁把值直接写进了它正在看的那个坐标。这条记录跟着采样一起下发，所以方块正面、HUD、终端窗口、平板四处天然一致，不需要各写一套判定。</li>
+            <li><strong>状态一 · 连接节点断开（60 tick / 3 秒）。</strong>命中该屏绑定的堆芯坐标后立刻进入：整屏黑底，<code>MONITOR → LINK → CORE</code> 三个节点、断线与红叉，大字「连接节点断开」加 <code>ERR 0x1F</code>，18 格恢复进度条，红色闪烁。每次写入都重新计时——连着写十次，屏就一直断着。</li>
+            <li><strong>状态二 · 读数污染（600 tick / 30 秒）。</strong>断链结束后画面回来，但<strong>温度 / 储能 / 输出 / 发电</strong>四处显示 <code>Err</code>，顶部红条与四角红框每秒闪一次；结构灯柱、崩塌风险、燃料位照常显示。只让这四项变 Err 是刻意的：它们都走堆芯自己的累积量，正是字段写入落地的那条路径，<strong>全屏都写 Err 等于什么都没说</strong>。</li>
+            <li><strong>状态三 · 信号中断（<code>cut</code>，1200 tick / 60 秒）。</strong>输入 <code>cut</code> 之后，黑客平板与全世界所有监测屏<strong>同时</strong>变成满屏 <code>ERROR#！</code>，红黑每 500 毫秒交替，不画任何仪表。平板底部只留一行输入，且<strong>只接受 <code>restore</code></strong>——CUT 页不画日志，放行别的指令等于让玩家对着黑屏打字。没有 <code>restore</code> 也会自己恢复：不给它超时，一次手滑就要等到服务器重启。</li>
+            <li><strong>指令：</strong><code>help</code> / <code>pos</code> / <code>target &lt;x&gt; &lt;y&gt; &lt;z&gt;</code>（支持 <code>~</code>，<code>target clear</code> 取消锁定）/ <code>field</code>（列出这台机器所有可写字段）/ <code>read &lt;字段&gt;</code> / <code>set &lt;字段&gt; &lt;值&gt;</code>，另有五个短别名 <code>temp</code>、<code>flux</code>、<code>rod</code>、<code>steam</code>、<code>power</code>。字段名不分大小写，打错会给三个最接近的建议。</li>
+            <li><strong><code>target</code> 会告诉你「有几台屏在看着这里」。</strong>没有屏监视这个坐标时，写入不会触发任何预警——这件事在平板上原本完全看不见，不说清楚玩家会以为改了半天没反应是 bug。</li>
+            <li><strong>配方刻意做贵：</strong>玻璃板 + 红石 + 铁锭 + 末影珍珠 + 比较器。它是本模组里唯一一件能跳过控制棒的物品，不该是玩家造出第一台反应堆之前就能合成的东西。配置项在 <code>[hacker]</code> 下：<code>enabled</code>（总开关，关掉后所有指令都拒绝）、<code>disconnectTicks</code> / <code>degradedTicks</code> / <code>cutTicks</code>（默认 60 / 600 / 1200）。</li>
+            <li><strong>顺带修掉一个「静默失效」的注册入口。</strong>红石音频原来靠 <code>@Mod.EventBusSubscriber</code> 注解自动挂主总线。它是同一枚 jar 里的<strong>第二个 <code>@Mod</code> 容器</strong>，这条链一旦漏掉那个类，失败<strong>不报错、不刷日志</strong>：模组照常加载、方块实体照常注册、创造模式那一页空着、方块放下去变空气。现在改成和 <code>hbmzz</code> 一样的显式 <code>EVENT_BUS.register</code>，并在 <code>init</code> 阶段跑一次自检写进日志，同时给两条注册方法加了幂等闸门（两条路同时挂着会让同一事件派发两遍，第二遍直接抛 <code>Duplicate entry</code>）。</li>
+            <li><strong>三条物品名键少了 <code>.name</code> 后缀。</strong>气闸控制器、远程控制面板、塔塔鲁斯舱盖门写成了 <code>tile.rsaudio.airlock_controller</code>，而 <code>ItemBlock</code> 查的是 <code>tile.&lt;名&gt;.name</code>，查不到就把原始键名印在提示框里。已补齐，中英双语同步。<code>regcheck</code> 也顺手从 35 条扩到 60 条，把 rsaudio 那 199 个文件纳进审计（以前明确排除在外，零覆盖）。</li>
+            <li><strong>为什么直接跳 3.0.0：</strong>这不是一批修 bug，而是加了一整套新玩法，而且它在服务器里是「可以改写别人机器」的量级，值得一个主版本号。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v2.9.0</span>
           </div>
           <h3>红石音频并了进来，播放器学会了装破喇叭</h3>
           <ul>

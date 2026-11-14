@@ -282,7 +282,7 @@
         <p style="color:var(--text-dim);font-size:14px;margin:0">每 10 tick（0.5 秒）由 <code>CtrlEngine</code> 走一轮——每台机器只采样一次（<code>getQueryData</code> 是反射调用，也是唯一贵的地方），再刷控件、跑规则。点旋钮只发「第几个 + 多少」，事件名、变量名、机器坐标都在服务端副本里，改过的客户端不能把 3 号旋钮改写成对任意方块发任意指令。规则服务端判、冷却真锁（默认 5 秒）；设计进 NBT，运行时（读数、急停锁定、冷却）不进。</p>
       </div>
 
-      <div class="panel panel--flat" style="margin-top:18px" id="terminal">
+      <div class="panel panel--flat" style="margin-top:18px" id="terminal-control">
         <h3 style="margin-bottom:8px">终端控件：一块面板上的一台命令行</h3>
         <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
           表盘适合「一直看着某个数」，不适合「现在告诉我 4 号机组的蒸汽压力是多少」。终端就是为后者加的：它不绑某一台机器，它绑<strong>这块面板</strong>——A–F 六台上绑着的机器它都能读写，当场切换目标。到「控件」页把「终端」拖到画布上、保存，回「运行」页<strong>右键它</strong>（左键也行）就开窗。
@@ -766,6 +766,111 @@
     </div>
   </section>
 
+  <!-- ================= 黑客入侵 ================= -->
+  <section class="section" id="hacker">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 3.0.0 新增玩法</div>
+        <h2>不拉控制棒，直接改堆</h2>
+        <p>黑客平板是一件手持道具：右键打开一个终端，输入指令就能改写全图任意一台机器的数值字段。
+        它不按按钮、不拉杆、<strong>也不经过机器自己的事件表</strong>——所以「温度该涨到哪」那条控制逻辑
+        整段被绕过去了。这是本模组里唯一一件能做到这件事的东西，配方因此刻意做贵。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="panel">
+          <h4>它到底改了什么东西</h4>
+          <p>改的是方块实体里那些 <strong>数值字段本身</strong>：反应堆的 <code>heat</code>、通量、控制棒插入量，
+          储能、蒸汽量，都能直接赋值。写之前有四道闸：</p>
+          <ul>
+            <li>类名必须以 <code>com.hbm.</code> / <code>com.hbmzz.</code> / <code>com.rsaudio.</code> 开头
+            ——<strong>带点</strong>，否则 <code>com.hbmzz</code> 会被 <code>com.hbm</code> 误匹配；</li>
+            <li>字段不能是 <code>static</code> 或 <code>final</code>；</li>
+            <li>只接受 7 种原始数值类型，字符串、数组、对象一律拒绝；</li>
+            <li>拒绝 <code>NaN</code> 与 <code>Infinity</code>——写进去会把机器的比较逻辑搞成永远为真。</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>作用范围是「你加载着的区块」</h4>
+          <p><code>target</code> 接受绝对坐标，也接受 <code>~</code> 相对写法。只要那个区块被加载、
+          那个方块实体属于 NTM 或本模组，就能写——<strong>不限距离</strong>，但区块卸载了就写不了。</p>
+          <p style="margin-top:10px">成功锁定之后它会额外告诉你<strong>有几台监测屏正在监视这个坐标</strong>。
+          没有屏看着这块地方的话，你写多少值都不会触发任何预警，而这件事在平板上原本完全看不见。</p>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 指令</div>
+        <h2>一行一条，回车执行</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>指令</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>pos</code> / <code>where</code></td><td>打印你站的位置与所在维度，方便直接填给 <code>target</code>。</td></tr>
+            <tr><td><code>target &lt;x&gt; &lt;y&gt; &lt;z&gt;</code></td><td>锁定目标方块实体，支持 <code>~</code>。约等于 <code>aim</code>。锁定结果会报出可写字段数与监视该坐标的屏数。</td></tr>
+            <tr><td><code>target clear</code></td><td>取消锁定（<code>none</code> 同义）。</td></tr>
+            <tr><td><code>field</code> / <code>fields</code> / <code>ls</code></td><td>列出当前目标所有可写字段与当前值——先看这个，再决定写什么。</td></tr>
+            <tr><td><code>read &lt;字段&gt;</code></td><td>读一个字段（<code>get</code> 同义）。</td></tr>
+            <tr><td><code>set &lt;字段&gt; &lt;值&gt;</code></td><td>写入。只有这一条会触发监测屏的入侵预警。</td></tr>
+            <tr><td><code>temp</code> / <code>flux</code> / <code>rod</code> / <code>steam</code> / <code>power</code></td><td>五个短别名，等价于 <code>set</code> 到对应字段：温度、中子通量、控制棒插入量、蒸汽、储能。例：<code>temp 9000</code>。</td></tr>
+            <tr><td><code>cut</code> / <code>sever</code></td><td>中断堆芯信号。平板与全世界所有监测屏立刻变成满屏 <code>ERROR#！</code>。</td></tr>
+            <tr><td><code>restore</code> / <code>reset</code></td><td>解除中断，信号立即回来。CUT 期间这是唯一被接受的指令。</td></tr>
+            <tr><td><code>help</code> / <code>?</code></td><td>内置帮助。</td></tr>
+            <tr><td><code>clear</code> / <code>cls</code></td><td>清屏（只清你窗口里的日志，不影响任何状态）。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 监测屏会看到什么</div>
+        <h2>三种状态，三档时长</h2>
+        <p>检测方式不是「猜数值跳变」——拉一根控制棒也是跳变，那样的启发式会天天误报。
+        屏读的是<strong>世界级的写入记录</strong>：谁把值直接写进了它正在看的那个坐标。</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>状态</th><th>触发条件</th><th>持续</th><th>屏上表现</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>连接节点断开</strong></td>
+              <td><code>set</code> 命中该屏绑定的堆芯坐标</td>
+              <td>60 tick / <strong>3 秒</strong>，每次写入重新计时</td>
+              <td>整屏黑底；<code>MONITOR → LINK → CORE</code> 三个节点、断线与红叉；大字「连接节点断开」+ <code>ERR 0x1F</code>；18 格恢复进度条；红色闪烁。</td>
+            </tr>
+            <tr>
+              <td><strong>读数污染</strong></td>
+              <td>断链结束之后</td>
+              <td>600 tick / <strong>30 秒</strong>（自最后一次写入计）</td>
+              <td>页面回来，但温度 / 储能 / 输出 / 发电四处显示 <code>Err</code>；顶部红条与四角红框每秒闪一次。结构灯柱、崩塌风险、燃料位照常。</td>
+            </tr>
+            <tr>
+              <td><strong>信号中断</strong></td>
+              <td>输入 <code>cut</code></td>
+              <td>1200 tick / <strong>60 秒</strong>，或 <code>restore</code> 立即解除</td>
+              <td>满屏 <code>ERROR#！</code>，红黑每 500 毫秒交替，不画任何仪表。平板那边只留一行输入，且只接受 <code>restore</code>。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>只让温度 / 储能 / 输出 / 发电变 Err 是刻意的。</strong>这四项都走堆芯自己的累积量，
+          正是字段写入落地的那条路径，所以它们「最先知道」自己被改了。全屏都写 Err 等于什么都没说。</p>
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <div>
+          <p><strong>不想要这套玩法：</strong>把 <code>config/hbmzz.cfg</code> 里 <code>[hacker]</code> 的
+          <code>enabled</code> 设成 <code>false</code>，所有指令都会被拒绝；三档时长也在同一段里，
+          键是 <code>disconnectTicks</code> / <code>degradedTicks</code> / <code>cutTicks</code>。
+          <code>cut</code> 给了 60 秒上限就是这个道理——不给超时的话，一次手滑要等到服务器重启才恢复。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 常见操作速查 ================= -->
   <section class="section" id="cheatsheet">
     <div class="wrap">
@@ -786,6 +891,10 @@
             <tr><td>改墙屏尺寸</td><td>终端底部「宽度 / 高度」的 − / +。</td></tr>
             <tr><td>打开面板工坊</td><td>终端左列「面板工坊」入口。</td></tr>
             <tr><td>广播一段视频</td><td>放视频广播器 → 右键选视频与选择器 → 「测试广播」→「保存并应用」→ 给个红石上升沿。</td></tr>
+            <tr><td>打开黑客平板</td><td>手持黑客平板右键。第一件事敲 <code>pos</code>，再对着机器敲 <code>target &lt;坐标&gt;</code>。</td></tr>
+            <tr><td>看一台机器有什么可改</td><td><code>field</code> 列出全部可写字段与当前值；<code>read heat</code> 单独读一个。</td></tr>
+            <tr><td>绕过控制棒改温度</td><td><code>temp 9000</code>（等价 <code>set heat 9000</code>）。监测屏会在 3 秒内断链，随后 30 秒读数显示 Err。</td></tr>
+            <tr><td>让所有屏一起黑掉</td><td><code>cut</code>；敲 <code>restore</code> 立即恢复，不敲则 60 秒后自己回来。</td></tr>
           </tbody>
         </table>
       </div>

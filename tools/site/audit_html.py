@@ -1,6 +1,6 @@
 import io, os, re, sys
 
-DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__))) if False else r"E:\DSH\HBMZZ-MOD\docs"
+DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "docs")
 CSS = os.path.join(DOCS, "assets", "site.css")
 PAGES = ["index.html", "guide.html", "reference.html", "changelog.html", "license.html"]
 

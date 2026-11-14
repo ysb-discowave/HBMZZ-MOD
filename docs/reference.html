@@ -397,6 +397,11 @@
               <td>—</td>
               <td>一个物品干两件事：记录 DFC 核心 / 功率计并绑定到监控屏；记录可控机器，并当控制台的配置工具用。</td>
             </tr>
+            <tr>
+              <td>黑客平板</td>
+              <td><code>hacker_tablet</code></td>
+              <td>右键打开终端，输入指令直接改写任意机器方块实体的数值字段，绕开控制逻辑与事件表。写入会让监视该坐标的监测屏依次进入「连接节点断开 / 读数污染」；<code>cut</code> 会让所有屏满屏 <code>ERROR#！</code>。见 <a href="guide.html#hacker">使用指南 · 黑客入侵</a>。</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -436,6 +441,12 @@
           <pre>铁锭  玻璃板  铁锭
 红石  侦测器  红石
 铁锭  铁锭    铁锭</pre>
+        </div>
+        <div class="panel panel--quiet">
+          <h4>黑客平板</h4>
+          <pre>玻璃板 红石    玻璃板
+铁锭   末影珍珠 铁锭
+铁锭   比较器  铁锭</pre>
         </div>
       </div>
 
@@ -484,6 +495,10 @@
             <tr><td><code>video.audio</code></td><td>true</td><td>播放可选音轨；混音器拒绝时静默降级</td></tr>
             <tr><td><code>video.cacheFrames</code></td><td>6</td><td>解码线程领先播放头几帧，越高越顺、越吃内存</td></tr>
             <tr><td><code>video.maxWidth</code> / <code>maxHeight</code></td><td>960 / 540</td><td>超过这个尺寸的帧在解码时等比缩小</td></tr>
+            <tr><td><code>hacker.enabled</code></td><td>true</td><td>黑客平板总开关。关掉后所有指令都拒绝，包括 <code>restore</code></td></tr>
+            <tr><td><code>hacker.disconnectTicks</code></td><td>60</td><td>写入后监测屏停留在「连接节点断开」的时长（10–400）。60 = 3 秒，每次写入重新计时</td></tr>
+            <tr><td><code>hacker.degradedTicks</code></td><td>600</td><td>之后读数显示 <code>Err</code> 的时长（20–12000），自最后一次写入计。600 = 30 秒</td></tr>
+            <tr><td><code>hacker.cutTicks</code></td><td>1200</td><td><code>cut</code> 之后信号自己回来的时限（20–24000）。1200 = 60 秒，<code>restore</code> 可立即解除</td></tr>
             <tr><td><code>rbmk.surge</code></td><td>true</td><td>分阶段 RBMK 熔毁总开关；关掉就是基座模组原本的「一个 tick 变废墟」</td></tr>
             <tr><td><code>rbmk.heat</code></td><td>1000</td><td>判定「快炸了」的温度线，必须低于 <code>maxHeat()</code>（默认 1500），否则没有警告可给</td></tr>
             <tr><td><code>rbmk.jumpTicks</code></td><td>1200</td><td>控制棒跳多久（一分钟）。没有诅咒版附属时倒计时照走，只是看不见跳</td></tr>

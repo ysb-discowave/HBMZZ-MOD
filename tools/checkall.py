@@ -142,6 +142,23 @@ def check_reasim():
     return run([java, "-cp", out + os.pathsep + CLASSES, "DspCheck"])
 
 
+def check_gate():
+    """红石门的真值表。GateType 不 import Minecraft，可以直接编来跑。"""
+    jh = java_home()
+    if not jh:
+        return False, "没有 JDK 8：设 JAVA_HOME 或装一个"
+    javac = os.path.join(jh, "bin", "javac")
+    java = os.path.join(jh, "bin", "java")
+    out = os.path.join(TMP, "gatecheck-out")
+    os.makedirs(out, exist_ok=True)
+    ok, text = run([javac, "-encoding", "UTF-8", "-d", out,
+                    os.path.join("src", "main", "java", "com", "hbmzz", "redstone", "GateType.java"),
+                    os.path.join("tools", "gatecheck", "GateCheck.java")])
+    if not ok:
+        return False, text
+    return run([java, "-cp", out, "GateCheck"])
+
+
 FAST = [
     ("许可与协作文件（LICENSE / NOTICE / AUTHORIZATION / CONTRIBUTING）", check_files),
     ("regcheck（注册 / 配方 / 模型表 63 条）", check_regcheck),
@@ -156,6 +173,7 @@ BUILD = [
     ("videocheck（视频库）", lambda: check_script("videocheck")),
     ("linkercheck（连线与事件）", lambda: check_script("linkercheck")),
     ("reasimcheck（reasim 信号链）", check_reasim),
+    ("gatecheck（四种红石门的真值表）", check_gate),
 ]
 
 # 需要外部 jar 或会写图片，故意不进自动档：

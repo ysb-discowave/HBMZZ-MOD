@@ -119,7 +119,7 @@
      给自动播放，被拦就把方块点亮等人按一下，绝不假装在播。
      机器贴在视口右侧的留白里，正文用 .wrap 的 padding-right 给它让位。 */
   var OST = {
-    src: "assets/audio/hbmzz-theme.mp3",
+    src: "assets/audio/how-to-survive.mp3",
     title: "How to survive?",
     artist: "HBMZZ",
     album: "HBMZZ OST",

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import io
 import json
 import os
@@ -27,6 +28,13 @@ SRC_RES = os.path.join(ROOT, "src", "main", "resources")
 BUILD_GRADLE = os.path.join(ROOT, "build.gradle")
 CONTENT_JSON = os.path.join(ROOT, "tools", "site", "content.json")
 OUT_JS = os.path.join(ROOT, "docs", "assets", "data.js")
+
+# 站点是纯静态的，Pages 前面还挂着一层 CDN：CSS/JS 的 Cache-Control 是
+# max-age=14400，HTML 只有 600。于是刚推上去的那十几分钟里，浏览器拿到的往往是
+# 「新的 HTML + 四小时前缓存的旧 JS」——按钮还在，点了什么也不发生。这不是脚本
+# 写错了，是两份文件不同龄。解法只有一个：让 URL 跟着内容走，内容一变 URL 就变。
+PAGES = ("index.html", "guide.html", "reference.html", "changelog.html", "license.html")
+STAMPED = ("assets/site.css", "assets/site.js", "assets/data.js")
 
 # 这些不是可用的控件类型：注册表枚举、基类
 CONTROL_SKIP = {"ControlType.java", "AddonControlType.java", "LeverBase.java"}
@@ -184,6 +192,45 @@ def check_pages(payload: dict) -> list:
     return problems
 
 
+def digest(rel: str) -> str:
+    """docs 下某个资源的短指纹：内容一改，页面里的查询串就跟着改。"""
+    path = os.path.join(ROOT, "docs", rel)
+    if not os.path.exists(path):
+        return ""
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()[:10]
+
+
+def stamp_assets(write: bool) -> list:
+    """把 ?v=<内容指纹> 写进各页面引用 CSS/JS/data.js 的地方。
+
+    没有这一步，改完脚本要等 CDN 那四小时过期才生效，而在这期间 HTML 是新的、
+    JS 是旧的——页面上的播放按钮就是「点了没反应」的样子。写盘时顺手维护，
+    --check 时只比对，发现过期就 FAIL，避免带着旧键发版。
+    """
+    digests = {rel: digest(rel) for rel in STAMPED}
+    problems = []
+    for name in PAGES:
+        path = os.path.join(ROOT, "docs", name)
+        if not os.path.exists(path):
+            continue
+        text = read(path)
+        new = text
+        for rel, dig in digests.items():
+            if not dig:
+                continue
+            pattern = re.compile(r'((?:href|src)="%s)(?:\?v=[0-9a-f]+)?"' % re.escape(rel))
+            new = pattern.sub(lambda m, dig=dig: m.group(1) + "?v=" + dig + '"', new)
+        if new == text:
+            continue
+        if write:
+            with io.open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(new)
+        else:
+            problems.append(("FAIL", "%s 里的资源缓存键过期——跑一次 sync_site.py" % name))
+    return problems
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="同步 HBMZZ 官网数据层")
     ap.add_argument("--check", action="store_true", help="只校验，不写文件")
@@ -212,6 +259,7 @@ def main() -> int:
             print("OK       docs/assets/data.js 与仓库状态一致")
 
         problems = check_pages(payload)
+        problems += stamp_assets(False)
         # mcmod.info 里的 version 是游戏内模组列表显示的那个，它和 build.gradle
         # 各写一份，最容易悄悄漂掉（jar 名 2.3.0、列表里 2.0.0）。
         info = os.path.join(ROOT, "src", "main", "resources", "mcmod.info")
@@ -235,6 +283,9 @@ def main() -> int:
     os.makedirs(os.path.dirname(OUT_JS), exist_ok=True)
     with io.open(OUT_JS, "w", encoding="utf-8", newline="\n") as f:
         f.write(js)
+
+    # data.js 刚落盘，指纹要取它写完之后的；页面里的 ?v= 跟着一起刷新
+    stamp_assets(True)
 
     a = payload["auto"]
     s = a["stats"]

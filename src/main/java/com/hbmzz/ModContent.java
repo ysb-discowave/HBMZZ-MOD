@@ -85,6 +85,22 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
     public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
 
+    /* 四种红石门。拆成四个方块而不是一块可切换的门，理由在 GateType 的类注释里：
+       1.12.2 的 meta 只有 4 位，朝向 4 × 亮灭 2 已经用掉 8 个组合，再塞 8 种运算
+       就得牺牲朝向或亮灭。 */
+    public static final Block BLOCK_AND_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.AND);
+    public static final Block BLOCK_OR_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.OR);
+    public static final Block BLOCK_XOR_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.XOR);
+    public static final Block BLOCK_NOT_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.NOT);
+    public static final Item ITEM_BLOCK_AND_GATE = new ItemBlock(BLOCK_AND_GATE);
+    public static final Item ITEM_BLOCK_OR_GATE = new ItemBlock(BLOCK_OR_GATE);
+    public static final Item ITEM_BLOCK_XOR_GATE = new ItemBlock(BLOCK_XOR_GATE);
+    public static final Item ITEM_BLOCK_NOT_GATE = new ItemBlock(BLOCK_NOT_GATE);
+
     public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
     public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
     public static final Item ITEM_REGEN_COIL = new ItemCoil(ItemCoil.CoilType.REGEN);
@@ -112,6 +128,10 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_CODE_BROADCASTER);
         event.getRegistry().register(BLOCK_ALERT_DISPLAY);
         event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
+        event.getRegistry().register(BLOCK_AND_GATE);
+        event.getRegistry().register(BLOCK_OR_GATE);
+        event.getRegistry().register(BLOCK_XOR_GATE);
+        event.getRegistry().register(BLOCK_NOT_GATE);
     }
 
     @SubscribeEvent
@@ -138,6 +158,14 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_ALERT_DISPLAY);
         ITEM_BLOCK_DFC_BLAST_SENSOR.setRegistryName(BLOCK_DFC_BLAST_SENSOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
+        ITEM_BLOCK_AND_GATE.setRegistryName(BLOCK_AND_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_AND_GATE);
+        ITEM_BLOCK_OR_GATE.setRegistryName(BLOCK_OR_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_OR_GATE);
+        ITEM_BLOCK_XOR_GATE.setRegistryName(BLOCK_XOR_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_XOR_GATE);
+        ITEM_BLOCK_NOT_GATE.setRegistryName(BLOCK_NOT_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NOT_GATE);
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_HACKER_TABLET);
         event.getRegistry().register(ITEM_SPEED_COIL);
@@ -321,6 +349,53 @@ public final class ModContent {
                 'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
                 'R', Items.REDSTONE
         ).setRegistryName(HBMZZ.MODID, "dfc_blast_sensor"));
+
+        // 四个门：外壳一样（铁），区别只在运算符那一层用什么材料。
+        // 四张字符画第三行各不相同，免得撞上 regcheck 第 61 条「有序配方不许重样」。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "and_gate"),
+                new ItemStack(BLOCK_AND_GATE),
+                "IRI",
+                "RQR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "and_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "or_gate"),
+                new ItemStack(BLOCK_OR_GATE),
+                "IRI",
+                "RQR",
+                "GGG",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ,
+                'G', Items.GOLD_INGOT
+        ).setRegistryName(HBMZZ.MODID, "or_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "xor_gate"),
+                new ItemStack(BLOCK_XOR_GATE),
+                "IRI",
+                "RQR",
+                "QQQ",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "xor_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "not_gate"),
+                new ItemStack(BLOCK_NOT_GATE),
+                "IRI",
+                "RQR",
+                "RRR",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "not_gate"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "monitor_camera"),

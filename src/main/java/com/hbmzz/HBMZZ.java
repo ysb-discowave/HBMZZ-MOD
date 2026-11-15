@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.2.0";
+    public static final String VERSION = "3.4.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -77,6 +77,8 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "nuke_monitor"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityCodeBroadcaster.class,
                 new ResourceLocation(MODID, "code_broadcaster"));
+        GameRegistry.registerTileEntity(com.hbmzz.redstone.TileEntityRedstoneGate.class,
+                new ResourceLocation(MODID, "redstone_gate"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlertDisplay.class,
                 new ResourceLocation(MODID, "alert_display"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcBlastSensor.class,

@@ -119,6 +119,11 @@ public class ClientProxy extends CommonProxy {
         // 事故之后的第一块砖：DFC 一炸就输出红石。它自己也必须有模型位置，
         // 否则玩家放下之前根本认不出这是哪块砖。
         list.add(loc("dfc_blast_sensor"));
+        // 四种红石门。它们同样必须在表里，否则物品栏里先是一排紫黑块。
+        list.add(loc("and_gate"));
+        list.add(loc("or_gate"));
+        list.add(loc("xor_gate"));
+        list.add(loc("not_gate"));
         return list;
     }
 
@@ -147,6 +152,10 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_ALERT_DISPLAY);
         list.add(ModContent.ITEM_HACKER_TABLET);
         list.add(ModContent.ITEM_BLOCK_DFC_BLAST_SENSOR);
+        list.add(ModContent.ITEM_BLOCK_AND_GATE);
+        list.add(ModContent.ITEM_BLOCK_OR_GATE);
+        list.add(ModContent.ITEM_BLOCK_XOR_GATE);
+        list.add(ModContent.ITEM_BLOCK_NOT_GATE);
         return list;
     }
 
@@ -166,7 +175,9 @@ public class ClientProxy extends CommonProxy {
             //  control_panel  console  video  nuke  controller  nuke_monitor  code  alert  tablet
             0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  dfc_blast_sensor
-            0
+            0,
+            //  and_gate  or_gate  xor_gate  not_gate
+            0, 0, 0, 0
     };
 
     public static List<Integer> metas() {

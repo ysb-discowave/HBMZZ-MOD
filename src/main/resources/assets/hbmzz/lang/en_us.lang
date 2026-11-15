@@ -85,3 +85,7 @@ hbmzz.msg.nuke_status=STATE %1$s | YIELD %2$s kT | FUSE %3$s s | CTRL %4$s | FAC
 hbmzz.msg.ctrl_status=Link %1$s | Last result %2$s
 hbmzz.msg.ctrl_unbound=not linked
 hbmzz.msg.code_set=Preset %1$s (%2$s). A redstone signal broadcasts it.
+tile.hbmzz.dfc_blast_sensor.name=DFC Blast Sensor
+hbmzz.msg.dfc_sensor=Redstone %1$s/15 | last blast %2$s blocks away, %3$s s ago, from %4$s
+hbmzz.msg.dfc_sensor_idle=No blast recorded yet. A DFC going up within %1$s blocks in this dimension will drive it.
+hbmzz.msg.dfc_sensor_idle_any=No blast recorded yet. Any DFC going up in this dimension will drive it.

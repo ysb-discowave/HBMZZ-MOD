@@ -86,3 +86,7 @@ hbmzz.msg.nuke_status=状态 %1$s | 当量 %2$s kT | 引信 %3$s 秒 | 控制器
 hbmzz.msg.ctrl_status=联动 %1$s | 上次结果 %2$s
 hbmzz.msg.ctrl_unbound=未联动
 hbmzz.msg.code_set=预设代码 %1$s（%2$s）。给红石信号即全图广播。
+tile.hbmzz.dfc_blast_sensor.name=DFC 爆炸传感器
+hbmzz.msg.dfc_sensor=红石 %1$s/15 | 上次爆炸距此 %2$s 格 · %3$s 秒前 · 来源：%4$s
+hbmzz.msg.dfc_sensor_idle=还没记录到爆炸。同维度、%1$s 格以内的 DFC 爆炸会让它输出红石。
+hbmzz.msg.dfc_sensor_idle_any=还没记录到爆炸。这个维度里任何一处 DFC 爆炸都会让它输出红石。

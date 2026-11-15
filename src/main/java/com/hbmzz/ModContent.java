@@ -76,11 +76,14 @@ public final class ModContent {
     public static final Block BLOCK_NUKE_MONITOR = new com.hbmzz.block.BlockNukeMonitor();
     public static final Block BLOCK_CODE_BROADCASTER = new com.hbmzz.block.BlockCodeBroadcaster();
     public static final Block BLOCK_ALERT_DISPLAY = new com.hbmzz.block.BlockAlertDisplay();
+    /** Redstone out while a DFC blast is running out of time. Detection lives in DfcBlastWatch. */
+    public static final Block BLOCK_DFC_BLAST_SENSOR = new com.hbmzz.blast.BlockDfcBlastSensor();
     public static final Item ITEM_BLOCK_NUKE = new com.hbmzz.item.ItemBlockNuke(BLOCK_NUKE);
     public static final Item ITEM_BLOCK_NUKE_CONTROLLER = new ItemBlock(BLOCK_NUKE_CONTROLLER);
     public static final Item ITEM_BLOCK_NUKE_MONITOR = new ItemBlock(BLOCK_NUKE_MONITOR);
     public static final Item ITEM_BLOCK_CODE_BROADCASTER = new ItemBlock(BLOCK_CODE_BROADCASTER);
     public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
+    public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
 
     public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
     public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
@@ -108,6 +111,7 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_NUKE_MONITOR);
         event.getRegistry().register(BLOCK_CODE_BROADCASTER);
         event.getRegistry().register(BLOCK_ALERT_DISPLAY);
+        event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
     }
 
     @SubscribeEvent
@@ -132,6 +136,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_CODE_BROADCASTER);
         ITEM_BLOCK_ALERT_DISPLAY.setRegistryName(BLOCK_ALERT_DISPLAY.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_ALERT_DISPLAY);
+        ITEM_BLOCK_DFC_BLAST_SENSOR.setRegistryName(BLOCK_DFC_BLAST_SENSOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_HACKER_TABLET);
         event.getRegistry().register(ITEM_SPEED_COIL);
@@ -302,6 +308,19 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'E', Items.ENDER_PEARL
         ).setRegistryName(HBMZZ.MODID, "alert_display"));
+
+        // 石英是这里唯一"准"的东西：传感器要的是稳定，不是威力。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "dfc_blast_sensor"),
+                new ItemStack(BLOCK_DFC_BLAST_SENSOR),
+                "IQI",
+                "GRG",
+                "IQI",
+                'I', Items.IRON_INGOT,
+                'Q', Items.QUARTZ,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "dfc_blast_sensor"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "monitor_camera"),

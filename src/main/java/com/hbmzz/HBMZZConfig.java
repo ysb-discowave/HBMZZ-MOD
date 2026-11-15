@@ -100,6 +100,33 @@ public final class HBMZZConfig {
     /** Facility-wide klaxon on a code broadcast. Client-side sound, server-side trigger. */
     public static boolean alertKlaxon = true;
 
+    // ---- DFC blast sensor ----
+    /** Master switch for the sensor block; off means it never sees a blast. */
+    public static boolean dfcSensorEnabled = true;
+    /**
+     * How far a sensor still answers a blast, in blocks (same dimension). 0 = unlimited.
+     * The point of a number here is that a base can be big: the DFC hall and the
+     * emergency generator room are usually not next door.
+     */
+    public static int dfcSensorRange = 512;
+    /**
+     * Radius searched for a DFC core when a nuclear blast entity joins the world.
+     * This is what separates "the DFC went up" from "someone set off a bomb in the
+     * next hall" - the blast has to have happened on top of a core.
+     */
+    public static int dfcSensorCoreRange = 12;
+    /**
+     * Treat every nuclear blast in the dimension as a DFC blast, without looking
+     * for a core. For packs where the DFC detonates somewhere else entirely.
+     */
+    public static boolean dfcSensorAnyBlast = false;
+    /** Ticks the signal stays at full strength before it starts stepping down. */
+    public static int dfcSensorHoldTicks = 100;
+    /** Ticks the signal spends stepping from full down to 1, then it goes out. */
+    public static int dfcSensorDecayTicks = 200;
+    /** Peak redstone strength, 1..15. */
+    public static int dfcSensorStrength = 15;
+
     // ---- zd_tx cinematic ----
     /**
      * Degrees per tick the camera travels around the target. 0.72 is a full
@@ -211,6 +238,20 @@ public final class HBMZZConfig {
                     "Ticks between catch-up pushes from an accident display to nearby players.");
             alertKlaxon = cfg.getBoolean("klaxon", "alert", true,
                     "Play a facility-wide sound when a code is broadcast.");
+            dfcSensorEnabled = cfg.getBoolean("enabled", "dfcSensor", true,
+                    "The DFC blast sensor block. Off means it never sees a blast and never emits.");
+            dfcSensorRange = cfg.getInt("range", "dfcSensor", 512, 0, 4096,
+                    "How far a sensor still answers a blast, in blocks, within the same dimension. 0 = unlimited. The blast itself is recorded once on the server, so this only decides who is close enough to react.");
+            dfcSensorCoreRange = cfg.getInt("coreRange", "dfcSensor", 12, 1, 64,
+                    "Radius searched for a DFC core when a nuclear blast entity appears. A blast only counts as a DFC blast when it happened on top of a core, which is what keeps a nuke set off elsewhere in the base from tripping the sensors.");
+            dfcSensorAnyBlast = cfg.getBoolean("anyBlast", "dfcSensor", false,
+                    "Count every nuclear blast in the dimension as a DFC blast, without looking for a core. Only useful in packs where the DFC detonates without spawning the usual blast entity.");
+            dfcSensorHoldTicks = cfg.getInt("holdTicks", "dfcSensor", 100, 0, 2400,
+                    "Ticks the signal stays at full strength. 100 = 5 s, enough for a piston door to cycle and a generator to come online.");
+            dfcSensorDecayTicks = cfg.getInt("decayTicks", "dfcSensor", 200, 0, 2400,
+                    "Ticks spent stepping the signal down from full to 1 before it goes out. 0 switches off the decay and drops it straight to zero after the hold.");
+            dfcSensorStrength = cfg.getInt("strength", "dfcSensor", 15, 1, 15,
+                    "Peak redstone strength. 15 is full power; anything lower makes the sensor unable to drive long wire runs directly.");
             cinematicSpeed = (float) cfg.getFloat("rbmkSpeed", "cinematic", 0.72F, 0.0F, 12.0F,
                     "Degrees per tick the camera orbits an RBMK that has started jumping its rods. The gamerule zd_tx has to be on for this to happen at all. 0.72 is one lap in about 25 seconds; 0 leaves the camera alone.");
             cinematicDfcSpeed = (float) cfg.getFloat("dfcSpeed", "cinematic", 2.0F, 0.0F, 12.0F,

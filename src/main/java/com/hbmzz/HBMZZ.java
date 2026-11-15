@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.1.1";
+    public static final String VERSION = "3.2.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -59,6 +59,9 @@ public class HBMZZ {
         // The wooden-axe wiring tool. An event handler rather than an item,
         // because the tool is a plain vanilla axe - see NukeLinkHandler for why.
         MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.NukeLinkHandler());
+        // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
+        // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
         GameRegistry.registerTileEntity(TileEntityDFCMonitor.class, new ResourceLocation(MODID, "dfc_monitor"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityCtrlPanel.class,
                 new ResourceLocation(MODID, "control_panel"));
@@ -76,6 +79,8 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "code_broadcaster"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlertDisplay.class,
                 new ResourceLocation(MODID, "alert_display"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcBlastSensor.class,
+                new ResourceLocation(MODID, "dfc_blast_sensor"));
         // The camera syncs its name/channel/aim through SPacketUpdateTileEntity, so
         // the very first setName() in onBlockPlacedBy calls writeToNBT(). Without a
         // mapping that throws "TileEntityMonitorCamera is missing a mapping!" and the

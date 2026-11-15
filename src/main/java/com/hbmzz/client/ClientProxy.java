@@ -116,6 +116,9 @@ public class ClientProxy extends CommonProxy {
         // models/item/<注册名>.json 找一份同名模型 —— 表里少一行不会当场炸，
         // 只会在有人给这个物品改名的那天安静地变成紫黑块。
         list.add(loc("hacker_tablet"));
+        // 事故之后的第一块砖：DFC 一炸就输出红石。它自己也必须有模型位置，
+        // 否则玩家放下之前根本认不出这是哪块砖。
+        list.add(loc("dfc_blast_sensor"));
         return list;
     }
 
@@ -143,6 +146,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_CODE_BROADCASTER);
         list.add(ModContent.ITEM_BLOCK_ALERT_DISPLAY);
         list.add(ModContent.ITEM_HACKER_TABLET);
+        list.add(ModContent.ITEM_BLOCK_DFC_BLAST_SENSOR);
         return list;
     }
 
@@ -160,7 +164,9 @@ public class ClientProxy extends CommonProxy {
             //  ammo_9mm  556  12ga
             0, 1, 2,
             //  control_panel  console  video  nuke  controller  nuke_monitor  code  alert  tablet
-            0, 0, 0, 0, 0, 0, 0, 0, 0
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            //  dfc_blast_sensor
+            0
     };
 
     public static List<Integer> metas() {

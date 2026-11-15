@@ -27,6 +27,7 @@
 """
 
 import argparse
+import io
 import os
 import shutil
 import subprocess
@@ -72,6 +73,35 @@ def py(*args):
 
 # ---------------------------------------------------------------- 快速档
 
+# 四个不能少的文件。删掉它们不会让任何代码编不过，只会让这个仓库变成一份
+# 没有授权的分发——所以放进 CI：少了、被清空了，红。
+REQUIRED = (
+    ("LICENSE", ("GNU GENERAL PUBLIC LICENSE",)),
+    ("NOTICE.md", ("第三方",)),
+    ("AUTHORIZATION.md", ("树上的节枝", "2026-11-03")),
+    ("CONTRIBUTING.md", ("GPL", "PR")),
+)
+
+
+def check_files():
+    """许可与协作文件在不在、内容是不是被清了。"""
+    missing = []
+    wrong = []
+    for name, needles in REQUIRED:
+        path = os.path.join(ROOT, name)
+        if not os.path.isfile(path):
+            missing.append(name)
+            continue
+        text = io.open(path, encoding="utf-8", errors="replace").read()
+        for needle in needles:
+            if needle not in text:
+                wrong.append("%s 里找不到 %r（被清空了？）" % (name, needle))
+    if missing or wrong:
+        return False, "\n".join(
+            (["缺少：%s" % ", ".join(missing)] if missing else []) + wrong)
+    return True, ""
+
+
 def check_regcheck():
     return run(py(os.path.join("tools", "regcheck", "check.py")))
 
@@ -113,6 +143,7 @@ def check_reasim():
 
 
 FAST = [
+    ("许可与协作文件（LICENSE / NOTICE / AUTHORIZATION / CONTRIBUTING）", check_files),
     ("regcheck（注册 / 配方 / 模型表 63 条）", check_regcheck),
     ("站点 HTML 审计", check_site_audit),
     ("站点数据一致性", check_site_data),

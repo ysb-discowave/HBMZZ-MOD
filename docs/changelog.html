@@ -82,8 +82,25 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.2.0</span>
+            <span class="tl-ver">v3.4.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>四种红石门：把「两件事同时成立」收进一格</h3>
+          <ul>
+            <li><strong>新方块四件套：与门、或门、异或门、非门</strong>（<code>and_gate</code> / <code>or_gate</code> / <code>xor_gate</code> / <code>not_gate</code>）。铁质外壳、硬度 2.0、抗爆 14；正面是输出，与 / 或 / 异或的两路输入在左右两侧，非门只有一路输入、在背面。放下时符号朝向玩家——看得到符号的那一面就是这块门是什么。</li>
+            <li><strong>输出只朝正面，侧面一律 0。</strong>侧面如果也输出，接在侧面的红石粉会反过来给门自己供电，形成「输出喂输入」的自锁：亮过一次就再也灭不掉。限制成「只答正面」之后，线可以贴着门绕过去，不必担心擦边把信号喂回去。</li>
+            <li><strong>输出是 15 或 0，不做模拟量。</strong>门是数字电路的东西：15 级红石在里面只用来判两次「是不是零」。要做按强度加权、阈值比较那类运算，该是另一台设备。</li>
+            <li><strong>为什么拆成四个方块，而不是一块能右键切换的门。</strong>1.12.2 的方块状态最终落到 4 位 meta（16 个组合）：朝向占 4、亮灭占 2，已经用掉 8 个；再塞 8 种运算就得牺牲朝向或亮灭。更实际的理由是——门是没有状态的东西，不给它可切换的运算，就不会出现「存档里的门被谁右键改成了或门」这种事故。</li>
+            <li><strong><code>powered</code> 只用来换贴图，状态不存盘。</strong>亮不亮每一 tick 都能从输入算出来，存下来只会制造「存档里亮着、实际没电」的分歧。唯一的例外是一块极小的方块实体，它同时管两件事：读档后对一次账（区块加载时 Forge 不会替方块重算邻居），以及<strong>把「算输出」推迟一拍</strong>——当场算会让 <code>setBlockState</code> 立刻触发邻居、邻居再触发回来，一条首尾相接的反馈回路会在一个 tick 内无限递归，而 1.12.2 没有链式更新深度上限（那是 1.19 才有的），结局是 StackOverflowError。代价是每块门一拍延迟，和原版中继器同量级。</li>
+            <li><strong>右键只给读数</strong>（当前 A / B 的值、输出、以及「两侧进、正面出」这类接线提示），不改任何东西。改运算要换方块。</li>
+            <li><strong>四张配方共用前两行、第三行各不相同</strong>（铁锭 / 金锭 / 石英 / 红石），因为 1.12.2 的配对方按顺序取第一个匹配——图案重样的配方，后注册的那张永远合不出来。regcheck 第 61 条盯着这件事。</li>
+            <li><strong>版本号从 3.2.0 对齐到 3.4.0。</strong>v3.3.0（巨型管道与播放器格式那一版）是在另一条线上发布并打标的，代码本来就在 master 上，但 <code>build.gradle</code> 一直停在 3.2.0——同一个版本号对应两份不同的 jar 是最难查的那种事故，所以这一版直接把三处版本号补到 3.4.0。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.2.0</span>
           </div>
           <h3>DFC 一炸，它就输出红石：一枚爆炸传感器</h3>
           <ul>
@@ -549,7 +566,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=f59d78ea78"></script>
+<script src="assets/data.js?v=7a79424bcd"></script>
 <script src="assets/site.js?v=3b8dd304f1"></script>
 </body>
 </html>

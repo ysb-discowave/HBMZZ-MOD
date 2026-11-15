@@ -82,8 +82,26 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.4.0</span>
+            <span class="tl-ver">v3.5.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>DFC 自动停机、三秒环绕，还有一扇 26×26 的地板门</h3>
+          <ul>
+            <li><strong>DFC 自动停机。</strong>监视屏绑定 DFC 后，<strong>潜行 + 右键</strong>切换开关（普通右键仍是终端）。开关<b>跟着绑定走</b>：换核心、解绑、核心消失超过 10 秒，一律自动关闭——一台屏若在换了核心之后还记得「开着」，它就会去冷却一台操作者从没为它授权的堆。</li>
+            <li><strong>四段时序。</strong><code>AURA</code>：坍缩开始，核心周围持续蓝色粒子 + 每 40 tick 一次能量爆发，<b>温度不动</b>。<code>RETRACT</code>：剩余 60 秒，温度第一 tick 压到 <b>50 °C</b>，再在剩余窗口里线性降到 <b>0 °C</b>，同时蓝色粒子从 7 格半径一路收到 0.6 格。<code>HOLD</code>：0 °C 保持 5 秒，并尝试清除上游坍缩。<code>DONE</code>：等核心停止坍缩 10 秒后复位。</li>
+            <li><strong>两个刻意的非对称。</strong><code>AURA</code> 可以中止（此时什么都还没改）；<code>RETRACT</code> 一旦开始就做到底（半路停在 37 °C 的核芯看着像 bug，用起来也像）。<code>DONE</code> 需要「持续安静」而不是「一 tick 安静」，否则坍缩边缘抖动会把内爆声放成机关枪。</li>
+            <li><strong>写温度是按名字试，不是猜。</strong><code>setDFCTemperature</code> / <code>setDFCHeat</code> → 字段 <code>heat</code>（同时写 <code>prevHeat</code>）→ <code>dfcHeat</code> / <code>temperature</code>。连续 3 tick 写不进去就释放过程并打 warn：宁可没有演出，也不让屏幕宣称一个不存在的降温。</li>
+            <li><strong>驱动者是监视屏本身。</strong>拆屏、关开关、解绑，过程立刻停；两台屏绑同一核心时先到的那台干活，降温速度不会被翻倍；屏幕所在区块没加载，自动停机就等于不存在。</li>
+            <li><strong>新 gamerule <code>DFC-TSTX</code>。</strong>核心进入坍缩的瞬间强制环绕 3 秒（半径 16、抬高 6、4°/tick）。规则名就是大写加连字符；1.12.2 没有 gamerule 注册表，它是在世界加载时「发现不存在才创建」的，否则每次开存档都会把它重置成 false。它是开场镜头，<code>zd_tx</code> 是最后 5 秒的收尾镜头，两个导演互不抢相机。</li>
+            <li><strong>塔塔鲁斯大门：把 CE 的巨型安全门放平。</strong>社区版的 <b>Transition Seal</b> 是整个 HBM 里占地面积最大、也是最高的方块（26×26 舱板墙、24 格高），这门就是它躺下：<strong>26×26</strong> 的 <code>seal_hatch</code> 铺进地板，一格厚，控制器在西北角。</li>
+            <li><strong>没有重画任何贴图。</strong>模型就是一句 <code>cube_all</code> 指向 CE 自己的 <code>hbm:blocks/seal_hatch_3</code>——同一套舱板、同一张图，只是从墙变成了地。关着是整片无缝钢板，打开 26×26 全部让空，可以直接掉下去。</li>
+            <li><strong>洞是真的。</strong>每一格的碰撞随自己的 <code>open</code> 状态消失，26×26 里没有一格是「画上去的空」。红石通电开、断电关（任意一格），空手右键切换，通电时锁定并说明原因；拆任意一格带走整扇、只掉一件。安装要 26×26 空位，不够时告诉你哪一格被占了。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.4.0</span>
           </div>
           <h3>四种红石门：把「两件事同时成立」收进一格</h3>
           <ul>
@@ -566,7 +584,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=7a79424bcd"></script>
+<script src="assets/data.js?v=07a04345f4"></script>
 <script src="assets/site.js?v=3b8dd304f1"></script>
 </body>
 </html>

@@ -487,6 +487,7 @@
             <h4>想看得更清楚：<code>zd_tx</code></h4>
             <p style="margin:6px 0 0"><code>/gamerule zd_tx true</code>。打开后，堆开始<strong>跳棒</strong>的那一刻你的视角会开始缓慢绕堆旋转，一直到掀盖爆炸为止；<strong>DFC</strong> 进入坍缩最后 5 秒时同理，绕到它炸为止。两处都在爆炸那一刻把镜头交还——留在一个坑上转圈没有意义，你要看的是那一下。</p>
             <p style="margin:6px 0 0">转速、半径、高度都在 <code>cinematic.*</code> 里（默认 0.72°/tick ≈ 25 秒一圈、18 格、+7 格）。起始角度取你<strong>当时站的方向</strong>，所以第一帧和你原来看到的是连续的。这是纯客户端演出：别的玩家看不到你的镜头在转，你的角色在他们眼里只是站着不动。</p>
+            <p style="margin:6px 0 0"><code>zd_tx</code> 管的是<strong>收尾</strong>。想看<strong>开场</strong>另有 <code>DFC-TSTX</code>：<code>/gamerule DFC-TSTX true</code>，核心一进入坍缩就强制环绕<strong>三秒</strong>（60 tick，半径 16、抬高 6、4°/tick），然后交还视角。两个规则互不抢镜头——长镜头已经在跑时，三秒这一轮直接跳过。规则名就是大写加连字符，因为 1.12.2 的 gamerule 就是一张按名字查的表。</p>
           </div>
         </div>
 
@@ -1052,7 +1053,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=7a79424bcd"></script>
+<script src="assets/data.js?v=07a04345f4"></script>
 <script src="assets/site.js?v=3b8dd304f1"></script>
 </body>
 </html>

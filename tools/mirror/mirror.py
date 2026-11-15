@@ -42,6 +42,14 @@ def git(*args, check=True):
     return out if p.returncode == 0 else ""
 
 
+def git_push(*args):
+    """push 的进度写在 stderr，stdout 是空的——要合起来看，否则永远显示「没有输出」。"""
+    p = subprocess.run(["git", "push"] + list(args), cwd=ROOT, capture_output=True)
+    text = (p.stdout.decode("utf-8", "replace")
+            + p.stderr.decode("utf-8", "replace")).strip()
+    return p.returncode, text
+
+
 def ensure_remote():
     remotes = git("remote").split()
     if MIRROR_REMOTE not in remotes:
@@ -155,7 +163,11 @@ def main():
     if args.prune:
         cmd.append("--prune")
     cmd += refspecs
-    print(git(*cmd, check=False) or "（git 没有输出）")
+    code, text = git_push(*cmd[1:])
+    print(text or "（push 没有任何输出）")
+    if code != 0:
+        print("push 退出码 %d —— 同步失败。" % code)
+        return code
 
     # 复核：镜像的 master 必须等于主仓库的 master
     git("fetch", "--prune", "--tags", MIRROR_REMOTE, check=False)

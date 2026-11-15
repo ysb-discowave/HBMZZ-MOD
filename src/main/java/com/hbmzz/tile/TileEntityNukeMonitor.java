@@ -27,12 +27,7 @@ import com.hbmzz.network.NukeDataMessage;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ITickable;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +46,7 @@ import java.util.List;
  * a player who just placed the block needs to know what to do next, and a blank
  * screen says nothing.</p>
  */
-public class TileEntityNukeMonitor extends TileEntity implements ITickable {
+public class TileEntityNukeMonitor extends TileEntityPanelScreen {
 
     private BlockPos nukePos;
     private int nukeDim;
@@ -168,13 +163,6 @@ public class TileEntityNukeMonitor extends TileEntity implements ITickable {
         return list;
     }
 
-    private void sync() {
-        if (this.world != null && !this.world.isRemote) {
-            this.world.notifyBlockUpdate(this.pos, this.world.getBlockState(this.pos),
-                    this.world.getBlockState(this.pos), 3);
-        }
-    }
-
     // ---------------------------------------------------------------- client
 
     public void accept(NukeSnapshot sample) {
@@ -213,24 +201,6 @@ public class TileEntityNukeMonitor extends TileEntity implements ITickable {
         this.nukeDim = compound.getInteger("nukeDim");
     }
 
-    @Override
-    public NBTTagCompound getUpdateTag() {
-        return writeToNBT(new NBTTagCompound());
-    }
-
-    @Override
-    public SPacketUpdateTileEntity getUpdatePacket() {
-        return new SPacketUpdateTileEntity(this.pos, 3, getUpdateTag());
-    }
-
-    @Override
-    public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity packet) {
-        readFromNBT(packet.getNbtCompound());
-    }
-
-    @Override
-    public boolean shouldRefresh(World world, BlockPos pos, net.minecraft.block.state.IBlockState oldState,
-                                 net.minecraft.block.state.IBlockState newState) {
-        return oldState.getBlock() != newState.getBlock();
-    }
+    // 更新包、倾角同步与渲染包围盒都在 TileEntityPanelScreen 里：倾角是这台机器的属性，
+    // 不是这一块屏独有的东西，两边各写一份迟早会有一边忘了跟着改。
 }

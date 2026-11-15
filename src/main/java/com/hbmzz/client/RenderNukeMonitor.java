@@ -24,6 +24,7 @@ package com.hbmzz.client;
 import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.alert.NukeSnapshot;
+import com.hbmzz.block.BlockConsolePanel;
 import com.hbmzz.block.BlockNukeMonitor;
 import com.hbmzz.client.screen.NukeScreen;
 import com.hbmzz.dfc.ConsoleRig;
@@ -37,7 +38,13 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * Draws a nuke monitor: one cell of wall, one device's worth of numbers.
+ * Draws a nuke monitor: the same 2x2 hanging console as the DFC monitor, with a
+ * different page on the glass.
+ *
+ * <p>The housing, the ceiling rig, the tip angle and the bezel all come from
+ * {@link ConsoleModel} / {@link ConsoleRig}, exactly as the DFC monitor's do -
+ * these are meant to read as one product line, and any geometry derived a second
+ * time here would drift the first time the shared model changed.</p>
  *
  * <p>The sample comes from the tile entity the packet handler filled; when there
  * is none, the panel paints its "no device" frame rather than going dark. That
@@ -90,13 +97,20 @@ public class RenderNukeMonitor extends TileEntitySpecialRenderer<TileEntityNukeM
                     code, live);
             texture.upload(canvas);
 
-            double[] anchor = ConsoleRig.anchor(1, 1, facing);
+            int cols = BlockConsolePanel.PANEL_COLS;
+            int rows = BlockConsolePanel.PANEL_ROWS;
+            int tilt = te.getTilt();
+            // Same rule as the DFC monitor: a rig only exists when there is
+            // something above the top row to bolt it to.
+            boolean hangar = !te.getWorld().isAirBlock(te.getPos().up());
+
+            double[] anchor = ConsoleRig.anchor(cols, rows, facing);
             GlStateManager.translate(x + anchor[0], y + anchor[1], z + anchor[2]);
             GlStateManager.rotate(ConsoleRig.yawOf(facing), 0.0F, 1.0F, 0.0F);
             GlStateManager.disableCull();
 
-            PanelRender.faces(ConsoleModel.build(1, 1, ConsoleRig.TILT_WALL, true, false));
-            PanelRender.glass(texture.id(), ConsoleModel.panelCorners(1, 1, ConsoleRig.TILT_WALL));
+            PanelRender.faces(ConsoleModel.build(cols, rows, tilt, true, hangar));
+            PanelRender.glass(texture.id(), ConsoleModel.panelCorners(cols, rows, tilt));
 
             GlStateManager.enableCull();
         } catch (Throwable throwable) {

@@ -32,6 +32,7 @@ import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.registry.IRegistry;
 import net.minecraftforge.client.event.ModelBakeEvent;
+import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
@@ -46,6 +47,18 @@ public class ClientEvents {
 
     private boolean lastThrust;
     private boolean lastTrigger;
+
+    /**
+     * 物品模型登记。
+     *
+     * <p>Forge 在主事件总线上 post 这个事件，而 {@code ClientEvents} 已经挂在总线上了，
+     * 所以不需要再注册一次。用事件而不是 {@code init}：模型烘焙发生在资源重载时，这个事件的
+     * 位置就是"注册模型"这一段窗口；同一枚 jar 里的 {@code rsaudio} 也是这么做的。</p>
+     */
+    @SubscribeEvent
+    public void onModelRegistry(ModelRegistryEvent event) {
+        ClientProxy.registerItemModels();
+    }
 
     /**
      * Verifies every item model actually resolved to something other than the

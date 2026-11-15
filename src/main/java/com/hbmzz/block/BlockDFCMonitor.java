@@ -22,6 +22,7 @@
 package com.hbmzz.block;
 
 import com.hbmzz.HBMZZ;
+import com.hbmzz.HBMZZConfig;
 import com.hbmzz.ModContent;
 import com.hbmzz.dfc.ConsoleRig;
 import com.hbmzz.entity.EntityFallenScreen;
@@ -51,7 +52,7 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 
-public class BlockDFCMonitor extends BlockHorizontal implements ITileEntityProvider {
+public class BlockDFCMonitor extends BlockHorizontal implements ITileEntityProvider, IPanelOrigin {
 
     public BlockDFCMonitor() {
         super(Material.IRON);
@@ -316,6 +317,37 @@ public class BlockDFCMonitor extends BlockHorizontal implements ITileEntityProvi
         } finally {
             BlockDFCMonitorPart.DISMANTLING = false;
         }
+    }
+
+    // ------------------------------------------------------------ panel origin
+
+    /**
+     * 面板尺寸读自方块实体，而不是写死：DFC 监视器的屏幕尺寸是终端里可以改的。
+     * 读不到方块实体（区块边缘、正在拆除）时退回默认尺寸，填充板那边的扫描因此不会
+     * 因为一次失败的查询而认为"这台面板不存在"。
+     */
+    @Override
+    public int panelCols(World world, BlockPos origin) {
+        TileEntity te = world.getTileEntity(origin);
+        if (te instanceof TileEntityDFCMonitor) {
+            return Math.max(1, ((TileEntityDFCMonitor) te).getScreenCols());
+        }
+        return Math.max(1, HBMZZConfig.defaultScreenCols);
+    }
+
+    @Override
+    public int panelRows(World world, BlockPos origin) {
+        TileEntity te = world.getTileEntity(origin);
+        if (te instanceof TileEntityDFCMonitor) {
+            return Math.max(1, ((TileEntityDFCMonitor) te).getScreenRows());
+        }
+        return Math.max(1, HBMZZConfig.defaultScreenRows);
+    }
+
+    @Override
+    public ItemStack panelDrop() {
+        net.minecraft.item.Item item = net.minecraft.item.Item.getItemFromBlock(this);
+        return item == null ? ItemStack.EMPTY : new ItemStack(item, 1);
     }
 
     /**

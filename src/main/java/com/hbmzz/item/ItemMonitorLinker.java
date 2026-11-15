@@ -208,14 +208,16 @@ public class ItemMonitorLinker extends Item {
     }
 
     /**
-     * The controller cell behind a click, or {@code pos} itself when the click
-     * landed somewhere else.
+     * The origin cell behind a click, or {@code pos} itself when the click
+     * landed somewhere else. Any cell of a panel has to behave like its origin,
+     * or "point the cable at the screen" stops working at the one place a player
+     * naturally aims: the middle of it.
      */
     private static BlockPos monitorOrigin(World world, BlockPos pos) {
         if (world.getBlockState(pos).getBlock() instanceof com.hbmzz.block.BlockDFCMonitorPart) {
-            BlockPos controller = com.hbmzz.block.BlockDFCMonitorPart.findController(world, pos);
-            if (controller != null) {
-                return controller;
+            BlockPos origin = com.hbmzz.block.BlockDFCMonitorPart.findOrigin(world, pos);
+            if (origin != null) {
+                return origin;
             }
         }
         return pos;

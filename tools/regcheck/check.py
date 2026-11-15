@@ -230,7 +230,11 @@ def main():
             if not filename.endswith(".java"):
                 continue
             text = read(os.path.join(dirpath, filename))
-            if re.search(r"class\s+\w+\s+extends\s+(?:[\w.]+\.)?TileEntity\b", text):
+            # An abstract base never needs a mapping: it is never instantiated,
+            # so "is missing a mapping!" cannot happen to it. Flagging it would
+            # push the next person to give a base class a fake registration.
+            match = re.search(r"(abstract\s+)?class\s+\w+\s+extends\s+(?:[\w.]+\.)?TileEntity\b", text)
+            if match and not match.group(1):
                 te_classes.add(filename[:-5])
     registered_tes = set(
         re.findall(r"registerTileEntity\s*\(\s*[\w.]*?(\w+)\.class\s*,", main_java))
@@ -968,6 +972,36 @@ def main():
     clashes = [" vs ".join(v) for v in grids.values() if len(v) > 1]
     check(not clashes, "no two shaped recipes share the same crafting grid",
           "the later registration can never be crafted: " + "; ".join(clashes))
+
+    # 62. The three client model tables must stay aligned with the item registry.
+    #
+    # ClientProxy keeps item models, items and metadata in three parallel lists.
+    # Every mismatch is silent. The registration loop runs to the length of the
+    # model list, so a short items() is an IndexOutOfBounds on startup, a long one
+    # just drops the tail, and an item that is missing from items() altogether
+    # gets no explicit model location at all - which only shows up in game as a
+    # magenta square, or, worse, as the correct icon by coincidence because
+    # vanilla falls back to models/item/<registry name>.json. The hacker tablet
+    # was missing for exactly that reason and looked fine.
+    proxy = read(os.path.join(ROOT, "src/main/java/com/hbmzz/client/ClientProxy.java"))
+    model_names = re.findall(r'loc\("([a-z_0-9]+)"\)', member_body(proxy, "itemModels"))
+    item_tokens = []
+    for ref in re.findall(r"ModContent\.(\w+)", member_body(proxy, "items")):
+        # Item.getItemFromBlock(BLOCK_X) is the item form of BLOCK_X, and that
+        # item is called ITEM_BLOCK_X; normalise so the coverage test compares
+        # like with like.
+        item_tokens.append("ITEM_" + ref if ref.startswith("BLOCK_") else ref)
+    metas_block = proxy[proxy.index("int[] METAS"):]
+    metas_block = metas_block[:metas_block.index("};")]
+    metas_block = re.sub(r"//[^\n]*", "", metas_block)
+    meta_count = len(re.findall(r"\d+", metas_block))
+    check(len(model_names) == len(item_tokens) == meta_count,
+          "the three item-model tables are the same length",
+          "models=%d items=%d metas=%d (any mismatch shifts every icon after it)"
+          % (len(model_names), len(item_tokens), meta_count))
+    uncovered = sorted(name for name in registered_items if name not in set(item_tokens))
+    check(not uncovered, "every registered item has an explicit model location",
+          "icon depends on a filename coincidence: " + ", ".join(uncovered))
 
     failed = [name for ok, name, _ in results if not ok]
     print()

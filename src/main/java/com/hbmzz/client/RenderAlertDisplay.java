@@ -24,6 +24,7 @@ package com.hbmzz.client;
 import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.block.BlockAlertDisplay;
+import com.hbmzz.block.BlockConsolePanel;
 import com.hbmzz.client.screen.AlertScreen;
 import com.hbmzz.dfc.ConsoleRig;
 import com.hbmzz.tile.TileEntityAlertDisplay;
@@ -36,16 +37,19 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * Draws an accident display: a 1x1 wall panel showing the facility code.
+ * Draws an accident display: the same 2x2 hanging console as the DFC monitor,
+ * showing the facility code.
  *
  * <p>Stateless apart from its canvas. Everything it paints comes from
  * {@link ClientAlertState}, which is the client's single copy of the facility
  * record - so two displays side by side are not two views of the same data that
  * could drift, they are literally the same three fields.</p>
  *
- * <p>Geometry is the DFC monitor's housing at 1x1 with the wall tilt: flat
- * against the wall, no ceiling bracket, because a one-cell panel bolted to a wall
- * does not need a rig and the rig would draw itself into the block above.</p>
+ * <p>Geometry is the shared DFC housing with whatever tip the block was hung
+ * with. A panel bolted flat to a wall is placed with {@code TILT_WALL} and no
+ * ceiling rig; one hung from a ceiling gets the rig, the clamp bar and the rods,
+ * because that is what the block above it is for. Both cases come out of
+ * {@link ConsoleModel}, so the two mounts cannot disagree about thickness.</p>
  */
 public class RenderAlertDisplay extends TileEntitySpecialRenderer<TileEntityAlertDisplay> {
 
@@ -79,13 +83,20 @@ public class RenderAlertDisplay extends TileEntitySpecialRenderer<TileEntityAler
                     ClientAlertState.live());
             texture.upload(canvas);
 
-            double[] anchor = ConsoleRig.anchor(1, 1, facing);
+            int cols = BlockConsolePanel.PANEL_COLS;
+            int rows = BlockConsolePanel.PANEL_ROWS;
+            int tilt = te.getTilt();
+            // Same rule as the DFC monitor: a rig only exists when there is
+            // something above the top row to bolt it to.
+            boolean hangar = !te.getWorld().isAirBlock(te.getPos().up());
+
+            double[] anchor = ConsoleRig.anchor(cols, rows, facing);
             GlStateManager.translate(x + anchor[0], y + anchor[1], z + anchor[2]);
             GlStateManager.rotate(ConsoleRig.yawOf(facing), 0.0F, 1.0F, 0.0F);
             GlStateManager.disableCull();
 
-            PanelRender.faces(ConsoleModel.build(1, 1, ConsoleRig.TILT_WALL, true, false));
-            PanelRender.glass(texture.id(), ConsoleModel.panelCorners(1, 1, ConsoleRig.TILT_WALL));
+            PanelRender.faces(ConsoleModel.build(cols, rows, tilt, true, hangar));
+            PanelRender.glass(texture.id(), ConsoleModel.panelCorners(cols, rows, tilt));
 
             GlStateManager.enableCull();
         } catch (Throwable throwable) {

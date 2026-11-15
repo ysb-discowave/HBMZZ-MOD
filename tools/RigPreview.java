@@ -65,6 +65,23 @@ public final class RigPreview {
         // like it is riding up over the cells above it.
         shot(out, "rig-front", 4, 3, ConsoleRig.TILT_CEILING, true, screen, 0, 0);
         shot(out, "rig-side", 4, 3, ConsoleRig.TILT_CEILING, true, screen, 90, 0);
+
+        // The nuclear panels. Same software and same housing, different page:
+        // these two shots exist to answer "does the 2x2 footprint still fit the
+        // text this screen actually carries", which is a different question from
+        // "is the bracket bolted on". Both mounts are shown because a panel in a
+        // corner is flat against the wall and gets no rig at all.
+        BufferedImage nukePage = nukePage();
+        shot(out, "panel-hung", 2, 2, ConsoleRig.TILT_CEILING, true, nukePage, 26, -20);
+        shot(out, "panel-flat", 2, 2, ConsoleRig.TILT_WALL, false, nukePage, 30, 12);
+    }
+
+    /** The nuke monitor's page, drawn at the same size the game uploads. */
+    private static BufferedImage nukePage() {
+        com.hbmzz.client.screen.NukeScreen page = new com.hbmzz.client.screen.NukeScreen();
+        page.render(0L, true, 2, 250, 100, 62, 128, 64, -300, 0, true, 120, 64, -290, 0,
+                com.hbmzz.alert.AlertCode.ALPHA.id(), true);
+        return page.image();
     }
 
     // ------------------------------------------------------------------ scenes

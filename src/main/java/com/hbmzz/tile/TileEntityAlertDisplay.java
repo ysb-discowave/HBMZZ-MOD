@@ -23,24 +23,19 @@ import com.hbmzz.alert.AlertSync;
 import com.hbmzz.alert.FacilityState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ITickable;
-import net.minecraft.world.World;
 
 import java.util.List;
 
 /**
- * One of the wall displays that show the facility code.
+ * One of the hanging displays that show the facility code.
  *
- * <p>Holds no state worth saving. Everything it draws comes from the single
- * facility record, pushed to it by whoever is close enough to read it - which is
- * what makes the requirement "every display agrees" true by construction rather
- * than by discipline. Two displays can never disagree, because neither of them
- * remembers anything: they each hold a copy of the same record, and the copy is
- * overwritten wholesale on every packet.</p>
+ * <p>Holds no <em>business</em> state worth saving - the only thing it persists is
+ * the tip angle of its housing, which is hardware, not data. Everything it draws
+ * comes from the single facility record, pushed to it by whoever is close enough
+ * to read it - which is what makes the requirement "every display agrees" true by
+ * construction rather than by discipline. Two displays can never disagree,
+ * because neither of them remembers anything: they each hold a copy of the same
+ * record, and the copy is overwritten wholesale on every packet.</p>
  *
  * <p>This matters at the moment it is hardest to test: when the code changes in
  * a dimension nobody is watching. The broadcast from
@@ -48,7 +43,7 @@ import java.util.List;
  * becomes correct the first time a player sees it again, with no event of its
  * own required.</p>
  */
-public class TileEntityAlertDisplay extends TileEntity implements ITickable {
+public class TileEntityAlertDisplay extends TileEntityPanelScreen {
 
     private int refresh = 2;
     /** Last code/tick pushed from here, so a change can be sent immediately. */
@@ -81,36 +76,6 @@ public class TileEntityAlertDisplay extends TileEntity implements ITickable {
         }
     }
 
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound compound) {
-        super.writeToNBT(compound);
-        return compound;
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound compound) {
-        super.readFromNBT(compound);
-    }
-
-    @Override
-    public NBTTagCompound getUpdateTag() {
-        return writeToNBT(new NBTTagCompound());
-    }
-
-    @Override
-    public SPacketUpdateTileEntity getUpdatePacket() {
-        return new SPacketUpdateTileEntity(this.pos, 3, getUpdateTag());
-    }
-
-    @Override
-    public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity packet) {
-        readFromNBT(packet.getNbtCompound());
-    }
-
-    @Override
-    public boolean shouldRefresh(World world, net.minecraft.util.math.BlockPos pos,
-                                 net.minecraft.block.state.IBlockState oldState,
-                                 net.minecraft.block.state.IBlockState newState) {
-        return oldState.getBlock() != newState.getBlock();
-    }
+    // 存档只多一个倾角，由 TileEntityPanelScreen 负责：除它以外这块屏不保存任何业务状态，
+    // 那正是"每块屏显示的都一样"能成立的原因。
 }

@@ -30,7 +30,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 import java.util.ArrayList;
@@ -68,8 +67,15 @@ public class ClientProxy extends CommonProxy {
                 com.hbmzz.entity.EntityRbmkLid.class, RenderRbmkLid::new);
     }
 
-    @Override
-    public void init(FMLInitializationEvent event) {
+    /**
+     * 把三张表交给 Forge。
+     *
+     * <p>在 {@code ModelRegistryEvent} 上调，不再放在 {@code init} 里：模型是在
+     * 资源包重载时才烘焙的，而这个事件的契约就是"注册模型"这一段窗口。同一枚 jar 里的
+     * {@code rsaudio} 一直这么写，也一直是对的；{@code com.hbmzz} 这边写在 init 里，
+     * 恰好也能跑，但那依赖的是"init 早于第一次资源重载"这个巧合，而不是约定。</p>
+     */
+    public static void registerItemModels() {
         List<ModelResourceLocation> models = itemModels();
         for (int i = 0; i < models.size(); i++) {
             Item item = items().get(i);
@@ -106,6 +112,10 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("nuke_monitor"));
         list.add(loc("code_broadcaster"));
         list.add(loc("alert_display"));
+        // 黑客平板曾经不在这张表里。它之所以还能显示，只是因为原版兜底会去
+        // models/item/<注册名>.json 找一份同名模型 —— 表里少一行不会当场炸，
+        // 只会在有人给这个物品改名的那天安静地变成紫黑块。
+        list.add(loc("hacker_tablet"));
         return list;
     }
 
@@ -132,25 +142,32 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_NUKE_MONITOR);
         list.add(ModContent.ITEM_BLOCK_CODE_BROADCASTER);
         list.add(ModContent.ITEM_BLOCK_ALERT_DISPLAY);
+        list.add(ModContent.ITEM_HACKER_TABLET);
         return list;
     }
 
+    /**
+     * 与 {@link #itemModels()} / {@link #items()} 逐位对应的 metadata。
+     *
+     * <p>写成一张定长表而不是"先循环十个零再补几个"：三张表必须一样长，而
+     * "循环生成一部分"正好让长度变得不可数——上一次往表尾加物品的人就是这么漏掉平板的。
+     * {@code tools/regcheck} 会核对这三张表等长，且每个注册过的物品都在 {@link #items()}
+     * 里出现一次。</p>
+     */
+    private static final int[] METAS = {
+            //  dfc_monitor  camera  linker  speed  jump  regen  jetpack  pistol  rifle  shotgun
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            //  ammo_9mm  556  12ga
+            0, 1, 2,
+            //  control_panel  console  video  nuke  controller  nuke_monitor  code  alert  tablet
+            0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
     public static List<Integer> metas() {
-        List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            list.add(0);
+        List<Integer> list = new ArrayList<>(METAS.length);
+        for (int meta : METAS) {
+            list.add(meta);
         }
-        list.add(0);
-        list.add(1);
-        list.add(2);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
-        list.add(0);
         return list;
     }
 

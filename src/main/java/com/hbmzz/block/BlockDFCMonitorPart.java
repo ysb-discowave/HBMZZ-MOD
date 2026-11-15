@@ -31,7 +31,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -157,15 +156,17 @@ public class BlockDFCMonitorPart extends Block {
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        BlockPos controller = findController(world, pos);
-        if (controller == null) {
+        BlockPos origin = findOrigin(world, pos);
+        if (origin == null) {
             return false;
         }
-        IBlockState cs = world.getBlockState(controller);
-        if (!(cs.getBlock() instanceof BlockDFCMonitor)) {
+        IBlockState originState = world.getBlockState(origin);
+        Block block = originState.getBlock();
+        if (!(block instanceof IPanelOrigin)) {
             return false;
         }
-        return cs.getBlock().onBlockActivated(world, controller, cs, player, hand, facing, hitX, hitY, hitZ);
+        return ((IPanelOrigin) block).onBlockActivated(world, origin, originState, player, hand,
+                facing, hitX, hitY, hitZ);
     }
 
     // --------------------------------------------------------------- teardown
@@ -176,11 +177,12 @@ public class BlockDFCMonitorPart extends Block {
     @Override
     public void breakBlock(World world, BlockPos pos, IBlockState state) {
         if (!world.isRemote && !DISMANTLING) {
-            BlockPos controller = findController(world, pos);
-            if (controller != null) {
-                IBlockState cs = world.getBlockState(controller);
-                if (cs.getBlock() instanceof BlockDFCMonitor) {
-                    ((BlockDFCMonitor) cs.getBlock()).takeDown(world, controller, cs);
+            BlockPos origin = findOrigin(world, pos);
+            if (origin != null) {
+                IBlockState originState = world.getBlockState(origin);
+                Block block = originState.getBlock();
+                if (block instanceof IPanelOrigin) {
+                    ((IPanelOrigin) block).takeDown(world, origin, originState);
                 }
             }
         }
@@ -193,7 +195,7 @@ public class BlockDFCMonitorPart extends Block {
      * cell's idea of its size: a stale cell in an old save may think it is 2x2
      * while the panel around it has grown to 4x3.
      */
-    public static BlockPos findController(World world, BlockPos pos) {
+    public static BlockPos findOrigin(World world, BlockPos pos) {
         IBlockState state = world.getBlockState(pos);
         if (!(state.getBlock() instanceof BlockDFCMonitorPart)) {
             return null;
@@ -204,22 +206,23 @@ public class BlockDFCMonitorPart extends Block {
         for (int back = 0; back < maxCols; back++) {
             for (int up = 0; up < maxRows; up++) {
                 BlockPos candidate = ConsoleRig.partPos(pos, -back, -up, facing);
+                // isBlockLoaded is not an optimisation here: getBlockState on an
+                // unloaded chunk loads it, and this scan runs on every break of a
+                // panel cell - 12 cells at a time, at the edge of the loaded area.
                 if (candidate == null || !world.isBlockLoaded(candidate)) {
                     continue;
                 }
-                if (!(world.getBlockState(candidate).getBlock() instanceof BlockDFCMonitor)) {
+                Block block = world.getBlockState(candidate).getBlock();
+                if (!(block instanceof IPanelOrigin)) {
                     continue;
                 }
-                TileEntity te = world.getTileEntity(candidate);
-                if (!(te instanceof com.hbmzz.tile.TileEntityDFCMonitor)) {
-                    continue;
-                }
-                com.hbmzz.tile.TileEntityDFCMonitor monitor =
-                        (com.hbmzz.tile.TileEntityDFCMonitor) te;
+                IPanelOrigin origin = (IPanelOrigin) block;
                 // Confirm the candidate actually claims this cell; otherwise a
-                // neighbouring console would adopt us.
-                if (ConsoleRig.covers(candidate, monitor.getScreenCols(), monitor.getScreenRows(),
-                        facing, pos)) {
+                // neighbouring console would adopt us - and two 2x2 panels hung
+                // side by side is a legal layout.
+                int cols = Math.max(1, origin.panelCols(world, candidate));
+                int rows = Math.max(1, origin.panelRows(world, candidate));
+                if (ConsoleRig.covers(candidate, cols, rows, facing, pos)) {
                     return candidate;
                 }
             }
@@ -228,15 +231,15 @@ public class BlockDFCMonitorPart extends Block {
     }
 
     /**
-     * Breaking any cell yields the display item. The controller and the other
+     * Breaking any cell yields the panel's own item. The origin and the other
      * cells are removed by {@code setBlockToAir}, which does not drop, so one
-     * panel can never turn into twelve items.
+     * panel can never turn into four items.
+     *
+     * <p>Which item that is comes from the origin block itself, not from a
+     * constant: the same filler cell serves the DFC monitor, the nuke monitor
+     * and the alert display, and a cell that guessed would eventually hand a
+     * player the wrong machine.</p>
      */
-    @Override
-    public Item getItemDropped(IBlockState state, Random rand, int fortune) {
-        return Item.getItemFromBlock(ModContent.BLOCK_MONITOR);
-    }
-
     @Override
     public int quantityDropped(Random random) {
         return 1;
@@ -246,12 +249,34 @@ public class BlockDFCMonitorPart extends Block {
      * No item form: this block only ever exists as part of a placed panel. It
      * is deliberately not registered as an {@code ItemBlock}, so it cannot be
      * obtained, held or placed on its own.
+     *
+     * <p>{@code getItemDropped} keeps pointing at the DFC monitor for the
+     * legacy path vanilla takes when it ignores {@code getDrops}; the path that
+     * actually runs is this one, and it asks the origin what it was.</p>
      */
+    @Override
+    public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+        return Item.getItemFromBlock(ModContent.BLOCK_MONITOR);
+    }
+
     @Override
     public java.util.List<ItemStack> getDrops(IBlockAccess world, BlockPos pos, IBlockState state,
                                               int fortune) {
         java.util.List<ItemStack> drops = new java.util.ArrayList<ItemStack>();
-        drops.add(new ItemStack(Item.getItemFromBlock(ModContent.BLOCK_MONITOR), 1));
+        if (!(world instanceof World)) {
+            return drops;
+        }
+        BlockPos origin = findOrigin((World) world, pos);
+        if (origin == null) {
+            return drops;
+        }
+        Block block = world.getBlockState(origin).getBlock();
+        if (block instanceof IPanelOrigin) {
+            ItemStack drop = ((IPanelOrigin) block).panelDrop();
+            if (drop != null && !drop.isEmpty()) {
+                drops.add(drop);
+            }
+        }
         return drops;
     }
 }

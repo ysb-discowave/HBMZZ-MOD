@@ -83,6 +83,18 @@ public class NukeLinkHandler {
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         Block block = world.getBlockState(pos).getBlock();
+        // A panel is four cells and only one of them is the block. Without this
+        // step, binding works when you happen to hit the top-left corner and
+        // silently does nothing when you aim at the middle of the screen -
+        // which is where everybody aims.
+        if (block instanceof com.hbmzz.block.BlockDFCMonitorPart) {
+            BlockPos origin = com.hbmzz.block.BlockDFCMonitorPart.findOrigin(world, pos);
+            if (origin == null) {
+                return;
+            }
+            pos = origin;
+            block = world.getBlockState(pos).getBlock();
+        }
         if (!(block instanceof BlockNuke) && !(block instanceof BlockNukeController)
                 && !(block instanceof BlockNukeMonitor)) {
             return;

@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="HBMZZ — DFC 监控屏 / 机器控制面板">
 <meta property="og:description" content="方块正面不是贴图，是一台真在绘制的显示器。Minecraft 1.12.2 Forge 附属模组，GPL-3.0 开源。">
-<link rel="stylesheet" href="assets/site.css?v=387973e6b5">
+<link rel="stylesheet" href="assets/site.css?v=21aa198106">
 </head>
 <body>
 
@@ -23,6 +23,7 @@
       <a href="guide.html">使用指南</a>
       <a href="reference.html">参考手册</a>
       <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
       <a href="license.html">许可</a>
       <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
     </nav>
@@ -375,44 +376,46 @@
     <div class="wrap">
       <div class="section-head">
         <div class="kicker">// 04 — 原声</div>
-        <h2>How to survive?</h2>
-        <p>作者自己写的，3 分 15 秒。播放器不在这一节里——它钉在页面右边那条竖带上，
-          从这一页翻到那一页都不会停。</p>
+        <h2>两首，都在右边那台机器里</h2>
+        <p>作者自己写的，3 分 15 秒与 5 分 18 秒。播放器不在这段里——它钉在页面右边的竖条上，
+          从这一页翻到那一页都不会停；换哪一首、怎么拖进度、键位是什么，都在
+          <a href="ost.html">原声页</a>里写全了。</p>
       </div>
 
       <div class="grid g2">
         <div class="panel panel--bolted">
           <div class="card-num">TRACK 01</div>
-          <p style="margin:10px 0 16px;color:var(--text-mute);font:500 11px/1.7 var(--mono);letter-spacing:.08em">
+          <h3 style="margin:10px 0 6px;font-size:18px">How to survive?</h3>
+          <p style="margin:0 0 12px;color:var(--text-mute);font:500 11px/1.7 var(--mono);letter-spacing:.08em">
             MP3 · 192 kbps · 44.1 kHz · STEREO · 3:15
           </p>
           <p style="margin:0;color:var(--text-dim);font-size:14px">
-            作曲 / 编曲 / 混音：HBMZZ。这首是黑屏导出的纯音频，所以没有封面图——
-            硬配一张等于伪造。
+            站上第一首。按下去，右边那台机器会先切到它再开始放。
           </p>
           <div class="btn-row" style="margin-top:18px">
-            <button class="btn btn--primary" type="button" data-dock-start aria-pressed="false">播放</button>
+            <button class="btn btn--primary" type="button" data-track-play="how-to-survive" aria-pressed="false">播放</button>
             <a class="btn btn--ghost" href="assets/audio/how-to-survive.mp3" download="How to survive - HBMZZ.mp3">下载 MP3</a>
           </div>
         </div>
 
-        <div class="panel panel--flat">
-          <h3 style="margin:0 0 10px;font-size:16px">右边那台机器</h3>
-          <p style="margin:0 0 12px;color:var(--text-dim);font-size:14px">
-            方块是播放 / 暂停，竖槽是进度，点哪儿跳哪儿，按住拖也行。聚焦后用
-            <b>↑</b> <b>↓</b>（窄屏是 <b>←</b> <b>→</b>）走 5 秒，<b>Home</b> / <b>End</b> 跳首尾。
+        <div class="panel panel--bolted">
+          <div class="card-num">TRACK 02</div>
+          <h3 style="margin:10px 0 6px;font-size:18px">When will it end?</h3>
+          <p style="margin:0 0 12px;color:var(--text-mute);font:500 11px/1.7 var(--mono);letter-spacing:.08em">
+            MP3 · 192 kbps · 44.1 kHz · STEREO · 5:18
           </p>
           <p style="margin:0;color:var(--text-dim);font-size:14px">
-            换页那一瞬声音会断——新页面得重新开一个 <code>&lt;audio&gt;</code>，静态站绕不过去；
-            位置按真实时间补回来接着走。浏览器不肯自动出声时先静音续上，在这一页随便按一下就有声；
-            连静音播都不放行，方块才亮着等你按——总之不会假装在播。
+            后加的一首，比第一首长近两分钟。放完它不会自己绕回第一首。
           </p>
+          <div class="btn-row" style="margin-top:18px">
+            <button class="btn btn--primary" type="button" data-track-play="when-will-it-end" aria-pressed="false">播放</button>
+            <a class="btn btn--ghost" href="assets/audio/when-will-it-end.mp3" download="When will it end - HBMZZ.mp3">下载 MP3</a>
+          </div>
         </div>
       </div>
 
       <div class="note" style="margin-top:16px">
-        <span>机器只咬视口右边那道留白：窗口宽、留白够，它就待在外面；留白不够，正文整体让开。
-        所以它不压按钮，也不盖表格。</span>
+        <span>两首都来自黑屏导出的纯音频，没有封面图；硬配一张等于伪造。文件参数与整轨响度在原声页里逐项列出。</span>
       </div>
     </div>
   </section>
@@ -452,7 +455,7 @@
         <a href="reference.html">参考手册</a>
         <a href="changelog.html">更新日志</a>
         <a href="reference.html#config">配置项</a>
-        <a href="index.html#ost">原声 · How to survive?</a>
+        <a href="ost.html">原声 · HBMZZ OST</a>
       </div>
       <div>
         <h4>项目</h4>
@@ -479,7 +482,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=2913898b28"></script>
-<script src="assets/site.js?v=79c5a685e4"></script>
+<script src="assets/data.js?v=f59d78ea78"></script>
+<script src="assets/site.js?v=3f524586af"></script>
 </body>
 </html>

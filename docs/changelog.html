@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="HBMZZ 更新日志">
 <meta property="og:description" content="按版本倒序的逐版变更与路线图，日期以 GitHub Releases 为准。">
-<link rel="stylesheet" href="assets/site.css?v=387973e6b5">
+<link rel="stylesheet" href="assets/site.css?v=21aa198106">
 </head>
 <body>
 
@@ -23,6 +23,7 @@
       <a href="guide.html">使用指南</a>
       <a href="reference.html">参考手册</a>
       <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
       <a href="license.html">许可</a>
       <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
     </nav>
@@ -81,8 +82,26 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.1.1</span>
+            <span class="tl-ver">v3.2.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>DFC 一炸，它就输出红石：一枚爆炸传感器</h3>
+          <ul>
+            <li><strong>新方块 <code>dfc_blast_sensor</code>（DFC 爆炸传感器）。</strong>满方块、铁质，硬度 4.0、抗爆 <strong>90</strong>——它的用处就是在事故里活下来把信号送出去，比普通机器结实得多。正面是镜头、其余五面是钢板，放下时正面朝玩家；有信号时换成亮灯模型。输出是<strong>六面弱充能加强充能</strong>，贴哪面哪面通，不需要先铺一格红石粉。</li>
+            <li><strong>判定只在服务端做一次，写进一张按维度分组的表。</strong>装十块和装一块的代价几乎一样，而且十块说的是同一句话。每块传感器自己去找核心、自己算距离是不行的：炸的那一刻恰好有一块所在区块没加载，它就永远补不回那一 tick。</li>
+            <li><strong>认的是两条「已发生的事实」，不是猜温度跳变。</strong>拉控制棒、倒冷却液、黑客平板改字段，温度都会跳，那种启发式天天误报。这里认的是：① NTM 的核爆实体 <code>EntityNukeExplosionMK3</code> 在核心旁边入世（DFC 熔毁时由核心自己 spawn，实体入世是 Forge 事件，比轮询准且零开销）；② 任何爆炸把核心方块本身列进了破坏清单（给原版 TNT、别家模组、本模组核弹留的兜底，<code>ExplosionEvent.Detonate</code> 里查）。两条都先问一句「爆炸点附近真有 <code>TileEntityCore</code> 吗」，所以在基地另一头引爆一枚普通核弹不会把它点着。</li>
+            <li><strong>两个半径是两件事。</strong><code>coreRange</code>（默认 12）判<strong>这次爆炸算不算 DFC 的</strong>；<code>range</code>（默认 512，同维度）判<strong>我在不在听得见的距离内</strong>。DFC 大厅和应急机房通常不在隔壁，所以后者是 512 而不是 32。</li>
+            <li><strong>信号是阶梯不是曲线：</strong>满格按住 <code>holdTicks</code>（默认 100 tick = 5 秒，强度 15），再逐级衰减 <code>decayTicks</code>（默认 200 tick = 10 秒，14 → 13 → … → 1，约 14 tick 掉一级），然后归零灭灯。一次事故共 15 秒，同维度再炸就重新计时，不叠加。写成阶梯而不是线性小数的原因很实际：红石只有十六级，连续函数会让每个接收端各自取整一次，而每处的取整未必一样。</li>
+            <li><strong>强度变化时才通知邻居。</strong>15 → 14 不会自己传出去——邻居只在旁边有方块变化时重新取样，不通知的话比较器会一直停在第一次读到的 15。按默认配置一次事故发十五次通知，不是两百次。</li>
+            <li><strong>记录是瞬态的，不写存档。</strong>写进 <code>WorldSavedData</code> 意味着存档里留一条过期记录，下次进游戏传感器会先莫名其妙输出一段信号——那不是「续上」，那是伪造一次事故。代价是<strong>区块没加载就等于没看见</strong>，要长期记录请接事故显示器（那是另一套，有历史也有存档）。</li>
+            <li><strong>没有做成 2×2 吊装屏。</strong>它不是给人看的，是给导线看的：信号只需要两根线，设备越小越容易塞进墙里、塞进防爆门旁边的检修槽里。</li>
+            <li><strong>新增 <code>[dfcSensor]</code> 配置七项：</strong><code>enabled</code> / <code>range</code> / <code>coreRange</code> / <code>anyBlast</code> / <code>holdTicks</code> / <code>decayTicks</code> / <code>strength</code>。右键传感器只给读数（当前强度、上次爆炸的距离与时间差、来源），不改任何东西。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.1.1</span>
           </div>
           <h3>两块屏挂上了 DFC 同款吊架，那枚一直不显示图标的平板也回来了</h3>
           <ul>
@@ -503,7 +522,7 @@
         <a href="reference.html">参考手册</a>
         <a href="changelog.html">更新日志</a>
         <a href="reference.html#config">配置项</a>
-        <a href="index.html#ost">原声 · How to survive?</a>
+        <a href="ost.html">原声 · HBMZZ OST</a>
       </div>
       <div>
         <h4>项目</h4>
@@ -530,7 +549,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=2913898b28"></script>
-<script src="assets/site.js?v=79c5a685e4"></script>
+<script src="assets/data.js?v=f59d78ea78"></script>
+<script src="assets/site.js?v=3f524586af"></script>
 </body>
 </html>

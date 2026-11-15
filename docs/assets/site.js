@@ -4,7 +4,7 @@
  *   2) 按当前文件名标出导航的 aria-current
  *   3) 移动端菜单开合
  *   4) 给 <pre> 挂一个复制按钮
- *   5) 右边那台常驻原声播放器（跨页续播）
+ *   5) 右边那台常驻原声播放器（多曲目可选、跨页续播）
  * 页面在没有 JS 的情况下也应该是可读的：所有占位都带一段兜底文字。
  */
 (function () {
@@ -112,36 +112,84 @@
     }
   }
 
-  /* 5) 原声播放器（常驻右侧，跨页续播） ---------------------------------- */
-  /* 站点是五个独立 HTML：翻页时文档连同 <audio> 一起销毁，真正的无缝在静态站上
-     做不到，所以退一步——sessionStorage 记住「放到第几秒、当时在不在播」，新页面
-     按墙上时钟把翻页耗掉的时间补进去，位置就接得上；能不能马上出声看浏览器给不
-     给自动播放，被拦就把方块点亮等人按一下，绝不假装在播。
-     机器贴在视口右侧的留白里，正文用 .wrap 的 padding-right 给它让位。 */
+  /* 5) 原声播放器（常驻右侧 · 多曲目 · 跨页续播） ------------------------- */
+  /* 站点是六个独立 HTML：翻页时文档连同 <audio> 一起销毁，真正的无缝在静态站上
+     做不到，所以退一步——sessionStorage 记住「哪一首、放到第几秒、当时在不在播」，
+     新页面按墙上时钟把翻页耗掉的时间补进去，位置就接得上；能不能马上出声看浏览器
+     给不给自动播放，被拦就先静音顶上，连静音都不放行才点亮方块等人按一下，
+     绝不假装在播。机器贴在视口右侧的留白里，正文用 .wrap 的 padding-right 让位。
+
+     TRACKS 是曲目的唯一真相：换歌、加歌只改这张表，右栏曲名、时长、曲目面板、
+     OST 页面上的行都由它渲染——两处各写一份迟早会对不上。 */
+  var TRACKS = [
+    { id: "how-to-survive", title: "How to survive?", secs: 195.6,
+      src: "assets/audio/how-to-survive.mp3" },
+    { id: "when-will-it-end", title: "When will it end?", secs: 317.9,
+      src: "assets/audio/when-will-it-end.mp3" }
+  ];
+
   var OST = {
-    src: "assets/audio/how-to-survive.mp3",
-    title: "How to survive?",
     artist: "HBMZZ",
     album: "HBMZZ OST",
-    store: "hbmzz.ost.v1",
+    store: "hbmzz.ost.v2",           /* v1 存的是单曲位置，键换了才不会把旧值当曲目 */
     limit: 1800                      /* 隔了半小时才翻回来就别接了 */
   };
 
-  var DOCK_HTML =
-    '<button class="dock-key" type="button" data-dock-key aria-label="播放" aria-pressed="false">' +
-      '<svg class="dock-ico dock-ico--play" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.1v13.8L17.2 10z"/></svg>' +
-      '<svg class="dock-ico dock-ico--pause" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.6 3h4.1v14H4.6zM11.3 3h4.1v14h-4.1z"/></svg>' +
-    '</button>' +
-    '<div class="dock-track" data-dock-bar role="slider" tabindex="0" aria-label="播放进度" ' +
-      'aria-orientation="vertical" aria-valuemin="0" aria-valuemax="195" aria-valuenow="0" aria-valuetext="0:00">' +
-      '<span class="dock-fill" data-dock-fill></span>' +
-      '<span class="dock-knob" data-dock-knob></span>' +
-    '</div>' +
-    '<div class="dock-time"><b data-dock-cur>0:00</b><span data-dock-dur>3:15</span></div>' +
-    '<span class="dock-dot" aria-hidden="true"></span>' +
-    '<div class="dock-name">' + OST.title + '</div>' +
-    '<div class="dock-msg" data-dock-msg role="status"></div>' +
-    '<audio data-dock-audio preload="metadata" src="' + OST.src + '"></audio>';
+  function trackById(id) {
+    for (var i = 0; i < TRACKS.length; i++) if (TRACKS[i].id === id) return i;
+    return -1;
+  }
+
+  function trackClock(t) {
+    if (!isFinite(t) || t < 0) t = 0;
+    var m = Math.floor(t / 60);
+    var s = Math.floor(t % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  var ICON_PLAY = '<svg class="dock-ico dock-ico--play" viewBox="0 0 20 20" aria-hidden="true">' +
+    '<path d="M5 3.1v13.8L17.2 10z"/></svg>';
+  var ICON_PAUSE = '<svg class="dock-ico dock-ico--pause" viewBox="0 0 20 20" aria-hidden="true">' +
+    '<path d="M4.6 3h4.1v14H4.6zM11.3 3h4.1v14h-4.1z"/></svg>';
+  var ICON_PREV = '<svg class="dock-mini-ico" viewBox="0 0 20 20" aria-hidden="true">' +
+    '<path d="M6 4h2.1v12H6zM16 3.6v12.8L8.1 10z"/></svg>';
+  var ICON_NEXT = '<svg class="dock-mini-ico" viewBox="0 0 20 20" aria-hidden="true">' +
+    '<path d="M11.9 4H14v12h-2.1zM4 3.6v12.8L11.9 10z"/></svg>';
+
+  var DOCK_HTML = (function () {
+    var rows = "";
+    for (var i = 0; i < TRACKS.length; i++) {
+      rows +=
+        '<button class="dock-row" type="button" data-dock-row="' + TRACKS[i].id + '" aria-pressed="false">' +
+          '<span class="dock-row-i">' + (i + 1 < 10 ? "0" : "") + (i + 1) + '</span>' +
+          '<span class="dock-row-t">' + TRACKS[i].title + '</span>' +
+          '<span class="dock-row-d">' + trackClock(TRACKS[i].secs) + '</span>' +
+        '</button>';
+    }
+    return '' +
+      '<button class="dock-key" type="button" data-dock-key aria-label="播放" aria-pressed="false">' +
+        ICON_PLAY + ICON_PAUSE +
+      '</button>' +
+      '<div class="dock-nav">' +
+        '<button class="dock-nudge" type="button" data-dock-prev aria-label="上一首">' + ICON_PREV + '</button>' +
+        '<button class="dock-nudge" type="button" data-dock-next aria-label="下一首">' + ICON_NEXT + '</button>' +
+      '</div>' +
+      '<button class="dock-listbtn" type="button" data-dock-listbtn aria-expanded="false" aria-controls="dock-list">' +
+        '<span class="dock-listbtn-l">曲目</span><b data-dock-count>1/' + TRACKS.length + '</b>' +
+      '</button>' +
+      '<div class="dock-list" id="dock-list" data-dock-list role="group" aria-label="曲目列表">' + rows + '</div>' +
+      '<div class="dock-track" data-dock-bar role="slider" tabindex="0" aria-label="播放进度" ' +
+        'aria-orientation="vertical" aria-valuemin="0" aria-valuemax="' + Math.round(TRACKS[0].secs) + '" ' +
+        'aria-valuenow="0" aria-valuetext="0:00">' +
+        '<span class="dock-fill" data-dock-fill></span>' +
+        '<span class="dock-knob" data-dock-knob></span>' +
+      '</div>' +
+      '<div class="dock-time"><b data-dock-cur>0:00</b><span data-dock-dur>' + trackClock(TRACKS[0].secs) + '</span></div>' +
+      '<span class="dock-dot" aria-hidden="true"></span>' +
+      '<div class="dock-name" data-dock-name>' + TRACKS[0].title + '</div>' +
+      '<div class="dock-msg" data-dock-msg role="status"></div>' +
+      '<audio data-dock-audio preload="metadata"></audio>';
+  })();
 
   function initDock() {
     if (document.querySelector("[data-dock]")) return;
@@ -149,7 +197,7 @@
     var dock = document.createElement("aside");
     dock.className = "dock panel panel--bolted";
     dock.setAttribute("data-dock", "");
-    dock.setAttribute("aria-label", "原声播放器：" + OST.title);
+    dock.setAttribute("aria-label", "原声播放器");
     dock.innerHTML = DOCK_HTML;
     document.body.appendChild(dock);
 
@@ -158,16 +206,18 @@
     var bar = dock.querySelector("[data-dock-bar]");
     var curEl = dock.querySelector("[data-dock-cur]");
     var durEl = dock.querySelector("[data-dock-dur]");
+    var nameEl = dock.querySelector("[data-dock-name]");
     var msgEl = dock.querySelector("[data-dock-msg]");
+    var countEl = dock.querySelector("[data-dock-count]");
+    var listBtn = dock.querySelector("[data-dock-listbtn]");
+    var rows = dock.querySelectorAll("[data-dock-row]");
     var starters = document.querySelectorAll("[data-dock-start]");
+    var trackBtns = document.querySelectorAll("[data-track-play]");
     if (!audio || !key || !bar) return;
 
-    function clock(t) {
-      if (!isFinite(t) || t < 0) t = 0;
-      var m = Math.floor(t / 60);
-      var s = Math.floor(t % 60);
-      return m + ":" + (s < 10 ? "0" : "") + s;
-    }
+    var cur = 0;
+
+    function clock(t) { return trackClock(t); }
 
     /* 进度全靠 --p 这一个数：竖槽用 scaleY / bottom，横过来用 scaleX / left，
        两套布局同一份数据，不用在脚本里判断方向 */
@@ -183,15 +233,33 @@
       bar.setAttribute("aria-valuetext", clock(audio.currentTime));
     }
 
+    /* 页面上那些按钮（首页 / OST 页）和机器共用一个状态：
+       只有「正在放的这一首」写「暂停」，其余仍写「播放」，点一下就换过去 */
+    function syncButtons(on) {
+      var i, j;
+      for (i = 0; i < starters.length; i++) {
+        starters[i].textContent = on ? "暂停" : "播放";
+        starters[i].setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      for (j = 0; j < trackBtns.length; j++) {
+        var isCur = trackBtns[j].getAttribute("data-track-play") === TRACKS[cur].id;
+        trackBtns[j].textContent = (on && isCur) ? "暂停" : "播放";
+        trackBtns[j].setAttribute("aria-pressed", (on && isCur) ? "true" : "false");
+        trackBtns[j].classList.toggle("is-on", !!(on && isCur));
+      }
+      var rowsOnPage = document.querySelectorAll("[data-ost-row]");
+      for (i = 0; i < rowsOnPage.length; i++) {
+        rowsOnPage[i].classList.toggle("is-cur",
+          rowsOnPage[i].getAttribute("data-ost-row") === TRACKS[cur].id);
+      }
+    }
+
     function mark(on) {
       dock.classList.toggle("is-on", !!on);
       key.setAttribute("aria-pressed", on ? "true" : "false");
       key.setAttribute("aria-label", on ? "暂停" : "播放");
       if (!on || !muted) tip(false);
-      for (var i = 0; i < starters.length; i++) {
-        starters[i].textContent = on ? "暂停" : "播放";
-        starters[i].setAttribute("aria-pressed", on ? "true" : "false");
-      }
+      syncButtons(on);
     }
 
     /* 提示只在「要人动手」时才浮出来，六秒后自己收走；收起时把字也清掉，
@@ -201,6 +269,7 @@
       if (!msgEl) return;
       clearTimeout(tipTimer);
       if (on) {
+        closeList();
         msgEl.textContent = text || "";
         dock.classList.add("is-msg", "is-wait");
         tipTimer = setTimeout(function () { tip(false); }, 6000);
@@ -210,9 +279,54 @@
       }
     }
 
+    /* 曲目面板：翻页、切歌、右键菜单都不该让它留在屏幕上 */
+    function openList() {
+      if (!TRACKS.length) return;
+      tip(false);
+      dock.classList.add("is-list");
+      if (listBtn) listBtn.setAttribute("aria-expanded", "true");
+    }
+    function closeList() {
+      if (!dock.classList.contains("is-list")) return;
+      dock.classList.remove("is-list");
+      if (listBtn) listBtn.setAttribute("aria-expanded", "false");
+    }
+    function toggleList() {
+      if (dock.classList.contains("is-list")) closeList();
+      else openList();
+    }
+
+    function markRows() {
+      if (countEl) countEl.textContent = (cur + 1) + "/" + TRACKS.length;
+      for (var i = 0; i < rows.length; i++) {
+        var on = rows[i].getAttribute("data-dock-row") === TRACKS[cur].id;
+        rows[i].classList.toggle("is-cur", on);
+        rows[i].setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      if (nameEl) nameEl.textContent = TRACKS[cur].title;
+      if (durEl) durEl.textContent = clock(TRACKS[cur].secs);
+      bar.setAttribute("aria-valuemax", String(Math.round(TRACKS[cur].secs)));
+      dock.setAttribute("aria-label", "原声播放器：" + TRACKS[cur].title);
+      document.documentElement.setAttribute("data-ost-track", TRACKS[cur].id);
+      syncButtons(!audio.paused && !audio.ended);
+    }
+
+    /* 锁屏 / 系统媒体面板 / 浏览器标签页上的曲名总得对得上当前这首 */
+    function metaSession() {
+      if (!navigator.mediaSession || !window.MediaMetadata) return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: TRACKS[cur].title,
+          artist: OST.artist,
+          album: OST.album
+        });
+      } catch (e) { /* 不支持就算了，机器还在 */ }
+    }
+
     function save() {
       try {
         sessionStorage.setItem(OST.store, JSON.stringify({
+          id: TRACKS[cur].id,
           t: audio.currentTime || 0,
           at: Date.now(),
           on: !audio.paused && !audio.ended
@@ -226,6 +340,7 @@
         if (!raw) return null;
         var o = JSON.parse(raw);
         if (!o || typeof o.t !== "number" || !isFinite(o.t)) return null;
+        if (typeof o.id !== "string" || trackById(o.id) < 0) return null;
         if (o.on && Date.now() - (o.at || 0) > OST.limit * 1000) return null;
         return o;
       } catch (e) { return null; }
@@ -284,28 +399,67 @@
       save();
     }
 
+    /* 切曲：同一个 <audio> 换 src，不新建元素——新建会让正在播的那条先断再重连，
+       中间那一下停顿比切歌本身还长。位置归零，时长等 loadedmetadata 再校正。 */
+    function select(i, autoplay) {
+      if (i < 0) i = TRACKS.length - 1;
+      if (i >= TRACKS.length) i = 0;
+      var same = (i === cur) && audio.getAttribute("src");
+      cur = i;
+      markRows();
+      metaSession();
+      if (!same) {
+        audio.src = TRACKS[cur].src;
+        try { audio.load(); } catch (e) { /* 老浏览器没有 load */ }
+        paint();
+      } else if (audio.ended) {
+        try { audio.currentTime = 0; } catch (e) {}
+      }
+      if (autoplay) start(false);
+      save();
+    }
+
+    function next(step, autoplay) {
+      select(cur + step, autoplay);
+    }
+
     /* 续播：位置 + 翻页这段真实时间。翻页通常几秒，超过 8 秒说明人离开了，
        那就老老实实回到离开时那一秒，不替谁跳过大半首歌。 */
     var saved = load();
     var restored = false;
+    var pending = null;          /* 换了 src 之后要等元数据到齐才能跳位置 */
+
+    function seekTo(t, on) {
+      var d = audio.duration;
+      if (isFinite(d) && d > 0) t = Math.min(t, Math.max(0, d - 0.3));
+      if (t > 0) { try { audio.currentTime = t; } catch (e) {} }
+      paint();
+      if (on) start(true);
+    }
+
     function restore() {
       if (restored) return;
       restored = true;
       var st = saved;
       saved = null;
-      if (st) {
-        var t = st.t;
-        if (st.on) {
-          var gap = (Date.now() - (st.at || 0)) / 1000;
-          if (gap > 0 && gap <= 8) t += gap;
-        }
-        var d = audio.duration;
-        if (isFinite(d) && d > 0) t = Math.min(t, Math.max(0, d - 0.3));
-        if (t > 0) { try { audio.currentTime = t; } catch (e) {} }
-        paint();
-        if (st.on) start(true);
+      if (!st) { paint(); return; }
+      var i = trackById(st.id);
+      if (i < 0) { paint(); return; }
+      var t = st.t;
+      if (st.on) {
+        var gap = (Date.now() - (st.at || 0)) / 1000;
+        if (gap > 0 && gap <= 8) t += gap;
       }
-      paint();
+      if (i !== cur) {
+        cur = i;
+        markRows();
+        metaSession();
+        audio.src = TRACKS[cur].src;
+        pending = { t: t, on: st.on };
+        try { audio.load(); } catch (e) {}
+        return;
+      }
+      seekTo(t, st.on);
     }
 
     /* timeupdate 只有 4Hz，5px 的槽会一跳一跳；播放期间自己按帧刷 */
@@ -334,6 +488,47 @@
       }
     });
 
+    var prevBtn = dock.querySelector("[data-dock-prev]");
+    var nextBtn = dock.querySelector("[data-dock-next]");
+    if (prevBtn) prevBtn.addEventListener("click", function () { next(-1, true); });
+    if (nextBtn) nextBtn.addEventListener("click", function () { next(1, true); });
+    if (listBtn) listBtn.addEventListener("click", toggleList);
+
+    for (var r = 0; r < rows.length; r++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var i = trackById(btn.getAttribute("data-dock-row"));
+          if (i < 0) return;
+          closeList();
+          if (i === cur && !audio.paused && !audio.ended) { audio.pause(); return; }
+          select(i, true);
+        });
+      })(rows[r]);
+    }
+
+    /* 页面上的曲目按钮（首页 / OST 页）：同一个开关，指哪首放哪首 */
+    for (var b = 0; b < trackBtns.length; b++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var i = trackById(btn.getAttribute("data-track-play"));
+          if (i < 0) return;
+          if (i === cur && !audio.paused && !audio.ended) { audio.pause(); return; }
+          if (muted) unmute();
+          select(i, true);
+        });
+      })(trackBtns[b]);
+    }
+
+    /* 点面板外面、按 Esc 都算「不看了」；面板是浮层，不该赖在正文上面 */
+    document.addEventListener("pointerdown", function (e) {
+      if (!dock.classList.contains("is-list")) return;
+      if (dock.contains(e.target)) return;
+      closeList();
+    }, true);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeList();
+    });
+
     /* 在这一页随便按哪儿都算「用户已表态」，声音可以回来了。
        方块自己不在这儿处理——它的点击另有分寸（见上面那个 handler）。 */
     function onGesture(e) {
@@ -355,10 +550,16 @@
     audio.addEventListener("ended", function () {
       mark(false);
       if (muted) { muted = false; audio.muted = false; dock.classList.remove("is-mute"); }
-      try { audio.currentTime = 0; } catch (e) {}
-      paint();
-      save();
-      tip(true, "播完了 · 再按一次");
+      /* 还有下一首就接着放；最后一首才真的停住并归零 */
+      if (cur + 1 < TRACKS.length) {
+        select(cur + 1, true);
+        tip(true, "下一首：" + TRACKS[cur].title);
+      } else {
+        try { audio.currentTime = 0; } catch (e) {}
+        paint();
+        save();
+        tip(true, "播完了 · 再按一次");
+      }
     });
     audio.addEventListener("error", function () {
       mark(false);
@@ -374,18 +575,26 @@
     }
     audio.addEventListener("loadedmetadata", syncDuration);
     audio.addEventListener("durationchange", syncDuration);
-    audio.addEventListener("loadedmetadata", restore);
+    audio.addEventListener("loadedmetadata", function () {
+      if (pending) {
+        var q = pending;
+        pending = null;
+        seekTo(q.t, q.on);
+        return;
+      }
+      restore();
+    });
 
     if (bar) {
       var dragging = false;
       function seekFrom(e) {
         var d = audio.duration;
         if (!isFinite(d) || d <= 0) return;
-        var r = bar.getBoundingClientRect();
-        if (!r.width || !r.height) return;
-        var p = r.height > r.width
-          ? 1 - (e.clientY - r.top) / r.height
-          : (e.clientX - r.left) / r.width;
+        var rr = bar.getBoundingClientRect();
+        if (!rr.width || !rr.height) return;
+        var p = rr.height > rr.width
+          ? 1 - (e.clientY - rr.top) / rr.height
+          : (e.clientX - rr.left) / rr.width;
         if (!(p > 0)) p = 0;
         if (p > 1) p = 1;
         audio.currentTime = p * d;
@@ -438,16 +647,14 @@
     orient();
     window.addEventListener("resize", orient, { passive: true });
 
-    /* 锁屏 / 系统媒体面板：曲名和按钮总得对得上 */
-    if (navigator.mediaSession && window.MediaMetadata) {
+    /* 锁屏 / 系统媒体面板：曲名和按钮总得对得上，切歌也得能在这儿按 */
+    metaSession();
+    if (navigator.mediaSession) {
       try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: OST.title,
-          artist: OST.artist,
-          album: OST.album
-        });
         navigator.mediaSession.setActionHandler("play", function () { start(false); });
         navigator.mediaSession.setActionHandler("pause", function () { audio.pause(); });
+        navigator.mediaSession.setActionHandler("nexttrack", function () { next(1, true); });
+        navigator.mediaSession.setActionHandler("previoustrack", function () { next(-1, true); });
         navigator.mediaSession.setActionHandler("seekbackward", function () { nudge(-10); });
         navigator.mediaSession.setActionHandler("seekforward", function () { nudge(10); });
         navigator.mediaSession.setActionHandler("seekto", function (d) {
@@ -461,7 +668,7 @@
       } catch (e) { /* 不支持就算了，按钮还在 */ }
     }
 
-    /* 页面里那些「播放」按钮（首页 #ost）跟这台机器是同一个开关 */
+    /* 页面里那些「播放」按钮（首页 / OST 页）跟这台机器是同一个开关 */
     for (var i = 0; i < starters.length; i++) {
       starters[i].addEventListener("click", function () {
         if (justUnmuted()) return;
@@ -481,6 +688,8 @@
       if (document.hidden) save();
     });
 
+    markRows();
+    audio.src = TRACKS[cur].src;
     if (audio.readyState >= 1) { syncDuration(); restore(); }
     paint();
   }

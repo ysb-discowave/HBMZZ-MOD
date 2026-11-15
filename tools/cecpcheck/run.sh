@@ -36,10 +36,14 @@ fi
 
 # MSYS hands out /c/Users/... paths; the Windows JVM reads that as a relative
 # directory and then reports the missing class instead of the missing path.
+# Must be -w (backslashes), not -m (forward slashes): Git Bash rewrites C:/...
+# inside a ;-separated -cp into "C" plus a bogus path under the Git install,
+# so the last entry of the classpath silently disappears. Backslash paths are
+# not treated as POSIX, so they survive untouched.
 if command -v cygpath >/dev/null 2>&1; then
-  FASTUTIL="$(cygpath -m "$FASTUTIL")"
+  FASTUTIL="$(cygpath -w "$FASTUTIL")"
 else
-  FASTUTIL="$(echo "$FASTUTIL" | sed -E 's#^/([a-zA-Z])/#\1:/#')"
+  FASTUTIL="$(echo "$FASTUTIL" | sed -E 's#^/([a-zA-Z])/#\1:\\#')"
 fi
 
 rm -rf "$OUT"

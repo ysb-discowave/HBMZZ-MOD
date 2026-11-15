@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="HBMZZ 原声">
 <meta property="og:description" content="两首作者自制的曲子，一台钉在页面右边、翻页也不会停的机器。">
-<link rel="stylesheet" href="assets/site.css?v=21aa198106">
+<link rel="stylesheet" href="assets/site.css?v=1d49dfddbc">
 </head>
 <body>
 
@@ -44,6 +44,35 @@
       </p>
     </div>
   </div>
+
+  <!-- ================= 宣传片 ================= -->
+  <section class="section" id="trailer">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 宣传片</div>
+        <h2>61 秒，把这套系统讲一遍</h2>
+        <p>片里每一帧都来自模组自己的渲染器：吊装面板是 <code>ConsoleModel</code> 交给游戏的那批
+          四边形做的正交投影，屏幕画面是 <code>AlertScreen</code> 与 <code>NukeScreen</code> 的真实画布。
+          <strong>没有游戏内录屏</strong>——这台机器上跑不起 Minecraft，所以不拿别的整合包的画面来凑。</p>
+      </div>
+
+      <div class="panel panel--bolted player">
+        <video controls preload="metadata" playsinline poster="assets/promo/poster.jpg">
+          <source src="assets/promo/hbmzz-trailer.mp4" type="video/mp4">
+          你的浏览器不支持 <code>&lt;video&gt;</code>，<a href="assets/promo/hbmzz-trailer.mp4">直接下载这一段</a>。
+        </video>
+        <div class="player-foot">
+          <span>1920×1080 · 30 fps · 61 s · H.264 / AAC · 12.4 MB</span>
+          <a class="btn btn--ghost" href="assets/promo/hbmzz-trailer.mp4" download="HBMZZ-trailer-1080p.mp4">下载成片</a>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:16px">
+        <span>配乐不是另做的：剪的是《How to survive?》里 <b>0:30–1:31</b> 那一段——按 5 秒窗口量响度挑出来最满的 61 秒，
+        两端各做了淡入淡出，整体归一到 −16 LUFS。播放器在片子里不打架：这里一按播放，右边那台机器的声音会自己停。</span>
+      </div>
+    </div>
+  </section>
 
   <!-- ================= 曲目 ================= -->
   <section class="section" id="tracks">
@@ -236,6 +265,6 @@
 </footer>
 
 <script src="assets/data.js?v=f59d78ea78"></script>
-<script src="assets/site.js?v=3f524586af"></script>
+<script src="assets/site.js?v=3b8dd304f1"></script>
 </body>
 </html>

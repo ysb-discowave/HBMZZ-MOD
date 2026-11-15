@@ -540,7 +540,24 @@
     document.addEventListener("keydown", onGesture, true);
     document.addEventListener("touchstart", onGesture, true);
 
-    audio.addEventListener("play", function () { mark(true); startTick(); save(); });
+    /* 页面里还有别的媒体（原声页上那支宣传片）：谁按播放谁拿声音，别两个一起响 */
+    function pauseOthers() {
+      var vids = document.querySelectorAll("video");
+      for (var v = 0; v < vids.length; v++) {
+        if (!vids[v].paused) vids[v].pause();
+      }
+    }
+    var otherMedia = document.querySelectorAll("video");
+    for (var m = 0; m < otherMedia.length; m++) {
+      (function (vid) {
+        vid.addEventListener("play", function () {
+          if (!audio.paused) audio.pause();
+          if (muted) unmute();
+        });
+      })(otherMedia[m]);
+    }
+
+    audio.addEventListener("play", function () { pauseOthers(); mark(true); startTick(); save(); });
     audio.addEventListener("pause", function () {
       mark(false);
       paint();

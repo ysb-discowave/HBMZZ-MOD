@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 先看文档
+    url: https://hbm-zz.ysbdwz.dpdns.org/guide.html
+    about: 使用指南、参考手册、更新日志与配置项都在官网上；很多「像是 bug」的问题其实是操作顺序。
+  - name: 从源码构建
+    url: https://hbm-zz.ysbdwz.dpdns.org/reference.html#build
+    about: 自己编译时卡住，先看这一节；还有一份 CONTRIBUTING.md 在仓库根目录。

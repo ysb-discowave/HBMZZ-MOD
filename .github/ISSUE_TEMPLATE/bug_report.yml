@@ -1,0 +1,66 @@
+name: Bug 报告
+description: 报一个能复现的问题（崩溃、行为不对、画面错位）
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先说清版本：`mods` 里那个文件名（`hbmzz-x.y.z.jar`）就是版本号。
+        同一个问题如果在旧版也存在，请写上你换过哪些版本。
+
+  - type: input
+    id: version
+    attributes:
+      label: HBMZZ 版本
+      placeholder: 3.2.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: side
+    attributes:
+      label: 出现在哪一侧
+      options:
+        - 单人 / 客户端
+        - 专用服务端
+        - 两侧都有
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 你期待什么、实际看到什么。行为类的请写清方块、坐标、红石状态。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 放下 dfc_blast_sensor，接一段红石粉
+        2. 让 DFC 熔毁
+        3. 观察：粉不亮
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: logs/latest.log
+      description: |
+        崩溃先看 `logs/latest.log`（崩溃报告只写最后一帧）。贴相关片段即可，
+        整个文件太长会被折叠。栈里如果一行 `com.hbmzz` 都没有，很可能不是本模组的问题。
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      placeholder: Win11 / JDK8 / Forge 14.23.5.2847 / NTM-CE 版本 / Leafia 版本
+    validations:
+      required: true

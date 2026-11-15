@@ -1,0 +1,52 @@
+name: 兼容性报告
+description: 与 NTM-CE / Leafia 诅咒版 / 其它附属一起用时的冲突
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这个模组移植了控制面板与节点系统，并对 DFC 核心做了反射读取。
+        上游一改版本，出问题的往往就是这两块——所以请把上游版本写准。
+
+  - type: input
+    id: hbmzz
+    attributes:
+      label: HBMZZ 版本
+      placeholder: 3.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: ntm
+    attributes:
+      label: NTM 版本（CE / 诅咒版 / 其它）
+      placeholder: NTM-CE 1.0.27 / Leafia 诅咒版 某构建号
+    validations:
+      required: true
+
+  - type: textarea
+    id: mods
+    attributes:
+      label: 同时安装的其它模组
+      description: 只要与问题相关的；整包整合包的话贴 `mods` 列表或整合包名字与版本。
+    validations:
+      required: false
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 现象
+      description: 崩在哪个类、哪块屏是黑的、哪台机器认不出来。有栈就贴栈。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: isolated
+    attributes:
+      label: 只装 HBMZZ + 上游 还能复现吗
+      options:
+        - 能复现（已排除其它模组）
+        - 不能复现（需要其它模组一起）
+        - 还没试
+    validations:
+      required: true

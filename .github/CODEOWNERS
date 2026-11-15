@@ -1,0 +1,39 @@
+# 谁负责哪一块。
+#
+# 现在是单人维护，所以全部挂在 @ysb-discowave 名下。团队进来之后，把对应行换成
+# 各自 GitHub 用户名即可；CODEOWNERS 只影响「评审请求发给谁」，不影响谁能推。
+#
+# 语法：<路径模式> <@用户名> [<@用户名>...]，后面的规则覆盖前面的。
+
+# 兜底：任何改动都要一个维护者看一眼
+*                                   @ysb-discowave
+
+# 事故与联动：核事故系统、DFC 爆炸传感器、RBMK
+/src/main/java/com/hbmzz/alert/     @ysb-discowave
+/src/main/java/com/hbmzz/blast/     @ysb-discowave
+/src/main/java/com/hbmzz/rbmk/      @ysb-discowave
+
+# 客户端与渲染：面板、字形、TESR、GUI
+/src/main/java/com/hbmzz/client/    @ysb-discowave
+/src/main/java/com/hbmzz/render/    @ysb-discowave
+
+# 移植过来的控制面板与节点系统（改这里要同时看 tools/parity）
+/src/main/java/com/hbmzz/cecp/      @ysb-discowave
+/src/main/java/com/hbmzz/nodes/     @ysb-discowave
+
+# 自制音频模组，与主模组解耦
+/src/main/java/com/rsaudio/         @ysb-discowave
+
+# 构建、发版与离线检查
+/build.gradle                       @ysb-discowave
+/tools/                             @ysb-discowave
+/.github/                           @ysb-discowave
+
+# 站点：可以与模组开发并行，适合新人上手
+/docs/                              @ysb-discowave
+/tools/site/                        @ysb-discowave
+
+# 许可与出处：改动必须由维护者确认
+/LICENSE                            @ysb-discowave
+/NOTICE.md                          @ysb-discowave
+/AUTHORIZATION.md                   @ysb-discowave

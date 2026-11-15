@@ -1198,13 +1198,28 @@ python tools/regcheck/check.py
 
 ## 从源码构建
 
-需要 **JDK 8** 与 Gradle 4.10.3（ForgeGradle 2.3）。仓库自带 wrapper：
+需要 **JDK 8** 与 Gradle 4.10.3（ForgeGradle 2.3）。
+
+仓库自带的 `gradlew` 在 Windows 上不可用：它传给 java 的 `-classpath` 是 POSIX 路径，
+java 会报 `Could not find or load main class ...GradleWrapperMain`。直接喂 launcher jar：
 
 ```bash
-gradlew build
+"$JAVA_HOME/bin/java" -Xmx3G \
+  -classpath "/path/to/gradle-4.10.3/lib/gradle-launcher-4.10.3.jar" \
+  org.gradle.launcher.GradleMain build
 ```
 
-产物：`build/libs/hbmzz-<版本>.jar`。
+首次构建 15–20 分钟（大头是 ForgeGradle 的反编译），之后增量很快。产物：`build/libs/hbmzz-<版本>.jar`。
+
+提交之前跑一遍离线检查，一条命令顶原来那七八个目录：
+
+```bash
+python tools/checkall.py          # 有构建产物就跑两档，没有只跑快速档
+python tools/checkall.py --fast    # 几秒：注册表 / 站点审计 / 站点数据
+```
+
+协作方式、分支与 PR 规矩、以及不能破的许可红线，见 **[CONTRIBUTING.md](CONTRIBUTING.md)**。
+
 
 装进游戏也一步到位（旧版自动改名 `.jar.bak`，脚本不删任何东西）：
 

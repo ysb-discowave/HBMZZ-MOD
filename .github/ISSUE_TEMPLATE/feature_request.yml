@@ -1,0 +1,37 @@
+name: 功能建议
+description: 想要一个新方块、新行为，或者对现有机制的改动
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你现在缺什么
+      description: 描述使用场景，而不是直接给方案。「DFC 炸了之后没有任何东西能通知备用电站」比「加一个传感器」有用得多。
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你想要的形态
+      description: 方块、物品、配置项、GUI，随便写；也可以写你否掉的方案。
+    validations:
+      required: false
+
+  - type: textarea
+    id: compat
+    attributes:
+      label: 与现有系统怎么接
+      description: |
+        这个仓库里已有的联动：核事故系统（8 级代码 + 全厂广播）、DFC 监视器与吊装面板、
+        控制面板与节点图、代码广播器。新东西尽量复用它们，而不是再造一套。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: 已知约束
+      options:
+        - label: 我理解 1.12.2 的限制（没有数据组件、方块状态最多 4 位 meta）
+        - label: 我理解这个项目必须保持 GPL-3.0，且不能依赖非 GPL 的模组代码

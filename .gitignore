@@ -15,6 +15,10 @@ dist3/
 # 本机部署目标（tools/deploy.py 读，别人的机器路径不同，不进仓库）
 deploy.local.json
 
+# 检查脚本跑出来的字节码缓存（tools/*/__pycache__）
+__pycache__/
+*.pyc
+
 # 编辑器 / 工具产生的本地数据
 .workbuddy/
 .idea/

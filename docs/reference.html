@@ -415,7 +415,7 @@
             <tr>
               <td>核弹监视屏</td>
               <td><code>nuke_monitor</code></td>
-              <td>1×1 面板，方块本体不渲染（<code>INVISIBLE</code> + 空模型 + 2/16 厚碰撞板），整屏由 TESR 画。按 <code>display.interval</code> 采样绑定设备并画最后一帧：状态、当量、引信、倒计时、坐标、控制器位置、当前设施代码。没有绑定设备时画操作说明而不是黑屏。</td>
+              <td><strong>2×2 吊装面板</strong>，与 DFC 监视器同款外壳与吊架（<code>ConsoleModel</code>）。方块本体不渲染（<code>INVISIBLE</code> + 空模型 + 2/16 厚碰撞板），整屏由 TESR 画；其余三格是 <code>dfc_monitor_part</code> 填充板。放在头顶有方块的位置＝吊装，倾角取放置时俯仰角；贴墙放＝平贴、不画吊架。按 <code>display.interval</code> 采样绑定设备并画最后一帧：状态、当量、引信、倒计时、坐标、控制器位置、当前设施代码。没有绑定设备时画操作说明而不是黑屏。</td>
             </tr>
             <tr>
               <td>代码广播器</td>
@@ -425,7 +425,7 @@
             <tr>
               <td>事故显示器</td>
               <td><code>alert_display</code></td>
-              <td>1×1 面板，同样由 TESR 画。<strong>不存任何业务字段</strong>：读客户端那份唯一副本，画当前代码、中文含义、英文副标题、距上次变更多久，以及最近三条事件。超过 5 秒没收到包画 <code>NO LINK</code>，而不是停在过期的 <code>GREEN</code> 上。</td>
+              <td><strong>2×2 吊装面板</strong>，同一套外壳，同样由 TESR 画。<strong>不存任何业务字段</strong>：读客户端那份唯一副本，画当前代码、中文含义、英文副标题、距上次变更多久，以及最近三条事件。超过 5 秒没收到包画 <code>NO LINK</code>，而不是停在过期的 <code>GREEN</code> 上。</td>
             </tr>
           </tbody>
         </table>
@@ -816,6 +816,7 @@ build/libs/hbmzz-&lt;版本&gt;.jar</pre>
         <a href="reference.html">参考手册</a>
         <a href="changelog.html">更新日志</a>
         <a href="reference.html#config">配置项</a>
+        <a href="index.html#ost">原声 · How to survive?</a>
       </div>
       <div>
         <h4>项目</h4>

@@ -105,8 +105,13 @@ def main():
 
     if not mirror_tip:
         total = git("rev-list", "--count", "origin/master")
+        # 分支数要数 refs/remotes/origin 下真正存在的，`git branch -r` 会把
+        # `origin/HEAD -> origin/master` 这一行也算进去，报出来多一个。
+        heads = [b for b in git("for-each-ref", "--format=%(refname:short)",
+                                "refs/remotes/origin").split()
+                 if not b.endswith("/HEAD")]
         print("镜像还是空的。首次同步会推 %s 个提交、%s 个标签、%s 个分支。"
-              % (total, len(git("tag").split()), len(git("branch", "-r", "--list", "origin/*").split())))
+              % (total, len(git("tag").split()), len(heads)))
         commits = git("log", "--oneline", "-12", "origin/master")
         print("\n最近 12 个提交：\n" + commits)
     else:

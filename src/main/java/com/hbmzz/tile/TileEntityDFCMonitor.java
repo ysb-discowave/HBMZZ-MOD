@@ -24,6 +24,7 @@ package com.hbmzz.tile;
 import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.dfc.ConsoleRig;
+import com.hbmzz.dfc.DfcAutoShutdown;
 import com.hbmzz.dfc.DFCReader;
 import com.hbmzz.dfc.DFCSnapshot;
 import com.hbmzz.hack.HackRegistry;
@@ -90,6 +91,17 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     private BlockPos meterPos;
     private BlockPos cameraPos;
     private boolean cameraEnabled;
+    /**
+     * The auto-shutdown arm switch.
+     *
+     * <p>It belongs to the binding, not to the screen: binding a different
+     * core - or unbinding - clears it. A switch that survived a rebind would
+     * cool a core the operator never armed it for, which is the one thing an
+     * emergency procedure must never do on its own.</p>
+     */
+    private boolean autoShutdown;
+    /** Ticks the armed binding has pointed at nothing; used to drop the switch. */
+    private int autoShutdownStale;
     private int panelW = HBMZZConfig.defaultWidth;
     private int panelH = HBMZZConfig.defaultHeight;
     /** Size of the wall panel drawn on the block faces, in blocks. */
@@ -165,9 +177,43 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     }
 
     public void setCorePos(BlockPos corePos) {
+        boolean same = this.corePos == null ? corePos == null : this.corePos.equals(corePos);
+        if (!same) {
+            // The switch follows the binding. Both directions: a new core
+            // starts disarmed, and unbinding disarms whatever was running.
+            if (this.world != null && !this.world.isRemote && this.autoShutdown) {
+                DfcAutoShutdown.release(this.world, this.corePos);
+            }
+            this.autoShutdown = false;
+            this.autoShutdownStale = 0;
+        }
         this.corePos = corePos;
         markDirty();
         sync();
+    }
+
+    public boolean isAutoShutdown() {
+        return this.autoShutdown;
+    }
+
+    /** Server-authoritative. Turning it off also stops a running procedure. */
+    public void setAutoShutdown(boolean on) {
+        if (on == this.autoShutdown) {
+            return;
+        }
+        this.autoShutdown = on;
+        this.autoShutdownStale = 0;
+        if (!on && this.world != null && !this.world.isRemote) {
+            DfcAutoShutdown.release(this.world, this.corePos);
+        }
+        markDirty();
+        sync();
+    }
+
+    /** Flips the switch. Returns the new state. */
+    public boolean toggleAutoShutdown() {
+        setAutoShutdown(!this.autoShutdown);
+        return this.autoShutdown;
     }
 
     public BlockPos getMeterPos() {
@@ -471,6 +517,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             return;
         }
         tickAlarm();
+        tickAutoShutdown();
 
         boolean displayDue = --this.displayTimer <= 0;
         boolean evalDue = --this.evalTimer <= 0;
@@ -535,6 +582,39 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             }
             return null;
         }
+    }
+
+    /**
+     * Runs every server tick, outside the display throttle.
+     *
+     * <p>The procedure cannot be sampled once a second: it writes a
+     * temperature, and a temperature that is written every twenty ticks is a
+     * step function, not a ramp. It is also the only thing here that must keep
+     * running while nobody is looking at the screen.</p>
+     */
+    private void tickAutoShutdown() {
+        if (!this.autoShutdown || this.corePos == null) {
+            return;
+        }
+        // getTileEntity loads the chunk it lands in. A monitor sitting in the
+        // spawn chunks would otherwise keep the DFC's chunks loaded for as long
+        // as the switch is on - a safety device that quietly costs TPS.
+        if (!this.world.isBlockLoaded(this.corePos)) {
+            return;
+        }
+        TileEntity core = this.world.getTileEntity(this.corePos);
+        if (!DFCReader.isCore(core)) {
+            // The binding points at air. Give the screen a few seconds to
+            // recover from a chunk that is merely unloaded, then drop the arm
+            // switch so the state cannot claim to protect a core that is gone.
+            if (++this.autoShutdownStale > 200) {
+                this.autoShutdownStale = 0;
+                setAutoShutdown(false);
+            }
+            return;
+        }
+        this.autoShutdownStale = 0;
+        DfcAutoShutdown.tick(this.world, this.pos, this.corePos);
     }
 
     /**
@@ -770,6 +850,10 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             compound.setLong("cameraPos", cameraPos.toLong());
         }
         compound.setBoolean("cameraEnabled", cameraEnabled);
+        // Only the switch travels. The phase and the ramp are runtime: a save
+        // loaded halfway through a retraction must not resume a temperature
+        // that nobody is writing any more.
+        compound.setBoolean("autoShutdown", autoShutdown && corePos != null);
         compound.setInteger("panelW", panelW);
         compound.setInteger("panelH", panelH);
         compound.setInteger("screenCols", screenCols);
@@ -800,6 +884,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         }
         cameraPos = compound.hasKey("cameraPos") ? BlockPos.fromLong(compound.getLong("cameraPos")) : null;
         cameraEnabled = compound.getBoolean("cameraEnabled");
+        autoShutdown = compound.getBoolean("autoShutdown") && corePos != null;
         panelW = HBMZZConfig.clampWidth(compound.getInteger("panelW") > 0
                 ? compound.getInteger("panelW") : HBMZZConfig.defaultWidth);
         panelH = HBMZZConfig.clampHeight(compound.getInteger("panelH") > 0
@@ -846,6 +931,19 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         readFromNBT(packet.getNbtCompound());
         this.panelW = localPanelW;
         this.panelH = localPanelH;
+    }
+
+    /**
+     * The screen is being removed (broken, chunk unloaded, world left). Let go
+     * of the procedure: leaving it running would cool a core with no switch
+     * attached to it.
+     */
+    @Override
+    public void invalidate() {
+        if (this.world != null && !this.world.isRemote) {
+            DfcAutoShutdown.release(this.world, this.corePos);
+        }
+        super.invalidate();
     }
 
     @Override

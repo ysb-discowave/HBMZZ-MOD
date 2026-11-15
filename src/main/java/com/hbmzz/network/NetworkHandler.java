@@ -83,6 +83,10 @@ public final class NetworkHandler {
         // read the screen.
         INSTANCE.registerMessage(NukeDataMessage.Handler.class, NukeDataMessage.class,
                 22, Side.CLIENT);
+        // The auto-shutdown's blue show. One packet per burst; the particles
+        // themselves are placed on the client so they can be coloured and aimed.
+        INSTANCE.registerMessage(DfcFxMessage.Handler.class, DfcFxMessage.class,
+                23, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

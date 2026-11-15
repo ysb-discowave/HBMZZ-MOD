@@ -410,6 +410,35 @@ public class BlockDFCMonitor extends BlockHorizontal implements ITileEntityProvi
         super.breakBlock(world, pos, state);
     }
 
+    /**
+     * Flips the auto-shutdown switch, refusing when there is nothing to guard.
+     *
+     * <p>The refusal matters as much as the toggle: an armed screen with no
+     * core would look exactly like a working safety system, right up to the
+     * moment somebody relies on it. Saying "bind a core first" out loud is the
+     * only honest answer.</p>
+     */
+    private static void toggleAutoShutdown(World world, BlockPos pos, EntityPlayer player) {
+        TileEntity te = world.getTileEntity(pos);
+        if (!(te instanceof TileEntityDFCMonitor)) {
+            return;
+        }
+        TileEntityDFCMonitor monitor = (TileEntityDFCMonitor) te;
+        if (monitor.getCorePos() == null) {
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(
+                    "hbmzz.msg.autoshutdown_unbound"));
+            return;
+        }
+        if (!com.hbmzz.dfc.DFCReader.isCore(world.getTileEntity(monitor.getCorePos()))) {
+            player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(
+                    "hbmzz.msg.autoshutdown_nocore"));
+            return;
+        }
+        boolean on = monitor.toggleAutoShutdown();
+        player.sendMessage(new net.minecraft.util.text.TextComponentTranslation(
+                on ? "hbmzz.msg.autoshutdown_on" : "hbmzz.msg.autoshutdown_off"));
+    }
+
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                              EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
@@ -421,6 +450,15 @@ public class BlockDFCMonitor extends BlockHorizontal implements ITileEntityProvi
         // was unreachable for that reason, the camera included.
         if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemMonitorLinker) {
             return false;
+        }
+        // Sneaking is the arm switch. Plain right-click is the terminal and has
+        // been since the first version; taking that away to add a toggle would
+        // trade the screen's main use for a setting. Sneak keeps both.
+        if (player.isSneaking()) {
+            if (!world.isRemote) {
+                toggleAutoShutdown(world, pos, player);
+            }
+            return true;
         }
         if (world.isRemote) {
             HBMZZ.proxy.openMonitor(pos);

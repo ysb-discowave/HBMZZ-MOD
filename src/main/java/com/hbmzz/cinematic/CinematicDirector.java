@@ -148,6 +148,20 @@ public final class CinematicDirector {
         return DIRECTOR;
     }
 
+    /**
+     * True while this world's camera is already committed to a shot.
+     *
+     * <p>Used by the DFC-TSTX director so two shots cannot both own the camera.
+     * The alternative - sending start anyway - makes the view snap between two
+     * orbits, which looks like a rendering bug rather than a directorial one.</p>
+     */
+    public static boolean orbiting(World world) {
+        if (world == null) {
+            return false;
+        }
+        return DIRECTOR.activeWorldId == System.identityHashCode(world) && DIRECTOR.activeKind != 0;
+    }
+
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.world == null || event.world.isRemote) {

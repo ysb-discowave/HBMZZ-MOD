@@ -101,6 +101,15 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_XOR_GATE = new ItemBlock(BLOCK_XOR_GATE);
     public static final Item ITEM_BLOCK_NOT_GATE = new ItemBlock(BLOCK_NOT_GATE);
 
+    /**
+     * The Tartarus gate: the community edition's giant blast door, laid flat.
+     * Two leaves in nine cells; only the corner cell carries the tile entity.
+     */
+    public static final Block BLOCK_TARTARUS_GATE = new com.hbmzz.gate.BlockTartarusGate();
+    public static final Block BLOCK_GATE_PART = new com.hbmzz.gate.BlockGatePart();
+    public static final Item ITEM_BLOCK_TARTARUS_GATE =
+            new com.hbmzz.item.ItemBlockTartarusGate(BLOCK_TARTARUS_GATE);
+
     public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
     public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
     public static final Item ITEM_REGEN_COIL = new ItemCoil(ItemCoil.CoilType.REGEN);
@@ -132,6 +141,8 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_OR_GATE);
         event.getRegistry().register(BLOCK_XOR_GATE);
         event.getRegistry().register(BLOCK_NOT_GATE);
+        event.getRegistry().register(BLOCK_TARTARUS_GATE);
+        event.getRegistry().register(BLOCK_GATE_PART);
     }
 
     @SubscribeEvent
@@ -166,6 +177,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_XOR_GATE);
         ITEM_BLOCK_NOT_GATE.setRegistryName(BLOCK_NOT_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_NOT_GATE);
+        ITEM_BLOCK_TARTARUS_GATE.setRegistryName(BLOCK_TARTARUS_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_TARTARUS_GATE);
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_HACKER_TABLET);
         event.getRegistry().register(ITEM_SPEED_COIL);
@@ -396,6 +409,19 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'Q', Items.QUARTZ
         ).setRegistryName(HBMZZ.MODID, "not_gate"));
+
+        // 塔塔鲁斯大门：九个铁块围一块黑曜石，再压一块红石块。
+        // 第三行与任何已有配方都不同（regcheck 第 61 条）。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "tartarus_gate"),
+                new ItemStack(BLOCK_TARTARUS_GATE),
+                "III",
+                "IOI",
+                "IRI",
+                'I', Blocks.IRON_BLOCK,
+                'O', Blocks.OBSIDIAN,
+                'R', Blocks.REDSTONE_BLOCK
+        ).setRegistryName(HBMZZ.MODID, "tartarus_gate"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "monitor_camera"),

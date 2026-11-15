@@ -127,6 +127,42 @@ public final class HBMZZConfig {
     /** Peak redstone strength, 1..15. */
     public static int dfcSensorStrength = 15;
 
+    // ---- DFC auto shutdown ----
+    /**
+     * Master switch for the whole auto-shutdown procedure. Off leaves the
+     * monitor's toggle visible but inert, and nothing ever cools a core.
+     */
+    public static boolean dfcShutdownEnabled = true;
+    /**
+     * Seconds before detonation at which the retraction starts. The spec's
+     * number: the last minute. Making it configurable is not an invitation to
+     * widen it - the effect reads as a last-ditch procedure because it is short.
+     */
+    public static int dfcShutdownRetractSeconds = 60;
+    /** Seconds the core is held at zero after the ramp completes. */
+    public static int dfcShutdownHoldSeconds = 5;
+    /**
+     * If the core reports no countdown while collapsing, start the retraction
+     * after this many ticks anyway. Without it a core whose `explosionIn`
+     * getter is missing would keep the aura forever and never cool.
+     */
+    public static int dfcShutdownFallbackTicks = 1200;
+    /**
+     * Try to clear the core's own collapse state once the temperature has been
+     * brought to zero. Best effort: the field names belong to another mod, and
+     * only a short explicit list is ever written. Off means the procedure only
+     * cools the core and lets the upstream countdown do what it does.
+     */
+    public static boolean dfcShutdownForceStop = true;
+    /** How often the blue aura emits, in ticks. */
+    public static int dfcShutdownAuraTicks = 5;
+    /** How often an energy burst fires during the aura, in ticks. */
+    public static int dfcShutdownBurstTicks = 40;
+    /** Radius of the effect cloud around the core, in blocks. */
+    public static int dfcShutdownFxRange = 7;
+    /** Players within this distance receive the effect packets, in blocks. */
+    public static int dfcShutdownWatchRange = 64;
+
     // ---- zd_tx cinematic ----
     /**
      * Degrees per tick the camera travels around the target. 0.72 is a full
@@ -141,6 +177,22 @@ public final class HBMZZConfig {
     public static int cinematicRadius = 18;
     /** Height above the target's core. Positive looks down on it from above. */
     public static int cinematicHeight = 7;
+
+    // ---- DFC-TSTX (three-second orbit at the start of a collapse) ----
+    /**
+     * Degrees per tick for the three-second shot. A full lap is 90 ticks, so
+     * 4.0 sweeps two thirds of a circle in the three seconds the rule allows -
+     * enough to read as an orbit, short enough not to look like a stuck camera.
+     */
+    public static float tstxSpeed = 4.0F;
+    /** Distance from the core for the three-second shot. */
+    public static int tstxRadius = 16;
+    /** Height above the core for the three-second shot. */
+    public static int tstxHeight = 6;
+    /** Ticks the shot lasts. 60 = exactly three seconds at 20 tps. */
+    public static int tstxTicks = 60;
+    /** Players within this distance are put behind the camera. */
+    public static int tstxRange = 96;
 
     private HBMZZConfig() {
     }
@@ -252,6 +304,34 @@ public final class HBMZZConfig {
                     "Ticks spent stepping the signal down from full to 1 before it goes out. 0 switches off the decay and drops it straight to zero after the hold.");
             dfcSensorStrength = cfg.getInt("strength", "dfcSensor", 15, 1, 15,
                     "Peak redstone strength. 15 is full power; anything lower makes the sensor unable to drive long wire runs directly.");
+            dfcShutdownEnabled = cfg.getBoolean("enabled", "dfcShutdown", true,
+                    "The DFC auto-shutdown procedure. Off makes the monitor toggle inert: no effects, no cooling.");
+            dfcShutdownRetractSeconds = cfg.getInt("retractSeconds", "dfcShutdown", 60, 5, 600,
+                    "Seconds before detonation at which the retraction starts and the core begins cooling. 60 is the last minute.");
+            dfcShutdownHoldSeconds = cfg.getInt("holdSeconds", "dfcShutdown", 5, 0, 120,
+                    "Seconds the core is held at 0 C after the ramp finishes, before the procedure releases it.");
+            dfcShutdownFallbackTicks = cfg.getInt("fallbackTicks", "dfcShutdown", 1200, 40, 24000,
+                    "If the core never reports a countdown while collapsing, start the retraction after this many ticks anyway. 1200 = one minute.");
+            dfcShutdownForceStop = cfg.getBoolean("forceStop", "dfcShutdown", true,
+                    "After the core reaches 0 C, also clear its own collapse flag if the upstream mod exposes it. Best effort: only a short explicit list of setter methods and numeric fields is ever written. Off means the procedure only cools the core.");
+            dfcShutdownAuraTicks = cfg.getInt("auraTicks", "dfcShutdown", 5, 1, 40,
+                    "Ticks between blue aura emissions while the core is collapsing.");
+            dfcShutdownBurstTicks = cfg.getInt("burstTicks", "dfcShutdown", 40, 10, 400,
+                    "Ticks between energy bursts during the aura phase.");
+            dfcShutdownFxRange = cfg.getInt("fxRange", "dfcShutdown", 7, 2, 24,
+                    "Radius of the effect cloud around the core, in blocks.");
+            dfcShutdownWatchRange = cfg.getInt("watchRange", "dfcShutdown", 64, 16, 256,
+                    "Players within this distance receive the effect packets, in blocks.");
+            tstxSpeed = (float) cfg.getFloat("speed", "dfcTstx", 4.0F, 0.0F, 12.0F,
+                    "Degrees per tick the camera orbits a DFC that has just entered collapse, while the DFC-TSTX gamerule is on. 4.0 sweeps about two thirds of a circle in the three seconds the shot lasts.");
+            tstxRadius = cfg.getInt("radius", "dfcTstx", 16, 6, 40,
+                    "Distance the three-second shot keeps from the core, in blocks.");
+            tstxHeight = cfg.getInt("height", "dfcTstx", 6, -8, 40,
+                    "Height of the three-second shot above the core, in blocks.");
+            tstxTicks = cfg.getInt("ticks", "dfcTstx", 60, 10, 400,
+                    "How long the forced orbit lasts. 60 ticks is exactly three seconds.");
+            tstxRange = cfg.getInt("range", "dfcTstx", 96, 8, 256,
+                    "Players within this distance are put behind the camera, in blocks.");
             cinematicSpeed = (float) cfg.getFloat("rbmkSpeed", "cinematic", 0.72F, 0.0F, 12.0F,
                     "Degrees per tick the camera orbits an RBMK that has started jumping its rods. The gamerule zd_tx has to be on for this to happen at all. 0.72 is one lap in about 25 seconds; 0 leaves the camera alone.");
             cinematicDfcSpeed = (float) cfg.getFloat("dfcSpeed", "cinematic", 2.0F, 0.0F, 12.0F,

@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.4.0";
+    public static final String VERSION = "3.5.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -83,6 +83,10 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "alert_display"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcBlastSensor.class,
                 new ResourceLocation(MODID, "dfc_blast_sensor"));
+        // The Tartarus gate. Only the corner cell has one; the other eight are
+        // filler, so the door has exactly one copy of "am I open".
+        GameRegistry.registerTileEntity(com.hbmzz.gate.TileEntityTartarusGate.class,
+                new ResourceLocation(MODID, "tartarus_gate"));
         // The camera syncs its name/channel/aim through SPacketUpdateTileEntity, so
         // the very first setName() in onBlockPlacedBy calls writeToNBT(). Without a
         // mapping that throws "TileEntityMonitorCamera is missing a mapping!" and the
@@ -127,6 +131,9 @@ public class HBMZZ {
         // Gamerule zd_tx + the trigger half of the orbiting camera. Also inert
         // until something is actually about to explode.
         MinecraftForge.EVENT_BUS.register(com.hbmzz.cinematic.CinematicDirector.instance());
+        // Gamerule DFC-TSTX: a forced three-second orbit the moment a core enters
+        // collapse. Separate from zd_tx, which is the finale five seconds out.
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.cinematic.DfcTstx.instance());
         proxy.preInit(event);
         logger.info("HBMZZ loaded (DFC Monitor + coils + jetpack).");
     }
@@ -150,5 +157,10 @@ public class HBMZZ {
     @Mod.EventHandler
     public void serverStopping(net.minecraftforge.fml.common.event.FMLServerStoppingEvent event) {
         com.hbmzz.hack.HackRegistry.clearAll();
+        // Sessions are keyed by world + position and hold a live plan. Leaving
+        // them behind would let a single-player client hop between saves and
+        // find a DFC that is still being "cooled" in a world that no longer
+        // exists.
+        com.hbmzz.dfc.DfcAutoShutdown.clearAll();
     }
 }

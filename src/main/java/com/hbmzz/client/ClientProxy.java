@@ -124,6 +124,7 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("or_gate"));
         list.add(loc("xor_gate"));
         list.add(loc("not_gate"));
+        list.add(loc("tartarus_gate"));
         return list;
     }
 
@@ -156,6 +157,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_OR_GATE);
         list.add(ModContent.ITEM_BLOCK_XOR_GATE);
         list.add(ModContent.ITEM_BLOCK_NOT_GATE);
+        list.add(ModContent.ITEM_BLOCK_TARTARUS_GATE);
         return list;
     }
 
@@ -177,7 +179,9 @@ public class ClientProxy extends CommonProxy {
             //  dfc_blast_sensor
             0,
             //  and_gate  or_gate  xor_gate  not_gate
-            0, 0, 0, 0
+            0, 0, 0, 0,
+            //  tartarus_gate
+            0
     };
 
     public static List<Integer> metas() {

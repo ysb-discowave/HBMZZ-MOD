@@ -171,6 +171,125 @@ public final class DFCReader {
         return asDouble(invoke(core, "getDFCCollapsing"), 0.0D) > 0.0D;
     }
 
+    /** Temperature only, without paying for tanks, components and catalysts. */
+    public static double temperature(TileEntity core) {
+        return asDouble(invoke(core, "getDFCTemperature"), fieldDouble(core, "heat", 0.0D));
+    }
+
+    /**
+     * Forces the core's temperature, for the automatic shutdown.
+     *
+     * <p>There is no public setter in the base mod, so this tries one first -
+     * an addon may well expose `setDFCTemperature` - and otherwise writes the
+     * field the getter reads. `prevHeat` is written alongside `heat` because
+     * the core's own tick interpolates from it; leaving it behind makes the
+     * temperature gauge jump for one tick, which looks exactly like the
+     * procedure having failed.</p>
+     *
+     * <p>Server thread only. This writes another mod's field; that is already
+     * what the hacker tablet does, and the alternative is not having the
+     * feature at all.</p>
+     *
+     * @return true when at least one write landed
+     */
+    public static boolean writeTemperature(TileEntity core, double celsius) {
+        if (core == null) {
+            return false;
+        }
+        double clamped = Math.max(0.0D, celsius);
+        if (callNumber(core, "setDFCTemperature", clamped)
+                || callNumber(core, "setDFCHeat", clamped)) {
+            return true;
+        }
+        boolean wrote = false;
+        Field heat = findField(core.getClass(), "heat");
+        if (writeNumber(core, heat, clamped)) {
+            wrote = true;
+            // The display lerps from prevHeat; keep it on the same step.
+            writeNumber(core, findField(core.getClass(), "prevHeat"), clamped);
+        }
+        for (String name : new String[]{"dfcHeat", "dfcTemperature", "temperature"}) {
+            wrote |= writeNumber(core, findField(core.getClass(), name), clamped);
+        }
+        return wrote;
+    }
+
+    /**
+     * Clears the upstream collapse, as far as anybody is willing to admit it
+     * can be cleared.
+     *
+     * <p>Only setter methods with a known name and numeric fields on an
+     * explicit whitelist are touched. Nothing is guessed from a name that
+     * merely looks similar: writing the wrong double in a meltdown sequence is
+     * worse than a blast that still happens.</p>
+     *
+     * @return true when a hook was found and written
+     */
+    public static boolean clearCollapse(TileEntity core) {
+        if (core == null) {
+            return false;
+        }
+        if (callNumber(core, "setDFCCollapsing", 0.0D)
+                || callNumber(core, "setCollapsing", 0.0D)
+                || callVoid(core, "abortCollapse")
+                || callVoid(core, "stopDFC")) {
+            return true;
+        }
+        boolean wrote = false;
+        for (String name : new String[]{"dfcCollapsing", "collapsing"}) {
+            wrote |= writeNumber(core, findField(core.getClass(), name), 0.0D);
+        }
+        for (String name : new String[]{"dfcExplosionIn", "explosionIn"}) {
+            wrote |= writeNumber(core, findField(core.getClass(), name), -1.0D);
+        }
+        return wrote;
+    }
+
+    private static boolean writeNumber(Object target, Field field, double value) {
+        if (field == null) {
+            return false;
+        }
+        try {
+            field.setAccessible(true);
+            Class<?> type = field.getType();
+            if (type == double.class || type == Double.class) {
+                field.setDouble(target, value);
+            } else if (type == float.class || type == Float.class) {
+                field.setFloat(target, (float) value);
+            } else if (type == int.class || type == Integer.class) {
+                field.setInt(target, (int) Math.round(value));
+            } else if (type == long.class || type == Long.class) {
+                field.setLong(target, Math.round(value));
+            } else if (type == short.class || type == Short.class) {
+                field.setShort(target, (short) Math.round(value));
+            } else if (type == byte.class || type == Byte.class) {
+                field.setByte(target, (byte) Math.round(value));
+            } else {
+                return false;
+            }
+            return true;
+        } catch (Throwable refused) {
+            // A final field, a security manager, a module wall: all the same
+            // answer - this core cannot be written from here.
+            return false;
+        }
+    }
+
+    private static Field findField(Class<?> start, String name) {
+        for (Class<?> type = start; type != null; type = type.getSuperclass()) {
+            try {
+                Field field = type.getDeclaredField(name);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException missing) {
+                // keep walking up
+            } catch (Throwable refused) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     private static void readTanks(TileEntity core, DFCSnapshot s) {
         Object tanksValue = field(core, "tanks");
         if (!(tanksValue instanceof Object[])) {
@@ -328,6 +447,60 @@ public final class DFCReader {
         }
         Object result = invoke(inventory, "getStackInSlot", slot);
         return result instanceof ItemStack ? (ItemStack) result : ItemStack.EMPTY;
+    }
+
+    /**
+     * Calls a one-argument setter if it exists, converting to whatever numeric
+     * type it declares. Returns true only when a method actually ran.
+     */
+    private static boolean callNumber(Object target, String name, double value) {
+        if (target == null) {
+            return false;
+        }
+        for (Method method : target.getClass().getMethods()) {
+            if (!method.getName().equals(name) || method.getParameterCount() != 1) {
+                continue;
+            }
+            Class<?> type = method.getParameterTypes()[0];
+            Object argument;
+            if (type == double.class || type == Double.class) {
+                argument = value;
+            } else if (type == float.class || type == Float.class) {
+                argument = (float) value;
+            } else if (type == int.class || type == Integer.class) {
+                argument = (int) Math.round(value);
+            } else if (type == long.class || type == Long.class) {
+                argument = Math.round(value);
+            } else {
+                continue;
+            }
+            try {
+                method.invoke(target, argument);
+                return true;
+            } catch (Throwable ignored) {
+                // try the next overload
+            }
+        }
+        return false;
+    }
+
+    /** Calls a no-argument action if it exists. */
+    private static boolean callVoid(Object target, String name) {
+        if (target == null) {
+            return false;
+        }
+        for (Method method : target.getClass().getMethods()) {
+            if (!method.getName().equals(name) || method.getParameterCount() != 0) {
+                continue;
+            }
+            try {
+                method.invoke(target);
+                return true;
+            } catch (Throwable ignored) {
+                // try the next overload
+            }
+        }
+        return false;
     }
 
     private static Object invoke(Object target, String name, Object... args) {

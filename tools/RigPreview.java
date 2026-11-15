@@ -281,7 +281,7 @@ public final class RigPreview {
         canvas.setGeometry(4, 3);
         canvas.setLinkAge(400L);
         DFCSnapshot snap = sample();
-        canvas.render(52000L, true, snap, 0, 0.0D, -1L);
+        canvas.render(52000L, true, snap, 0, 0.0D, -1L, null);
         return canvas.image();
     }
 

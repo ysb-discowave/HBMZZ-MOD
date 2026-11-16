@@ -712,6 +712,9 @@ td code { white-space: nowrap; }
 }
 .foot h4 { margin-bottom: 12px; }
 .foot a { color: var(--text-dim); font-size: 13.5px; display: block; margin-bottom: 7px; }
+/* 页脚里的品牌必须是横排：上面那条 .foot a 的 display:block 会盖掉 .brand 的 flex，
+   于是图标掉到字上方、HBMZZ 被拆成两行（六个页面一直是这样，只是不显眼）。 */
+.foot .brand { display: flex; }
 .foot a:hover { color: var(--amber); }
 .foot p { color: var(--text-mute); font-size: 13px; }
 .foot-bottom {

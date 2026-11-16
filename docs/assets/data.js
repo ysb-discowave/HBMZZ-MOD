@@ -55,6 +55,10 @@ window.HBMZZ_DATA = {
       "href": "ost.html"
     },
     {
+      "label": "致谢",
+      "href": "thanks.html"
+    },
+    {
       "label": "许可",
       "href": "license.html"
     }
@@ -221,6 +225,10 @@ window.HBMZZ_DATA = {
     {
       "title": "许可与致谢",
       "links": [
+        {
+          "label": "致谢",
+          "href": "thanks.html"
+        },
         {
           "label": "GPL-3.0 全文",
           "href": "license.html"

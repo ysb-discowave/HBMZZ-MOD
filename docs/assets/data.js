@@ -250,6 +250,18 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "3.6.1",
+      "title": "渲染换成本项目自己的实现，外观一处未改",
+      "items": [
+        "ConsoleModel 重写：部件表 + 一次性变换 + 角点索引表发射六面，替换原先逐盒带 lambda 的写法。0.075 半厚 / 0.10 边框 / 0.012 缝等尺寸是设计事实，沿用不动。",
+        "TerminalCanvas 的画布上传管线重写：ARGB 整型按 GL_BGRA 直传（不再逐像素写四个字节）、尺寸不变走 glTexSubImage2D、边缘改 CLAMP；每帧少约 140 万次字节写入。",
+        "新增 PanelPainter，两个渲染器共用的绘制状态机（消隐、混合、纹理单元复位、图集归还），替掉原先各写一份的渲染段。",
+        "为什么敢改渲染：本机没有 Minecraft，所以新增 tools/rigcheck —— 6 种面板尺寸 × 5 个倾角 × 通电/吊装共 121 组参数的全部顶点导出比对，新旧逐位一致；指纹入库，谁改了几何会当场红。",
+        "授权链：节枝的那份书面授权继续保留，但覆盖范围缩小到方块/方块实体的格子结构与倾角锚点数学；逐文件状态见 NOTICE 的「重写记录」。",
+        "未验证：只有编译、几何指纹与离线检查；TESR 的绘制顺序、坠落动画、画布上传都没进游戏看过。"
+      ]
+    },
+    {
       "version": "3.6.0",
       "title": "mp3 直接放，外加一处「点面板边缘会崩」的修复",
       "items": [
@@ -613,12 +625,12 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "3.6.0",
+    "version": "3.6.1",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 544,
-      "javaLines": 127094,
+      "javaFiles": 545,
+      "javaLines": 127184,
       "resourceFiles": 573,
       "nodeTypes": 32,
       "controlTypes": 26

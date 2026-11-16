@@ -13,10 +13,9 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- * Portions of the render structure and the offscreen-canvas pipeline are derived
- * from JiezhiMod by Shushang de Jiezhi, used under written permission to license
- * them under GPL-3.0. See AUTHORIZATION.md.
- * See NOTICE.md for third-party provenance.
+ * Harness, cable and swing are this project's own additions (the reference
+ * project had no falling-screen behaviour); the solid and glass passes go
+ * through {@link PanelPainter}. Provenance is recorded in NOTICE.md.
  */
 
 package com.hbmzz.client;
@@ -161,70 +160,15 @@ public class RenderFallenScreen extends Render<EntityFallenScreen> {
     }
 
     private void drawShell(int cols, int rows, float fade) {
-        List<Face> faces = ConsoleModel.build(cols, rows, 0, false, false);
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        GlStateManager.disableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA,
-                GL11.GL_ONE, GL11.GL_ZERO);
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-
-        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        for (Face face : faces) {
-            float a = ((face.argb >>> 24) & 255) / 255.0F * fade;
-            float r = ((face.argb >> 16) & 255) / 255.0F;
-            float g = ((face.argb >> 8) & 255) / 255.0F;
-            float b = (face.argb & 255) / 255.0F;
-            for (int i = 0; i < 4; i++) {
-                buffer.pos(face.xs[i], face.ys[i], face.zs[i]).color(r, g, b, a).endVertex();
-            }
-        }
-        tessellator.draw();
-
-        GlStateManager.disableBlend();
-        GlStateManager.enableLighting();
+        PanelPainter.solid(ConsoleModel.build(cols, rows, 0, false, false), fade);
     }
 
+    /** The dead-channel glass, fading out with the rest of the panel. */
     private void drawPanel(SignalLossCanvas canvas, int cols, int rows, float fade) {
         if (!canvas.hasTexture()) {
             return;
         }
-        float[][] corners = ConsoleModel.panelCorners(cols, rows, 0);
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA,
-                GL11.GL_ONE, GL11.GL_ZERO);
-        GlStateManager.color(1.0F, 1.0F, 1.0F, fade);
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GlStateManager.bindTexture(canvas.textureId());
-
-        float[] uv = com.hbmzz.dfc.ConsoleRig.panelUv();
-        float[] u = {uv[1], uv[0], uv[0], uv[1]};
-        float[] v = {uv[2], uv[2], uv[3], uv[3]};
-
-        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
-        for (int i = 0; i < 4; i++) {
-            buffer.pos(corners[i][0], corners[i][1], corners[i][2])
-                    .tex(u[i], v[i])
-                    .color(1.0F, 1.0F, 1.0F, fade)
-                    .endVertex();
-        }
-        tessellator.draw();
-
-        // Hand the atlas back; see RenderDFCMonitor for why this is not optional.
-        TextureMap atlas = Minecraft.getMinecraft().getTextureMapBlocks();
-        if (atlas != null) {
-            GlStateManager.bindTexture(atlas.getGlTextureId());
-        }
-        GlStateManager.disableBlend();
-        GlStateManager.enableLighting();
+        PanelPainter.glass(ConsoleModel.panelCorners(cols, rows, 0), canvas.textureId(), fade);
     }
 
     // --------------------------------------------------------------- helpers

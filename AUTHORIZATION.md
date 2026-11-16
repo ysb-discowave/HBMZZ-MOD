@@ -62,3 +62,17 @@
 - 原「源码可见许可协议 v1.0」的 §4.3（禁止二次分发 jar）、§4.5（禁止商业用途）对**本项目**
   不再适用；它们对 JiezhiMod 自身仍然有效，任何人直接使用 JiezhiMod 时仍须遵守。
 - 依 GPL-3.0 §7 的精神，此处不存在「附加限制」：授权只做**放宽**，未对下游施加任何额外约束。
+---
+
+## 2. 后续变更：2026-11-16 部分重写
+
+`client/ConsoleModel`、`client/screen/TerminalCanvas` 的上传管线、以及新增的
+`client/PanelPainter`（两个渲染器共用的绘制段）已于 2026-11-16 由本项目重写，
+行为与外观保持一致（几何由 `tools/rigcheck` 的 121 组指纹逐位校验）。
+`RenderDFCMonitor` / `RenderFallenScreen` 的绘制段改为调用 `PanelPainter`。
+
+**本授权书继续有效**，覆盖范围缩小为：`BlockDFCMonitor`、`BlockDFCMonitorPart`、
+`TileEntityDFCMonitor` 的控制器 + 占位格结构，以及 `ConsoleRig` 的倾角与锚点数学。
+明细见 `NOTICE.md` 的「重写记录（2026-11-16）」。
+
+保留本文件仍然必要：它既是上述剩余部分的依据，也是这次重写之前那段历史的书面记录。

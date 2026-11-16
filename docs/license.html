@@ -125,7 +125,7 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)</pre>
             <tr>
               <td><strong>DFC-Map-Creation-Tool / 节枝特效工具 JiezhiMod</strong><br>作者：树上的节枝（jiezhi）</td>
               <td>原为自定义「源码可见许可协议 v1.0」（非 OSI 认证）；<strong>已取得作者书面授权，可按 GPL-3.0 使用</strong>（2026-11-03）</td>
-              <td>监控屏的整机 TESR 渲染结构、控制器 + 占位格结构、吊装几何与变换、AWT 离屏画布 → 单纹理 quad 的上传管线。覆盖文件见 <a href="#authorization">第 3 节</a>。</td>
+              <td>监控屏的整机 TESR 渲染结构、控制器 + 占位格结构、吊装几何与变换、AWT 离屏画布 → 单纹理 quad 的上传管线。<strong>其中几何、画布上传管线与绘制段已于 2026-11-16 重写为本项目实现</strong>（外观不变，几何有离线指纹校验）；仍在授权覆盖内的是方块与方块实体的格子结构、倾角与锚点数学。逐文件状态见仓库 <code>NOTICE.md</code> 的「重写记录」，历史见 <a href="#authorization">第 3 节</a>。</td>
             </tr>
           </tbody>
         </table>
@@ -375,7 +375,7 @@ HBM-ZZ 的第一个外部版本，打算使用 GPL-3.0 开源协议开放源代�
   </div>
 </footer>
 
-<script src="assets/data.js?v=aeb46a713d"></script>
+<script src="assets/data.js?v=4e59c60afe"></script>
 <script src="assets/site.js?v=95371114ff"></script>
 </body>
 </html>

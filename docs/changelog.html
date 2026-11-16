@@ -91,8 +91,39 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.6.0</span>
+            <span class="tl-ver">v3.6.1</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>渲染换成本项目自己的实现，外观一处未改</h3>
+          <ul>
+            <li><strong>为什么动它：</strong>监控屏那套渲染最初参照了节枝的 JiezhiMod，2026-11-03 拿到了可按 GPL-3.0
+              使用的书面授权。授权能用，但让整个发布声明长期挂在一份「别人的代码」上不是办法，所以逐块重写，
+              把授权压缩成历史记录。</li>
+            <li><strong>几何重写（<code>ConsoleModel</code>）：</strong>改成「先收集部件表（后板、四条边框、四条阴影线、
+              四颗螺钉、状态条、吊装总成）→ 一次性变换 → 一张角点索引表发射六面」。原先每个盒子自带一个 transform
+              lambda，加零件时漏掉倾斜或推距不会被发现；现在没有那条路可走。0.075 半厚、0.10 边框、0.012 缝、
+              吊架各段长度全部沿用——<b>这些是这台机器的设计事实，改了就是改版型</b>。</li>
+            <li><strong>画布上传管线重写（<code>TerminalCanvas</code>）：</strong>AWT 给的是 ARGB 整型，而小端机器上
+              <code>0xAARRGGBB</code> 的字节序恰好就是 BGRA——直接按 <code>GL_BGRA</code> 上传即可，不必每像素写四个字节；
+              尺寸不变时改走 <code>glTexSubImage2D</code>，边缘加 <code>CLAMP</code>。600×400 的超采样画布每帧少约 140 万次字节写入。</li>
+            <li><strong>新增 <code>PanelPainter</code>：</strong>两个渲染器本来各写一份「关消隐 / 开混合 / 绑纹理 / 归还图集」，
+              一处修好另一处还烂着。现在只有一份，且写明了两条踩过的规矩：进入前关消隐、绑之前把纹理单元复位。</li>
+            <li><strong>怎么证明外观没变：</strong>这台机器没有 Minecraft 实例，肉眼验证不可能，于是新增
+              <code>tools/rigcheck</code>——把 6 种面板尺寸 × 5 个倾角 × 通电/吊装共 <b>121 组参数</b>的全部顶点导成数字，
+              新旧实现逐位比对（17,521 行，零差异），再压成 121 行指纹入库。谁以后改了几何，这条会当场红；
+              反向验证过：改一个字符就 FAIL。</li>
+            <li><strong>授权链：</strong>节枝的授权书与私信截图继续保留，但覆盖范围缩小为
+              <code>BlockDFCMonitor</code>、<code>BlockDFCMonitorPart</code>、<code>TileEntityDFCMonitor</code>
+              的控制器 + 占位格结构，以及 <code>ConsoleRig</code> 的倾角与锚点数学。逐文件状态写在
+              <code>NOTICE.md</code> 的「重写记录」里。</li>
+            <li><strong>没验证到的部分：</strong>只有编译、几何指纹与离线检查。TESR 的绘制顺序、坠落动画的观感、
+              画布上传在真驱动上的行为，都<b>没有进游戏看过</b>。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.6.0</span>
           </div>
           <h3>mp3 直接放，外加一处「点面板边缘会崩」的修复</h3>
           <ul>
@@ -657,7 +688,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=aeb46a713d"></script>
+<script src="assets/data.js?v=4e59c60afe"></script>
 <script src="assets/site.js?v=95371114ff"></script>
 </body>
 </html>

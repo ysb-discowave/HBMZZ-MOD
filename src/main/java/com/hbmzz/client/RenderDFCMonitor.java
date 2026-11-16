@@ -13,10 +13,11 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- * Portions of the render structure and the offscreen-canvas pipeline are derived
- * from JiezhiMod by Shushang de Jiezhi, used under written permission to license
- * them under GPL-3.0. See AUTHORIZATION.md.
- * See NOTICE.md for third-party provenance.
+ * The draw pipeline now goes through {@link PanelPainter}, which this project
+ * owns; this class had no code left to rewrite beyond that. The machine's
+ * geometry was rewritten on 2026-11-16 (see ConsoleModel). Provenance and the
+ * written permission that once covered the original structure are recorded in
+ * NOTICE.md / AUTHORIZATION.md.
  */
 
 package com.hbmzz.client;
@@ -192,81 +193,17 @@ public class RenderDFCMonitor extends TileEntitySpecialRenderer<TileEntityDFCMon
 
     // ------------------------------------------------------------------ drawing
 
+    /** The machine's faces. State handling lives in {@link PanelPainter}. */
     private static void drawFaces(List<Face> faces) {
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        GlStateManager.disableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.disableBlend();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-
-        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        for (Face face : faces) {
-            float a = ((face.argb >>> 24) & 255) / 255.0F;
-            float r = ((face.argb >> 16) & 255) / 255.0F;
-            float g = ((face.argb >> 8) & 255) / 255.0F;
-            float b = (face.argb & 255) / 255.0F;
-            for (int i = 0; i < 4; i++) {
-                buffer.pos(face.xs[i], face.ys[i], face.zs[i]).color(r, g, b, a).endVertex();
-            }
-        }
-        tessellator.draw();
-
-        GlStateManager.enableLighting();
+        PanelPainter.solid(faces, 1.0F);
     }
 
-    /**
-     * The glass. One quad, textured, sitting just inside the frame so it cannot
-     * z-fight with it.
-     */
+    /** The glass: one textured quad, just inside the frame so it cannot z-fight. */
     private void drawPanel(DfcScreen canvas, float[][] corners) {
         if (canvas == null || !canvas.hasTexture()) {
             return;
         }
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA,
-                GL11.GL_ONE, GL11.GL_ZERO);
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        GlStateManager.bindTexture(canvas.textureId());
-
-        float[] uv = ConsoleRig.panelUv();
-        float ux0 = uv[0];
-        float ux1 = uv[1];
-        float vy0 = uv[2];
-        float vy1 = uv[3];
-        // corners[] is (x1,y0) (x0,y0) (x0,y1) (x1,y1): bottom-right first.
-        float[] u = {ux1, ux0, ux0, ux1};
-        float[] v = {vy0, vy0, vy1, vy1};
-
-        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
-        for (int i = 0; i < 4; i++) {
-            buffer.pos(corners[i][0], corners[i][1], corners[i][2])
-                    .tex(u[i], v[i])
-                    .color(255, 255, 255, 255)
-                    .endVertex();
-        }
-        tessellator.draw();
-
-        // Hand the terrain atlas back. GlStateManager caches the binding, so
-        // leaving the screen texture bound here makes whatever draws next -
-        // the next chunk, the clouds, another TESR - sample this monitor's
-        // 256-pixel canvas stretched over the world, which reads as scrambled
-        // blocks scattered around the machine.
-        net.minecraft.client.renderer.texture.TextureMap atlas =
-                Minecraft.getMinecraft().getTextureMapBlocks();
-        if (atlas != null) {
-            GlStateManager.bindTexture(atlas.getGlTextureId());
-        }
-
-        GlStateManager.disableBlend();
-        GlStateManager.enableLighting();
+        PanelPainter.glass(corners, canvas.textureId(), 1.0F);
     }
 
     // ------------------------------------------------------------------ plumbing

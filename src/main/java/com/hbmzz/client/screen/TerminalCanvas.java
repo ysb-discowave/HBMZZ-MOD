@@ -13,10 +13,11 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- * Portions of the render structure and the offscreen-canvas pipeline are derived
- * from JiezhiMod by Shushang de Jiezhi, used under written permission to license
- * them under GPL-3.0. See AUTHORIZATION.md.
- * See NOTICE.md for third-party provenance.
+ * The canvas upload pipeline here was rewritten on 2026-11-16 (BGRA fast path +
+ * sub-image updates). The terminal layout, the drawing primitives and every
+ * screen page are this project's own work. Attribution history — including the
+ * written permission that once covered the original pipeline — is kept in
+ * NOTICE.md / AUTHORIZATION.md.
  */
 
 package com.hbmzz.client.screen;
@@ -120,6 +121,9 @@ public final class TerminalCanvas {
     private int[] pixels;
     private Graphics2D g;
     private int texId;
+    /** Size currently allocated on the GPU; a mismatch means reallocate, not update. */
+    private int texW = -1;
+    private int texH = -1;
     private ByteBuffer upload;
     private boolean dirty = true;
 
@@ -219,29 +223,53 @@ public final class TerminalCanvas {
         int texH = this.h * SS;
         if (this.texId == 0) {
             this.texId = org.lwjgl.opengl.GL11.glGenTextures();
+            org.lwjgl.opengl.GL11.glBindTexture(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, this.texId);
+            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D,
+                    org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER, org.lwjgl.opengl.GL11.GL_LINEAR);
+            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D,
+                    org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER, org.lwjgl.opengl.GL11.GL_LINEAR);
+            // Clamped, because the quad is drawn with UV 0..1 exactly: on a REPEAT
+            // texture a half-texel of rounding at the edge samples the opposite
+            // side of the screen and paints a one-pixel seam of the wrong content.
+            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D,
+                    org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL11.GL_CLAMP);
+            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D,
+                    org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL11.GL_CLAMP);
+        } else {
+            org.lwjgl.opengl.GL11.glBindTexture(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, this.texId);
         }
-        org.lwjgl.opengl.GL11.glBindTexture(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, this.texId);
-        org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D,
-                org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER, org.lwjgl.opengl.GL11.GL_LINEAR);
-        org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D,
-                org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER, org.lwjgl.opengl.GL11.GL_LINEAR);
 
+        // AWT gives ARGB ints. Handed to GL as BGRA bytes, those ints need no
+        // per-pixel work at all: on a little-endian machine 0xAARRGGBB is already
+        // stored as B,G,R,A, which is exactly the order GL_BGRA wants. The old
+        // code walked 4 bytes per pixel in a loop; that was ~1.4 million writes
+        // per frame at 600x400 supersampled.
         this.image.getRGB(0, 0, texW, texH, this.pixels, 0, texW);
-        int needed = texW * texH * 4;
-        if (this.upload == null || this.upload.capacity() < needed) {
-            this.upload = ByteBuffer.allocateDirect(needed).order(ByteOrder.nativeOrder());
+        int texels = texW * texH;
+        if (this.upload == null || this.upload.capacity() < texels * 4) {
+            this.upload = ByteBuffer.allocateDirect(texels * 4).order(ByteOrder.nativeOrder());
         }
         this.upload.clear();
-        for (int argb : this.pixels) {
-            this.upload.put((byte) (argb >> 16));
-            this.upload.put((byte) (argb >> 8));
-            this.upload.put((byte) argb);
-            this.upload.put((byte) (argb >>> 24));
+        this.upload.asIntBuffer().put(this.pixels, 0, texels);
+        this.upload.limit(texels * 4);
+        this.upload.position(0);
+
+        // Allocation only when the window changed size; every other frame is a
+        // sub-image write, which the driver can do straight into the existing
+        // storage instead of reallocating a texture per repaint.
+        if (this.texW != texW || this.texH != texH) {
+            org.lwjgl.opengl.GL11.glTexImage2D(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, 0,
+                    org.lwjgl.opengl.GL11.GL_RGBA, texW, texH, 0,
+                    org.lwjgl.opengl.GL12.GL_BGRA, org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE,
+                    this.upload);
+            this.texW = texW;
+            this.texH = texH;
+        } else {
+            org.lwjgl.opengl.GL11.glTexSubImage2D(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, 0,
+                    0, 0, texW, texH,
+                    org.lwjgl.opengl.GL12.GL_BGRA, org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE,
+                    this.upload);
         }
-        this.upload.flip();
-        org.lwjgl.opengl.GL11.glTexImage2D(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, 0,
-                org.lwjgl.opengl.GL11.GL_RGBA, texW, texH, 0, org.lwjgl.opengl.GL11.GL_RGBA,
-                org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE, this.upload);
     }
 
     public void dispose() {

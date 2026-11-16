@@ -27,8 +27,25 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)
 | 来源 | 许可证 | 本项目中使用的位置 |
 |---|---|---|
 | **HBM's Nuclear Tech — Community Edition**（NTM-CE）<br><https://github.com/Warfactory-Official/Hbm-s-Nuclear-Tech-CE><br>作者：HBMMods / Drillgon200 / TheOriginalGolem / Alcater / MrNorwood / Movblock / EOS 等，名单见其 `mcmod.info` | **GPL-3.0** | `com.hbmzz.cecp` 全部包（`Control`、`ControlType`、`controls/*`、`nodes/*`、`NodeSystem`、`modular/*`、`types/*`、`SubElement*`、`ControlPanel`、`ControlEvent(–System)`、`IControllable` …）；`BlockCtrlConsole` / `TileEntityCtrlConsole` / `RenderCtrlConsole` 对应的上游类；`assets/hbmzz/models/control_panel/*` 与 `assets/hbmzz/textures/models/control_panel/*` 的 OBJ 与贴图 |
-| **NTM Cursed Addon（CE Addon / Leafia）**<br><https://github.com/ntmleafia/NTM-Cursed-Addon><br>作者：Leafia、movblock 等 | **GPL-3.0**（部分文件 **LGPL-3.0**，见其 `LICENSE` / `LICENSE.LESSER`） | `com.hbmzz.cecp.nodes.addon`（14 个节点）、`controls.addon`（11 个控件）、`controls.configs.addon`（7 个配置面板）、`modular.AddonNodeLoader`、`compat/AddonRes`、`compat/CEEventTable`、`compat/RBMKColumns`、`compat/ModSounds`；`assets/hbmzz/models/control_panel/addon/*`（6 个 `.obj`）、`assets/hbmzz/textures/models/control_panel/addon/*`（15 张 png）、`textures/gui/control_panel/{solid,solid_emissive,invisible}.png` |
+| **NTM Cursed Addon（CE Addon / Leafia）**<br><https://github.com/ntmleafia/NTM-Cursed-Addon><br>作者：Leafia、movblock 等 | **待核实**：该项目 2026-10-23 起主材料改为 **PolyForm Shield 1.0.0**（commit `27ed746c`），LGPL-3.0 仅存于其 `modules/lgpl-code`、`modules/lgpl-assets`；本项目 2.2.1（2026-11-03）引用的快照落在改许可之后 | `com.hbmzz.cecp.nodes.addon`（14 个节点）、`controls.addon`（11 个控件）、`controls.configs.addon`（7 个配置面板）、`modular.AddonNodeLoader`、`compat/AddonRes`、`compat/CEEventTable`、`compat/RBMKColumns`、`compat/ModSounds`；`assets/hbmzz/models/control_panel/addon/*`（6 个 `.obj`）、`assets/hbmzz/textures/models/control_panel/addon/*`（15 张 png）、`textures/gui/control_panel/{solid,solid_emissive,invisible}.png` |
 | **DFC-Map-Creation-Tool / 节枝特效工具 JiezhiMod**<br><https://gitee.com/jiezhi-bililbli/DFC-Map-Creation-Tool><br>作者：树上的节枝（jiezhi） | 原为自定义「源码可见许可协议 v1.0」（非 OSI 认证）；**已取得作者书面授权，可按 GPL-3.0 使用**（2026-11-03，见 [`AUTHORIZATION.md`](AUTHORIZATION.md) 与第 5 节） | 监控屏的整机 TESR 渲染结构、控制器 + 占位格结构、吊装几何与变换、AWT 离屏画布 → 单纹理 quad 的上传管线。主要涉及 `client/RenderDFCMonitor`、`client/RenderFallenScreen`、`client/ConsoleModel`、`client/screen/TerminalCanvas`、`dfc/ConsoleRig`、`block/BlockDFCMonitor*`、`tile/TileEntityDFCMonitor`。逐项对应关系见 `README.md` 的「署名」一节 |
+
+### 重写记录（2026-11-16）：把被授权的那部分渲染换成本项目自己的实现
+
+节枝的书面授权（2026-11-03）让这套渲染可以按 GPL-3.0 使用。为了让授权链只承担
+「历史记录」的角色、而不是长期挂在发布声明上，2026-11-16 起逐块重写了这套渲染。
+**只改实现，不改外观**——尺寸、配色、倾角、动画一处未动，并用离线几何指纹做回归。
+
+| 文件 | 状态 |
+|---|---|
+| `client/ConsoleModel` | **已重写**：部件表 + 一次性变换 + 角点索引表发射六面，替换原先逐盒带 lambda 的写法。尺寸为设计事实（0.075 半厚 / 0.10 边框 / 0.012 缝），沿用不动。`tools/rigcheck` 的 121 组指纹证明顶点逐位一致 |
+| `client/screen/TerminalCanvas` | **画布上传管线已重写**：ARGB 整型按 `GL_BGRA` 直传、尺寸不变走 `glTexSubImage2D`、边缘 `CLAMP`；窗口布局、绘制原语与四个页面全部是本项目自有 |
+| `client/PanelPainter` | **新增**：两个渲染器共用的绘制状态机（消隐、混合、纹理单元复位、图集归还），替代原先各写一份的渲染段 |
+| `client/RenderDFCMonitor` | 绘制段改为调用 `PanelPainter`；数据轮询、邻居判定、缓存生命周期本就是我方实现 |
+| `client/RenderFallenScreen` | 绘制段同上；吊架、电缆、摆动与淡出是本项目新增行为，参考项目没有 |
+| `block/BlockDFCMonitor`、`block/BlockDFCMonitorPart`、`tile/TileEntityDFCMonitor`、`dfc/ConsoleRig` | **仍在授权覆盖内**：控制器 + 占位格结构、倾角与锚点数学尚未重写 |
+
+> 因此 `AUTHORIZATION.md` 继续保留，效力覆盖上表最后一行与历史记录；它不再覆盖前五行。
 
 ### 本项目自有
 

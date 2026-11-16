@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.5.0";
+    public static final String VERSION = "3.5.2";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -162,5 +162,9 @@ public class HBMZZ {
         // find a DFC that is still being "cooled" in a world that no longer
         // exists.
         com.hbmzz.dfc.DfcAutoShutdown.clearAll();
+        // 爆炸记录表同样是内存里的、按维度存的：不清会串到下一个存档。
+        // 它是普通方法不是 @SubscribeEvent —— FMLServerStoppedEvent 不是 Event 子类，
+        // 挂事件总线会让 register 在 preInit 抛异常，整个模组起不来。
+        com.hbmzz.blast.DfcBlastWatch.INSTANCE.onServerStopped();
     }
 }

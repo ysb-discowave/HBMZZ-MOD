@@ -1,51 +1,51 @@
 {
   "variants": {
-    "up=false,down=false,facing=north": {
+    "down=false,facing=north,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=false,facing=east": {
+    "down=false,facing=east,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=false,facing=south": {
+    "down=false,facing=south,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=false,facing=west": {
+    "down=false,facing=west,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=true,facing=north": {
+    "down=true,facing=north,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=true,facing=east": {
+    "down=true,facing=east,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=true,facing=south": {
+    "down=true,facing=south,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=false,down=true,facing=west": {
+    "down=true,facing=west,up=false": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=false,facing=north": {
+    "down=false,facing=north,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=false,facing=east": {
+    "down=false,facing=east,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=false,facing=south": {
+    "down=false,facing=south,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=false,facing=west": {
+    "down=false,facing=west,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=true,facing=north": {
+    "down=true,facing=north,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=true,facing=east": {
+    "down=true,facing=east,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=true,facing=south": {
+    "down=true,facing=south,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     },
-    "up=true,down=true,facing=west": {
+    "down=true,facing=west,up=true": {
       "model": "hbmzz:ctrl_console_empty"
     }
   }

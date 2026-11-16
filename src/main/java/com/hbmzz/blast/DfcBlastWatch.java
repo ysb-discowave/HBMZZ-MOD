@@ -28,7 +28,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
 import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.util.HashMap;
@@ -178,8 +177,21 @@ public final class DfcBlastWatch {
         }
     }
 
-    @SubscribeEvent
-    public void onServerStopped(FMLServerStoppedEvent event) {
+    /**
+     * 服务器停了，把这张表清空。
+     *
+     * <p>★ 这里<b>不能</b>写 {@code @SubscribeEvent}。{@code FMLServerStoppedEvent}
+     * 继承的是 {@code FMLStateEvent}，不是 {@code Event}；{@code EventBus.register}
+     * 会当场校验参数类型并抛
+     * {@code IllegalArgumentException: ... takes a argument that is not an Event class}，
+     * 而这条校验发生在 {@code preInit} 的注册调用里 —— 结果是<b>整个模组加载失败、
+     * 游戏进不去</b>，且报错指向注册那一行而不是这里。
+     *
+     * <p>FML 状态事件只能走 {@code @Mod.EventHandler}。所以这里做成普通无参方法，
+     * 由 {@link com.hbmzz.HBMZZ#serverStopping} 显式调用（那里本来就在给
+     * HackRegistry 与 DfcAutoShutdown 收尾）。
+     */
+    public void onServerStopped() {
         LAST.clear();
     }
 

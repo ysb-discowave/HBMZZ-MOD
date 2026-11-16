@@ -1,32 +1,32 @@
 {
   "variants": {
-    "facing=south,active=false": {
+    "active=false,facing=south": {
       "model": "hbmzz:dfc_blast_sensor"
     },
-    "facing=north,active=false": {
+    "active=false,facing=north": {
       "model": "hbmzz:dfc_blast_sensor",
       "y": 180
     },
-    "facing=east,active=false": {
+    "active=false,facing=east": {
       "model": "hbmzz:dfc_blast_sensor",
       "y": 270
     },
-    "facing=west,active=false": {
+    "active=false,facing=west": {
       "model": "hbmzz:dfc_blast_sensor",
       "y": 90
     },
-    "facing=south,active=true": {
+    "active=true,facing=south": {
       "model": "hbmzz:dfc_blast_sensor_on"
     },
-    "facing=north,active=true": {
+    "active=true,facing=north": {
       "model": "hbmzz:dfc_blast_sensor_on",
       "y": 180
     },
-    "facing=east,active=true": {
+    "active=true,facing=east": {
       "model": "hbmzz:dfc_blast_sensor_on",
       "y": 270
     },
-    "facing=west,active=true": {
+    "active=true,facing=west": {
       "model": "hbmzz:dfc_blast_sensor_on",
       "y": 90
     }

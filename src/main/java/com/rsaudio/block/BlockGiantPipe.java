@@ -23,26 +23,32 @@ import java.util.List;
  * 巨大管道。设施里那种一人高的冷风管 / 工艺管，靠<b>邻居自动接出走向</b>。
  *
  * <h3>形状现算，不写 meta</h3>
- * 六个方向各是一个 {@link PropertyBool}（{@code down/east/north/south/up/west}），
+ * 四个水平方向各是一个 {@link PropertyBool}（{@code east/north/south/west}），
  * 由 {@link #getActualState} 每次渲染现算 —— 和 {@link BlockTrainRail} 同一个路子，
  * 理由也一样：邻居变了形状就必须跟着变，写进 meta 就意味着"每个会改变邻居的操作
  * 都得记得回来改这一格"，漏一个就是"看着连上了、实际是个断头"。
  *
- * <h3>★★ 六个属性 = 64 种组合，blockstate 必须穷举满</h3>
- * 这是本模组组合数最多的方块。变体 key 的属性顺序必须是<b>属性名升序</b>
- * （{@code down,east,north,south,up,west}）——「数量正好但顺序不对」时
- * {@code ModelBlockDefinition.getVariant} 查不到，64 条会<b>全部</b>
- * {@code MissingVariantException}（整块紫黑）。
- * {@code gen_resources.py} 里那个生成循环就是按这个顺序嵌套的，
- * {@code verify_jar} 的 §[3] 会用 {@code EXPECTED_PROPS} 把 64 条和取值集合都钉住。
+ * <h3>★★ 为什么只剩 4 个属性（16 态）</h3>
+ * 本方块最初是六个方向各一个 {@link PropertyBool}（{@code down/east/north/south/up/west}），
+ * 64 种组合，{@link #getMetaFromState} 返回 0..63。<b>1.12.2 的 meta 只有 4 位</b>：
+ * 方块状态是按 {@code blockId << 4 | meta} 编号的，超过 15 就越界，
+ * 注册时 {@code ForgeRegistry.register} 直接抛
+ * {@code ArrayIndexOutOfBoundsException: 63}，整个 mod 在主菜单之前就崩。
+ * <b>16 态是硬上限，没有绕开的余地</b>，所以竖直方向不再拥有独立状态：
+ * <ul>
+ *   <li>状态容器只有水平四位（16 种）；</li>
+ *   <li>完全没有水平接口时按<b>竖直段</b>渲染（mask 17 = down|up），
+ *       模型和碰撞盒都取这一个值，两者永远一致；</li>
+ *   <li>有水平接口时只画水平臂，竖直臂画不出来（见下方"行为变化"）。</li>
+ * </ul>
  *
  * <h3>★ 位掩码只在"资源侧"有意义</h3>
  * Java 侧<b>不需要</b>掩码：MC 自己把属性表序列化成查询串。
- * 掩码只是 {@code gen_resources.py} 给 64 个模型命名用的（{@code giant_pipe_m<mask>}），
- * 位序 = 属性名升序：{@code down=1, east=2, north=4, south=8, up=16, west=32}。
+ * 掩码只是资源侧给模型命名的（{@code giant_pipe_m<mask>}），
+ * 位序沿用旧版 6 位：{@code east=2, north=4, south=8, west=32}（{@code down=1, up=16} 保留位序），
+ * 所以 64 个模型文件<b>一个都不用动</b>，只是取其中 16 个。
  * 两边唯一的耦合是 {@link #FACINGS} 的<b>顺序</b>必须和那边的循环顺序一致 ——
  * 一旦不一致，"哪一种走向用哪个模型"就错位了（视觉上像管道接到了空气里）。
- * 为降低这个风险，资源侧不是手写 64 行，而是照同一张方向表生成。
  *
  * <h3>碰撞盒 = 核心 + 有管臂的方向</h3>
  * 管道只占一格中间的 8/16，按 {@code getBoundingBox} 只给核心盒的话，
@@ -58,28 +64,51 @@ import java.util.List;
  */
 public class BlockGiantPipe extends Block {
 
-    /** 六个连接方向。★ 顺序 = 属性名升序，资源侧按同一顺序枚举掩码位。 */
+    /**
+     * 六个连接方向。★ 顺序 = 旧版 6 位掩码的位序，资源侧按同一顺序枚举掩码位。
+     * 这个数组仍然是<b>六个方向</b>，只是其中两个竖直方向不再拥有状态。
+     */
     public static final EnumFacing[] FACINGS = {
             EnumFacing.DOWN, EnumFacing.EAST, EnumFacing.NORTH,
             EnumFacing.SOUTH, EnumFacing.UP, EnumFacing.WEST,
     };
 
+    /**
+     * 竖直方向的两个属性。<b>已移出状态容器</b>（16 态是 1.12.2 meta 的硬上限），
+     * 保留字段只是为了二进制兼容：外部代码若能编译过它们的引用，链接不至于断。
+     * ★ 绝不能再把状态传给它们或把它们塞回状态容器里：
+     * {@code withProperty(DOWN, ...)} 会因"属性不在容器里"抛异常。
+     */
+    @Deprecated
     public static final PropertyBool DOWN = PropertyBool.create("down");
     public static final PropertyBool EAST = PropertyBool.create("east");
     public static final PropertyBool NORTH = PropertyBool.create("north");
     public static final PropertyBool SOUTH = PropertyBool.create("south");
+    @Deprecated
     public static final PropertyBool UP = PropertyBool.create("up");
     public static final PropertyBool WEST = PropertyBool.create("west");
 
-    /** 属性表，下标与 {@link #FACINGS} 一一对应（只给本类内部用） */
+    /** 真正参与状态容器的四个水平属性（16 种组合）。顺序同时决定 meta 位序。 */
     private static final IProperty<Boolean>[] PROPS = new IProperty[]{
-            DOWN, EAST, NORTH, SOUTH, UP, WEST,
+            EAST, NORTH, SOUTH, WEST,
     };
 
-    /** 掩码位数（6 个方向 → 0..63） */
+    /** {@link #PROPS} 每一项对应的旧版 6 位掩码位（{@code east=2, north=4, south=8, west=32}）。 */
+    private static final int[] PROPS_BITS = new int[]{2, 4, 8, 32};
+
+    /** 旧版掩码的最大值（6 位）；形状计算仍按这个口径。 */
     public static final int MASK_MAX = 63;
 
-    /** 管壁：核心的半径（以格为单位）。8/16 的芯，"一人高"的观感 */
+    /**
+     * "纯竖直"的模型索引 = down|up = 17。
+     * <p>
+     * ★ 这不是"备用分支"，而是<b>唯一正确</b>的取值：这种状态下四个水平位全 false，
+     * 资源侧必须给它一个竖直段模型，否则玩家放下第一节管看到的是一个空格子。
+     * 碰撞盒也走这个值，于是"看到的形状 = 碰撞的形状"。
+     */
+    public static final int VERTICAL_MASK = 17;
+
+    /** 管壁：核心的半径（以格为单位）。4/16 的芯，"一人高"的观感 */
     private static final double CORE_LO = 4.0D / 16.0D;
     private static final double CORE_HI = 12.0D / 16.0D;
 
@@ -97,62 +126,98 @@ public class BlockGiantPipe extends Block {
     }
 
     // ------------------------------------------------------------------ 状态
-
     @Override
     protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer(this, DOWN, EAST, NORTH, SOUTH, UP, WEST);
+        return new BlockStateContainer(this, EAST, NORTH, SOUTH, WEST);
     }
 
-    /** 掩码 -> 状态。{@code bit(i)} 对应 {@link #FACINGS}[i] */
+    /**
+     * 掩码 -> 状态。{@code bit(i)} 对应 {@link #FACINGS}[i]，即旧版 6 位掩码。
+     * <p>
+     * ★ 竖直两位（{@code bit0} down、bit4 up）<b>必须忽略</b>：它们不再在容器里，
+     * 直接 {@code withProperty(DOWN, ...)} 会抛 {@code IllegalArgumentException}。
+     * 现在这两位的唯一用处是让旧的<b>数据</b>（meta、旧存档）能被安全地读成
+     * "水平四位"，而不是报错。
+     */
     public static IBlockState applyMask(IBlockState state, int mask) {
         IBlockState s = state;
         for (int i = 0; i < PROPS.length; i++) {
-            s = s.withProperty(PROPS[i], Boolean.valueOf((mask & (1 << i)) != 0));
+            s = s.withProperty(PROPS[i], Boolean.valueOf((mask & PROPS_BITS[i]) != 0));
         }
         return s;
     }
 
-    /** 状态 -> 掩码。缺属性的状态（理论上不会出现）当 0 处理 */
+    /**
+     * 状态 -> 旧版 6 位掩码。缺属性的状态（理论上不会出现）当 0 处理。
+     * <p>
+     * ★ 水平位全 false 时返回 {@link #VERTICAL_MASK}（17），<b>不是 0</b>：
+     * 这样模型与碰撞盒都取"竖直段"，和资源侧 blockstate 里 0 态的映射完全一致。
+     */
     public static int maskOf(IBlockState state) {
-        int mask = 0;
+        int horizontal = 0;
         for (int i = 0; i < PROPS.length; i++) {
             Boolean v = state.getValue(PROPS[i]);
             if (v != null && v.booleanValue()) {
-                mask |= 1 << i;
+                horizontal |= PROPS_BITS[i];
             }
         }
-        return mask;
+        return horizontal == 0 ? VERTICAL_MASK : horizontal;
     }
 
-    /** meta = 掩码（仅作缓存；渲染时真正用的是 {@link #getActualState}） */
+    /**
+     * meta -> 状态。<b>4 位打包</b>：meta 的第 i 位对应 {@link #PROPS}[i]，所以 meta 只会是 0..15。
+     * <p>
+     * ★ 这里<b>不能</b>直接把 meta 当旧掩码用：旧掩码的 east 是 bit1、west 是 bit5，
+     * 二进制位置和"4 位 meta"完全不同，混用会让存档里一半的管子变成另一个方向。
+     */
     @Override
     public IBlockState getStateFromMeta(int meta) {
-        return applyMask(getDefaultState(), meta & MASK_MAX);
+        int legacy = 0;
+        for (int i = 0; i < PROPS.length; i++) {
+            if ((meta & (1 << i)) != 0) {
+                legacy |= PROPS_BITS[i];
+            }
+        }
+        return applyMask(getDefaultState(), legacy);
     }
 
+    /** 状态 -> meta，4 位打包（meta 永远 0..15）。和 {@link #getStateFromMeta} 互为逆。 */
     @Override
     public int getMetaFromState(IBlockState state) {
-        return maskOf(state) & MASK_MAX;
+        int meta = 0;
+        for (int i = 0; i < PROPS.length; i++) {
+            if (Boolean.TRUE.equals(state.getValue(PROPS[i]))) {
+                meta |= 1 << i;
+            }
+        }
+        return meta & 0xF;
     }
 
     /**
      * 现算这一格往哪几个方向伸出了管臂。
      * <p>
-     * ★ 这个方法在区块重建渲染时被<b>高频</b>调用，绝不能抛异常（会直接崩渲染线程），
+     * ★ 这个方法在区块重建渲染时被<b>高频</b>调用，绝不能抛异常（会直接穿渲染线程），
      * 所以整段包了 try/catch。和 {@code BlockTrainRail#getActualState} 同样的纪律。
+     * <p>
+     * ★ 只统计四个<b>水平</b>方向（{@link EnumFacing.Axis#Y} 直接跳过）：竖直方向不再是属性，
+     * 统计了也没地方放。
      */
     @Override
     public IBlockState getActualState(IBlockState state, IBlockAccess worldIn, BlockPos pos) {
         int mask = 0;
         try {
             for (int i = 0; i < FACINGS.length; i++) {
-                if (connectsTo(worldIn, pos, FACINGS[i])) {
+                EnumFacing facing = FACINGS[i];
+                if (facing.getAxis() == EnumFacing.Axis.Y) {
+                    continue;
+                }
+                if (connectsTo(worldIn, pos, facing)) {
                     mask |= 1 << i;
                 }
             }
         } catch (Throwable ignored) {
             // 读邻居出意外就退回"孤立一截芯"，反正只是个显示：宁可画成孤立，
-            // 也不能让渲染线程崩掉。
+            // 也不能让渲染线程崩溃。
             mask = 0;
         }
         return applyMask(state, mask);
@@ -244,12 +309,12 @@ public class BlockGiantPipe extends Block {
     }
 
     /**
-     * ★★★ 窒息豁免，<b>显式</b>写出来。
+     * ★★ 窒息豁免：<b>显式</b>写出来。
      * <p>
      * 按现在的实现，{@link #isFullCube} 恒为 false，所以"什么都不写"也是安全的。
      * 之所以仍然显式覆写，是因为本模组已经在 {@code Block.causesSuffocation} 上
-     * 栽过三次（防爆门、F9 门、电梯层门）：它的默认实现问的是
-     * {@code getDefaultState().isFullCube()}，采样点是<b>眼睛那一格</b>，
+     * 栽过三次（防爆门、F9 门、电梯层间）：它的默认实现问的是
+     * {@code getDefaultState().isFullCube()}，采样点是<b>眼睛那一格</b>；
      * 一旦有人把 {@code isFullCube} 改成"看状态"（管道完全可能被改成
      * "没管臂时算满块"），这里就会变成"站在管道里被憋死"，而且看不出和碰撞盒有关。
      * 留着这一行 + {@code verify_jar:EXPECT_NO_SUFFOCATION} 的登记，

@@ -15,7 +15,11 @@ What it prints, in order:
      ones where a merge can actually go wrong;
   5. the four licence/collaboration files, because deleting those is the one
      change that turns the repository into an unauthorised distribution;
-  6. releases published after our HEAD commit, because a collaborator's real
+  6. the handover file (``交接.md``), which the tester/developer maintains with
+     the result of every build he actually launched the game for. It is the only
+     record of what has been verified *in Minecraft* rather than by a static
+     check, so it decides what is safe to touch next;
+  7. releases published after our HEAD commit, because a collaborator's real
      code may exist only as a jar + sources zip. On 2026-11-15 that is exactly
      where it was: his three commits only deleted and restored two markdown
      files, while three real fixes sat in the v3.3.0 source archive. A git-only
@@ -34,6 +38,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 PROTECTED = ("LICENSE", "NOTICE.md", "AUTHORIZATION.md", "CONTRIBUTING.md")
 
+# 测试与开发那一侧维护的交接记录（每次真的开了游戏之后写什么、什么没过）。
+HANDOVER = "交接.md"
+
 # Files that are generated from something else; a diff here is usually noise
 # from a rebuild, not an edit somebody made on purpose.
 GENERATED = ("docs/assets/data.js",)
@@ -44,6 +51,36 @@ def git(*args):
     out = proc.stdout.decode("utf-8", "replace")
     err = proc.stderr.decode("utf-8", "replace")
     return proc.returncode, out, err
+
+
+def handover(incoming_files):
+    """交接记录：有就读它的最后更新，没有就明说没有。
+
+    这份文件由测试那一侧维护，记的是"真的开过游戏之后"的结果——静态检查看不见的
+    东西（模组能不能加载、方块是不是紫黑、方块实体有没有写 NBT 崩溃）都在里面。
+    所以它不是参考资料之一，而是排在最前面的依据。
+    """
+    print("== 交接 ==")
+    path = os.path.join(ROOT, HANDOVER)
+    if not os.path.isfile(path):
+        print("  仓库里没有 %s。" % HANDOVER)
+        print("  测试记录无从参考：这一轮只能按代码与离线检查来判断，别把"
+              "「没报错」当成「进游戏没问题」。")
+        return
+
+    _c, info, _e = git("log", "-1", "--format=%h\t%an\t%ad\t%s", "--date=short",
+                       "--", HANDOVER)
+    info = info.strip()
+    if info:
+        sha, author, date, subject = (info.split("\t") + ["", "", ""])[:4]
+        print("  最后更新  %s  %s  %s  %s" % (sha, author, date, subject))
+    print("  当前 %s 字节" % format(os.path.getsize(path), ","))
+
+    if HANDOVER in incoming_files:
+        print("  ！！对方在待并入的提交里改过它，下面是差异：")
+        _c, diff, _e = git("diff", "--unified=1", "HEAD..origin/master", "--", HANDOVER)
+        for line in diff.splitlines()[:40]:
+            print("    " + line)
 
 
 def releases():
@@ -173,6 +210,9 @@ def main():
             print("   AUTHORIZATION.md 不在树上，任何一次 clone 都是没有授权的分发。")
             print("   先恢复再谈别的（checkall 的 check_files 会红）。")
             print()
+
+    handover(files if incoming else [])
+    print()
 
     newer_release = releases()
     print()

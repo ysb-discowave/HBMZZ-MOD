@@ -42,7 +42,28 @@
 
 ---
 
-## 2. 提交之前先自检
+## 2. 开工之前先对账
+
+这个仓库有第二条更新线（协作者直推 `master`，没有 PR），而且**他的代码不一定在 git 里**：
+2026-11-15 那次，他的三个提交只删/恢复了两个 markdown 文件，三处真修复却在 v3.3.0 的
+Release 源码包里。只比 git 会得出「没有东西要合」的错误结论。
+
+```bash
+python tools/sync/preflight.py
+```
+
+它 `fetch --tags --prune` 之后打印：两侧 tip、我们没有的提交（作者/日期/主题）、改动
+文件的目录分布、**两边都改过的冲突面**（只有这些文件会真的冲突）、四个受保护文件是否
+被删，以及**比本地 HEAD 更新的 Release**（含资产大小——41 MB 的 jar 就是一条线索）。
+退出码 2 表示有东西要先并入。
+
+整合时的规矩：能直接用的按**原样**取对方文件，不顺手改写；我们这边有同款问题的
+一起修；改动量级明显不同的（比如带 ffmpeg 与 MixinBooter 依赖的功能包）单独拿出来
+讨论，不静默并入。
+
+---
+
+## 3. 提交之前先自检
 
 ```bash
 python tools/checkall.py          # 有构建产物就跑两档，没有就只跑快速档
@@ -53,6 +74,11 @@ python tools/checkall.py --full    # 构建档缺失算失败，发版前跑这�
 分档的原因是成本差两个数量级：快速档纯静态解析，构建档要真的编译并运行实现类
 （`rbmkcheck` / `cecpcheck` / `termcheck` / `videocheck` / `linkercheck` / `reasimcheck`）。
 PR 的 CI 只跑快速档；构建档在本地或 self-hosted runner 上跑。
+
+`statecheck` 是 3.5.1 加的：它查 blockstate 的变体键是否按**属性名字母序**
+（`BlockStateContainer` 内部是 `ImmutableSortedMap`，顺序错了整块紫黑、且不报错），
+以及**进 meta 的部分是否 ≤4 位**——注意判据不是「状态数 ≤16」，原版楼梯 24 态、
+`BlockRedstoneDelayer` 64 态都合法，只要 `getMetaFromState` 收窄到 0..15。
 
 `tools/quickcheck.py` 是 40 秒的 javac 体检，可以当快速反馈，但它的 Forge jar 是 SRG 名，
 `getFront` / `mcServer` 这类会报假阳性——**过没过以 `checkall` 与 `gradle build` 为准**。
@@ -69,7 +95,7 @@ python tools/site/serve.py 8766    # 本地预览（必须用它，理由见下�
 
 ---
 
-## 3. 分支与 PR
+## 4. 分支与 PR
 
 - `master` 是发布分支，**受保护，不能直推**。
 - 从 `master` 开短分支：`feat/dfc-sensor`、`fix/panel-tilt`、`docs/ost-page`。
@@ -85,7 +111,7 @@ PR 里请写清三件事：**为什么改**（原来怎样、现在怎样）、*
 
 ---
 
-## 4. 改哪些文件容易撞车
+## 5. 改哪些文件容易撞车
 
 这五个地方所有人都会碰，多人并行时最容易冲突：
 
@@ -102,7 +128,7 @@ PR 里请写清三件事：**为什么改**（原来怎样、现在怎样）、*
 
 ---
 
-## 5. 红线
+## 6. 红线
 
 1. **每个 `.java` 都要带 GPL 头**，照抄现有文件的头。
 2. **不许从非 GPL 模组抄代码。** NTM 生态里来源不清的代码很多，混进来一次就得整包重写。
@@ -115,7 +141,7 @@ PR 里请写清三件事：**为什么改**（原来怎样、现在怎样）、*
 
 ---
 
-## 6. 发版（只有维护者做）
+## 7. 发版（只有维护者做）
 
 ```bash
 # 1) 三处版本号

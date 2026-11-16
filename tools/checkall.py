@@ -142,6 +142,59 @@ def check_reasim():
     return run([java, "-cp", out + os.pathsep + CLASSES, "DspCheck"])
 
 
+# FML 的状态事件（FMLPreInitializationEvent / FMLServerStoppedEvent …）继承的是
+# FMLStateEvent，不是 Event。它们只能走 @Mod.EventHandler；写进 @SubscribeEvent
+# 会让 EventBus.register 在参数类型校验时抛 IllegalArgumentException，而那条校验
+# 发生在 preInit 的注册调用里——整个模组加载失败，报错还指向注册那一行。
+FML_EVENT = __import__("re").compile(r"\bFML\w*Event\b")
+
+
+def _strip_comments(text):
+    """去掉 // 与 /* */ 之后的内容。
+
+    注释里提到 @SubscribeEvent（本节自己在解释这个坑）时，正则会把后面随便
+    一个 `foo();` 当成方法签名配对，于是报出一条不存在的错。
+    """
+    import re as _re
+    text = _re.sub(r"/\*.*?\*/", " ", text, flags=_re.S)
+    text = _re.sub(r"//[^\n]*", " ", text)
+    return text
+
+
+def check_events():
+    """@SubscribeEvent 的参数必须是 Event 子类，且只能有一个。"""
+    import re as _re
+    bad = []
+    for base, _dirs, files in os.walk(os.path.join(ROOT, "src", "main", "java")):
+        for name in files:
+            if not name.endswith(".java"):
+                continue
+            path = os.path.join(base, name)
+            text = _strip_comments(io.open(path, encoding="utf-8").read())
+            if "@SubscribeEvent" not in text:
+                continue
+            for m in _re.finditer(r"@SubscribeEvent\b[^{;]*?\b(\w+)\s*\(([^)]*)\)", text, _re.S):
+                params = m.group(2).strip()
+                parts = [x.strip() for x in params.split(",") if x.strip()]
+                rel = os.path.relpath(path, ROOT)
+                if not parts:
+                    bad.append("%s %s() 没有参数" % (rel, m.group(1)))
+                elif len(parts) > 1:
+                    bad.append("%s %s 收了 %d 个参数" % (rel, m.group(1), len(parts)))
+                else:
+                    ptype = parts[0].rsplit(" ", 1)[0].strip()
+                    if FML_EVENT.search(ptype):
+                        bad.append("%s %s(%s) 是 FML 状态事件，应走 @Mod.EventHandler"
+                                   % (rel, m.group(1), ptype))
+    if bad:
+        return False, "\n".join(bad)
+    return True, ""
+
+
+def check_statecheck():
+    return run([sys.executable, os.path.join("tools", "statecheck", "check.py")])
+
+
 def check_gate():
     """红石门的真值表。GateType 不 import Minecraft，可以直接编来跑。"""
     jh = java_home()
@@ -178,6 +231,8 @@ def check_dfc():
 
 FAST = [
     ("许可与协作文件（LICENSE / NOTICE / AUTHORIZATION / CONTRIBUTING）", check_files),
+    ("statecheck（blockstate 键序 / 状态数与 meta 上限）", check_statecheck),
+    ("事件注解（@SubscribeEvent 的参数必须是 Event 子类）", check_events),
     ("regcheck（注册 / 配方 / 模型表 63 条）", check_regcheck),
     ("站点 HTML 审计", check_site_audit),
     ("站点数据一致性", check_site_data),

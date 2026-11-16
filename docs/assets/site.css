@@ -694,6 +694,35 @@ td code { white-space: nowrap; }
 .note p:last-child { margin: 0; }
 
 /* --------------------------------------------------------------------------
+   致谢页的配乐条（这一页不放右侧那台机器，只有这一行）
+   -------------------------------------------------------------------------- */
+.thanks-audio { padding: 14px 18px; }
+.thanks-audio-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.thanks-audio-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.thanks-audio-meta strong {
+  font: 700 13px/1.3 var(--mono);
+  letter-spacing: .1em;
+  color: var(--text);
+}
+.thanks-audio-meta span {
+  font: 500 11.5px/1.5 var(--mono);
+  letter-spacing: .05em;
+  color: var(--text-mute);
+}
+.thanks-audio.is-on { border-color: rgba(245, 165, 36, .42); }
+.thanks-audio.is-err .thanks-audio-meta span { color: var(--amber); }
+
+/* --------------------------------------------------------------------------
    页脚
    -------------------------------------------------------------------------- */
 .foot {

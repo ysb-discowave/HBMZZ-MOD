@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>致谢 — HBMZZ</title>
-<meta name="description" content="HBMZZ 的致谢页：谢谢支持者「我的世界晴天菊」，附他的 B 站主页与「HBMZZ玩家社群」（1134138830）。">
+<meta name="description" content="HBMZZ 的致谢页：谢谢「我的世界晴天菊」、上、星座云（DSH-Tiny），附他们的 B 站主页与「HBMZZ玩家社群」（1134138830）。">
 <meta name="theme-color" content="#0a0c0f">
 <link rel="icon" href="assets/brand/logo-mark.svg" type="image/svg+xml">
 <link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32" type="image/png">
@@ -15,11 +15,11 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:type" content="website">
-<meta property="og:title" content="谢谢「我的世界晴天菊」 — HBMZZ 致谢">
-<meta property="og:description" content="这个模组做到今天，不全是作者一个人的事。">
-<link rel="stylesheet" href="assets/site.css?v=70662f1e0d">
+<meta property="og:title" content="谢谢你们 — HBMZZ 致谢">
+<meta property="og:description" content="我的世界晴天菊、上、星座云（DSH-Tiny）——这一页记下三个名字。">
+<link rel="stylesheet" href="assets/site.css?v=254a655cd9">
 </head>
-<body>
+<body data-no-dock data-thanks-track="assets/audio/thanks-theme.mp3">
 
 <header class="nav">
   <div class="nav-in">
@@ -45,20 +45,38 @@
   <div class="page-head">
     <div class="wrap">
       <div class="kicker">// 致谢</div>
-      <h1>谢谢「我的世界晴天菊」</h1>
+      <h1>谢谢你们</h1>
       <p class="lead">
         这个模组做到今天，不全是作者一个人的事。有人愿意在旁边看着、说一句「这个不错」，
-        或者只是留了下来——这些都是很实在的鼓励。这一页专门留给他，
-        也留给之后每一个愿意支持这个模组的人。
+        或者只是留了下来——这些都是很实在的鼓励。这一页记下三个名字：
+        <strong>我的世界晴天菊</strong>、<strong>上</strong>、<strong>星座云（DSH-Tiny）</strong>。
       </p>
     </div>
   </div>
+
+  <!-- ================= 这一页的配乐 =================
+       曲子还没做好，路径先留在 body 上：data-thanks-track。
+       明天把文件放进 assets/audio/ 后，改这一个属性（或直接覆盖同名文件）即可。 -->
+  <section class="section" id="theme">
+    <div class="wrap">
+      <div class="panel panel--bolted thanks-audio" data-thanks-player>
+        <div class="thanks-audio-row">
+          <button class="btn" type="button" data-thanks-toggle aria-pressed="false">播放</button>
+          <div class="thanks-audio-meta">
+            <strong>致谢页配乐</strong>
+            <span data-thanks-state>准备播放…</span>
+          </div>
+        </div>
+        <audio data-thanks-audio loop preload="auto" hidden></audio>
+      </div>
+    </div>
+  </section>
 
   <!-- ================= 一封短信 ================= -->
   <section class="section" id="letter">
     <div class="wrap">
       <div class="section-head">
-        <div class="kicker">// 写给他的一句话</div>
+        <div class="kicker">// 写给「我的世界晴天菊」</div>
         <h2>做模组这件事，大部分时间是安静的</h2>
       </div>
 
@@ -78,12 +96,51 @@
     </div>
   </section>
 
+  <!-- ================= 还有两位 ================= -->
+  <section class="section" id="more">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 还有两位</div>
+        <h2>一个没有留主页，一个留了</h2>
+        <p>页面上有什么就写什么：没有链接的那一位，这里也不会替他编一个。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="panel panel--bolted">
+          <div class="card-num">—</div>
+          <h3 style="margin:10px 0 6px;font-size:18px">「上」</h3>
+          <p style="margin:0 0 14px;color:var(--text-mute);font:500 11px/1.7 var(--mono);letter-spacing:.08em">
+            NO HOMEPAGE
+          </p>
+          <p style="margin:0">
+            他很神秘，没有留下主页，也没让这里写别的东西。
+            那就只有一句：<strong>「上」，谢谢你。</strong>
+          </p>
+        </div>
+
+        <div class="panel panel--bolted">
+          <div class="card-num">BILIBILI</div>
+          <h3 style="margin:10px 0 6px;font-size:18px">星座云 · DSH-Tiny</h3>
+          <p style="margin:0 0 14px;color:var(--text-mute);font:500 11px/1.7 var(--mono);letter-spacing:.08em">
+            SPACE.BILIBILI.COM / 3706961906371549
+          </p>
+          <p style="margin:0 0 16px">
+            三个人里他的名字最多：大家叫他<strong>星座云</strong>，网名叫 <strong>DSH-Tiny</strong>，
+            仓库里的协作者 <strong>wzh</strong> 也是他。
+          </p>
+          <a class="btn" href="https://space.bilibili.com/3706961906371549?spm_id_from=333.337.0.0"
+             target="_blank" rel="noopener noreferrer">打开 B 站主页 ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 找到他 / 找到我们 ================= -->
   <section class="section" id="find">
     <div class="wrap">
       <div class="section-head">
-        <div class="kicker">// 他的主页，和我们的社群</div>
-        <h2>从这里可以找到他，也可以找到我们</h2>
+        <div class="kicker">// 「我的世界晴天菊」的主页</div>
+        <h2>他的 B 站主页，和我们的社群</h2>
         <p>这两个链接都不是必须点的。放在这里，只是因为它们都是真的。</p>
       </div>
 
@@ -168,6 +225,6 @@
 </footer>
 
 <script src="assets/data.js?v=aeb46a713d"></script>
-<script src="assets/site.js?v=a5a4e03905"></script>
+<script src="assets/site.js?v=95371114ff"></script>
 </body>
 </html>

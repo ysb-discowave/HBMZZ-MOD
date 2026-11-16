@@ -194,6 +194,9 @@
   })();
 
   function initDock() {
+    /* 有些页面不需要这台机器：致谢页自带一首循环曲，两路声音同时响没有意义。
+       页面只要在 body 上写 data-no-dock，这里就什么都不建（连 DOM 都不插）。 */
+    if (document.body.hasAttribute("data-no-dock")) return;
     if (document.querySelector("[data-dock]")) return;
 
     var dock = document.createElement("aside");
@@ -719,6 +722,122 @@
     paint();
   }
 
+  /* --------------------------------------------------------------- 致谢页的配乐
+
+     这一页不放右边那台机器（body 上有 data-no-dock），它只要一首：进页面就放，
+     循环，直到离开。曲子还没做好的时候这里跑的是同一段代码——路径由 HTML 上的
+     data-thanks-track 给，换文件或换路径只改那一个属性，不用动脚本。
+
+     自动播放这件事浏览器说了算：没有用户手势时 play() 会被拒。所以顺序是
+     ① 先试；② 被拒就把按钮点亮、写明「按一下开始」，并在页面第一次点击/按键时
+     接着放；③ 文件取不到（404）则写明「还没接入」，绝不假装在播。 */
+  function initThanksAudio() {
+    var player = document.querySelector("[data-thanks-player]");
+    var audio = document.querySelector("[data-thanks-audio]");
+    if (!player || !audio) return;
+
+    var toggle = player.querySelector("[data-thanks-toggle]");
+    var stateEl = player.querySelector("[data-thanks-state]");
+    var track = document.body.getAttribute("data-thanks-track") || "";
+    /* idle（还没开始）/ playing / blocked（被自动播放策略拦）/ error（取不到文件） */
+    var status = "idle";
+    /* play() 是异步的：同一个手势里别调两次，否则后一次会把前一次打断 */
+    var pending = false;
+
+    function say(text) {
+      if (stateEl) stateEl.textContent = text;
+    }
+
+    function paint() {
+      var on = status === "playing";
+      if (toggle) {
+        toggle.textContent = on ? "暂停" : "播放";
+        toggle.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      player.classList.toggle("is-on", on);
+      player.classList.toggle("is-err", status === "error");
+      if (status === "playing") {
+        var d = audio.duration;
+        var now = trackClock(audio.currentTime);
+        say(isFinite(d) && d > 0
+          ? "正在播放 · " + now + " / " + trackClock(d) + " · 循环"
+          : "正在播放 · " + now + " · 循环");
+      } else if (status === "blocked") {
+        say("浏览器拦下了自动播放 · 按一下开始");
+      } else if (status === "error") {
+        say("这首还没接入 · " + track);
+      } else {
+        say("准备播放…");
+      }
+    }
+
+    if (!track) {
+      status = "error";
+      say("还没有配置曲目（body 上的 data-thanks-track）");
+      paint();
+      return;
+    }
+
+    audio.src = track;
+    audio.loop = true;
+    audio.preload = "auto";
+
+    audio.addEventListener("playing", function () { status = "playing"; paint(); });
+    audio.addEventListener("pause", function () {
+      if (status === "playing") { status = "idle"; paint(); }
+    });
+    audio.addEventListener("ended", function () {
+      /* 理论上 loop 会自己接上；真停了就再点一次，宁可多试也不要静音 */
+      status = "idle";
+      paint();
+    });
+    audio.addEventListener("timeupdate", function () {
+      if (status === "playing") paint();
+    });
+    audio.addEventListener("error", function () {
+      status = "error";
+      paint();
+    });
+
+    function attempt() {
+      if (status === "error" || pending) return;
+      pending = true;
+      var p = audio.play();
+      function settle() { pending = false; }
+      if (p && p.then) {
+        p.then(settle, function () {
+          settle();
+          if (status !== "playing") { status = "blocked"; paint(); }
+        });
+      } else {
+        settle();
+      }
+    }
+
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        if (status === "error") return;
+        /* 看 status 而不是 audio.paused：play() 是异步的，这一帧 paused 还是 true，
+           两个处理器会一个放一个停，表现成"第一下点了没反应"。 */
+        if (status === "playing") audio.pause(); else attempt();
+      });
+    }
+
+    /* 被自动播放策略拦下之后，页面上的第一下手势就是许可。点在这台小播放器自己身上
+       时不插手——那一下由按钮处理，否则会出现"放了又被自己暂停"。 */
+    function nudge(e) {
+      document.removeEventListener("pointerdown", nudge, true);
+      document.removeEventListener("keydown", nudge, true);
+      if (e && e.target && player.contains(e.target)) return;
+      if (status === "blocked") attempt();
+    }
+    document.addEventListener("pointerdown", nudge, true);
+    document.addEventListener("keydown", nudge, true);
+
+    paint();
+    attempt();
+  }
+
   function ready(fn) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
     else fn();
@@ -730,5 +849,6 @@
     initMenu();
     initCopy();
     initDock();
+    initThanksAudio();
   });
 })();

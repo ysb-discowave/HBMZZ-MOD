@@ -1083,6 +1083,81 @@ FML 支持同一枚 jar 里有多个 `@Mod` 类，代价只是模组列表里多
 > FML 会在加载阶段直接崩，而且报错文字完全指不到这件事上。`tools/deploy.py` 现在会
 > 自动把它改名成 `.jar.merged` 并打印原因。
 
+### 多格式音频（3.6.0，并入 wzh3203 的 rsaudiofm）
+
+3.6.0 之前，`config/rsaudio/audio` 里只认 `.ogg`：别的格式会被统计成「放不了的文件」，
+界面里明说请先转码。这一版把 **wzh3203** 的 `rsaudiofm` 插件（25 个文件、6,000 余行）
+并了进来，**mp3 与 flac 可以直接放进目录就播**，不再需要先转 ogg。
+
+**两条路线，选一条走：**
+
+| 路线 | 怎么放 | 依赖 |
+|---|---|---|
+| 直出（PCM） | 解码成 PCM 直接推给声卡，绕过原版声音引擎（因此也不走资源包） | 四个解码库（已在 jar 里） |
+| 转码 | 用 ffmpeg 转成 ogg 存到 `config/rsaudiofm/cache`，然后交给原版引擎 | ffmpeg.exe（**不随包**，见下） |
+
+默认直出。`config/rsaudiofm/rsaudiofm.cfg` 里 `route=NATIVE` 可以钉死走转码；
+`pcmMaxConcurrent`、`oggQuality`、`cacheLimitMb`、`autoConvert` 都在同一个文件里。
+
+**ffmpeg 不随包。** 这一点和 wzh3203 的原始 41.6 MB 版本不同：他的 jar 里塞了一份
+`ffmpeg.exe`（约 35 MB）。`FfmpegFinder` 本来就会按 `config/rsaudiofm/bin` → 游戏目录 →
+`mods/` → `PATH` 的顺序去找，找不到时只关掉转码路线、直出照常——所以那 35 MB 对绝大多数
+玩家是白背的。要用转码就自己把 `ffmpeg.exe` 丢进 `config/rsaudiofm/bin/`。
+
+**没有 MixinBooter 这一层。** 原插件是独立模组，改不了宿主，只能靠 Mixin 注入
+`ClientSoundPlayer` 的播放入口，于是玩家必须额外装 MixinBooter（2.4 MB，且是 coremod）。
+合并之后宿主代码就在同一枚 jar 里，那把钩子直接写进了 `ClientSoundPlayer` 自己的五个方法：
+
+```java
+play(pos, name, loop, params)   // 直出接管；返回 false 表示"不归我管"，照原样走原版引擎
+stop(pos) / stopAll()           // 直出会话也要收尾，否则声卡上留下没人管的会话
+preview(name, params) / stopPreview()
+```
+
+reasim 打开时直出路线不插手（reasim 只处理 ogg，两条路同时响会变成两遍）。
+
+**四个解码库随仓库走、构建时嵌入。** `libs/` 下是 JLayer（mp3 解码）、mp3spi（把它接进
+Java Sound SPI）、tritonus-share（SPI 基类）、jflac（flac），合计约 0.48 MB。
+**SPI 描述符必须合并**：mp3spi 与 jflac 各带一个
+`META-INF/services/javax.sound.sampled.spi.AudioFileReader`，直接 `zipTree` 叠在一起会互相
+覆盖，结果只有一种格式能被认出来——而且不报错，只是"读不出来"。`build.gradle` 里的
+`formatsServices` 任务把它们并成一份，`stripDevCache` 在 reobf 之后再把库和合并后的描述符
+一起塞进最终 jar（趁 reobf 之前塞，等于让它的映射表去处理第三方字节码，没有必要）。
+
+### 内置曲目：三首 OST
+
+jar 里带了三首本项目自己的曲子（与官网[原声页](docs/ost.html)同一批），
+以 Ogg Vorbis（q6，约 13 MB）放在 `src/main/resources/assets/hbmzz/sounds/ost/`：
+
+| jar 内 | 落地到 `config/rsaudio/audio` | 时长 |
+|---|---|---|
+| `how-to-survive.ogg` | `HBMZZ OST 01 How to survive.ogg` | 3:15 |
+| `when-will-it-end.ogg` | `HBMZZ OST 02 When will it end.ogg` | 5:17 |
+| `the-ending-of-melting.ogg` | `HBMZZ OST 03 The ending of melting.ogg` | 3:13 |
+
+**它不参与播放，只做搬运。** 音乐库本来就不是一张静态清单，而是一个目录：
+`AudioLibrary` 扫 `config/rsaudio/audio/*.ogg`，`DynamicSoundPack` 据此生成资源包与
+`sounds.json`，播放器界面再把条目列出来。所以 `BuiltinMusic.ensureInstalled()`
+（`ClientProxy.init` 里调用，早于首帧那次扫描）只负责首次启动时把三首复制过去——
+之后它们与玩家手动放进目录的文件**没有任何区别**，改名、替换、删除都照常。
+
+- **补装只做一次**：`config/rsaudio/builtin-music.txt` 记 `seed=<版本>`。玩家删掉曲目后
+  不会再被塞回来；删掉这个标记文件才会重装。
+- **改了曲目就把 `BuiltinMusic.SEED_VERSION` +1**，否则已经装过的玩家拿不到新文件。
+- **落地名决定显示名与资源名**：`HBMZZ OST NN 曲名` 让三首按字母序排在一起，
+  `AudioLibrary.sanitize` 会把它们变成 `hbmzz_ost_01_how_to_survive` 这类合法资源名。
+- **不要改成往 jar 的 `sounds.json` 里写条目**：那要另开一条播放路径（时长读取、删不掉的列表项、
+  资源包优先级），而现有链路已经把这些解决了。
+- `python tools/checkall.py --fast` 有一条专门的检查盯着这里：资源在不在、是不是真 Ogg、
+  落地名规范化后会不会互相覆盖。这三件事漏了都不报错，只是"列表里少几项"。
+- **封面是烧进文件里的**，不是外挂一张图：mp3 走 ID3v2.3 的 `APIC`，ogg 走 Vorbis comment 的
+  `METADATA_BLOCK_PICTURE`，同一张 `ost-cover-512.png`（96 KB）。改封面就
+  `python tools/audio/burn_cover.py`，它同时把 `title / artist / album / track` 写齐——
+  之前 ogg 的 artist 是 `Yang Sibo`、站点 mp3 的 artist 是 `HBMZZ`，同一首歌在锁屏和下载后
+  显示两个作者名。**烧过之后要重新构建**，jar 里装的是 `src/main/resources` 那份 ogg。
+- **为什么不用 ffmpeg 烧**：这台机器的 ffmpeg 8.1 的 ogg 封装器根本不收 attached_pic
+  （`Unsupported codec id in stream 0`），mp3 能写、ogg 不能，两边会不一致。
+
 ### reasim：扬声器真实度模拟
 
 右键播放器 → 模式行最右边的 `REASIM` 按钮 → 打开总开关。

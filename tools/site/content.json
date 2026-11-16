@@ -240,6 +240,19 @@
   ],
   "timeline": [
     {
+      "version": "3.6.0",
+      "title": "mp3 直接放，外加一处「点面板边缘会崩」的修复",
+      "items": [
+        "并入 wzh3203 的 rsaudiofm（25 个文件、6,000 余行，com.rsaudio.formats）：config/rsaudio/audio 不再只认 .ogg，mp3 与 flac 放进去就能在播放器里选到、放出来。",
+        "MixinBooter 那一层拿掉了：原插件改不了宿主，只能靠 Mixin 注入 ClientSoundPlayer；合并后宿主同 jar，钩子直接写进 play/stop/stopAll/preview/stopPreview 五个方法，玩家不必再装 2.4 MB 的 coremod。",
+        "ffmpeg.exe 没有随包：他的 jar 41.6 MB 里约 35 MB 是这份二进制，而它只服务转码一条路。FfmpegFinder 仍按 config/rsaudiofm/bin → 游戏目录 → mods → PATH 探测，找不到就只关掉转码，直出照常。",
+        "四个解码库（JLayer / mp3spi / tritonus-share / jflac，约 0.48 MB）随仓库走并嵌进 jar；SPI 描述符必须合并，否则 mp3spi 与 jflac 的 AudioFileReader 互相覆盖，只有一种格式能被认出来且不报错。",
+        "修掉运行期 AbstractMethodError：填充板转发右键时走 IPanelOrigin.onBlockActivated，而 reobf 只把实现类改名成 func_180639_a，接口声明保持原名 → invokeinterface 找不到实现。现在按 Block 类型调用，接口里也不再声明它。3.1.0 起就在，只有真去点面板边缘才会撞上。",
+        "OST 三首烧了封面（mp3 走 ID3 APIC，ogg 走 METADATA_BLOCK_PICTURE），并统一了 artist / album / track：之前 ogg 的 artist 是 Yang Sibo、站点 mp3 是 HBMZZ。",
+        "主 jar 16,155,037 B → 17,054,958 B。编译一次过、离线检查全绿；本机仍无 Minecraft 实例，未做真机验证。"
+      ]
+    },
+    {
       "version": "3.5.2",
       "title": "先把「起不来」修掉，再修两种「方块的四个状态位」",
       "items": [

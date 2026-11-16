@@ -165,7 +165,13 @@ public class BlockDFCMonitorPart extends Block {
         if (!(block instanceof IPanelOrigin)) {
             return false;
         }
-        return ((IPanelOrigin) block).onBlockActivated(world, origin, originState, player, hand,
+        // ★ 必须按 Block 调，不能走接口。
+        //   reobfJar 会把实现类里这个重写改名成 func_180639_a，而 IPanelOrigin 里那份
+        //   声明（它不是 Block 的子类，映射表里没有它）保持 onBlockActivated 原名 ——
+        //   于是 invokeinterface 找的是一个没人实现的方法，运行时抛 AbstractMethodError。
+        //   点 2×2 面板的三个填充格正好走这条路径。（塔塔鲁斯门的 BlockGatePart 一开始
+        //   就写成了 Block 调用，所以它没踩到。）
+        return block.onBlockActivated(world, origin, originState, player, hand,
                 facing, hitX, hitY, hitZ);
     }
 

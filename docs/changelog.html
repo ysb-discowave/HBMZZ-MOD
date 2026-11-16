@@ -90,8 +90,53 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.5.2</span>
+            <span class="tl-ver">v3.6.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>mp3 直接放，外加一处「点面板边缘会崩」的修复</h3>
+          <ul>
+            <li><strong>并入了 wzh3203 的 <code>rsaudiofm</code>。</strong>25 个文件、6,000 余行，位置在
+              <code>com.rsaudio.formats</code>。从此 <code>config/rsaudio/audio</code> 里不再只认 <code>.ogg</code>：
+              <strong>mp3 与 flac 放进去就能在播放器列表里选到、放出来</strong>，别的格式还能靠 ffmpeg 转码。
+              <code>LibraryInjector</code> 负责把非 ogg 文件注入曲库，<code>PlaybackManager</code> 负责把解码后的
+              PCM 直接推给声卡。</li>
+            <li><strong>但 MixinBooter 那一层被拿掉了，这是本次改造的核心。</strong>原插件是独立模组、改不了宿主，
+              只能靠 Mixin 注入 <code>ClientSoundPlayer</code> 的播放入口，于是玩家必须额外装 MixinBooter
+              （2.4 MB 的 coremod）。合并之后宿主代码就在同一枚 jar 里，那把钩子直接写进了播放器自己的五个方法
+              （<code>play</code> / <code>stop</code> / <code>stopAll</code> / <code>preview</code> /
+              <code>stopPreview</code>）：直出接管时提前返回，<code>false</code> 就照原样走原版引擎。
+              两个 mixin 配置、加载器、以及那个第三方依赖一并删掉。</li>
+            <li><strong><code>ffmpeg.exe</code> 没有随包。</strong>他的 jar 是 41.6 MB，其中约 35 MB 就是这份
+              二进制；而它只服务「转码」这一条路。<code>FfmpegFinder</code> 本来就会按
+              <code>config/rsaudiofm/bin</code> → 游戏目录 → <code>mods/</code> → <code>PATH</code> 的顺序找，
+              找不到只关掉转码、直出照常。所以这里只保留探测逻辑，要用转码的自己丢一份进去。</li>
+            <li><strong>四个解码库随仓库走，构建时嵌进 jar。</strong>JLayer（mp3 解码）、mp3spi（接进 Java Sound
+              SPI）、tritonus-share（SPI 基类）、jflac，合计约 0.48 MB。踩到并修掉一个坑：mp3spi 与 jflac
+              各带一个 <code>META-INF/services/javax.sound.sampled.spi.AudioFileReader</code>，直接
+              <code>zipTree</code> 叠在一起会互相覆盖，<b>只有一种格式能被认出来，而且不报错</b>。
+              新加的 <code>formatsServices</code> 任务把描述符并成一份，<code>stripDevCache</code> 在
+              reobf 之后再把库与描述符一起塞进最终 jar。</li>
+            <li><strong>修掉一个运行期崩溃：<code>AbstractMethodError</code>，点 2×2 面板的三个填充格必踩。</strong>
+              填充板要「转发右键给原点格」，原来走 <code>IPanelOrigin</code> 接口。接口里这个方法叫
+              <code>onBlockActivated</code>，实现类里那个重写却被 reobf 改名成 <code>func_180639_a</code>——
+              接口声明不是 <code>Block</code> 的子类，映射表里没有它，名字原样保留，于是
+              <code>invokeinterface</code> 找到的是一个没人实现的方法。现在转发点直接按 <code>Block</code>
+              类型调用（<code>BlockGatePart</code> 从第一天起就是这么写的），接口里也不再声明它。
+              <b>3.1.0 起就在，静态检查与编译都看不见，只有真去点面板边缘才会撞上。</b></li>
+            <li><strong>OST 三首现在带封面。</strong>mp3 走 ID3v2.3 的 <code>APIC</code>，ogg 走 Vorbis comment 的
+              <code>METADATA_BLOCK_PICTURE</code>，同一张 <code>ost-cover-512.png</code>（那张三根电平柱的 OST 标）。
+              顺带把标签统一了：之前 ogg 的 artist 是 <code>Yang Sibo</code>、站点 mp3 的 artist 是
+              <code>HBMZZ</code>，同一首歌在锁屏和下载后显示两个作者名。烧录脚本
+              <code>tools/audio/burn_cover.py</code> 现在是标签的唯一来源。</li>
+            <li><strong>体积与验证：</strong>主 jar 从 <b>16,155,037 B</b> 增到 <b>17,054,958 B</b>
+              （约 16.3 MiB；解码库 0.48 MB + 三首的封面各约 0.13 MB）。编译器一次过，离线检查全绿；
+              <b>这台机器依然没有 Minecraft 实例，mp3 能不能真的响、面板边缘还会不会崩，都没有真机验证过。</b></li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.5.2</span>
           </div>
           <h3>先把「起不来」修掉，再修两种「方块的四个状态位」</h3>
           <ul>
@@ -610,7 +655,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=9d12ad9178"></script>
+<script src="assets/data.js?v=624b921e74"></script>
 <script src="assets/site.js?v=a5a4e03905"></script>
 </body>
 </html>

@@ -39,6 +39,10 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
+        // 多格式音频（ogg 之外的 mp3 / flac / wav / m4a …），从 wzh 的 rsaudiofm 插件并进来。
+        // 它只在这一处挂钩：内部幂等、每一步都自己包了 try，装不起来就退回"只认 ogg"。
+        // 直出路线的钩子写在 rsaudio 的 ClientSoundPlayer 里，不再需要 MixinBooter。
+        com.rsaudio.formats.FormatsBootstrap.init(event);
         MinecraftForge.EVENT_BUS.register(new ClientEvents());
         MinecraftForge.EVENT_BUS.register(new MonitorHud());
         // Blast feedback: camera roll, hotbar displacement, ground ring. Driven

@@ -113,6 +113,18 @@ public class ClientSoundPlayer {
      */
     public static void play(BlockPos pos, String soundName, boolean loop, ReasimParams params) {
         stop(pos);
+        // 直出路线：mp3 / flac 这类 vanilla 引擎根本读不了的格式，由 formats 包解码成 PCM
+        // 直接推给声卡。它返回 false 只意味着"这个格式不归我管"，后面照原样走 vanilla。
+        // reasim 开着时不让它插手：reasim 只认 ogg，两条路互斥（否则同一首歌会响两遍）。
+        if (params == null || !params.enabled) {
+            try {
+                if (com.rsaudio.formats.play.PlaybackManager.play(pos, soundName, loop, 1.0F)) {
+                    return;
+                }
+            } catch (Throwable t) {
+                RsAudio.warn("直出播放失败，退回普通播放: %s", t);
+            }
+        }
         if (params != null && params.enabled && ReasimBridge.available()) {
             ReasimSession session = ReasimSession.start(pos, soundName, loop, params);
             if (session != null) {
@@ -142,6 +154,12 @@ public class ClientSoundPlayer {
     private static boolean warnedReasimFallback;
 
     public static void stop(BlockPos pos) {
+        // 直出路线的那一路（formats 包）自己也要收尾，否则声卡上会留下一个没人管的会话
+        try {
+            com.rsaudio.formats.play.PlaybackManager.stop(pos);
+        } catch (Throwable ignored) {
+            // formats 包不可用时这里什么都不该发生
+        }
         ReasimHandle handle = REASIM.remove(pos);
         if (handle != null) {
             handle.session.stop();
@@ -154,6 +172,11 @@ public class ClientSoundPlayer {
     }
 
     public static void stopAll() {
+        try {
+            com.rsaudio.formats.play.PlaybackManager.stopAll();
+        } catch (Throwable ignored) {
+            // 同上：直出路线没起来时这里是空操作
+        }
         for (ReasimHandle handle : REASIM.values()) {
             handle.session.stop();
         }
@@ -310,6 +333,16 @@ public class ClientSoundPlayer {
                 return;
             }
         }
+        // 直出路线：试听同样要能听非 ogg 的文件，否则界面上 "预览" 对 mp3 是死的
+        if (params == null || !params.enabled) {
+            try {
+                if (com.rsaudio.formats.play.PlaybackManager.preview(soundName, 1.0F)) {
+                    return;
+                }
+            } catch (Throwable t) {
+                RsAudio.warn("直出试听失败，退回普通试听: %s", t);
+            }
+        }
         float x = mc.player == null ? 0.0F : (float) mc.player.posX;
         float y = mc.player == null ? 0.0F : (float) mc.player.posY;
         float z = mc.player == null ? 0.0F : (float) mc.player.posZ;
@@ -325,6 +358,11 @@ public class ClientSoundPlayer {
     }
 
     public static void stopPreview() {
+        try {
+            com.rsaudio.formats.play.PlaybackManager.stopPreview();
+        } catch (Throwable ignored) {
+            // 直出路线没起来时是空操作
+        }
         if (previewSession != null) {
             previewSession.stop();
             previewSession = null;

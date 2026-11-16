@@ -38,7 +38,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.5.2";
+    public static final String VERSION = "3.6.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;

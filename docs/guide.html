@@ -727,6 +727,62 @@
         <code>tools/deploy.py</code> 现在会自动把它改名成 <code>.jar.merged</code>。
       </p>
 
+      <h3 style="margin-top:26px">mp3 直接放：多格式音频（3.6.0）</h3>
+      <p>
+        以前只有 <code>.ogg</code> 能进这台播放器，别的格式会被统计成「放不了的文件」，界面里
+        明说让你先转码。3.6.0 把 <strong>wzh3203</strong> 的 <code>rsaudiofm</code> 插件并了进来：
+        <strong>mp3 与 flac 丢进 <code>config/rsaudio/audio</code> 就能直接选、直接放</strong>。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:18%">路线</th><th style="width:34%">怎么发声</th><th>需要什么</th></tr></thead>
+          <tbody>
+            <tr><td><strong>直出（PCM）</strong></td><td>解码成 PCM 直接推给声卡，绕过原版声音引擎，因此也不经过资源包</td><td>四个解码库，<b>已经在 jar 里</b></td></tr>
+            <tr><td><strong>转码</strong></td><td>用 ffmpeg 转成 ogg 存进 <code>config/rsaudiofm/cache</code>，再交给原版引擎</td><td><code>ffmpeg.exe</code>，<b>不随包</b>，自己放进 <code>config/rsaudiofm/bin/</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>默认走直出</strong>，不需要你装任何东西。想固定走转码：<code>config/rsaudiofm/rsaudiofm.cfg</code> 里 <code>route=NATIVE</code>。</li>
+        <li><strong>ffmpeg 我们故意没打进 jar。</strong>wzh3203 原版是 41.6 MB，其中约 35 MB 就是一份
+          <code>ffmpeg.exe</code>；而它只服务转码这一条路，找不到时直出照常工作。要用就自己放一份，
+          探测顺序是 <code>config/rsaudiofm/bin</code> → 游戏目录 → <code>mods/</code> → <code>PATH</code>。</li>
+        <li><strong>不用装 MixinBooter。</strong>原插件是独立模组、改不了宿主，只能靠 Mixin 注入播放器；
+          合并之后宿主代码就在同一枚 jar 里，钩子直接写进了播放器的五个方法，那个 2.4 MB 的
+          coremod 依赖因此消失。</li>
+        <li><strong>reasim 优先。</strong>打开 reasim 后直出路线不插手（reasim 只处理 ogg，两条路同时响会变两遍）。</li>
+      </ul>
+
+      <h3 style="margin-top:26px">顺手修掉的一个崩溃：点面板边缘会抛 AbstractMethodError</h3>
+      <p>
+        2×2 吊装面板里只有左上角是原点格，另外三格是填充板。右键填充板时，代码要「转发给原点格」，
+        而它原来是通过 <code>IPanelOrigin</code> 接口去调的：接口里这个方法叫 <code>onBlockActivated</code>，
+        实现类里那个重写却被 reobf 改名成了 <code>func_180639_a</code>——<b>接口声明不是 Block 的子类，
+        映射表里没有它，名字保持原样</b>。于是运行时 <code>invokeinterface</code> 找到的是一个没人实现的
+        方法，抛 <code>AbstractMethodError</code>：点面板中间那格正常，点边缘就没反应。
+      </p>
+      <p>
+        现在转发点直接按 <code>Block</code> 类型调用（那正是塔塔鲁斯门的 <code>BlockGatePart</code>
+        从第一天起就在用的写法），接口里也不再声明这个方法——声明了就会有人按接口去调，然后踩同一个坑。
+      </p>
+
+      <h3 style="margin-top:26px">jar 里自带三首 OST</h3>
+      <p>
+        这一版起，<a href="ost.html">原声</a>那三首曲子——<strong>How to survive?</strong>、
+        <strong>When will it end?</strong>、<strong>The ending of melting</strong>（都是本项目作者自己写的）——
+        一起打进了 jar：转成 ogg 后约 13 MB，首次启动时铺到
+        <code>config/rsaudio/audio</code>，右键音频播放器就能在列表里直接选到，不用再自己找音乐。
+      </p>
+      <ul>
+        <li><strong>它只是"首次帮你放进去"</strong>：之后和手动放进目录的文件完全一样，改名、替换、删除都随你。</li>
+        <li><strong>删掉不会再自己长回来</strong>：补装只做一次，记录在 <code>config/rsaudio/builtin-music.txt</code>；
+          想装回去就删掉那个文件、重启游戏。</li>
+        <li><strong>为什么不写进 jar 的 <code>sounds.json</code></strong>：这台播放器的曲库本来就是一个目录，
+          走同一条扫描链路才不会长出第二条播放路径，也不会在列表里凭空多出删不掉的项。</li>
+        <li>jar 因此从 2.3 MB 变成 16 MB 左右。体量确实变大了，但这 13 MB 是<strong>会响的音频本身</strong>，
+          不是 3.3.0 那条线里那套没人用的解码器与 ffmpeg 依赖。</li>
+      </ul>
+
       <h3 style="margin-top:26px">开 reasim</h3>
       <p>
         右键播放器 → 模式那一行最右边多了一个 <code>REASIM</code> 按钮 → 进去把总开关打开。
@@ -1061,7 +1117,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=9d12ad9178"></script>
+<script src="assets/data.js?v=624b921e74"></script>
 <script src="assets/site.js?v=a5a4e03905"></script>
 </body>
 </html>

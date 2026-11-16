@@ -66,11 +66,15 @@ public interface IPanelOrigin {
     void takeDown(World world, BlockPos origin, IBlockState state);
 
     /**
-     * 原点格被右键。
+     * 原点格被右键 —— 这件事<b>不在本接口里声明</b>。
      *
-     * <p>签名与 {@code Block#onBlockActivated} 一致，所以实现类不需要额外写胶水方法：
-     * 它自己的那个重写就是这份实现。</p>
+     * <p>填充格要转发右键，但只能按 {@code Block#onBlockActivated} 调：reobfJar 会把实现类里
+     * 这个重写改名成 {@code func_180639_a}，而接口声明（owner 不是 Block，映射表里没有它）
+     * 保留原名，两者对不上，{@code invokeinterface} 会在运行时抛 {@code AbstractMethodError}。
+     * 3.1.0–3.5.x 一直是这么写的，症状是"点面板边缘没反应/崩"，而点中间那格正常。</p>
+     *
+     * <p>所以转发点直接拿 {@code Block} 类型调（见 {@code BlockDFCMonitorPart#onBlockActivated}）——
+     * 那正是 {@code BlockGatePart} 从第一天起就在用的写法。</p>
      */
-    boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
-                             EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ);
+    // 故意不声明 onBlockActivated：声明了就会有人按接口去调，然后踩上面那个坑。
 }

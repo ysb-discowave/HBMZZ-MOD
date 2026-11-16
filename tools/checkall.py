@@ -12,7 +12,8 @@
 检查分两档，因为它们的成本差两个数量级：
 
   快速档  几秒，不读构建产物。改完一行代码就能跑，CI 每次 PR 也跑这一档。
-          regcheck（注册/配方/模型表，63 条）+ 站点 HTML 审计 + 站点数据一致性。
+          regcheck（注册/配方/模型表，63 条）+ 内置 OST 资源 + 站点 HTML 审计
+          + 站点数据一致性。
 
   构建档  需要先 `gradle build`，因为它们编译并运行真正的实现类。
           rbmkcheck / cecpcheck / termcheck / videocheck / linkercheck（既有
@@ -29,6 +30,7 @@
 import argparse
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -104,6 +106,65 @@ def check_files():
 
 def check_regcheck():
     return run(py(os.path.join("tools", "regcheck", "check.py")))
+
+
+# 内置 OST 的曲目表。改了曲目忘了把 ogg 放进 jar，或者转码时写了个空文件，
+# 编译、打包、启动全都不会报错 —— 播放器列表里就是少几项，玩家只会觉得
+# "这模组不是说自己带音乐吗"。所以这里盯三件事：文件在不在、是不是真 ogg、
+# 落地名会不会在资源包里撞车。
+BUILTIN_MUSIC = os.path.join("src", "main", "java", "com", "rsaudio", "client", "BuiltinMusic.java")
+RESOURCES = os.path.join(ROOT, "src", "main", "resources")
+
+
+def ost_sound_name(file_name):
+    """复刻 AudioLibrary.sanitize：只留 a-z 0-9 _ -，纯数字加 track_ 前缀。"""
+    base = file_name[:-4] if file_name.lower().endswith(".ogg") else file_name
+    out = "".join(c if (c.isdigit() or "a" <= c <= "z" or c in "_-") else "_"
+                  for c in base.lower())
+    while "__" in out:
+        out = out.replace("__", "_")
+    out = out.strip("_")
+    if not out:
+        return "track"
+    return "track_" + out if out.isdigit() else out
+
+
+def check_builtin_music():
+    """内置 OST：资源真的在、是合法 Ogg、落地名不重复。"""
+    path = os.path.join(ROOT, BUILTIN_MUSIC)
+    if not os.path.isfile(path):
+        return False, "找不到 %s（曲目表已迁移？更新这条检查）" % BUILTIN_MUSIC
+    text = io.open(path, encoding="utf-8", errors="replace").read()
+
+    seed = re.search(r"SEED_VERSION\s*=\s*(\d+)", text)
+    if not seed:
+        return False, "BuiltinMusic.SEED_VERSION 读不出来（改曲目后必须 +1，否则老玩家不会更新）"
+
+    pairs = re.findall(r'\{\s*"(assets/[^"]+\.ogg)"\s*,\s*"([^"]+\.ogg)"\s*\}', text)
+    if not pairs:
+        return False, "曲目表 TRACKS 里没解析出任何 {jar 路径, 落地文件名}"
+
+    problems = []
+    names = {}
+    for resource, landed in pairs:
+        target = os.path.join(RESOURCES, resource.replace("/", os.sep))
+        if not os.path.isfile(target):
+            problems.append("jar 里没有 %s（%s 会缺这一项）" % (resource, landed))
+        elif os.path.getsize(target) == 0:
+            problems.append("%s 是 0 字节" % resource)
+        else:
+            with open(target, "rb") as fh:
+                if fh.read(4) != b"OggS":
+                    problems.append("%s 不是 Ogg（1.12.2 只认 Vorbis，别的格式放出来是静音）" % resource)
+        sound = ost_sound_name(landed)
+        if sound in names:
+            problems.append("落地名 %r 与 %r 规范化后都变成 %r，资源包里会互相覆盖"
+                            % (landed, names[sound], sound))
+        names[sound] = landed
+
+    if problems:
+        return False, "\n".join(problems)
+    return True, "%d 首，seed=%s" % (len(pairs), seed.group(1))
 
 
 def check_site_audit():
@@ -234,6 +295,7 @@ FAST = [
     ("statecheck（blockstate 键序 / 状态数与 meta 上限）", check_statecheck),
     ("事件注解（@SubscribeEvent 的参数必须是 Event 子类）", check_events),
     ("regcheck（注册 / 配方 / 模型表 63 条）", check_regcheck),
+    ("内置 OST（jar 资源 / Ogg 格式 / 落地名不撞车）", check_builtin_music),
     ("站点 HTML 审计", check_site_audit),
     ("站点数据一致性", check_site_data),
 ]

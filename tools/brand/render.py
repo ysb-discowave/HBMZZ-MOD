@@ -429,6 +429,16 @@ def main():
                   pad=96, gap=56, centered=True, mark="logo-ost.svg"),
         1024, 1024, keep_svg=True)
 
+    # 512 版：烧进音频文件的那张（mp3 的 ID3 APIC / ogg 的 METADATA_BLOCK_PICTURE）。
+    # 1024 那张 313 KB，三首各嵌一份就是 1 MB；512 的平面构图压出来只有它的三分之一，
+    # 而媒体面板（锁屏、播放器小组件）本来也不会显示到 1024。
+    out("ost-cover-512.png",
+        cover_svg(512, 512, mark_size=116, wordsize=38, rule_w=150, subsize=11,
+                  word="HBMZZ", second="OST", sub="THREE TRACKS · 11:47",
+                  foot="GPL-3.0-ONLY · hbm-zz.ysbdwz.dpdns.org",
+                  pad=48, gap=28, centered=True, mark="logo-ost.svg"),
+        512, 512, keep_svg=True)
+
     SESSION.close()
     shutil.rmtree(profile, ignore_errors=True)
 

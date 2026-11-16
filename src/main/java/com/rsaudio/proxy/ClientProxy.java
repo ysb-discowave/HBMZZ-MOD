@@ -117,6 +117,17 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void init(FMLInitializationEvent event) {
         super.init(event);
+        // ★ 内置 OST：把 jar 里带的三首铺进 config/rsaudio/audio。必须在第一次
+        //   AudioLibrary.rescan() 之前跑 —— 那次扫描在首帧 tick 里（ClientTickHandler），
+        //   晚于 init。放在这里而不是首帧 tick 里，是因为它要写 13 MB，
+        //   宁可算进加载画面，也不要让标题界面卡一下。
+        //   装过就只读一个几行文本（BuiltinMusic.ensureInstalled 内部早退）。
+        try {
+            com.rsaudio.client.BuiltinMusic.ensureInstalled();
+        } catch (Throwable t) {
+            // 装不上不该拦着游戏启动：播放器只是少几项，玩家仍可自己放 ogg
+            RsAudio.warn("内置 OST 安装失败（不影响其它音频）: %s", t);
+        }
         // ★ 控制台方块上的实时屏幕。漏了这行不会报错，只是方块正面一片死黑
         ClientRegistry.bindTileEntitySpecialRenderer(TileMonitorConsole.class, new MonitorConsoleRenderer());
         // ★ 远程控制面板正面的 6 个按钮。同样是"漏了不报错、只是面板一片素板"

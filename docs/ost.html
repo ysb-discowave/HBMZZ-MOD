@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>原声 — HBMZZ OST</title>
-<meta name="description" content="HBMZZ 官网页面上那台常驻播放器的曲目页：两首作者自制的原声，How to survive? 与 When will it end?，可在这里选曲、跳到任意页面继续听。">
+<meta name="description" content="HBMZZ 官网页面上那台常驻播放器的曲目页：三首作者自制的原声——How to survive?、When will it end? 与 The ending of melting，可在这里选曲、跳到任意页面继续听。">
 <meta name="theme-color" content="#0a0c0f">
 <meta property="og:type" content="website">
 <meta property="og:title" content="HBMZZ 原声">
-<meta property="og:description" content="两首作者自制的曲子，一台钉在页面右边、翻页也不会停的机器。">
+<meta property="og:description" content="三首作者自制的曲子，一台钉在页面右边、翻页也不会停的机器。">
 <link rel="stylesheet" href="assets/site.css?v=1d49dfddbc">
 </head>
 <body>
@@ -36,9 +36,9 @@
   <div class="page-head">
     <div class="wrap">
       <div class="kicker">// 原声 · HBMZZ OST</div>
-      <h1>两首曲子，一台钉在右边的机器</h1>
+      <h1>三首曲子，一台钉在右边的机器</h1>
       <p class="lead">
-        这两首是作者自己写的，和模组本身没有音乐层面的关系——没有背景音乐循环，也没有战斗曲，
+        这三首是作者自己写的，和模组本身没有音乐层面的关系——没有背景音乐循环，也没有战斗曲，
         它们只活在这个站点上。播放器常驻在处理右侧的那台机器里：在这一页选好哪一首，
         翻到指南、手册、更新日志，它接着往下走。
       </p>
@@ -87,7 +87,7 @@
       <div class="panel panel--bolted ost-board">
         <div class="ost-head">
           <span>HBMZZ OST</span>
-          <span>2 TRACKS · 8:33</span>
+          <span>3 TRACKS · 11:47</span>
         </div>
         <ol class="ost-rows">
           <li class="ost-row" data-ost-row="how-to-survive">
@@ -102,31 +102,41 @@
             <span class="ost-num">02</span>
             <div class="ost-main">
               <a class="ost-title" href="assets/audio/when-will-it-end.mp3" download="When will it end - HBMZZ.mp3">When will it end?</a>
-              <span class="ost-meta">5:18 · 192 kbps · 44.1 kHz 立体声 · −16.6 LUFS</span>
+              <span class="ost-meta">5:17 · 192 kbps · 44.1 kHz 立体声 · −16.6 LUFS</span>
             </div>
             <button class="ost-play" type="button" data-track-play="when-will-it-end" aria-pressed="false">播放</button>
+          </li>
+          <li class="ost-row" data-ost-row="the-ending-of-melting">
+            <span class="ost-num">03</span>
+            <div class="ost-main">
+              <a class="ost-title" href="assets/audio/the-ending-of-melting.mp3" download="The ending of melting - HBMZZ.mp3">The ending of melting</a>
+              <span class="ost-meta">3:13 · 192 kbps · 44.1 kHz 立体声 · −17.5 LUFS</span>
+            </div>
+            <button class="ost-play" type="button" data-track-play="the-ending-of-melting" aria-pressed="false">播放</button>
           </li>
         </ol>
       </div>
 
       <div class="note" style="margin-top:16px">
         <span>曲名本身是带问号的，下载属性里换成了短横线——问号进不了 Windows 文件名。
-        文件内嵌的 ID3 标题是原样的两句话，拖进任何播放器显示的都是它们。</span>
+        文件内嵌的 ID3 标题是原样的句子，拖进任何播放器显示的都是它们。
+        表里的时长是<b>截断</b>的（193.817 秒写成 3:13），和右栏那台机器读出来的一致——
+        四舍五入会让两处差一秒。</span>
       </div>
     </div>
   </section>
 
-  <!-- ================= 两首 ================= -->
+  <!-- ================= 三首 ================= -->
   <section class="section" id="about">
     <div class="wrap">
       <div class="section-head">
-        <div class="kicker">// 两首</div>
+        <div class="kicker">// 三首</div>
         <h2>它们是什么，文件里有什么</h2>
-        <p>两首都来自黑屏导出的纯音频（视频轨抽帧全黑），所以这里没有封面图——
+        <p>三首都来自黑屏导出的纯音频（视频轨抽帧全黑），所以这里没有封面图——
           硬配一张等于伪造。下表是文件本身量出来的，不是写上去的。</p>
       </div>
 
-      <div class="grid g2">
+      <div class="grid g3">
         <div class="card">
           <div class="card-num">TRACK 01</div>
           <h3>How to survive?</h3>
@@ -138,10 +148,18 @@
         <div class="card">
           <div class="card-num">TRACK 02</div>
           <h3>When will it end?</h3>
-          <p>5 分 18 秒，整轨响度 −16.6 LUFS，动态范围 5.5 LU，真峰值 −1.6 dBFS。
+          <p>5 分 17 秒，整轨响度 −16.6 LUFS，动态范围 5.5 LU，真峰值 −1.6 dBFS。
             比第一首长近两分钟，压得也更平——动态范围只有它的一半多一点。</p>
           <p style="margin-top:10px">文件 7,630,262 字节。源文件是手机导出的 mp4，
             里面只写了 <code>com.android.version=17</code>，没有曲名，标题是我按你说的填进 ID3 的。</p>
+        </div>
+        <div class="card">
+          <div class="card-num">TRACK 03</div>
+          <h3>The ending of melting</h3>
+          <p>3 分 13 秒，整轨响度 −17.5 LUFS——三首里最轻的一首，比第一首低 1.8 dB。
+            这个差我没动：母带是作者给的电平，不该由我在这里加增益。</p>
+          <p style="margin-top:10px">文件 4,653,433 字节。源文件同样是手机导出的竖屏 mp4，
+            视频轨全程纯黑，<code>meta</code> 里没有任何曲名。</p>
         </div>
       </div>
     </div>
@@ -198,7 +216,7 @@
       <div class="section-head">
         <div class="kicker">// 文件</div>
         <h2>两枚 MP3 的全部参数</h2>
-        <p>都能直接下载。它们放在站点目录里，<strong>不随 jar 分发</strong>——装了模组的人在游戏里听不到这两首。</p>
+        <p>都能直接下载。它们放在站点目录里，<strong>不随 jar 分发</strong>——装了模组的人在游戏里听不到这三首。</p>
       </div>
 
       <div class="table-wrap">
@@ -208,14 +226,15 @@
           </thead>
           <tbody>
             <tr><td>How to survive?</td><td>3:15</td><td>192 kbps</td><td>44.1 kHz</td><td>−15.7 LUFS</td><td>4,696,046</td></tr>
-            <tr><td>When will it end?</td><td>5:18</td><td>192 kbps</td><td>44.1 kHz</td><td>−16.6 LUFS</td><td>7,630,262</td></tr>
+            <tr><td>When will it end?</td><td>5:17</td><td>192 kbps</td><td>44.1 kHz</td><td>−16.6 LUFS</td><td>7,630,262</td></tr>
+            <tr><td>The ending of melting</td><td>3:13</td><td>192 kbps</td><td>44.1 kHz</td><td>−17.5 LUFS</td><td>4,653,433</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="panel panel--quiet" style="margin-top:16px">
         <p style="margin:0;color:var(--text-dim);font-size:14px">
-          两首都是作者自制的作品，随站点其余内容一样以仓库的 <a href="license.html">GPL-3.0</a> 提供；
+          三首都是作者自制的作品，随站点其余内容一样以仓库的 <a href="license.html">GPL-3.0</a> 提供；
           转载、二次使用请保留署名。它们不是第三方素材，也不在模组的资源包里。
         </p>
       </div>
@@ -264,7 +283,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=07a04345f4"></script>
-<script src="assets/site.js?v=3b8dd304f1"></script>
+<script src="assets/data.js?v=9d12ad9178"></script>
+<script src="assets/site.js?v=097d419926"></script>
 </body>
 </html>

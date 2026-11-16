@@ -125,7 +125,9 @@
     { id: "how-to-survive", title: "How to survive?", secs: 195.6,
       src: "assets/audio/how-to-survive.mp3" },
     { id: "when-will-it-end", title: "When will it end?", secs: 317.9,
-      src: "assets/audio/when-will-it-end.mp3" }
+      src: "assets/audio/when-will-it-end.mp3" },
+    { id: "the-ending-of-melting", title: "The ending of melting", secs: 193.8,
+      src: "assets/audio/the-ending-of-melting.mp3" }
   ];
 
   var OST = {

@@ -242,6 +242,21 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "3.5.2",
+      "title": "先把「起不来」修掉，再修两种「方块的四个状态位」",
+      "items": [
+        "3.2.0 到 3.5.0 的 jar 在任何环境都开不了机：DfcBlastWatch.onServerStopped 挂着 @SubscribeEvent，参数却是 FMLServerStoppedEvent——它继承 FMLStateEvent，不是 Event。EventBus.register 在参数类型校验时抛 IllegalArgumentException，而这次 register 在 preInit，于是模组加载失败、客户端进不去。改成普通无参方法，由 HBMZZ.serverStopping 显式调用，行为不变。",
+        "这个错为什么能活三个版本：它只在游戏启动时炸，编译、regcheck、checkall、站点审计都看不见；而本机没有 Minecraft 实例，从 3.2.0 起就没有真机验证。checkall 快速档已加一条：扫所有 @SubscribeEvent，参数是 FML*Event、无参数或多于一个参数都算红。",
+        "巨型管道：状态容器原来有六个布尔属性（64 态），getMetaFromState 返回 0..63。1.12.2 的状态编号是 blockId + (meta << 12)，读回时只取 meta & 15，meta 只有四位——63 会写进别的方块编号区间，存盘后读回来是另一块方块。与 wzh3203 的修复合并：状态容器只保留水平四向（16 态），纯竖直段用单一模型（mask 17），meta 只写 0..15 的序号。",
+        "控制台：ctrl_console 的 blockstate 按声明顺序写成 up,down,facing，而 BlockStateContainer 用 ImmutableSortedMap，查状态时按属性名字母序拼键（down,facing,up），16 条全对不上，整块紫黑。同样来自 wzh3203。",
+        "我们自己也犯了同一个错：3.2.0 的 dfc_blast_sensor 写成 facing=south,active=false，active 应该在前。一并修正——这颗方块从 3.2.0 起就没显示过模型。",
+        "为什么以前没被发现：「没有变体匹配」不是异常，模型烘焙器只会退到缺失模型；离线审计只查了 blockstate 文件在不在，没查键里的属性名字。",
+        "新增 tools/statecheck 四条：变体键字母序、键集一致、模型文件存在、进 meta 的部分不超过 4 位。判据不是「状态数 ≤16」（原版楼梯 24 态、BlockRedstoneDelayer 64 态都合法），而是「getMetaFromState 能返回的值 ≤15」。",
+        "把旧代码放回去验证过：检查器在修复前报两条红（ctrl_console 的 16 条键序、BlockGiantPipe 的「64 态，meta 可达 63」），修复后四条全绿。checkall 快速档 4 → 5 项。",
+        "v3.3.0 里的 14 种音频格式管线（26 个文件 5,714 行，附带 ffmpeg 与 MixinBooter 依赖，jar 从 2.3 MB 变 41.6 MB）是功能不是修复，本次未并入。"
+      ]
+    },
+    {
       "version": "3.5.0",
       "title": "DFC 自动停机、三秒环绕，还有一扇 26×26 的地板门",
       "items": [
@@ -577,16 +592,16 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "3.5.0",
+    "version": "3.5.2",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 518,
-      "javaLines": 120128,
+      "javaLines": 120209,
       "resourceFiles": 570,
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-15"
+    "generatedAt": "2026-11-16"
   }
 };

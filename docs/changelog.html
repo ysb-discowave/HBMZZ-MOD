@@ -82,8 +82,26 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.5.0</span>
+            <span class="tl-ver">v3.5.2</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>先把「起不来」修掉，再修两种「方块的四个状态位」</h3>
+          <ul>
+            <li><strong>3.2.0 到 3.5.0 的 jar 在任何环境都开不了机。</strong><code>DfcBlastWatch.onServerStopped</code> 挂着 <code>@SubscribeEvent</code>，参数却是 <code>FMLServerStoppedEvent</code>——它继承的是 <code>FMLStateEvent</code>，<strong>不是 <code>Event</code></strong>。<code>EventBus.register</code> 会在参数类型校验时抛 <code>IllegalArgumentException: ... takes a argument that is not an Event class</code>，而这次 register 发生在 <code>preInit</code>，于是模组加载失败、客户端进不去，报错还指向注册那一行而不是出问题的方法。改成普通无参方法，由 <code>HBMZZ.serverStopping</code> 显式调用（那里本来就在给 <code>HackRegistry</code> 与 <code>DfcAutoShutdown</code> 收尾），行为不变。</li>
+            <li><strong>这个错为什么能活三个版本：</strong>它只在 <b>游戏启动</b> 时才会炸，编译、<code>regcheck</code>、<code>checkall</code>、站点审计全都看不见；而我们这台机器上根本没有 Minecraft 实例，从 3.2.0 起就没有真机验证过。现在 <code>checkall</code> 快速档加了一条：扫所有 <code>@SubscribeEvent</code>，参数是 <code>FML*Event</code>、无参数、或多于一个参数都算红。</li>
+            <li><strong>巨型管道：meta 越界。</strong>它原来的状态容器有六个布尔属性（64 态），<code>getMetaFromState</code> 返回 0..63。1.12.2 的方块状态编号是 <code>blockId + (meta &lt;&lt; 12)</code>，读回时 <code>getStateById</code> 只取 <code>meta &amp; 15</code> —— <strong>meta 只有四位</strong>，63 会写进别的方块编号区间，存盘后读回来是另一块方块、另一种形状。与 <b>wzh3203</b> 的修复合并：状态容器只保留水平四向（16 态），纯竖直段用单一模型（mask 17），meta 只写 0..15 的序号，读回时再映射成旧掩码；64 个模型文件一个没删，只是取其中 16 个。</li>
+            <li><strong>控制台：变体键的顺序。</strong><code>ctrl_console</code> 的 blockstate 按声明顺序写成 <code>up,down,facing</code>，而 <code>BlockStateContainer</code> 内部是 <code>ImmutableSortedMap</code>，查状态时拼出来的键按<b>属性名字母序</b>（<code>down,facing,up</code>）—— 16 条一条都对不上，整块是紫黑缺失模型，日志里不会有任何报错。同样来自 wzh3203 的修复。</li>
+            <li><strong>我们自己也犯了同一个错。</strong>3.2.0 的 <code>dfc_blast_sensor</code> 写成 <code>facing=south,active=false</code>，<code>active</code> 应该在前。现一并修正——这颗方块从 3.2.0 起就没显示过模型。</li>
+            <li><strong>为什么以前没被发现：</strong>「没有变体匹配」不是异常，模型烘焙器只会退到缺失模型；离线审计也只比对了「blockstate 文件在不在」，没比对键里的属性名字。</li>
+            <li><strong>新增 <code>tools/statecheck</code>，四条：</strong>① 变体键按属性名字母序；② 同一文件内所有变体的属性集一致；③ 每个变体指向的模型文件真的存在；④ <b>进 meta 的部分不超过 4 位</b>——注意判据不是「状态数 ≤16」（原版楼梯 24 态、<code>BlockRedstoneDelayer</code> 64 态都合法），而是「<code>getMetaFromState</code> 能返回的值 ≤15」，状态多但 meta 收窄的会被列为正常。</li>
+            <li><strong>把旧代码放回去验证过：</strong>检查器在修复前报两条红（<code>ctrl_console</code> 的 16 条键序、<code>BlockGiantPipe</code> 的「64 态，meta 可达 63」），修复后四条全绿。<code>checkall</code> 快速档 4 → 5 项。</li>
+            <li><strong>他的另一条线没有并入：</strong>v3.3.0 里还有一套 14 种音频格式的播放管线（26 个文件 5,714 行，附带 ffmpeg 与 <code>MixinBooter</code> 依赖，jar 从 2.3 MB 变 41.6 MB）。那是一个功能，不是修复，等定了再动。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.5.0</span>
           </div>
           <h3>DFC 自动停机、三秒环绕，还有一扇 26×26 的地板门</h3>
           <ul>
@@ -584,7 +602,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=07a04345f4"></script>
-<script src="assets/site.js?v=3b8dd304f1"></script>
+<script src="assets/data.js?v=9d12ad9178"></script>
+<script src="assets/site.js?v=097d419926"></script>
 </body>
 </html>

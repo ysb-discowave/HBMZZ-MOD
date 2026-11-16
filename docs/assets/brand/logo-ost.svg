@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ OST 标（深色背景用）
+
+  和主标是同一块屏：同样的边框、同样的圆角、同样四颗螺钉。区别只在屏里画什么
+  ——主标画 H，这里画三根琥珀色电平柱（底边对齐、高低 14 / 30 / 21）。
+
+  为什么是电平表而不是音符 / 波形 / 耳机：
+    1. 三根柱子底边对齐，是「一米表在跳」，放到 22px 还是三根能数清的柱；
+       音符的符头、耳机的耳罩在那个尺寸都会糊成一块。
+    2. 模组自己的控制台屏上就有电平条（AlertScreen 的条状读数），这属于同一套
+       工业语言，不是借来的音乐符号。
+    3. 柱子只上琥珀一色，和主标一样「全标唯一一处彩色」，两个标放在一起不打架。
+
+  颜色：钢板 #e6ecf3 / 琥珀 #f5a524 / 螺钉 #48525f，与 docs/assets/site.css 一致。
+
+  ≤48px 请用 logo-ost-compact.svg（去掉螺钉、全部加粗）。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ OST">
+  <title>HBMZZ OST</title>
+
+  <!-- 屏框：与主标同一组数值 -->
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#e6ecf3" stroke-width="3.5"/>
+
+  <!-- 四角螺钉（大尺寸才画得出来） -->
+  <rect x="9.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="9.5" y="51.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="51.5" width="3" height="3" fill="#48525f"/>
+
+  <!-- 电平柱：底边统一压在 y=47，高度 14 / 30 / 21 -->
+  <rect x="15" y="33" width="7" height="14" fill="#f5a524"/>
+  <rect x="28.5" y="17" width="7" height="30" fill="#f5a524"/>
+  <rect x="42" y="26" width="7" height="21" fill="#f5a524"/>
+</svg>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ favicon / 应用图标（16–48px 专用）
+
+  和 logo-mark-compact 的区别只有一个，但很关键：**它自带底板**。
+  透明版的边框是钢色 #e6ecf3，压在浅色标签栏上几乎看不见——浏览器标签页
+  多半是浅色的，所以小图标必须是一块实心砖：深底、亮 H、琥珀横杠，
+  在浅色与深色标签栏上都能立住。
+
+  底板用 #0f1318（站点的 panel 色），描边 #3a4450 是为了在深色标签栏上
+  也能看出边界。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ">
+  <title>HBMZZ</title>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="11" ry="11"
+        fill="#0f1318" stroke="#3a4450" stroke-width="1.6"/>
+  <rect x="17" y="15" width="9" height="34" fill="#e6ecf3"/>
+  <rect x="38" y="15" width="9" height="34" fill="#e6ecf3"/>
+  <rect x="17" y="27.5" width="34" height="9" fill="#f5a524"/>
+</svg>

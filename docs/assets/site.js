@@ -320,7 +320,13 @@
         navigator.mediaSession.metadata = new MediaMetadata({
           title: TRACKS[cur].title,
           artist: OST.artist,
-          album: OST.album
+          album: OST.album,
+          /* 锁屏上那张图是站点自己的品牌封面，不是曲子自带的美术——
+             三首的源文件都是黑屏导出，本来就没有封面。 */
+          artwork: [
+            { src: "assets/brand/ost-cover-1024.png", sizes: "1024x1024", type: "image/png" },
+            { src: "assets/brand/icon-512.png", sizes: "512x512", type: "image/png" }
+          ]
         });
       } catch (e) { /* 不支持就算了，机器还在 */ }
     }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#0a0c0f"/>
+<defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#232a33" stroke-width="1"/></pattern></defs>
+<rect width="1200" height="630" fill="url(#grid)"/><radialGradient id="glow" cx="30%" cy="40%" r="60%"><stop offset="0" stop-color="#f5a524" stop-opacity=".07"/><stop offset="1" stop-color="#f5a524" stop-opacity="0"/></radialGradient>
+<rect width="1200" height="630" fill="url(#glow)"/>
+<g transform="translate(90.00,142.80) scale(2.1875)"><!-- 屏框 -->
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#e6ecf3" stroke-width="3.5"/>
+
+  <!-- 四角螺钉（大尺寸才画得出来） -->
+  <rect x="9.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="9.5" y="51.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="51.5" width="3" height="3" fill="#48525f"/>
+
+  <!-- H：两根立柱 + 一道横杠，横杠向右探出 4 个单位 -->
+  <rect x="19" y="17" width="7" height="30" fill="#e6ecf3"/>
+  <rect x="38" y="17" width="7" height="30" fill="#e6ecf3"/>
+  <rect x="19" y="28.5" width="30" height="7" fill="#f5a524"/></g>
+<text x="90.0" y="406.2" fill="#e6ecf3" font-family="Consolas, 'Cascadia Mono', 'Courier New', monospace" font-size="110" font-weight="700" letter-spacing="13.2" text-anchor="start">HBMZZ</text>
+<rect x="90.0" y="436.2" width="356" height="6" fill="#f5a524"/>
+<text x="90.0" y="487.2" fill="#93a0b0" font-family="'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif" font-size="21" letter-spacing="1.26" text-anchor="start">给 HBM 的核科技装一块真的显示器</text>
+<text x="90" y="540" fill="#67737f" font-family="Consolas, 'Cascadia Mono', 'Courier New', monospace" font-size="17" letter-spacing="2.38">MINECRAFT 1.12.2 · FORGE · GPL-3.0-ONLY</text>
+<text x="1110" y="540" fill="#67737f" font-family="Consolas, 'Cascadia Mono', 'Courier New', monospace" font-size="17" letter-spacing="2.38" text-anchor="end">hbm-zz.ysbdwz.dpdns.org</text>
+
+</svg>

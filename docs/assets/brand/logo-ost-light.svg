@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ OST 标（浅色背景用）
+
+  几何与 logo-ost.svg 完全一致，只换颜色：边框用墨色 #0a0c0f，琥珀压深到
+  #d8871a（#f5a524 压在纯白上细柱会发飘），螺钉用 #6b7684。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ OST">
+  <title>HBMZZ OST</title>
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#0a0c0f" stroke-width="3.5"/>
+  <rect x="9.5" y="9.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="51.5" y="9.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="9.5" y="51.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="51.5" y="51.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="15" y="33" width="7" height="14" fill="#d8871a"/>
+  <rect x="28.5" y="17" width="7" height="30" fill="#d8871a"/>
+  <rect x="42" y="26" width="7" height="21" fill="#d8871a"/>
+</svg>

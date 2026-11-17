@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ 主标（深色背景用）
+
+  构成只有三样东西：一块屏的边框、一个 H、一道琥珀色的横杠（右端探出一小截，
+  像一根引线）。选择这些是因为 16px 下它们还活得下来——再多的细节都会糊成一坨。
+
+  颜色取自 docs/assets/site.css 的变量：
+    钢板色  #e6ecf3（比正文色亮一点，小尺寸下更结实）
+    琥珀色  #f5a524（即站点调色板里的 amber，全标唯一一处彩色）
+    螺钉色  #48525f（只在大尺寸版本里有）
+
+  小尺寸（≤48px）请用 logo-mark-compact.svg：这个版本的四角螺钉在 16px 下
+  只会变成噪点。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ">
+  <title>HBMZZ</title>
+
+  <!-- 屏框 -->
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#e6ecf3" stroke-width="3.5"/>
+
+  <!-- 四角螺钉（大尺寸才画得出来） -->
+  <rect x="9.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="9.5" y="51.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="51.5" width="3" height="3" fill="#48525f"/>
+
+  <!-- H：两根立柱 + 一道横杠，横杠向右探出 4 个单位 -->
+  <rect x="19" y="17" width="7" height="30" fill="#e6ecf3"/>
+  <rect x="38" y="17" width="7" height="30" fill="#e6ecf3"/>
+  <rect x="19" y="28.5" width="30" height="7" fill="#f5a524"/>
+</svg>

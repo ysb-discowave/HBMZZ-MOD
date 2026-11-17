@@ -45,6 +45,10 @@
       "href": "reference.html"
     },
     {
+      "label": "附加包",
+      "href": "addon.html"
+    },
+    {
       "label": "更新日志",
       "href": "changelog.html"
     },
@@ -188,6 +192,10 @@
         {
           "label": "参考手册",
           "href": "reference.html"
+        },
+        {
+          "label": "附加包",
+          "href": "addon.html"
         },
         {
           "label": "更新日志",

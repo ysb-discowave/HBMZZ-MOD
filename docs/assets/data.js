@@ -47,6 +47,10 @@ window.HBMZZ_DATA = {
       "href": "reference.html"
     },
     {
+      "label": "附加包",
+      "href": "addon.html"
+    },
+    {
       "label": "更新日志",
       "href": "changelog.html"
     },
@@ -190,6 +194,10 @@ window.HBMZZ_DATA = {
         {
           "label": "参考手册",
           "href": "reference.html"
+        },
+        {
+          "label": "附加包",
+          "href": "addon.html"
         },
         {
           "label": "更新日志",
@@ -635,6 +643,6 @@ window.HBMZZ_DATA = {
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-16"
+    "generatedAt": "2026-11-17"
   }
 };

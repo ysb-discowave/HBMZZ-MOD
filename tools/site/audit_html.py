@@ -2,8 +2,8 @@ import io, os, re, sys
 
 DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "docs")
 CSS = os.path.join(DOCS, "assets", "site.css")
-PAGES = ["index.html", "guide.html", "reference.html", "changelog.html", "ost.html",
-         "thanks.html", "license.html"]
+PAGES = ["index.html", "guide.html", "reference.html", "addon.html", "changelog.html",
+         "ost.html", "thanks.html", "license.html"]
 
 def read(p):
     with io.open(p, "r", encoding="utf-8-sig") as f:

@@ -1306,3 +1306,41 @@ td code { white-space: nowrap; }
   body::before, body::after, .nav, .foot, .screen, .dock { display: none; }
   a { color: #000; }
 }
+
+/* --------------------------------------------------------------------------
+   首屏快捷条：社群号与两处下载（index 首屏顶部）
+   -------------------------------------------------------------------------- */
+.quickbar {
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(245, 165, 36, .06), transparent);
+}
+.quickbar-in {
+  /* 自己不挂 .wrap：同一元素上再加一个类会互相覆盖 padding，索性自己算居中与留白 */
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  /* 只给上下内边距：写 padding: 12px 0 会盖掉 .wrap 的左右留白，移动端文字会贴边 */
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.quickbar-label { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex-wrap: wrap; }
+.quickbar-label b {
+  font: 600 12.5px/1.2 var(--mono); letter-spacing: .06em; color: var(--text-dim); white-space: nowrap;
+}
+.quickbar-code {
+  font: 700 17px/1 var(--mono); letter-spacing: .12em; color: var(--amber);
+  white-space: nowrap; user-select: all;
+}
+.quickbar-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+/* 宽屏时右侧播放器是固定浮层，按钮让开它，否则最右那个会被压住 */
+@media (min-width: 1080px) { .quickbar-actions { padding-right: 58px; } }
+@media (max-width: 760px) {
+  .quickbar-in { gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+  .quickbar-actions { margin-left: 0; width: 100%; }
+  .quickbar-actions .btn { flex: 1 1 auto; justify-content: center; }
+  .quickbar-code { font-size: 16px; }
+}

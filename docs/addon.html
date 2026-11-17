@@ -84,6 +84,7 @@
         <div class="kicker">// 怎么装</div>
         <h2>两个都放进 mods 就行</h2>
         <p>依赖方向只有一边：<b>附加包依赖本体</b>。单独装本体照常可用；单独装附加包能启动，但引用不到任何宿主接口，等于空跑。</p>
+        <p class="note" style="margin-top:14px"><span><b>名字说明：</b><code>hbmzz:addon</code> 是这个附加包的<b>项目名</b>，不是 modid——命名空间不能带冒号。它的 modid 是 <code>hbmzzaddon</code>；方块、方块实体与资源域仍沿用 <code>hbmzz</code>，因为那些名字写进了旧存档。</span></p>
       </div>
 
       <div class="table-wrap">
@@ -106,7 +107,7 @@
 
       <div class="note" style="margin-top:18px">
         <span><b>旧存档：</b>注册名（<code>hbmzz:ctrl_console</code> 等）一个字都不改，
-        所以装回两个包之后，原来的控制台还会在原来的位置。</span>
+        所以装回两个包之后，原来的控制台还会在原来的位置。<b>反过来说：拆掉附加包，控制台方块连同里面存的面板内容都会一起消失</b>——它们都在后者里。</span>
       </div>
     </div>
   </section>

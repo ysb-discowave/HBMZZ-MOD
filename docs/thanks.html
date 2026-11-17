@@ -178,7 +178,7 @@ code{background:rgba(255,255,255,.05);border:1px solid var(--line-soft);border-r
 
 <header class="nav">
   <div class="nav-in">
-    <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f5a524" d="M12 1.6 14 8l6.4-2-3.6 5.4 5.6 3.2-6.6.6L18 22l-6-5.2L6 22l2-7.8-6.6-.6 5.6-3.2L3.6 6 10 8z"/></svg>HBMZZ</a>
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
     <span class="ver" data-bind="auto.version|v">v—</span>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
     <nav class="nav-links" id="nav-menu">
@@ -357,7 +357,7 @@ code{background:rgba(255,255,255,.05);border:1px solid var(--line-soft);border-r
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <a class="brand" href="index.html" style="margin-bottom:12px"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f5a524" d="M12 1.6 14 8l6.4-2-3.6 5.4 5.6 3.2-6.6.6L18 22l-6-5.2L6 22l2-7.8-6.6-.6 5.6-3.2L3.6 6 10 8z"/></svg>HBMZZ</a>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
         <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
       </div>
       <div>
@@ -446,6 +446,22 @@ code{background:rgba(255,255,255,.05);border:1px solid var(--line-soft);border-r
     if(au.paused){var p=au.play();if(p&&p.catch)p.catch(function(){st.textContent='点一下允许播放，谢谢'})}
     else au.pause();
   });
+})();
+</script>
+<script src="assets/data.js?v=cfc01e1332"></script>
+<script>
+/* 这一页刻意做成单文件（样式内联、不引 site.js，避免右侧播放器跟过来），
+   但导航上的版本号是全站统一的 data-bind。这里只做那一件事：读 data.js 的
+   auto.version 填进去。拿不到数据就保持"v—"，不猜版本。 */
+(function () {
+  function fill() {
+    var d = window.HBMZZ_DATA;
+    if (!d || !d.auto) return;
+    var nodes = document.querySelectorAll('[data-bind="auto.version|v"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = 'v' + d.auto.version;
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fill);
+  else fill();
 })();
 </script>
 </body>

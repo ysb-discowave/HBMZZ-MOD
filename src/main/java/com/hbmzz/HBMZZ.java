@@ -23,6 +23,7 @@ import com.hbmzz.common.CommonProxy;
 import com.hbmzz.gun.GunHandler;
 import com.hbmzz.network.NetworkHandler;
 import com.hbmzz.tile.TileEntityDFCMonitor;
+import com.hbmzz.video.VideoLibrary;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -38,7 +39,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.6.1";
+    public static final String VERSION = "3.7.1";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -52,6 +53,12 @@ public class HBMZZ {
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
         HBMZZConfig.load(event.getSuggestedConfigurationFile());
+        // The video shelf lives under <config>/hbmzz/videos/ and is read by both
+        // sides (the server validates names, the client opens the clip). Without
+        // this call VideoLibrary.root stays null, so the broadcaster GUI lists no
+        // clips and a manual folder in config is never scanned. getSuggested-
+        // ConfigurationFile() is <config>/hbmzz.cfg - init() wants its parent.
+        VideoLibrary.init(event.getSuggestedConfigurationFile().getParentFile());
         NetworkHandler.init();
         MinecraftForge.EVENT_BUS.register(ModContent.class);
         MinecraftForge.EVENT_BUS.register(new CommonEvents());

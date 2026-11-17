@@ -1,0 +1,33 @@
+{
+  "title": "HBMZZ",
+  "subtitle": "致 谢",
+  "sections": [
+    {
+      "header": "NTM-CE",
+      "people": [
+        { "name": "HBMMods", "role": "creator" },
+        { "name": "Drillgon200", "role": "original 1.12.2 port" },
+        { "name": "TheOriginalGolem", "role": "1.12.2 bug fixing" },
+        { "name": "Alcater", "role": "custom 1.12.2 version, updating and texturing" },
+        { "name": "MrNorwood", "role": "" },
+        { "name": "TheSlize", "role": "" },
+        { "name": "Movblock", "role": "" },
+        { "name": "EOS", "role": "" }
+      ],
+      "note": "以及 NTM-CE 的众多贡献者"
+    },
+    {
+      "header": "HBM 诅咒版",
+      "people": [
+        { "name": "Leafia", "role": "维护者" },
+        { "name": "movblock (mlbv)", "role": "共同作者" },
+        { "name": "Xenoulexi", "role": "模型与贴图" }
+      ],
+      "note": ""
+    }
+  ],
+  "outro": [
+    "Thanks for playing",
+    "HBMZZ"
+  ]
+}

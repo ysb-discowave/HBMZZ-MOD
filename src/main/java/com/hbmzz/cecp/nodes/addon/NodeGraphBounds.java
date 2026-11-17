@@ -24,7 +24,7 @@ package com.hbmzz.cecp.nodes.addon;
 import com.hbmzz.cecp.Control;
 import com.hbmzz.cecp.NodeConnection;
 import com.hbmzz.cecp.NodeSystem;
-import com.hbmzz.cecp.controls.addon.Graph;
+import com.hbmzz.cecp.api.IValueChart;
 import com.hbmzz.cecp.modular.StockNodesRegister;
 import com.hbmzz.cecp.nodes.Node;
 import com.hbmzz.cecp.types.DataValue;
@@ -51,11 +51,11 @@ public class NodeGraphBounds extends Node {
 
     @Override
     public DataValue evaluate(int i) {
-        if (ctrl instanceof Graph) {
-            Graph graph = (Graph) ctrl;
+        if (ctrl instanceof IValueChart) {
+            IValueChart chart = (IValueChart) ctrl;
             Double max = null;
             Double min = null;
-            for (double value : graph.values) {
+            for (double value : chart.series()) {
                 if (max == null || value > max) {
                     max = value;
                 }

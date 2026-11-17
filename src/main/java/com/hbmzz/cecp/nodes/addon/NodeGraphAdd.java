@@ -25,7 +25,7 @@ import com.hbmzz.cecp.Control;
 import com.hbmzz.cecp.IControllable;
 import com.hbmzz.cecp.NodeConnection;
 import com.hbmzz.cecp.NodeSystem;
-import com.hbmzz.cecp.controls.addon.Graph;
+import com.hbmzz.cecp.api.IValueChart;
 import com.hbmzz.cecp.modular.StockNodesRegister;
 import com.hbmzz.cecp.nodes.NodeOutput;
 import com.hbmzz.cecp.types.DataValue.DataType;
@@ -59,8 +59,8 @@ public class NodeGraphAdd extends NodeOutput {
         if (inputs.get(0) == null) {
             return false;
         }
-        if (ctrl instanceof Graph) {
-            ((Graph) ctrl).pushValue(inputs.get(0).evaluate().getNumber());
+        if (ctrl instanceof IValueChart) {
+            ((IValueChart) ctrl).pushValue(inputs.get(0).evaluate().getNumber());
         }
         return false;
     }

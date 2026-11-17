@@ -29,7 +29,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public interface IControllable {
+/**
+ * A block entity that a control board can address: it reports what it can be
+ * told, and takes the events the board broadcasts.
+ *
+ * <p>Also a {@link com.hbmzz.ctrl.LinkTarget}, because a board is itself
+ * controllable - one console can drive another's buttons. That marker lives in
+ * {@code com.hbmzz.ctrl} so the monitor data line, which is older than the
+ * console and outlives it, can recognise a board without naming one.</p>
+ */
+public interface IControllable extends com.hbmzz.ctrl.LinkTarget {
 
 	default List<String> getInEvents(){return Collections.emptyList();}
 	default List<String> getOutEvents(){return Collections.emptyList();}

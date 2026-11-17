@@ -57,7 +57,7 @@ public class NCStockOutput implements INodeMenuCreator {
 		list.addItems("播放声音");
 		// Only meaningful inside a chart's own graph, which is where upstream
 		// offers it too.
-		if(editor.currentSystem.parent instanceof com.hbmzz.cecp.controls.addon.Graph)
+		if(editor.currentSystem.parent instanceof com.hbmzz.cecp.api.IValueChart)
 			list.addItems("写入图表");
 	}
 }

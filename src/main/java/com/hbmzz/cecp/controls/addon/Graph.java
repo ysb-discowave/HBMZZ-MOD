@@ -25,6 +25,7 @@ import com.hbmzz.cecp.Control;
 import com.hbmzz.cecp.ControlEvent;
 import com.hbmzz.cecp.ControlPanel;
 import com.hbmzz.cecp.GuiControlEdit;
+import com.hbmzz.cecp.api.IValueChart;
 import com.hbmzz.cecp.compat.AddonRes;
 import com.hbmzz.cecp.compat.Brush;
 import com.hbmzz.cecp.compat.IModelCustom;
@@ -63,7 +64,7 @@ import java.util.Map;
  * clients through the {@code latest} variable rather than the addon's own sync
  * packet, and each client replays them into its own ring buffer at 20 Hz.</p>
  */
-public class Graph extends Control {
+public class Graph extends Control implements IValueChart {
 
     private float width = 6F;
     private float height = 4F;
@@ -178,12 +179,19 @@ public class Graph extends Control {
     }
 
     /** Appends a sample. Runs on the server; clients replay it from {@code latest}. */
+    @Override
     public void pushValue(double value) {
         for (int i = 0; i < values.length - 1; i++) {
             values[i] = values[i + 1];
         }
         values[values.length - 1] = value;
         vars.put("latest", new DataValueFloat((float) value));
+    }
+
+    /** The live ring buffer, oldest sample first. Read by the bounds node. */
+    @Override
+    public double[] series() {
+        return values;
     }
 
     public double scaleValue(double value) {

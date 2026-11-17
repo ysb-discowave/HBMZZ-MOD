@@ -19,12 +19,11 @@
 package com.hbmzz.client;
 
 import com.hbmzz.client.screen.TermCanvas;
-import com.hbmzz.cecp.controls.addon.TerminalControl;
-import com.hbmzz.cecp.tile.TileEntityCtrlConsole;
 import com.hbmzz.ctrl.CtrlLink;
 import com.hbmzz.ctrl.CtrlPanel;
 import com.hbmzz.ctrl.SnapshotHost;
 import com.hbmzz.ctrl.TerminalShell;
+import com.hbmzz.ctrl.TerminalTile;
 import com.hbmzz.network.NetworkHandler;
 import com.hbmzz.network.TerminalInputMessage;
 import com.hbmzz.network.TerminalReplyMessage;
@@ -118,13 +117,19 @@ public class GuiCtrlTerminal extends GuiScreen {
         return te instanceof TileEntityCtrlPanel ? (TileEntityCtrlPanel) te : null;
     }
 
-    /** The ported console this window belongs to, or null. */
-    private TileEntityCtrlConsole console() {
+    /**
+     * The ported console this window belongs to, or null.
+     *
+     * <p>Typed as {@link TerminalTile} rather than as the console's class: the
+     * window only needs "is there a terminal at this index" and "seed my strip
+     * from your board", and both boards answer those themselves.</p>
+     */
+    private TerminalTile console() {
         if (this.mc == null || this.mc.world == null) {
             return null;
         }
         TileEntity te = this.mc.world.getTileEntity(this.pos);
-        return te instanceof TileEntityCtrlConsole ? (TileEntityCtrlConsole) te : null;
+        return te instanceof TerminalTile ? (TerminalTile) te : null;
     }
 
     /**
@@ -136,12 +141,8 @@ public class GuiCtrlTerminal extends GuiScreen {
      */
     private boolean addresseeAlive() {
         if (isConsole()) {
-            TileEntityCtrlConsole console = console();
-            if (console == null || console.panel == null
-                    || this.index < 0 || this.index >= console.panel.controls.size()) {
-                return false;
-            }
-            return console.panel.controls.get(this.index) instanceof TerminalControl;
+            TerminalTile console = console();
+            return console != null && console.hasTerminalControl(this.index);
         }
         CtrlPanel panel = panel();
         return panel != null && widget(panel) != null;
@@ -217,19 +218,10 @@ public class GuiCtrlTerminal extends GuiScreen {
     private void seedSnapshot() {
         this.snapshot.clear();
         if (this.isConsole()) {
-            TileEntityCtrlConsole console = console();
-            if (console == null || console.panel == null
-                    || this.index < 0 || this.index >= console.panel.controls.size()) {
-                return;
+            TerminalTile console = console();
+            if (console != null) {
+                console.seedTerminalSnapshot(this.index, this.snapshot);
             }
-            if (!(console.panel.controls.get(this.index) instanceof TerminalControl)) {
-                return;
-            }
-            TerminalControl control = (TerminalControl) console.panel.controls.get(this.index);
-            for (String tag : control.tags()) {
-                this.snapshot.add(tag, tag, true);
-            }
-            this.snapshot.target(control.getTarget());
             return;
         }
         CtrlPanel panel = panel();

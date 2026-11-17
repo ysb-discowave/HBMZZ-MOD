@@ -64,7 +64,7 @@ public class NCStockInput implements INodeMenuCreator {
 		list.addItems("查询方块");
 		list.addItems("红石输入");
 		list.addItems("批量查询");
-		if(editor.currentSystem.parent instanceof com.hbmzz.cecp.controls.addon.Graph)
+		if(editor.currentSystem.parent instanceof com.hbmzz.cecp.api.IValueChart)
 			list.addItems("图表区间");
 	}
 }

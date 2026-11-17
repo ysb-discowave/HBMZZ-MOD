@@ -18,9 +18,9 @@
 
 package com.hbmzz.network;
 
-import com.hbmzz.cecp.tile.TileEntityCtrlConsole;
 import com.hbmzz.ctrl.TerminalHost;
 import com.hbmzz.ctrl.TerminalShell;
+import com.hbmzz.ctrl.TerminalTile;
 import com.hbmzz.tile.TileEntityCtrlPanel;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -131,10 +131,10 @@ public class TerminalInputMessage implements IMessage {
                 } else {
                     TileEntity te = player.world.getTileEntity(pos);
                     if (kind == KIND_CONSOLE) {
-                        if (!(te instanceof TileEntityCtrlConsole)) {
+                        if (!(te instanceof TerminalTile)) {
                             sink.err("控制台已经不在了。");
                         } else {
-                            TileEntityCtrlConsole console = (TileEntityCtrlConsole) te;
+                            TerminalTile console = (TerminalTile) te;
                             result = console.runTerminal(index, line, sink);
                             host = console.terminalHost(index);
                         }

@@ -26,13 +26,13 @@ import java.util.Map;
 /**
  * What a terminal talks to: a list of bound machines, one of them current.
  *
- * <p>There are two control panels in this mod and they do not share a single
- * class. One is this package's own ({@link CtrlPanel}, a 32x18 grid of widgets
- * with six fixed link slots); the other is the ported Cursed Edition console
- * ({@code com.hbmzz.cecp.ControlPanel}, a free-form board whose controls each
- * carry their own linker tags). Both, however, can hand an operator the same
- * four things: which machines are wired, which one is selected, what it can be
- * read for, and what it accepts.</p>
+ * <p>There are two control boards and they do not share a single class. One is
+ * this package's own ({@link CtrlPanel}, a 32x18 grid of widgets with six fixed
+ * link slots); the other is the ported Cursed Edition console, a free-form board
+ * whose controls each carry their own linker tags - the same four things from
+ * different bookkeeping. Both can hand an operator the same four things: which
+ * machines are wired, which one is selected, what it can be read for, and what
+ * it accepts.</p>
  *
  * <p>So the command language is written against this interface instead of
  * either panel. {@link TerminalShell} never learns which of the two it is

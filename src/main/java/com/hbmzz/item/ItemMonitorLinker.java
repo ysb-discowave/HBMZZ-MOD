@@ -64,11 +64,11 @@ public class ItemMonitorLinker extends Item {
         ItemStack stack = player.getHeldItem(hand);
 
         // The console opens its own editor through the block, so the item must
-        // not swallow the click: it is itself IControllable, and recording it
+        // not swallow the click: it is itself a link target, and recording it
         // here would mean the editor could never be opened while carrying the
         // tool. Sneaking still records it, which is how one console addresses
         // another in the node editor.
-        if (world.getBlockState(pos).getBlock() instanceof com.hbmzz.cecp.block.BlockCtrlConsole
+        if (world.getTileEntity(pos) instanceof com.hbmzz.ctrl.LinkTarget
                 && !player.isSneaking()) {
             return EnumActionResult.PASS;
         }
@@ -139,9 +139,11 @@ public class ItemMonitorLinker extends Item {
             player.sendMessage(new TextComponentTranslation("hbmzz.msg.camera_set", camera.getName()));
             return EnumActionResult.SUCCESS;
         }
-        // The console itself is controllable too, which is how one console can
-        // drive another's buttons through the node editor.
-        if (te instanceof com.hbmzz.cecp.IControllable) {
+        // A board is controllable too, which is how one console can drive
+        // another's buttons through the node editor. Tested by the marker
+        // interface, not by class: this item is older than the console and has
+        // to keep working when the console is not installed.
+        if (te instanceof com.hbmzz.ctrl.LinkTarget) {
             tag.setLong("ctrl", pos.toLong());
             tag.setString("ctrlName", "控制台");
             recordPosition(tag, pos);

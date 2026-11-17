@@ -32,8 +32,10 @@ import com.hbmzz.cecp.net.CPPackets;
 import com.hbmzz.cecp.net.ControlPanelUpdatePacket;
 import com.hbmzz.ctrl.GroupedHost;
 import com.hbmzz.ctrl.PartBroadcast;
+import com.hbmzz.ctrl.SnapshotHost;
 import com.hbmzz.ctrl.TerminalHost;
 import com.hbmzz.ctrl.TerminalShell;
+import com.hbmzz.ctrl.TerminalTile;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -68,7 +70,8 @@ import java.util.List;
  * redstone sampling/broadcast pair, the slope transform used for rendering and
  * picking, and the delta packets - is unchanged.</p>
  */
-public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.hbmzz.cecp.IControllable {
+public class TileEntityCtrlConsole extends TileEntity
+        implements ITickable, com.hbmzz.cecp.IControllable, TerminalTile {
 
     public ItemStackHandler inventory;
     public ControlPanel panel;
@@ -386,6 +389,45 @@ public class TileEntityCtrlConsole extends TileEntity implements ITickable, com.
     public int terminalTarget(int controlIndex) {
         TerminalHost host = terminalHost(controlIndex);
         return host == null ? -1 : host.target();
+    }
+
+    /**
+     * The control at {@code controlIndex} if it is a terminal, else null.
+     *
+     * <p>The one place the console's control list is indexed for terminal work,
+     * so {@link #runTerminal} and {@link #terminalHost} cannot drift apart on
+     * what counts as a terminal.</p>
+     */
+    private TerminalControl terminalAt(int controlIndex) {
+        if (this.panel == null || controlIndex < 0 || controlIndex >= this.panel.controls.size()) {
+            return null;
+        }
+        Control control = this.panel.controls.get(controlIndex);
+        return control instanceof TerminalControl ? (TerminalControl) control : null;
+    }
+
+    @Override
+    public boolean hasTerminalControl(int controlIndex) {
+        return terminalAt(controlIndex) != null;
+    }
+
+    /**
+     * Fills the window's slot strip from this console's own copy of the board.
+     *
+     * <p>Only so the window does not open with blank tabs; the reply packet
+     * overwrites every field a moment later. The tags are the same strings the
+     * server will send back, because both come from the same control.</p>
+     */
+    @Override
+    public void seedTerminalSnapshot(int controlIndex, SnapshotHost snapshot) {
+        TerminalControl control = terminalAt(controlIndex);
+        if (control == null || snapshot == null) {
+            return;
+        }
+        for (String tag : control.tags()) {
+            snapshot.add(tag, tag, true);
+        }
+        snapshot.target(control.getTarget());
     }
 
     @Override

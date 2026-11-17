@@ -27,8 +27,25 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)
 | 来源 | 许可证 | 本项目中使用的位置 |
 |---|---|---|
 | **HBM's Nuclear Tech — Community Edition**（NTM-CE）<br><https://github.com/Warfactory-Official/Hbm-s-Nuclear-Tech-CE><br>作者：HBMMods / Drillgon200 / TheOriginalGolem / Alcater / MrNorwood / Movblock / EOS 等，名单见其 `mcmod.info` | **GPL-3.0** | `com.hbmzz.cecp` 全部包（`Control`、`ControlType`、`controls/*`、`nodes/*`、`NodeSystem`、`modular/*`、`types/*`、`SubElement*`、`ControlPanel`、`ControlEvent(–System)`、`IControllable` …）；`BlockCtrlConsole` / `TileEntityCtrlConsole` / `RenderCtrlConsole` 对应的上游类；`assets/hbmzz/models/control_panel/*` 与 `assets/hbmzz/textures/models/control_panel/*` 的 OBJ 与贴图 |
-| **NTM Cursed Addon（CE Addon / Leafia）**<br><https://github.com/ntmleafia/NTM-Cursed-Addon><br>作者：Leafia、movblock 等 | **待核实**：该项目 2026-10-23 起主材料改为 **PolyForm Shield 1.0.0**（commit `27ed746c`），LGPL-3.0 仅存于其 `modules/lgpl-code`、`modules/lgpl-assets`；本项目 2.2.1（2026-11-03）引用的快照落在改许可之后 | `com.hbmzz.cecp.nodes.addon`（14 个节点）、`controls.addon`（11 个控件）、`controls.configs.addon`（7 个配置面板）、`modular.AddonNodeLoader`、`compat/AddonRes`、`compat/CEEventTable`、`compat/RBMKColumns`、`compat/ModSounds`；`assets/hbmzz/models/control_panel/addon/*`（6 个 `.obj`）、`assets/hbmzz/textures/models/control_panel/addon/*`（15 张 png）、`textures/gui/control_panel/{solid,solid_emissive,invisible}.png` |
+| **NTM Cursed Addon（CE Addon / Leafia）**<br><https://github.com/ntmleafia/NTM-Cursed-Addon><br>作者：Leafia、movblock 等 **PolyForm Shield 1.0.0**（2026-10-23 起，commit `27ed746c`；源可见，允许修改与再分发，但**不得 sublicense**、含 noncompete 条款、须随附条款与 `Required Notice` 行）。其 `modules/lgpl-code`、`modules/lgpl-assets` 仍是 **LGPL-3.0**。详见第 6 节 | `com.hbmzz.cecp.nodes.addon`（14 个节点）、`controls.addon`（11 个控件）、`controls.configs.addon`（7 个配置面板）、`modular.AddonNodeLoader`、`compat/AddonRes`、`compat/CEEventTable`、`compat/RBMKColumns`、`compat/ModSounds`；`assets/hbmzz/models/control_panel/addon/*`（6 个 `.obj`）、`assets/hbmzz/textures/models/control_panel/addon/*`（15 张 png）、`textures/gui/control_panel/{solid,solid_emissive,invisible}.png` |
 | **DFC-Map-Creation-Tool / 节枝特效工具 JiezhiMod**<br><https://gitee.com/jiezhi-bililbli/DFC-Map-Creation-Tool><br>作者：树上的节枝（jiezhi） | 原为自定义「源码可见许可协议 v1.0」（非 OSI 认证）；**已取得作者书面授权，可按 GPL-3.0 使用**（2026-11-03，见 [`AUTHORIZATION.md`](AUTHORIZATION.md) 与第 5 节） | 监控屏的整机 TESR 渲染结构、控制器 + 占位格结构、吊装几何与变换、AWT 离屏画布 → 单纹理 quad 的上传管线。主要涉及 `client/RenderDFCMonitor`、`client/RenderFallenScreen`、`client/ConsoleModel`、`client/screen/TerminalCanvas`、`dfc/ConsoleRig`、`block/BlockDFCMonitor*`、`tile/TileEntityDFCMonitor`。逐项对应关系见 `README.md` 的「署名」一节 |
+
+### 许可摆放：这一部分**不作为 GPL-3.0 的一部分**
+
+PolyForm Shield 的 **No Other Rights** 一节写明不得 sublicense，而 GPL-3.0 要求对下游不附加额外限制。
+两者放在同一个 GPL-3.0-only 的声明下会互相打脸：等于替对方做了一份它没给的授权，同时也没把
+PolyForm 的条款传给接收者。
+
+因此本项目的做法是**分开声明、分开发**：
+
+- 根 mod（`hbmzz`）继续是 **GPL-3.0-only**，只包含本项目自有与 GPL/LGPL 兼容的部分。
+- 源自 NTM Cursed Addon 的代码与素材，承载在独立的 `hbmzz:addon` 中，随附
+  `LICENSE-PolyForm.txt`（条款全文）与 `NOTICE-hbmzz-addon.md`（两行 `Required Notice` + 来源），
+  **不声称**它是 GPL-3.0。
+- 分发任一部分时都保留各自的许可文件；不要把两者的代码混进同一份 GPL 声明里。
+
+> 状态：拆分**尚未完成**。在拆分落地之前，本仓库仍同时含有这两类内容，因此
+> 「整仓库 GPL-3.0-only」这句话对当前快照**不成立**——以本节为准。
 
 ### 重写记录（2026-11-16）：把被授权的那部分渲染换成本项目自己的实现
 

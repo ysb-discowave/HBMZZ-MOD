@@ -49,9 +49,16 @@
       <h1>GPL-3.0，而且必须得是它</h1>
       <p class="lead">
         本模组是自由软件，依据 GNU 通用公共许可证第 3 版（GPL-3.0-only）分发。选 GPL-3.0
-        不是审美偏好，而是因为取用的上游代码都是 GPL 体系，衍生作品只能继续以 GPL 分发。
-        本页逐条说明：本项目的许可证、每一部分代码来自谁、节枝的书面授权，以及再分发者要履行的义务。
+        不是审美偏好：<code>com.hbmzz.cecp</code> 整套面板移植自 NTM: 诅咒版，那份是 GPL-3.0，
+        衍生作品只能继续以 GPL 分发。
       </p>
+      <div class="note" style="margin-top:18px">
+        <span><b>但上游不全是 GPL。</b>面板里的仪器控件来自 <b>NTM Cursed Addon</b>，它已在
+        <b>2026-10-23</b> 改为 <b>PolyForm Shield 1.0.0</b>——允许修改与再分发，但<b>不得 sublicense</b>，
+        还带一条 noncompete。那部分<b>不能</b>按 GPL 发，所以正在拆到独立的
+        <a href="addon.html">附加包 <code>hbmzz:addon</code></a>，由它单独声明许可。
+        本页说的 GPL-3.0 只覆盖本体：控制面板框架、方块与方块实体、以及本项目自有的全部代码。</span>
+      </div>
     </div>
   </div>
 
@@ -121,8 +128,13 @@ Copyright (C) 2026 Yang Sibo (GitHub: ysb-discowave)</pre>
             </tr>
             <tr>
               <td><strong>NTM Cursed Addon（CE Addon / Leafia）</strong><br><a href="https://github.com/ntmleafia/NTM-Cursed-Addon">ntmleafia/NTM-Cursed-Addon</a><br>作者：Leafia、movblock 等</td>
-              <td><span class="tag tag--green">GPL-3.0</span><br><span class="tag tag--dim">部分 LGPL-3.0</span></td>
-              <td><code>com.hbmzz.cecp.nodes.addon</code>（节点）、<code>controls.addon</code>（控件）、<code>controls.configs.addon</code>（配置面板），以及对应的模型、贴图与兼容层。</td>
+              <td><span class="tag tag--amber">PolyForm Shield 1.0.0</span><br><span class="tag tag--dim">2026-10-23 起；此前为 GPL-3.0</span></td>
+              <td><code>com.hbmzz.cecp.nodes.addon</code>（节点）、<code>controls.addon</code>（控件）、
+                <code>controls.configs.addon</code>（配置面板），以及对应的模型、贴图与兼容层。
+                <b>这部分不按 GPL-3.0 分发</b>：允许修改与再分发，但不得 sublicense、含 noncompete，
+                须随附条款与 <code>Required Notice</code>。正在拆到
+                <a href="addon.html">附加包 <code>hbmzz:addon</code></a> 单独承载。
+                其仓库内 <code>modules/lgpl-code</code>、<code>modules/lgpl-assets</code> 仍为 LGPL-3.0。</td>
             </tr>
             <tr>
               <td><strong>DFC-Map-Creation-Tool / 节枝特效工具 JiezhiMod</strong><br>作者：树上的节枝（jiezhi）</td>
@@ -378,7 +390,7 @@ HBM-ZZ 的第一个外部版本，打算使用 GPL-3.0 开源协议开放源代�
   </div>
 </footer>
 
-<script src="assets/data.js?v=cfc01e1332"></script>
+<script src="assets/data.js?v=24568d0c85"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

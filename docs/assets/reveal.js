@@ -1,8 +1,11 @@
 /* ==========================================================================
    HBMZZ 官网 — 滚动连动折叠动画（全站共用）
-   与致谢页同一套参数：下滑时下方渐渐浮出、上方渐渐退出，上滑完全反向。
-   短块用致谢页原算法（元素中心靠近视口中心 → 清晰）；
-   长块（长表格 / 超长面板）改用"可见即清晰"，保证正文不会长期半透明。
+   与致谢页【完全同一套算法与参数】：
+     进度 = 元素中心到视口中心的距离，渐变范围 0.82 个视口高；
+     smoothstep 平滑；位移 46px；绕 X 轴 ±9° 翻折；缩放 0.965→1；透明度 0.06→1。
+   下滑：下方渐渐浮出、上方渐渐退出；上滑完全反向。
+   唯一例外：高度超过视口 45% 的超大块，改用「边缘进出」算法，
+   避免整屏面板在阅读时长期半透明——观感一致，但不影响读长文档。
    自动挑内容块、自动加 .reveal，页面无需改结构。
    任何异常都会退回静态内容，绝不让正文停留在不可见状态。
    ========================================================================== */
@@ -46,6 +49,10 @@
   for (var n = 0; n < last.length; n++) last[n] = -1;
   var ticking = false;
 
+  var RANGE = 0.82;      // 与致谢页一致：渐变跨 0.82 个视口高
+  var BIG_RATIO = 0.45;  // 超过视口 45% 高度的块视为「超大块」
+  var BIG_RANGE = 0.55;  // 超大块用边缘进出，范围略宽以保可读
+
   function fallback() {
     root.classList.remove('reveal-on');
     nodes.forEach(function (el) { el.style.opacity = ''; el.style.transform = ''; });
@@ -61,19 +68,25 @@
 
     for (var j = 0; j < nodes.length; j++) {
       var r = rects[j];
+      var t, midF;
 
-      // 按视口「边缘」算进出：从下方浮出 → 视口内保持清晰 → 从上方退出。
-      // 与致谢页同一套视觉参数，只是把清晰区放宽，避免长文档正文长期半透明。
-      // 上滑时两条进度同时反向变化，所以浮出/退出也是完全对称的。
-      var eIn  = clamp((h - r.top) / (h * 0.36), 0, 1);   // 顶边从视口底部上移 → 浮出
-      var eOut = clamp(r.bottom / (h * 0.36), 0, 1);      // 底边升到视口顶部 → 退出
-      var t = Math.min(eIn, eOut);                        // 长块天然保持 1
+      if (r.height > h * BIG_RATIO) {
+        // 超大块：按视口边缘进出，进入后保持扎实可读
+        var eIn = clamp((h - r.top) / (h * BIG_RANGE), 0, 1);
+        var eOut = clamp(r.bottom / (h * BIG_RANGE), 0, 1);
+        t = Math.min(eIn, eOut);
+        midF = clamp((r.top + r.height / 2 - h / 2) / h, -1, 1);
+      } else {
+        // 常规块：与致谢页逐字一致 —— 中心越靠近视口中心越清晰
+        var mid = (r.top + r.height / 2 - h / 2) / h;
+        midF = clamp(mid, -1, 1);
+        t = clamp(1 - Math.abs(mid) / RANGE, 0, 1);
+      }
 
-      var e = t * t * (3 - 2 * t);                    // smoothstep
-      if (Math.abs(e - last[j]) < 0.004) continue;    // 没变化就不写
+      var e = t * t * (3 - 2 * t);                    // smoothstep，与致谢页相同
+      if (Math.abs(e - last[j]) < 0.002) continue;    // 没变化就不写（阈值压小，过渡更连续）
       last[j] = e;
 
-      var midF = clamp((r.top + r.height / 2 - h / 2) / h, -1, 1);
       var fold = midF * -9 * (1 - e);
       var el = nodes[j];
       el.style.opacity = (0.06 + 0.94 * e).toFixed(3);

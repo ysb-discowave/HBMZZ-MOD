@@ -20,6 +20,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -48,14 +49,40 @@ def read(path: str) -> str:
         return f.read()
 
 
+def latest_tag():
+    """最新（按创建时间）的发布 tag，去掉 v 前缀；没有 tag 时返回 None。
+
+    「站点显示的版本」以 tag 为准：tag 是发布这件事本身，build.gradle 只是构建时的
+    意图。两者不一致时，玩家看到的应该是**已经发出去的那个**，而不是工作区里改了一半
+    的下一个。遍历顺序按 creatordate 倒序——V3.5.1 这种大写前缀的老 tag 也一并认。
+    """
+    try:
+        out = subprocess.run(
+            ["git", "for-each-ref", "--sort=-creatordate", "--format=%(refname:short)", "refs/tags"],
+            cwd=ROOT, capture_output=True, text=True)
+    except Exception:
+        return None
+    if out.returncode != 0:
+        return None
+    for line in out.stdout.splitlines():
+        name = line.strip()
+        m = re.match(r"^[vV]?(\d+\.\d+\.\d+)$", name)
+        if m:
+            return m.group(1)
+    return None
+
+
 def scan_gradle() -> dict:
     text = read(BUILD_GRADLE)
     version = re.search(r"^version\s*=\s*'([^']+)'", text, re.M)
     mc = re.search(r"version\s*=\s*'(\d+\.\d+\.\d+)-([\d.]+)'", text)
     if not version or not mc:
         raise SystemExit("build.gradle 里找不到 version / minecraft.version")
+    tagged = latest_tag()
     return {
-        "version": version.group(1),
+        # 站点版本以最新 tag 为准；没有 tag 的仓库（比如刚 clone 的）退回 build.gradle
+        "version": tagged or version.group(1),
+        "gradleVersion": version.group(1),
         "mcVersion": mc.group(1),
         "forgeVersion": mc.group(2),
     }
@@ -270,13 +297,24 @@ def main() -> int:
             m = re.search(r'"version"\s*:\s*"([^"]+)"', read(info))
             if not m:
                 problems.append(("FAIL", "mcmod.info 里找不到 version 字段"))
-            elif m.group(1) != payload["auto"]["version"]:
+            elif m.group(1) != payload["auto"].get("gradleVersion", payload["auto"]["version"]):
                 problems.append(("FAIL", "mcmod.info 的 version 是 %s，build.gradle 是 %s"
-                                 % (m.group(1), payload["auto"]["version"])))
+                                 % (m.group(1), payload["auto"].get("gradleVersion"))))
+        # 站点版本来自 tag、构建版本来自 build.gradle，两者不一致本身不是错
+        # （发完版之后工作区会往前走），但值得说一声，免得以为是数据没更新。
+        gv = payload["auto"].get("gradleVersion")
+        if gv and gv != payload["auto"]["version"]:
+            problems.append(("WARN", "站点版本 %s 取自 tag，build.gradle 是 %s"
+                             % (payload["auto"]["version"], gv)))
 
+        seen = set()
         for level, msg in problems:
+            if (level, msg) in seen:
+                continue
+            seen.add((level, msg))
             print("%-8s %s" % (level, msg))
-        if problems:
+        # WARN 只是提醒（例如 tag 与 build.gradle 不一致），不阻断
+        if any(level == "FAIL" for level, _ in problems):
             failed = True
         else:
             print("OK       页面结构、版本号、站内链接与锚点全部一致")

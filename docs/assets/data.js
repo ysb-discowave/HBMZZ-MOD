@@ -633,13 +633,13 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "3.7.0",
-    "gradleVersion": "3.6.1",
+    "version": "3.7.1",
+    "gradleVersion": "3.7.1",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 548,
-      "javaLines": 127382,
+      "javaLines": 127389,
       "resourceFiles": 573,
       "nodeTypes": 32,
       "controlTypes": 26

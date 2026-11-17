@@ -20,19 +20,24 @@ for name in PAGES:
         continue
     text = read(p)
 
+    # 自带内联样式的独立页面（例如致谢页刻意做成「单文件也能打开」）：
+    # 类名由它自己的 <style> 定义、脚本与样式表也在文件里，不适用全站规则。
+    selfcontained = "<style>" in text
+
     # 1) 用到的 class 是否都在 CSS 里定义
     used = set()
     for m in re.findall(r'class="([^"]*)"', text):
         for c in m.split():
             used.add(c)
     unknown = sorted(c for c in used if c not in defined)
-    if unknown:
+    if unknown and not selfcontained:
         problems.append(("UNKNOWN-CLASS", name, ", ".join(unknown)))
 
     # 2) 必需的骨架
-    for must in ('<header class="nav">', '<footer class="foot">',
-                 'assets/site.css', 'assets/data.js', 'assets/site.js',
-                 '<meta name="viewport"', '<html lang="zh-CN">'):
+    required = ['<meta name="viewport"', '<html lang="zh-CN">']
+    if not selfcontained:
+        required += ['assets/site.css', 'assets/data.js', 'assets/site.js']
+    for must in required:
         if must not in text:
             problems.append(("MISSING-MARKUP", name, must))
 

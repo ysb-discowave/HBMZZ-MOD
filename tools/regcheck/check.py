@@ -1273,6 +1273,26 @@ def main():
           "a plain click starts the wall from the server side",
           "BlockVideoBroadcaster must call TileEntityVideoBroadcaster.startDisplay() off-thread-free")
 
+    # 86. 导入窗口必须永远居中。以前是写死的 (width - 360) / 2，GUI 缩放调大后可用
+    # 宽度缩到 320，left 变负数，面板左边被切在屏幕外——玩家看到的就是"歪在一边"。
+    # 现在宽度跟着视口算、左边距夹住，拉窗口时还要重排按钮。
+    import_gui = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoImport.java"))
+    check("Math.min(MAX_W, this.width - 16)" in import_gui
+          and "Math.max(4, (this.width - this.W) / 2)" in import_gui,
+          "导入窗口按视口居中，窄窗口里缩小而不是歪掉",
+          "GuiVideoImport must clamp its panel width to the viewport and centre it with a floor")
+    check("laidOutWidth" in import_gui and "private void layout()" in import_gui,
+          "拉窗口/改全屏之后导入窗口会重排，按钮不留在旧位置",
+          "GuiVideoImport.updateScreen must call layout() when the viewport size changed")
+
+    # 87. 帧率上限 120，而且读取端不能偷偷压回 60 —— 否则导出来的 120fps 包
+    # 会以半速播放，看上去像"导入时丢帧了"。
+    clip = read(os.path.join(SRC, "com/hbmzz/video/VideoClip.java"))
+    check("120" in importer.split("FPS_STEPS")[1][:80] and "Math.min(120, fps)" in clip
+          and "Math.min(120, fps)" in importer,
+          "导入与读取两端都认到 120fps",
+          "FPS_STEPS must reach 120 and both clamps must be 120, not 60")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

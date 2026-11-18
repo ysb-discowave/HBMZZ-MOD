@@ -46,10 +46,12 @@ import java.util.List;
  */
 public class GuiVideoImport extends GuiScreen {
 
-    private static final int W = 360;
+    private static final int MAX_W = 360;
     private static final int H = 258;
     private static final int ROWS = 7;
     private static final int ROW_H = 12;
+    private static final int MARGIN = 12;
+    private static final int GAP = 6;
 
     private static final int AMBER = 0xFFF5A524;
     private static final int DIM = 0xFF8894A0;
@@ -59,8 +61,13 @@ public class GuiVideoImport extends GuiScreen {
     private final BlockPos pos;
     private final GuiScreen parent;
 
+    /** 面板宽度按窗口现算，窗口窄的时候会缩，不再固定 360。 */
+    private int W = MAX_W;
     private int left;
     private int top;
+    /** 上一次排版时的视口尺寸，变了就重排。 */
+    private int laidOutWidth = -1;
+    private int laidOutHeight = -1;
     private int scroll;
     private int selected = -1;
     private int fps = VideoImportQueue.DEFAULT_FPS;
@@ -77,25 +84,52 @@ public class GuiVideoImport extends GuiScreen {
 
     @Override
     public void initGui() {
-        this.left = (this.width - W) / 2;
-        this.top = (this.height - H) / 2;
-
         this.files = VideoLibrary.importable();
         clampScroll();
+        layout();
+    }
 
+    /**
+     * 版面按当前视口现算，永远居中。
+     *
+     * <p>以前这里是写死的 360 宽、按 (width-360)/2 定位。GUI 缩放调大以后可用宽度会缩到
+     * 320 甚至更小，面板比屏幕还宽，left 变成负数——左边一截被切在屏幕外，看上去整块
+     * 面板歪到右边去了。现在宽度取 min(360, 视口-16)，左边距也夹住，窄窗口里是"变小"，
+     * 不是"歪掉"。</p>
+     */
+    private void layout() {
+        this.laidOutWidth = this.width;
+        this.laidOutHeight = this.height;
+        this.W = Math.max(220, Math.min(MAX_W, this.width - 16));
+        this.left = Math.max(4, (this.width - this.W) / 2);
+        this.top = Math.max(4, (this.height - H) / 2);
+        buildButtons();
+    }
+
+    private void buildButtons() {
+        this.buttonList.clear();
         int l = this.left;
         int t = this.top;
-        this.buttonList.add(new GuiButton(0, l + 12, t + 166, 110, 18, "转换选中"));
-        this.buttonList.add(new GuiButton(1, l + 128, t + 166, 110, 18, "全部转换"));
-        this.buttonList.add(new GuiButton(2, l + 244, t + 166, 104, 18, "关闭"));
-        this.buttonList.add(new GuiButton(3, l + 12, t + 188, 110, 18, "帧率 " + this.fps));
-        this.buttonList.add(new GuiButton(4, l + 128, t + 188, 110, 18, "宽度 " + this.width));
-        this.buttonList.add(new GuiButton(5, l + 244, t + 188, 104, 18, "取消转换"));
-        this.buttonList.add(new GuiButton(6, l + 12, t + 232, 336, 18, ffmpegButtonLabel()));
+        int column = Math.max(64, (this.W - 2 * MARGIN - 2 * GAP) / 3);
+        int x0 = l + MARGIN;
+        int x1 = x0 + column + GAP;
+        int x2 = x1 + column + GAP;
+        int wide = this.W - 2 * MARGIN;
+        this.buttonList.add(new GuiButton(0, x0, t + 166, column, 18, "转换选中"));
+        this.buttonList.add(new GuiButton(1, x1, t + 166, column, 18, "全部转换"));
+        this.buttonList.add(new GuiButton(2, x2, t + 166, Math.max(56, wide - 2 * (column + GAP)), 18, "关闭"));
+        this.buttonList.add(new GuiButton(3, x0, t + 188, column, 18, "帧率 " + this.fps));
+        this.buttonList.add(new GuiButton(4, x1, t + 188, column, 18, "宽度 " + this.width));
+        this.buttonList.add(new GuiButton(5, x2, t + 188, Math.max(56, wide - 2 * (column + GAP)), 18, "取消转换"));
+        this.buttonList.add(new GuiButton(6, x0, t + 232, wide, 18, ffmpegButtonLabel()));
     }
 
     @Override
     public void updateScreen() {
+        // 窗口被拉动 / 改全屏时 initGui 之外的这条路也要重排，否则按钮留在旧位置。
+        if (this.width != this.laidOutWidth || this.height != this.laidOutHeight) {
+            layout();
+        }
         // 转换结束后文件还在目录里，但对应的 zip 已经出现，标记要跟着变。
         refreshFilesIfChanged();
         syncLabels();
@@ -150,7 +184,7 @@ public class GuiVideoImport extends GuiScreen {
 
         drawList(mouseX, mouseY);
 
-        this.fontRenderer.drawStringWithShadow("帧率与宽度决定产物体积；转一次，之后随便放",
+        this.fontRenderer.drawStringWithShadow("帧率最高 120；帧率与宽度决定体积，转一次之后随便放",
                 l + 12, t + 150, 0xFF5A6674);
 
         drawProgress(l, t);

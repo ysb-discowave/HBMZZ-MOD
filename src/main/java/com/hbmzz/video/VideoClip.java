@@ -204,7 +204,8 @@ public final class VideoClip implements Closeable {
                 }
             }
         }
-        fps = Math.max(1, Math.min(60, fps));
+        // 上限跟着导入器的档位走：120fps 的包要能原样播，不能被读的时候压回 60。
+        fps = Math.max(1, Math.min(120, fps));
         int frames = entries.size();
         // A declared count larger than what is on disk would make the player wait
         // for frames that will never arrive, so the smaller of the two wins.

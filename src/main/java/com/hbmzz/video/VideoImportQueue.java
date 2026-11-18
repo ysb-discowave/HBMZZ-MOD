@@ -65,8 +65,14 @@ public final class VideoImportQueue {
     /** 默认宽度：854 是 480p 级的宽度，一块 3×3 的大屏也够看。 */
     public static final int DEFAULT_WIDTH = 854;
 
-    /** 帧率与宽度的可选档位，界面按一下换一档。 */
-    public static final int[] FPS_STEPS = {6, 8, 10, 12, 15, 24, 30};
+    /**
+     * 帧率与宽度的可选档位，界面按一下换一档。
+     *
+     * <p>上限给到 120：高帧率的片子（60/120fps 的录像、游戏内录屏）以前会被压到 30，
+     * 快速横移的镜头一顿一顿。代价是帧数按帧率线性涨——120fps 的一部番是 30fps 的四倍
+     * 体积，所以列表里那行"帧率与宽度决定产物体积"不是客套话。</p>
+     */
+    public static final int[] FPS_STEPS = {6, 8, 10, 12, 15, 24, 30, 48, 60, 90, 120};
     public static final int[] WIDTH_STEPS = {320, 480, 640, 854, 1280};
 
     private static final Pattern DURATION =
@@ -138,7 +144,7 @@ public final class VideoImportQueue {
         if (files == null || files.isEmpty()) {
             return 0;
         }
-        int clampedFps = Math.max(1, Math.min(60, fps));
+        int clampedFps = Math.max(1, Math.min(120, fps));
         int clampedWidth = Math.max(64, Math.min(4096, width));
         int added = 0;
         for (File file : files) {

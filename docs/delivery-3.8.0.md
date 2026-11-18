@@ -11,10 +11,10 @@
 | --- | --- |
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
-| 当前提交 | `c1b1b78`（版本号回退并固定在 3.8.0） |
-| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,696,430 字节） |
-| 模组 SHA-256 | `0895d885e0979f5f8572ae0ea5b2ea2cc9121c88532bee9acc3c6b8c3b9e4684` |
-| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,793,507 字节） |
+| 当前提交 | `faa7f85`（修复启动崩溃） |
+| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,696,423 字节） |
+| 模组 SHA-256 | `985dd964dc7b96aa49cfc93df99b04c72984afec39a8905d391dcb23286bc472` |
+| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,793,935 字节，sha256 `2314f282…`） |
 | 源码仓库 | `C:\Users\37594\WorkBuddy\Claw\HBMZZ-MOD`（分支 master） |
 | 部署位置 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\mods\hbmzz-3.8.0.jar` |
 | 旧版归档 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\backupsmod\hbmzz-old-jars\` |
@@ -67,6 +67,24 @@
 - `docs/changelog.html` 与 `tools/site/content.json` 补 v3.8.0 条目。
 - 版本号固定 3.8.0，三处对齐；提交 `c1b1b78` 起不再随改动升版。
 
+### 7. 启动崩溃修复（批次 #3）
+
+- **症状**：客户端在 `Initializing game` 阶段直接退出，堆栈指向
+  `BlockBlastDoor.<init>` 与 `ModBlocks.<clinit>`，报
+  `IllegalStateException: Attempted to set registry name with existing registry name! New: rsaudio:blast_door Old: rsaudio:blast_door`。
+- **根因**：为了让 `tools/regcheck` 能静态读到注册名，在 `BlockBlastDoor` / `BlockBlastDoorPanel`
+  的无参构造函数里补写了一行字面量 `setRegistryName(RsAudio.MODID, "…")`；
+  而被委托的父类构造函数里已经用同样的名字设过一次。`IForgeRegistryEntry` 的注册名只能设一次，
+  第二次直接抛异常，而这个初始化发生在 static 字段里，所以整个客户端启动即死。
+  `BlockBlastCurtain` / `BlockBlastCurtainPanel` 同理，只是还没轮到它们就崩了。
+- **修法**：父类构造函数不再设注册名（只设显示名），注册名一律由具体类用字面量设一次；
+  既满足 regcheck 的静态读取，也只调用一次。
+- **防复发**：regcheck 新增第 64 条守卫「同一个类里 setRegistryName 只允许出现一次」。
+  反向验证：把重复的那行临时塞回 `BlockBlastDoor`，检查当场 FAIL 并指出文件；移除后恢复 PASS。
+- **部署工具同时修了一处误伤**：`tools/deploy.py` 原来用前缀 `hbmzz-` 判断「我们自己的 jar」，
+  把第三方附加包 `hbmzz-addon-0.1.0.jar` 当成旧版归档走了。现在判据改成
+  `hbmzz-<数字版本>.jar`（`OWN_JAR` / `OWN_BACKUP` 两个正则），已误归档的附加包已恢复回 `mods`。
+
 ---
 
 ## 三、验证记录
@@ -75,7 +93,7 @@
 | --- | --- |
 | `./gradlew build -x test --offline` | BUILD SUCCESSFUL，产出 `build/libs/hbmzz-3.8.0.jar` |
 | jar 内 `mcmod.info` | modid `hbmzz`，version `3.8.0` |
-| regcheck（注册 / 配方 / 模型表） | 63/63 |
+| regcheck（注册 / 配方 / 模型表） | 64/64（新增「注册名只许设一次」守卫） |
 | statecheck（blockstate 键序 / 状态数） | 4/4 |
 | videocheck（顺序 / 帧率 / 循环 / 同步） | 55/55 |
 | linkercheck（连接器握手） | 21 通过，1 跳过 |
@@ -110,6 +128,7 @@
 | --- | --- | --- | --- |
 | 2026-11-18 #1 | `7c4948f` `3bbe4aa` `bd8a7a0` | 防爆窗帘 + 纪念挂画 + DFC 几何缓存；视频大屏与观看界面悬浮化；序列帧播放器（顺序 / 帧率 / 循环 / 音画同步） | `317f7bd4…`（3.9.0 标签期） |
 | 2026-11-18 #2 | `c1b1b78` | 版本号回退并固定在 3.8.0，功能全部保留；重新出包并部署，3.9.0 归档 | `0895d885…` |
+| 2026-11-18 #3 | `faa7f85` | 修复启动崩溃（blast_door 注册名设两次）；regcheck 加第 64 条守卫；deploy.py 不再误归档 `hbmzz-addon` | `985dd964…` |
 
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。

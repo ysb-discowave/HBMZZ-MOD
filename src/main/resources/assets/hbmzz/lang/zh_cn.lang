@@ -116,3 +116,8 @@ hbmzz.msg.autoshutdown_on=DFC 自动停机：已开启（坍缩时降温，最�
 hbmzz.msg.autoshutdown_off=DFC 自动停机：已关闭
 hbmzz.msg.autoshutdown_unbound=这台监视屏还没绑定 DFC，先绑上再开自动停机
 hbmzz.msg.autoshutdown_nocore=绑定的位置没有 DFC，自动停机保持关闭
+
+tile.hbmzz.reactor.name=HBMZZ 反应堆堆芯
+hbmzz.reactor.tip1=背面：控制棒（0 全抽出 / 15 全插入）。左侧：冷却剂阀门。
+hbmzz.reactor.tip2=右侧：脉冲启动，持续供电紧急停堆（SCRAM）。正面：功率输出。
+hbmzz.reactor.tip3=右键读取通量、热量与当前输出功率。

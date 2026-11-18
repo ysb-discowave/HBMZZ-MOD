@@ -115,3 +115,8 @@ hbmzz.msg.autoshutdown_on=DFC auto shutdown: armed (cools during collapse, retra
 hbmzz.msg.autoshutdown_off=DFC auto shutdown: off
 hbmzz.msg.autoshutdown_unbound=This monitor has no DFC bound yet - bind one before arming the shutdown
 hbmzz.msg.autoshutdown_nocore=The bound position has no DFC; the shutdown stays off
+
+tile.hbmzz.reactor.name=HBMZZ Reactor Core
+hbmzz.reactor.tip1=Back: control rods (0=out, 15=in). Left: coolant valve.
+hbmzz.reactor.tip2=Right: pulse to start, hold to SCRAM. Front: power out.
+hbmzz.reactor.tip3=Right-click to read flux, heat and delivered power.

@@ -148,6 +148,9 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("xor_gate"));
         list.add(loc("not_gate"));
         list.add(loc("tartarus_gate"));
+        // HBMZZ 反应堆：复用控制面板模型，但必须有自己的显式位置，
+        // 否则物品栏图标只能靠注册名撞文件名（改名那天就变紫黑）。
+        list.add(loc("reactor"));
         return list;
     }
 
@@ -183,6 +186,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_XOR_GATE);
         list.add(ModContent.ITEM_BLOCK_NOT_GATE);
         list.add(ModContent.ITEM_BLOCK_TARTARUS_GATE);
+        list.add(ModContent.ITEM_BLOCK_REACTOR);
         return list;
     }
 
@@ -206,6 +210,8 @@ public class ClientProxy extends CommonProxy {
             //  and_gate  or_gate  xor_gate  not_gate
             0, 0, 0, 0,
             //  tartarus_gate
+            0,
+            //  reactor
             0
     };
 

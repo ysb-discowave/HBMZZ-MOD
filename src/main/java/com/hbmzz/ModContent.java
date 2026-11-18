@@ -89,12 +89,18 @@ public final class ModContent {
     public static final Block BLOCK_ALERT_DISPLAY = new com.hbmzz.block.BlockAlertDisplay();
     /** Redstone out while a DFC blast is running out of time. Detection lives in DfcBlastWatch. */
     public static final Block BLOCK_DFC_BLAST_SENSOR = new com.hbmzz.blast.BlockDfcBlastSensor();
+    /**
+     * Self-contained HBMZZ reactor core. Uses the control-panel model and
+     * textures - no new art, so it can never arrive purple-and-black.
+     */
+    public static final Block BLOCK_REACTOR = new com.hbmzz.reactor.block.BlockReactor();
     public static final Item ITEM_BLOCK_NUKE = new com.hbmzz.item.ItemBlockNuke(BLOCK_NUKE);
     public static final Item ITEM_BLOCK_NUKE_CONTROLLER = new ItemBlock(BLOCK_NUKE_CONTROLLER);
     public static final Item ITEM_BLOCK_NUKE_MONITOR = new ItemBlock(BLOCK_NUKE_MONITOR);
     public static final Item ITEM_BLOCK_CODE_BROADCASTER = new ItemBlock(BLOCK_CODE_BROADCASTER);
     public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
     public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
+    public static final Item ITEM_BLOCK_REACTOR = new ItemBlock(BLOCK_REACTOR);
 
     /* 四种红石门。拆成四个方块而不是一块可切换的门，理由在 GateType 的类注释里：
        1.12.2 的 meta 只有 4 位，朝向 4 × 亮灭 2 已经用掉 8 个组合，再塞 8 种运算
@@ -149,6 +155,7 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_CODE_BROADCASTER);
         event.getRegistry().register(BLOCK_ALERT_DISPLAY);
         event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
+        event.getRegistry().register(BLOCK_REACTOR);
         event.getRegistry().register(BLOCK_AND_GATE);
         event.getRegistry().register(BLOCK_OR_GATE);
         event.getRegistry().register(BLOCK_XOR_GATE);
@@ -183,6 +190,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_ALERT_DISPLAY);
         ITEM_BLOCK_DFC_BLAST_SENSOR.setRegistryName(BLOCK_DFC_BLAST_SENSOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
+        ITEM_BLOCK_REACTOR.setRegistryName(BLOCK_REACTOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_REACTOR);
         ITEM_BLOCK_AND_GATE.setRegistryName(BLOCK_AND_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_AND_GATE);
         ITEM_BLOCK_OR_GATE.setRegistryName(BLOCK_OR_GATE.getRegistryName());

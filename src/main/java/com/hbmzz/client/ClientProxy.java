@@ -267,7 +267,10 @@ public class ClientProxy extends CommonProxy {
         }
         BlockPos wall = playerBlock.getScreenPos();
         if (wall != null && mc.world.isBlockLoaded(wall)) {
-            mc.displayGuiScreen(GuiVideoScreen.mirror(pos, wall));
+            // 接了大屏：画面归那块屏。播放器这一下不再开窗口 —— 以前它开的是
+            // "展示"窗口（一块只读的放大镜），右键落在里面还会切全屏，于是同一
+            // 个手势既能看片又能改桌面模式。现在看片只有一条路：右键那块屏。
+            // 这里保持"什么都不发生"，是这条规则的实现，不是漏了返回值。
             return;
         }
         // 接了屏但屏不在本机已加载区（人跑远了 / 屏在另一个维度）：这边没有那块
@@ -284,6 +287,30 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void openVideoSeek(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoSeek(pos));
+    }
+
+    /**
+     * 普通右键大屏：开到满屏，一次点击到位。
+     *
+     * <p>窗口本身是 {@link GuiVideoScreen#watch} 那个"从大屏进来的"展示窗口，
+     * 也就是旧菜单里「全屏观看」按出来的同一个；这里只是把"先开菜单、再点按钮"
+     * 两步并成一步。打开顺序和那个按钮一致：先换窗口，再切显示模式——窗口在
+     * {@code initGui} 里记下"看片之前的桌面状态"，关窗时才能原样还回去。</p>
+     */
+    @Override
+    public void openVideoFullscreen(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null) {
+            return;
+        }
+        BlockPos broadcaster = null;
+        net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(pos);
+        if (te instanceof com.hbmzz.tile.TileEntityVideoScreen) {
+            broadcaster = ((com.hbmzz.tile.TileEntityVideoScreen) te).getPlayerPos();
+        }
+        GuiVideoScreen window = GuiVideoScreen.watch(broadcaster, pos);
+        mc.displayGuiScreen(window);
+        window.enterFullscreen();
     }
 
     @Override

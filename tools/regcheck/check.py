@@ -1204,11 +1204,15 @@ def main():
     # 根本没人发声）才退回本机全屏播放。
     proxy = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
     playback_body = member_body(proxy, "openVideoPlayback")
-    check("GuiVideoScreen.mirror(" in playback_body and "new GuiVideoScreen(" in playback_body
-          and playback_body.index("GuiVideoScreen.mirror(") < playback_body.index("new GuiVideoScreen("),
-          "a plain click shows the wall, and only falls back to the local player",
-          "ClientProxy.openVideoPlayback must open GuiVideoScreen.mirror() first and the "
-          "local player only when the wall is not usable here")
+    linked_block = re.search(r"if \(wall != null && mc\.world\.isBlockLoaded\(wall\)\) \{([\s\S]*?)\n        \}",
+                             playback_body)
+    linked = linked_block.group(1) if linked_block else ""
+    check("return;" in linked and "displayGuiScreen" not in linked,
+          "接了大屏以后右键播放器什么都不开：画面归那块屏，播放器不再抢窗口",
+          "ClientProxy.openVideoPlayback must return without opening a window while a wall is loaded")
+    check("new GuiVideoScreen(" in playback_body,
+          "没接屏（或屏不在本机已加载区）才退回本机播放窗口",
+          "openVideoPlayback must still open the local player when there is no wall to watch")
     check("isBlockLoaded(wall)" in playback_body,
           "the fallback happens when the wall is not loaded on this client",
           "a mirror window for an unloaded chunk can only show an error")
@@ -1385,14 +1389,13 @@ def main():
     # 否则每帧都 seek 会把缓存清空得更彻底。
     player_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoPlayer.java"))
     show_body = member_body(player_src, "showFrame")
-    catch_body = member_body(player_src, "catchUp")
-    check("catchUp(index);" in show_body and "// catchUp(index)" not in show_body,
-          "缺帧时让解码器跳过一段追上来，而不是让画面一直空着",
-          "VideoPlayer.showFrame must ask the decoder to catch up when the frame is missing")
-    check("this.seekRequest = index" in catch_body and "this.cacheFrames" in catch_body
-          and "CATCH_UP_INTERVAL_MS" in catch_body,
-          "追帧只在落后一整个缓冲时触发，并且限频",
-          "VideoPlayer.catchUp must compare against cacheFrames and throttle")
+    loop_body = member_body(player_src, "decodeLoop")
+    check("this.wanted = index;" in show_body and "catchUp(" not in show_body,
+          "渲染线程只公布播放头，不由它发追帧请求（发一次就清一次缓存）",
+          "VideoPlayer.showFrame must publish `wanted` and not seek itself")
+    check("this.wanted - index > this.cacheFrames" in loop_body and "index = this.wanted;" in loop_body,
+          "解码器落后整个缓冲时自己丢帧追上播放头",
+          "VideoPlayer.decodeLoop must skip ahead when the playhead left the buffer")
 
     # 96. 音轨按帧包自己的长度截断：帧包可能是 frames/fps 秒，源音轨却是整段视频
     # 的长度，不截就会在画面已经放完之后继续响（同一个"有声音没画面"）。
@@ -1432,10 +1435,13 @@ def main():
 
     # 99. 全屏要在大屏那边按：右键大屏 → 大屏定位窗口 →「全屏观看」。点一下就该是
     # 满屏，不是先给个窗口再让玩家自己找 F。
-    check("全屏观看" in seek_gui and "GuiVideoScreen.watch(" in seek_gui
-          and "enterFullscreen()" in seek_gui,
-          "大屏窗口里点「全屏观看」直接进全屏",
-          "GuiVideoSeek must offer 全屏观看 and open GuiVideoScreen.watch(...).enterFullscreen()")
+    check("全屏观看" in seek_gui and "openVideoFullscreen(this.pos)" in seek_gui,
+          "大屏菜单里点「全屏观看」直接进全屏",
+          "GuiVideoSeek must offer 全屏观看 and route it through openVideoFullscreen()")
+    full_body = member_body(proxy, "openVideoFullscreen")
+    check("GuiVideoScreen.watch(" in full_body and "enterFullscreen()" in full_body,
+          "「普通右键大屏」和「全屏观看」走同一条路：watch(...) + enterFullscreen()",
+          "ClientProxy.openVideoFullscreen must open GuiVideoScreen.watch and enter fullscreen")
     check("public void enterFullscreen()" in takeover,
           "进入全屏只有一条路（enterFullscreen），仍然走统一的显示状态记账",
           "GuiVideoScreen must expose enterFullscreen() rather than poking Display directly")
@@ -1452,6 +1458,47 @@ def main():
           and config_gui.count("rebuildButtons()") >= 3,
           "连上/拆掉大屏时设置窗口就地重排",
           "GuiVideoPlayerConfig.drawScreen must rebuild when the link state flips")
+
+    # 101. 大屏的两种右键：普通右键直接满屏，Shift + 右键才开菜单。以前普通右键
+    # 开的是"播放定位"窗口，而全屏还要在窗口里再点一次；那一次多余点击同时是误触
+    # 快进的入口 —— 菜单里每一处都是"动播放位置"的东西。
+    screen_body = member_body(read(os.path.join(SRC, "com/hbmzz/block/BlockVideoScreen.java")),
+                              "onBlockActivated")
+    check("openVideoFullscreen(origin)" in screen_body and "openVideoSeek(origin)" in screen_body
+          and "openVideoScreenConfig" not in screen_body,
+          "普通右键大屏 = 直接全屏；Shift + 右键 = 唯一的菜单",
+          "BlockVideoScreen must open fullscreen on a plain click and the menu on sneak")
+    check(screen_body.index("openVideoSeek(origin)") < screen_body.index("openVideoFullscreen(origin)"),
+          "Shift + 右键走菜单那一条分支（不是反过来）",
+          "sneaking must map to openVideoSeek, plain click to openVideoFullscreen")
+
+    # 102. 尺寸 / 倍速收进菜单，不再占第三个组合键。
+    check("尺寸/倍速" in seek_gui and "new GuiVideoScreenConfig(this.pos)" in seek_gui,
+          "尺寸 / 倍速是菜单里的一个按钮",
+          "GuiVideoSeek must offer a 尺寸/倍速 button that opens GuiVideoScreenConfig")
+
+    # 103. 倍速时音轨必须扣住。Clip 只会按源速率播放，2x 的画面配 1x 的声音，几分钟
+    # 下来声音就落在画面后面——玩家看到的是"倍速一调，音画就不同步"。
+    speed_body = member_body(player_src, "setSpeed")
+    align_body = member_body(player_src, "alignAudioToSpeed")
+    audio_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudio.java"))
+    check("alignAudioToSpeed()" in speed_body,
+          "改速率时顺手把音轨对齐（不是只搬时钟）",
+          "VideoPlayer.setSpeed must call alignAudioToSpeed()")
+    check("setSpeedMuted(true)" in align_body and "setSpeedMuted(false)" in align_body
+          and "audio.seek(filmSeconds())" in align_body,
+          "非 1x 扣住音轨，回 1x 先对齐再放开",
+          "alignAudioToSpeed must hold the track off 1x and re-seek on the way back")
+    check("speedMuted" in audio_src and "this.paused || this.muted || this.speedMuted" in audio_src,
+          "音轨自己知道「速率扣住」和「别出声」是两件事",
+          "VideoAudio.apply must stop on paused, muted or speedMuted")
+
+    # 104. 缓冲里没有播放头要的那一帧时，不能让渲染线程去清缓存：那是"卡一下、
+    # 跳一格"的来源。解码线程按 wanted 跳过一段即可，缓存里还在播放头前面的帧
+    # 仍然有用，不该一起清掉。
+    check("removeIf(key -> key < from)" in loop_body,
+          "丢帧追播放头时只清掉过期帧，不整张清空",
+          "decodeLoop must prune frames behind the playhead instead of clearing the ring")
 
     failed = [name for ok, name, _ in results if not ok]
     print()

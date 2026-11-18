@@ -138,8 +138,13 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
     // ------------------------------------------------------------------ using
 
     /**
-     * Right-click opens the playhead window, sneak + right-click the size /
-     * speed window.
+     * Right-click goes fullscreen, shift + right-click opens the menu.
+     *
+     * <p>The two gestures answer the two questions a wall is ever asked: "show me
+     * this" (once per screening, with an audience) and "put it back to the start /
+     * make it bigger / slow it down" (while setting up). Making the first one a
+     * single click is the point - a menu in between is a step nobody wants, and
+     * every click in that menu is a chance to move the playhead by accident.</p>
      *
      * <p>The remote is declined first: {@code Item.onItemUse} only runs after the
      * block says no, so a block that claims every click would make the remote
@@ -161,12 +166,13 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
         }
         if (world.isRemote) {
             if (player.isSneaking()) {
-                HBMZZ.proxy.openVideoScreenConfig(origin);
-            } else {
-                // Where the film is, and how to move it. Opening a window must not
-                // depend on sneaking: this is the click somebody makes while a
-                // film is running, with an audience.
+                // Shift + 右键：整块菜单。定位、回开头、尺寸/倍速、全屏观看都在
+                // 这里面，谁也不会在片子正放着的时候被一个误触改变播放位置。
                 HBMZZ.proxy.openVideoSeek(origin);
+            } else {
+                // 普通右键：直接铺满显示器。看片是这一下最常想做的事，而它原本
+                // 要先开一个菜单再点一次"全屏观看"—— 中间那次点击没有任何用处。
+                HBMZZ.proxy.openVideoFullscreen(origin);
             }
             return true;
         }

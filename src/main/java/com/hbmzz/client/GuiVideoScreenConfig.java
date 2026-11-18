@@ -46,7 +46,7 @@ import java.io.IOException;
 public class GuiVideoScreenConfig extends GuiScreen {
 
     private static final int W = 320;
-    private static final int H = 156;
+    private static final int H = 174;
 
     private static final int AMBER = 0xFFF5A524;
     private static final int DIM = 0xFF8894A0;
@@ -114,7 +114,7 @@ public class GuiVideoScreenConfig extends GuiScreen {
         drawRect(l + 1, t + 20, l + W - 1, t + 21, 0xFF1A2028);
 
         this.fontRenderer.drawStringWithShadow("视频大屏 · 配置", l + 12, t + 7, AMBER);
-        String hint = "蹲下右键打开 · 播放仍由拉杆控制";
+        String hint = "Shift + 右键大屏打开 · 播放仍由拉杆控制";
         this.fontRenderer.drawStringWithShadow(hint,
                 l + W - 12 - this.fontRenderer.getStringWidth(hint), t + 8, DIM);
 
@@ -127,12 +127,25 @@ public class GuiVideoScreenConfig extends GuiScreen {
         this.fontRenderer.drawStringWithShadow("上限 " + TileEntityVideoScreen.MAX_SIZE + " × "
                         + TileEntityVideoScreen.MAX_SIZE + " 格 · 倍速 0.25x – 3x",
                 l + 12, t + 108, 0xFF5A6674);
+        // 倍速只搬时钟，不搬音轨：2x 的画面配 1x 的声音就是"音画不同步"。与其
+        // 让声音越拖越远，不如在非 1x 时把音轨扣住，回来再对齐一次——这也是
+        // 这句话要提前说明的原因，不然玩家只会以为声音坏了。
+        this.fontRenderer.drawStringWithShadow(
+                this.exactSpeed()
+                        ? "音轨随画面走"
+                        : "非 1.00x：画面优先，音轨静音（回到 1.00x 自动对齐）",
+                l + 12, t + 122, this.exactSpeed() ? 0xFF43D9A3 : AMBER);
         String cells = this.cols * this.rows + " 格";
         this.fontRenderer.drawStringWithShadow(cells,
                 l + W - 12 - this.fontRenderer.getStringWidth(cells), t + 108,
                 this.cols * this.rows > 256 ? AMBER : MINT);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    /** 倍速是不是刚好 1.00x（服务端按 0.25 取整，这里也按 0.25 判）。 */
+    private boolean exactSpeed() {
+        return Math.abs(this.speed - 1.0F) < 1.0e-3F;
     }
 
     private void drawRow(String label, String value, int y, boolean canDown, boolean canUp) {

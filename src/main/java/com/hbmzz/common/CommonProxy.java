@@ -60,6 +60,16 @@ public class CommonProxy {
     public void openVideoSeek(BlockPos pos) {
     }
 
+    /**
+     * Opens the wall's picture fullscreen in one step.
+     *
+     * <p>This is the plain right-click on a wall. The window it opens is the same
+     * one the old menu's 「全屏观看」 button opened - the difference is that the
+     * click no longer stops at a menu first.</p>
+     */
+    public void openVideoFullscreen(BlockPos pos) {
+    }
+
     /** Opens the player's volume / exit-lock window. */
     public void openVideoPlayerConfig(BlockPos pos) {
     }

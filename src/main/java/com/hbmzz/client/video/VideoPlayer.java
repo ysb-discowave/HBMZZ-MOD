@@ -58,8 +58,6 @@ public final class VideoPlayer implements Closeable {
     /** How far ahead the decoder may run, in frames, regardless of config. */
     private static final int MIN_CACHE = 2;
     private static final int MAX_CACHE = 24;
-    /** Shortest gap between two catch-up seeks. */
-    private static final long CATCH_UP_INTERVAL_MS = 400L;
 
     private final VideoClip clip;
     private final int maxWidth;
@@ -82,8 +80,15 @@ public final class VideoPlayer implements Closeable {
      * latency, the second is a permanently black screen.</p>
      */
     private volatile int decodeIndex;
-    /** Last time a catch-up seek was issued; keeps a slow machine from re-seeking sixty times a second. */
-    private long lastCatchUpAt;
+    /**
+     * The frame the render thread last asked for.
+     *
+     * <p>Published so the decoder can notice it is behind on its own. The old
+     * design throttled a jump from the render side (once per 400 ms), which meant
+     * a slow machine showed a frozen picture, then jumped, then froze again -
+     * three visible hitches a second at high speed.</p>
+     */
+    private volatile int wanted = -1;
     private volatile boolean decodeDone;
     private volatile String failure;
     private volatile int frameWidth;
@@ -170,10 +175,23 @@ public final class VideoPlayer implements Closeable {
                     }
                     this.decodeIndex = index;
                     while (this.running && this.seekRequest < 0 && this.ready.size() >= this.cacheFrames) {
+                        // 播放头已经跑到缓冲外面了：别再等空位，直接丢帧追上去。
+                        // 等下去只会解出一堆播放头早就越过的帧 —— 那正是「画面
+                        // 卡住、声音在走」，也是高倍速下每秒几次的抽动。
+                        if (this.wanted - index > this.cacheFrames) {
+                            break;
+                        }
                         this.lock.wait(200L);
                     }
                     if (this.seekRequest >= 0) {
                         continue;
+                    }
+                    if (this.wanted - index > this.cacheFrames) {
+                        // 丢掉中间那段，接着解播放头要的那一帧。不清整张缓存：
+                        // 已经解好、还在播放头前面的帧仍然有用。
+                        index = this.wanted;
+                        final int from = index;
+                        this.ready.keySet().removeIf(key -> key < from);
                     }
                 }
                 if (!this.running) {
@@ -257,6 +275,8 @@ public final class VideoPlayer implements Closeable {
                 // Same for a decoder that was opened while somebody else owns the
                 // speakers - a settings window, or another wall.
                 this.audio.setMuted(this.muted);
+                // And for one opened at a rate the track cannot follow.
+                this.audio.setSpeedMuted(Math.abs(this.speed - 1.0F) >= 1.0e-3F);
             } catch (IOException ignored) {
             }
         }
@@ -311,6 +331,31 @@ public final class VideoPlayer implements Closeable {
         this.baseSeconds = filmSeconds();
         this.startNanos = System.nanoTime();
         this.speed = next;
+        this.alignAudioToSpeed();
+    }
+
+    /**
+     * Keeps the soundtrack honest across a rate change.
+     *
+     * <p>The track cannot change speed - {@code Clip} plays at the rate the file
+     * was written at - so at any rate other than 1x it is held instead of being
+     * left running behind the picture. Coming back to 1x it is repositioned to
+     * where the film actually is (not where it was when the rate changed) and
+     * then released, so the music lands on the frame it belongs to.</p>
+     */
+    private void alignAudioToSpeed() {
+        VideoAudio audio = this.audio;
+        if (audio == null) {
+            return;
+        }
+        if (Math.abs(this.speed - 1.0F) < 1.0e-3F) {
+            // While still held: seek() must not sneak a play() in from the old
+            // position. Hold, move, release.
+            audio.seek(filmSeconds());
+            audio.setSpeedMuted(false);
+        } else {
+            audio.setSpeedMuted(true);
+        }
     }
 
     /**
@@ -425,6 +470,9 @@ public final class VideoPlayer implements Closeable {
      * @return true when something is (or already was) on screen
      */
     public boolean showFrame(int index) {
+        // Published every render tick, including the ticks where the frame is not
+        // decoded yet: that is precisely when the decoder needs to know.
+        this.wanted = index;
         BufferedImage image;
         synchronized (this.lock) {
             image = this.ready.get(index);
@@ -439,37 +487,11 @@ public final class VideoPlayer implements Closeable {
         if (image != null && index != this.uploaded) {
             this.texture.upload(image);
             this.uploaded = index;
-        } else if (image == null) {
-            // 追帧：解码线程已经落后一个缓冲以上时，让它直接跳到播放头。
-            // 不这么做的话，120fps 的片子配一台每秒只解得出四五十帧的机器，
-            // 播放头会一路跑到前面，缓存里永远没有它要的那一帧 —— 表现就是
-            // "有声音、没画面"，而且因为解码线程只是按顺序匀速前进，它再也追
-            // 不回来。丢几帧比停住整部片子划算，和声音对不上的画面也没有用。
-            catchUp(index);
         }
+        // 缺帧时这里不改任何东西：纹理上还留着上一帧，解码线程会按
+        // {@link #wanted} 跳过一段自己追上来（见 decodeLoop）。从这个位置发
+        // seek 的旧写法会清缓存，于是画面「卡一下、跳一格、再卡一下」。
         return this.uploaded >= 0;
-    }
-
-    /**
-     * Asks the decode thread to skip to {@code index} when it is too far behind.
-     *
-     * <p>Only fires past the whole buffer, and at most a few times a second: a
-     * seek clears the ring and reopens nothing, so doing it on every render tick
-     * would thrash the cache instead of filling it.</p>
-     */
-    private void catchUp(int index) {
-        if (index - this.decodeIndex <= this.cacheFrames) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now - this.lastCatchUpAt < CATCH_UP_INTERVAL_MS) {
-            return;
-        }
-        this.lastCatchUpAt = now;
-        this.seekRequest = index;
-        synchronized (this.lock) {
-            this.lock.notifyAll();
-        }
     }
 
     public int frameIndex(double seconds) {

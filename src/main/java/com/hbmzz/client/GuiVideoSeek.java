@@ -32,12 +32,16 @@ import org.lwjgl.input.Keyboard;
 import java.io.IOException;
 
 /**
- * 大屏播放定位: where in the film the wall is, and how to put it somewhere else.
+ * 大屏菜单: where in the film the wall is, how big it is, and how to fill the
+ * monitor with it.
  *
- * <p>Right-click instead of sneak-right-click, because these two questions are
- * asked at different moments: sizing a wall happens once when it is built, while
- * "put it back to the start" happens in the middle of a screening with people
- * waiting. Nothing here changes blocks or settings - it moves a clock.</p>
+ * <p>Opened by <b>shift + right-click</b>, and it is the only menu a wall has.
+ * A plain right-click goes straight to fullscreen, so the gesture people make
+ * with an audience waiting is one click and cannot move the playhead by
+ * accident; everything that changes something lives behind the modifier.
+ * 尺寸 / 倍速 used to be its own gesture (sneak + right-click); it is a button
+ * here now, because two different modifier gestures on the same block is one
+ * gesture too many to remember.</p>
  *
  * <p><b>Everything is a request to the server.</b> The window does not own the
  * playhead: it asks the server to move it, and then draws whatever the block
@@ -150,14 +154,17 @@ public class GuiVideoSeek extends GuiScreen {
         this.buttonList.add(new GuiButton(4, x0 + 4 * (column + GAP), y, column, 18, "+30s"));
 
         int wide = this.W - 2 * MARGIN;
-        int third = (wide - 2 * GAP) / 3;
-        this.restartButton = new GuiButton(5, x0, y + 24, third, 20, "回开头");
+        int quarter = (wide - 3 * GAP) / 4;
+        this.restartButton = new GuiButton(5, x0, y + 24, quarter, 20, "回开头");
         this.buttonList.add(this.restartButton);
+        // 尺寸 / 倍速原本是"蹲下右键大屏"的独立手势，现在收进这张菜单：右键一次
+        // 是看片，Shift + 右键一次是这张菜单，而菜单里什么都能改——不再有第三个
+        // 组合键要靠猜。
+        this.buttonList.add(new GuiButton(6, x0 + quarter + GAP, y + 24, quarter, 20, "尺寸/倍速"));
         // 全屏的入口在这里，而不是"右键播放器"：接了大屏以后画面属于这块屏，
         // 那么"把这块屏铺满显示器"也该从这块屏按出来。
-        this.buttonList.add(new GuiButton(6, x0 + third + GAP, y + 24,
-                wide - 2 * third - 2 * GAP, 20, "全屏观看"));
-        this.buttonList.add(new GuiButton(7, x0 + wide - third, y + 24, third, 20, "关闭"));
+        this.buttonList.add(new GuiButton(7, x0 + 2 * (quarter + GAP), y + 24, quarter, 20, "全屏观看"));
+        this.buttonList.add(new GuiButton(8, x0 + wide - quarter, y + 24, quarter, 20, "关闭"));
     }
 
     /**
@@ -209,8 +216,8 @@ public class GuiVideoSeek extends GuiScreen {
         drawRect(l + W - 1, t, l + W, t + H, EDGE);
         drawRect(l + 1, t + 20, l + W - 1, t + 21, EDGE);
 
-        this.fontRenderer.drawStringWithShadow("视频大屏 · 播放定位", l + 12, t + 7, AMBER);
-        String hint = "右键大屏打开 · 所有人看到同一帧";
+        this.fontRenderer.drawStringWithShadow("视频大屏 · 菜单", l + 12, t + 7, AMBER);
+        String hint = "Shift + 右键大屏打开 · 所有人看到同一帧";
         this.fontRenderer.drawStringWithShadow(hint,
                 l + W - 12 - this.fontRenderer.getStringWidth(hint), t + 8, DIM);
 
@@ -347,6 +354,10 @@ public class GuiVideoSeek extends GuiScreen {
                 this.dragging = false;
                 return;
             case 6:
+                // 尺寸 / 倍速：以前是"蹲下右键大屏"的独立手势，现在就在这张菜单里。
+                this.mc.displayGuiScreen(new GuiVideoScreenConfig(this.pos));
+                return;
+            case 7:
                 openFullscreen();
                 return;
             default:
@@ -358,18 +369,11 @@ public class GuiVideoSeek extends GuiScreen {
     /**
      * 打开大屏全屏，并立刻把桌面切到全屏。
      *
-     * <p>先换窗口再切显示模式：窗口在 {@code initGui} 里记下"看片之前的桌面
-     * 状态"，切全屏留给它自己去切，关窗时才能原样还回去。</p>
+     * <p>和"普通右键大屏"走同一条路：窗口在 {@code initGui} 里记下"看片之前的
+     * 桌面状态"，切全屏留给它自己去切，关窗时才能原样还回去。</p>
      */
     private void openFullscreen() {
-        TileEntityVideoScreen te = tile();
-        if (te == null) {
-            return;
-        }
-        com.hbmzz.client.GuiVideoScreen window = com.hbmzz.client.GuiVideoScreen.watch(
-                te.getPlayerPos(), this.pos);
-        this.mc.displayGuiScreen(window);
-        window.enterFullscreen();
+        com.hbmzz.HBMZZ.proxy.openVideoFullscreen(this.pos);
     }
 
     @Override

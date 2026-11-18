@@ -11,10 +11,10 @@
 | --- | --- |
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
-| 当前提交 | `0b0d835`（批次 #11：视频格式全支持——导入器） |
-| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,751,413 字节） |
-| 模组 SHA-256 | `94fd3bd7c02e161a…`（`build/libs` 与部署目录两处一致） |
-| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,843,269 字节，sha256 `2a32aea3…`） |
+| 当前提交 | `b8f80c0`（批次 #12：右键=大屏展示 + 单音源仲裁） |
+| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,756,935 字节） |
+| 模组 SHA-256 | `6aab79cd23d94139…`（`build/libs` 与部署目录两处一致） |
+| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,853,807 字节，sha256 `cde1e1e2…`） |
 | 源码仓库 | `C:\Users\37594\WorkBuddy\Claw\HBMZZ-MOD`（分支 master） |
 | 部署位置 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\mods\hbmzz-3.8.0.jar` |
 | 旧版归档 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\backupsmod\hbmzz-old-jars\` |
@@ -256,7 +256,7 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
 | --- | --- |
 | `./gradlew build --offline`（JDK 8 / Gradle 4.10.3，离线） | BUILD SUCCESSFUL，产出 `build/libs/hbmzz-3.8.0.jar` |
 | jar 内 `mcmod.info` | modid `hbmzz`，version `3.8.0` |
-| regcheck（注册 / 配方 / 模型表） | **83/83**（#65 遥控器目标必须让出右键；#66 服务器先夹再存定位；#66b 客户端按片长再夹一次；#67 播放界面不得出现可退出按钮；#68 限制只在大屏缺席时成立、客户端不许缓存结论；#69 广播包必须带播放器坐标。#67 / #68 / #70 / #71 做过反向验证：故意塞进 `buttonList.add`、把 `hasScreen()` 改成 `false`、把两个右键分支对调、把 F 换成 G，对应项都变红；#73 / #74 也反向验证：把 `isReady` 判断改成 `false` 后「启动时会去下 ffmpeg」立刻变红；#77 把按钮改成 `null` 后「导入入口」变红） |
+| regcheck（注册 / 配方 / 模型表） | **96/96**（#65 遥控器目标必须让出右键；#66 服务器先夹再存定位；#66b 客户端按片长再夹一次；#67 播放界面不得出现可退出按钮；#68 限制只在大屏缺席时成立、客户端不许缓存结论；#69 广播包必须带播放器坐标。#67 / #68 / #70 / #71 做过反向验证：故意塞进 `buttonList.add`、把 `hasScreen()` 改成 `false`、把两个右键分支对调、把 F 换成 G，对应项都变红；#73 / #74 也反向验证：把 `isReady` 判断改成 `false` 后「启动时会去下 ffmpeg」立刻变红；#77 把按钮改成 `null` 后「导入入口」变红） |
 | statecheck（blockstate 键序 / 状态数） | 4/4 |
 | videocheck（视频库 / 名字白名单） | 28/28 |
 | linkercheck（连接器握手） | 21 通过，1 跳过（CE 不在 classpath） |
@@ -265,7 +265,9 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
 | cecpcheck | 8/8 |
 | gatecheck / dfccheck / reasimcheck | 全 PASS |
 | `python tools/checkall.py --fast` | 7/7 全 PASS（含站点数据一致性） |
-| 部署校验 | 目标目录 jar（23,751,413 字节）与构建产物 sha256 一致：`94fd3bd7…` |
+| 本批新增的静态检查（#78–#85） | 站立右键先开 mirror 再考虑本机播放、屏不在本区才退回、拿不到方块实体也不空点击、展示窗口借屏的解码器且不关它、世界只留一块屏发声、任何窗口都静音、策略每 tick 跑且随世界重置、静音≠暂停、reap 兜住没有窗口的解码器、蹲下右键 ALLOW 且两端注册、startDisplay 由服务端发起。#78 / #80 / #84 做过反向验证：把 mirror 分支掏空、把 `setMuted(te != audible)` 删掉、把 `setUseBlock(ALLOW)` 注释掉，对应三条立刻变红 |
+| 部署校验 | 目标目录 jar（23,756,935 字节）与构建产物 sha256 一致：`6aab79cd…` |
+| 音频仲裁（实跑，非静态） | 探针用 ffmpeg 生成的 3 秒 44.1k 真 WAV 走 `VideoAudio`：起播 `isRunning()=true`；`setMuted(true)` 后真停、位置冻结（150 ms 内 0 µs）；`setMuted(false)` 从原位置续上（110748 → 310748 µs）；静音状态下 `seek(2.0)` 不会把它重新放起来。RESULT PASS |
 | 视频包解析（模组 `VideoClip` 实跑） | 片头 192 帧 / 24 fps / 8.0000 s / **无音轨**；片尾 2326 帧 / 12 fps / 193.8333 s / 有音轨 |
 | 贴图 | 4 张方块贴图 + 1 张物品贴图，16×16，`make_video_textures.py` 可重跑 |
 | 网络 | 新消息 id 24 / 25 / 26 / 27（定位），与既有 id 不冲突（regcheck「包序号唯一」通过） |
@@ -298,6 +300,12 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
   蹲下右键播放器 →「导入视频…」→ 选文件 → 转换，转身就出现在列表里（底层还是 ffmpeg）。
   命令行 `tools/video/pack.py` 仍然可用，适合批量。
 - **手动进入的播放界面不受「强制限制返回」约束**：ESC 随时可退，那条限制只作用于红石触发的全屏接管。
+- **站立右键会让大屏真的开始播**：那是世界状态，多人服务器上等于替所有人按下播放；停止仍归拉杆
+  （或右键大屏用定位窗口暂停）。这是"右键 = 展示"这个手势的代价，写在这里而不是留给玩家自己发现。
+- **大屏展示与音源仲裁的观感没有进游戏实测**：mirror 窗口借的是屏的解码器，多屏同房间只留最近一块发声，
+  这些结论来自代码与 96 条静态检查 + 混音器层的实跑，画面观感、窗口切换那一瞬间的听感仍需进游戏确认。
+- **同一块屏同时被窗口与视角看到时只有一路解码**（本来就是同一个 `VideoScreenPlayback` 实体），
+  但"同时解码上限 4 路"仍然算这块屏一份；一屋子超过 4 块屏时，超出的屏让出窗口也无法显示。
 - 播放界面按 F 切换的是**系统全屏**（整块显示器），不是"隐藏底部进度条"；退出播放会还原进入前的显示模式。
 - 3.7.0 分支的四向开合门、自定义贴图系统、旧 mixin 与运行时 FFmpeg 管线没有并入。
 
@@ -331,6 +339,7 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
 | 2026-11-18 #10 | `53378ce` | **恢复 FFmpeg 自动下载**：源码里只剩"释放 jar 内资源"，而包里没有该资源 → 补回 3.7.0 的在线下载器（代理 + 64 段并行 + 续传 + zip 解压 + stamp 复用）与下载进度页，启动时 `isReady` 为假就自动去下；`ensure()` 加同一时刻只跑一次的并发保护；regcheck 79 条 | `f1c9d369…` |
 | 2026-11-18 #11 | `0b0d835` | **视频格式全支持**：新增 `VideoFormats`（容器白名单）与 `VideoImportQueue`（ffmpeg 拆帧 + 音轨 + 打包，后台队列、进度、取消）；广播器窗口加「导入视频…」；待导入与真不支持分开记；包名放开到中文；regcheck 83 条、videocheck 28 条 | `94fd3bd7…` |
 
+| 2026-11-18 #12 | `b8f80c0` | **右键=大屏展示 + 单音源**：站立右键接了屏就进 mirror 展示窗口（借屏的解码器，无第二份播放实例），服务端同一次点击里让屏开播；没屏才回本机全屏播放。蹲下右键的真因是原版 `isSneaking` 判据——手里拿着东西时方块根本不被调用，`VideoClickHandler` 对这两块回 ALLOW。`VideoAudioPolicy` 每 tick 仲裁音源：设置窗口全静音、接管只留自己、世界只留最近的屏；静音不暂停，恢复时音轨 seek 回画面时间；`GuiVideoScreen.reap` 兜底关掉没有窗口的解码器。regcheck 96 条 | `6aab79cd…` |
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。
 > 批次 #4 / #5 的自制配乐与口播已随 #6 撤回，产物仍在 `backupsmod\hbmzz-old-videos\`。

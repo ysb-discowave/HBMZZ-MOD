@@ -1166,6 +1166,32 @@ def main():
           "the download page runs the transfer off the render thread",
           "GuiFfmpegDownload must call ensure() on a worker thread and only read progress() while drawing")
 
+    # 75. "支持所有视频格式"落在导入器上：模组自己不解码，交给 ffmpeg 拆帧。
+    # 这条守的是那条命令真的存在 —— 少了 fps/scale 滤镜，转出来的包要么帧率
+    # 不对，要么宽度还是原片，播放端就得每帧缩一次。
+    importer = read(os.path.join(SRC, "com/hbmzz/video/VideoImportQueue.java"))
+    check("FfmpegFinder.path()" in importer and "fps=" in importer and "scale=" in importer,
+          "the importer shells out to ffmpeg for frames",
+          "VideoImportQueue must call FfmpegFinder.path() and use the fps/scale filters")
+
+    # 76. 转出来的东西必须是 VideoClip 认得的那三种文件。少一样就是"导进去了
+    # 却播不了"，而这正是最容易在重构里丢的一环：meta.json 决定帧率，audio.wav
+    # 决定有没有声音，帧文件名决定播放顺序。
+    check("meta.json" in importer and "audio.wav" in importer and "f%06d" in importer,
+          "the importer writes the package VideoClip reads",
+          "VideoImportQueue must emit meta.json + f%06d.jpg + audio.wav")
+
+    # 77. 入口在广播器窗口里，而且待导入文件要和"真不支持"分开记：mp4 不该再
+    # 被当成坏文件跳过，它只是还没被拆成帧。
+    broadcaster = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoBroadcaster.java"))
+    library = read(os.path.join(SRC, "com/hbmzz/video/VideoLibrary.java"))
+    check("new GuiVideoImport(" in broadcaster,
+          "the broadcaster window offers an import entry",
+          "GuiVideoBroadcaster must open GuiVideoImport from a button")
+    check("List<File> importable()" in library and "VideoFormats.isImportable" in library,
+          "video containers are listed as pending imports, not as junk",
+          "VideoLibrary needs importable() fed by VideoFormats.isImportable")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

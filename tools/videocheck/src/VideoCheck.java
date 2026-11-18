@@ -88,6 +88,10 @@ public final class VideoCheck {
             check("拒绝空格", !VideoLibrary.isValidName("a b"));
             check("拒绝 65 字符", !VideoLibrary.isValidName(repeat('a', 65)));
             check("接受 64 字符", VideoLibrary.isValidName(repeat('a', 64)));
+            // 包名允许中文：转出来的包叫"测试片段"比叫 video 有用，而分隔符
+            // 仍然进不来 —— 没有 / 和 \ 就没有目录穿越。
+            check("接受中文名", VideoLibrary.isValidName("测试片段"));
+            check("中文名也拒绝分隔符", !VideoLibrary.isValidName("测试/片段"));
         } finally {
             delete(root);
         }

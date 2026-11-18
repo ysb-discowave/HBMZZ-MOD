@@ -130,8 +130,8 @@ public class GuiVideoBroadcaster extends GuiScreen {
         }
 
         this.clips = VideoLibrary.names();
-        if (this.notice.isEmpty() && !VideoLibrary.skipped().isEmpty()) {
-            this.notice = ignoredNote();
+        if (this.notice.isEmpty()) {
+            this.notice = pendingNote();
         }
 
         this.buttonList.add(new GuiButton(0, this.left + 22, this.top + 176, 96, 18, "保存并应用"));
@@ -144,6 +144,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
         // 音量与「强制限制返回」仍然只在设置窗口里：它不属于片源编辑，
         // 但也不能凭空消失，所以给它一个明确的入口。
         this.buttonList.add(new GuiButton(5, this.left + 22, this.top + 224, 146, 18, "播放器设置"));
+        // 目录里躺着一个 mp4 是最常见的开局。以前这里只能告诉玩家"不支持"，
+        // 现在旁边就有一个能把它转成帧包的地方。
+        this.buttonList.add(new GuiButton(6, this.left + 178, this.top + 224, 120, 18, "导入视频…"));
     }
 
     @Override
@@ -173,7 +176,6 @@ public class GuiVideoBroadcaster extends GuiScreen {
         this.fontRenderer.drawStringWithShadow(header,
                 l + W - 12 - this.fontRenderer.getStringWidth(header), t + 8, DIM);
 
-        this.fontRenderer.drawStringWithShadow("音量 / 强制限制返回", l + 178, t + 229, 0xFF5A6674);
         this.fontRenderer.drawStringWithShadow("视频文件", l + 12, t + 30, DIM);
         this.fontRenderer.drawStringWithShadow("广播目标", l + 12, t + 132, DIM);
 
@@ -397,6 +399,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
             case 5:
                 this.mc.displayGuiScreen(new GuiVideoPlayerConfig(this.pos));
                 break;
+            case 6:
+                this.mc.displayGuiScreen(new GuiVideoImport(this.pos, this));
+                break;
             default:
                 this.mc.displayGuiScreen(null);
                 break;
@@ -420,12 +425,28 @@ public class GuiVideoBroadcaster extends GuiScreen {
     private void refreshList() {
         VideoLibrary.rescan();
         this.clips = VideoLibrary.names();
-        if (this.notice.isEmpty() && !VideoLibrary.skipped().isEmpty()) {
-            this.notice = ignoredNote();
+        if (this.notice.isEmpty()) {
+            this.notice = pendingNote();
         }
         clampScroll();
         this.notice = "已刷新：" + this.clips.size() + " 个视频" + ignoredNote();
         this.previewKey = "";
+    }
+
+    /**
+     * 目录里既有"能转的"也有"真不支持的"，这句话把两件事都说清楚。
+     *
+     * <p>mp4 不再算失败：它在待导入清单里，点一下就能转。剩下那些才需要
+     * "做成 zip"的解释。</p>
+     */
+    private String pendingNote() {
+        StringBuilder text = new StringBuilder();
+        int waiting = VideoLibrary.importable().size();
+        if (waiting > 0) {
+            text.append("；有 ").append(waiting).append(" 个视频待导入（点「导入视频…」）");
+        }
+        text.append(ignoredNote());
+        return text.toString();
     }
 
     /** Why a dropped file did not appear - the only honest answer to "刷新无效". */

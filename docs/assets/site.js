@@ -122,6 +122,8 @@
      TRACKS 是曲目的唯一真相：换歌、加歌只改这张表，右栏曲名、时长、曲目面板、
      OST 页面上的行都由它渲染——两处各写一份迟早会对不上。 */
   var TRACKS = [
+    { id: "main-theme", title: "主题曲", secs: 244.0,
+      src: "assets/audio/main-theme.mp3" },
     { id: "how-to-survive", title: "How to survive?", secs: 195.6,
       src: "assets/audio/how-to-survive.mp3" },
     { id: "when-will-it-end", title: "When will it end?", secs: 317.9,
@@ -325,7 +327,7 @@
           artist: OST.artist,
           album: OST.album,
           /* 锁屏上那张图是站点自己的品牌封面，不是曲子自带的美术——
-             三首的源文件都是黑屏导出，本来就没有封面。 */
+             三首旧曲的源文件是黑屏导出，主题曲来自竖屏 mp4，都没有封面。 */
           artwork: [
             { src: "assets/brand/ost-cover-1024.png", sizes: "1024x1024", type: "image/png" },
             { src: "assets/brand/icon-512.png", sizes: "512x512", type: "image/png" }

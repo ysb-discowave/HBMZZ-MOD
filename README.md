@@ -311,7 +311,7 @@
 - **真正动手的是节点图**：图里放一个 `红石输出` 节点，它写的是**控制台方块**的红石；放一个 `广播事件` 节点，它把事件发给**同一张面板上的别的控件**；放一个 `查询方块` 节点，它去问附近方块要数据。
 - **所以「做一台能开防爆门的控制台」= 放一个按钮 + 给按钮的 `ctrl_press` 图加一条到红石输出的线**，不用写规则表。
 
-### 3. 25 种控件
+### 3. 26 种控件
 
 前 14 种来自 CE 本体：
 
@@ -347,6 +347,8 @@
 | 图表 `leafia_graph` | 只读，滚动曲线 + 上下界 | `minValue` `maxValue` `latest` |
 | 文字指示牌 `leafia_textindicator` | 只读，发光文字 | `isLit` |
 | 方框标签 `leafia_drawing_box` | 纯装饰框，可写文字 | 无 |
+
+第 26 种是本项目自己加的**终端**（注册名 `terminal`，不是 `leafia_*`），同样注册进 `ControlRegistry`：面板上一块两格宽的小端子，点击后对它链接的机器开出命令窗口，`use 反应堆`、`read`、`set level 40` 都能直接敲进去。
 
 - **模型与贴图一并带进来了**：6 个 `.obj` + 15 张 png 在 `assets/hbmzz/models|textures/.../addon/`，另加附属用的 `solid.png` / `solid_emissive.png` / `invisible.png` 三张纯色图。贴图路径写在 `compat/AddonRes`，不再依赖附属 jar 在不在。
 - **RBMK 阵列是唯一跨模组读数据的控件**：它反射调 CE 的 `getConsoleData()` 拿 `RBMKColumn`，读 `type` / `heat` / `moderated` / `enrichment` / `control` / `level`。反射按类缓存，缺字段就降级成空图，不会因为版本差异崩掉。见 `compat/RBMKColumns`。

@@ -32,7 +32,10 @@ import java.io.IOException;
 /**
  * 播放器设置: two controls, and nothing else.
  *
- * <p>Sneak + right-click a broadcaster to get here. The two things a broadcast
+ * <p>Reached from the broadcaster window's 播放器设置 button (sneak + right-click
+ * the block, then one button). It is deliberately not on a right-click of its
+ * own any more: the block's plain right-click now starts the film, and sneak is
+ * the editing gesture. The two things a broadcast
  * actually needs tuning for are how loud it is and whether the audience may walk
  * out of it, so that is the whole window - no preview, no clip list, no test
  * button. Those live one window over, on the block's plain right-click, where the
@@ -130,7 +133,7 @@ public class GuiVideoPlayerConfig extends GuiScreen {
         }
 
         this.fontRenderer.drawStringWithShadow("视频播放器 · 设置", l + 12, t + 7, AMBER);
-        String hint = "蹲下右键打开";
+        String hint = "广播器窗口 · 播放器设置";
         this.fontRenderer.drawStringWithShadow(hint,
                 l + W - 12 - this.fontRenderer.getStringWidth(hint), t + 8, DIM);
 

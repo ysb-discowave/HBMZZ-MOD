@@ -237,6 +237,33 @@ public class ClientProxy extends CommonProxy {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoBroadcaster(pos));
     }
 
+    /**
+     * 站立右键：直接开播。
+     *
+     * <p>没有片源时不开播放窗口——那只会得到一句"视频名不合法"，不如把菜单打开让人先挑一个。
+     * 手动进入不算接管：音量照设置走，但强制限制返回不参与，ESC 随时能退（F 切全屏）。
+     * 限制那条只对红石触发的全屏生效，否则点一下右键就把自己锁在片子里了。</p>
+     */
+    @Override
+    public void openVideoPlayback(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null) {
+            return;
+        }
+        net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(pos);
+        if (!(te instanceof com.hbmzz.tile.TileEntityVideoBroadcaster)) {
+            return;
+        }
+        com.hbmzz.tile.TileEntityVideoBroadcaster playerBlock =
+                (com.hbmzz.tile.TileEntityVideoBroadcaster) te;
+        if (playerBlock.getVideo().isEmpty()) {
+            mc.displayGuiScreen(new GuiVideoBroadcaster(pos));
+            return;
+        }
+        mc.displayGuiScreen(new GuiVideoScreen(pos, playerBlock.getVideo(),
+                playerBlock.getVolume(), false));
+    }
+
     @Override
     public void openVideoScreenConfig(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoScreenConfig(pos));

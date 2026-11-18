@@ -93,6 +93,10 @@ public class GuiVideoScreen extends GuiScreen {
      */
     private boolean screenLinked;
 
+    /** Fullscreen as it was when the film opened; put back when it closes. */
+    private boolean wasFullscreen;
+    private boolean fullscreenKnown;
+
     private VideoPlayer player;
     private String error;
     private boolean closing;
@@ -159,6 +163,10 @@ public class GuiVideoScreen extends GuiScreen {
                 return;
             }
             this.player.start();
+            if (!this.fullscreenKnown) {
+                this.fullscreenKnown = true;
+                this.wasFullscreen = this.mc.gameSettings.fullScreen;
+            }
             // Say it once, at the start, and only when it is true. A takeover
             // that silently eats ESC reads as a broken client; a takeover that
             // announces a lock it does not have is worse.
@@ -240,6 +248,19 @@ public class GuiVideoScreen extends GuiScreen {
             this.player.close();
             this.player = null;
         }
+        // Closing the film must not leave the desktop in a display mode the
+        // player did not choose. Scheduled, because displayGuiScreen() calls
+        // this while it is still swapping screens and a resize mid-swap is how
+        // you get a black window.
+        if (this.fullscreenKnown && this.mc != null
+                && this.mc.gameSettings.fullScreen != this.wasFullscreen) {
+            final boolean target = this.wasFullscreen;
+            this.mc.addScheduledTask(() -> {
+                if (this.mc.gameSettings.fullScreen != target) {
+                    this.mc.toggleFullscreen();
+                }
+            });
+        }
     }
 
     /** The world keeps running behind the screen; this is not a pause menu. */
@@ -299,6 +320,10 @@ public class GuiVideoScreen extends GuiScreen {
         drawRect(0, barTop, (int) (this.width * this.player.percent()), this.height, AMBER);
 
         this.fontRenderer.drawStringWithShadow(this.player.title(), 6, barTop + 3, 0xFFFFFFFF);
+        String keys = "F 全屏";
+        this.fontRenderer.drawStringWithShadow(keys,
+                this.width - 6 - this.fontRenderer.getStringWidth(time)
+                        - this.fontRenderer.getStringWidth(keys) - 12, barTop + 3, DIM);
         this.fontRenderer.drawStringWithShadow(time,
                 this.width - 6 - this.fontRenderer.getStringWidth(time), barTop + 3, DIM);
     }
@@ -351,6 +376,13 @@ public class GuiVideoScreen extends GuiScreen {
             if (keyCode == Keyboard.KEY_ESCAPE) {
                 this.mc.displayGuiScreen(null);
             }
+            return;
+        }
+        if (keyCode == Keyboard.KEY_F) {
+            // 全屏是这台机器的事，不是监听器的事：F 让窗口铺满显示器，
+            // 再按一次回到窗口。窗口以"进入前的状态"为准，退出时还回去。
+            this.mc.toggleFullscreen();
+            this.hintTicks = 40;
             return;
         }
         if (keyCode == Keyboard.KEY_ESCAPE) {

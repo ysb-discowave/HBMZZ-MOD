@@ -65,6 +65,9 @@ public final class VideoLibrary {
             "",
             "  2) <名字>/        同样的内容，只是不打包（适合手工做几帧的短片）",
             "",
+            "注意：直接丢进来的 .mp4 / .mov / .mkv 不会出现在列表里 —— 这个模组读的是",
+            "图片帧序列（png / jpg），不是视频容器。先用 tools/video/pack.py 转成 zip。",
+            "",
             "meta.json 可以省略：缺省 12 fps，帧数按目录里实际有多少张图算。",
             "支持 png / jpg。分辨率超过 config 里的 videoMaxWidth×videoMaxHeight 会被等比缩小。",
             "",
@@ -76,6 +79,15 @@ public final class VideoLibrary {
 
     private static File root;
     private static List<String> cache = Collections.emptyList();
+    /**
+     * Files that are in the folder and are not playable.
+     *
+     * <p>Kept because ignoring them silently is what makes "刷新" look broken:
+     * a dropped {@code .mp4} never shows up, so the player presses refresh
+     * again, sees the same two clips and concludes the button does nothing. The
+     * list exists to be said out loud, not to be played.</p>
+     */
+    private static List<String> skipped = Collections.emptyList();
     private static long scannedAt;
 
     private VideoLibrary() {
@@ -116,6 +128,7 @@ public final class VideoLibrary {
     public static void rescan() {
         synchronized (VideoLibrary.class) {
             cache = Collections.emptyList();
+            skipped = Collections.emptyList();
             scannedAt = 0L;
         }
     }
@@ -180,6 +193,7 @@ public final class VideoLibrary {
         }
         scannedAt = now;
         List<String> found = new ArrayList<>();
+        List<String> ignored = new ArrayList<>();
         File[] files = root.listFiles();
         if (files != null) {
             for (File f : files) {
@@ -188,6 +202,8 @@ public final class VideoLibrary {
                     name = f.getName();
                 } else if (f.getName().toLowerCase(Locale.ROOT).endsWith(".zip")) {
                     name = f.getName().substring(0, f.getName().length() - 4);
+                } else if (worthReporting(f)) {
+                    ignored.add(f.getName());
                 }
                 if (name != null && isValidName(name) && !found.contains(name)) {
                     found.add(name);
@@ -195,8 +211,36 @@ public final class VideoLibrary {
             }
         }
         Collections.sort(found);
+        java.util.Collections.sort(ignored);
         cache = found;
+        skipped = ignored;
         return found;
+    }
+
+    /**
+     * Regular, visible, non-README files that are not a playable clip.
+     *
+     * <p>README.txt is ours and a dotfile is the operating system's; neither is
+     * worth a line of complaint. Everything else is a file the player put there
+     * expecting it to play, so it gets named.</p>
+     */
+    private static boolean worthReporting(File f) {
+        if (!f.isFile()) {
+            return false;
+        }
+        String name = f.getName();
+        if (name.startsWith(".") || name.equalsIgnoreCase("README.txt")) {
+            return false;
+        }
+        return true;
+    }
+
+    /** Names of files in the folder that are not playable clips, sorted. */
+    public static List<String> skipped() {
+        // names() is what fills this list; calling it keeps the two in step
+        // without a second scan on every frame.
+        names();
+        return skipped;
     }
 
     public static boolean exists(String name) {

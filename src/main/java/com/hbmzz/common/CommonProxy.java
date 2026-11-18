@@ -65,6 +65,16 @@ public class CommonProxy {
     }
 
     /**
+     * Opens the playback window straight from the block's plain right-click.
+     *
+     * <p>Client-only: the server has no window to open, and the packet path used
+     * by a redstone broadcast is a different one on purpose - that one is a
+     * takeover, this one is the player choosing to watch.</p>
+     */
+    public void openVideoPlayback(BlockPos pos) {
+    }
+
+    /**
      * Opens the command window of one terminal control.
      *
      * <p>{@code kind} says which panel the control lives on - this mod's own

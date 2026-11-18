@@ -58,7 +58,7 @@ import java.util.List;
 public class GuiVideoBroadcaster extends GuiScreen {
 
     private static final int W = 320;
-    private static final int H = 226;
+    private static final int H = 250;
     private static final int LIST_ROWS = 6;
     private static final int ROW_H = 12;
 
@@ -130,6 +130,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
         }
 
         this.clips = VideoLibrary.names();
+        if (this.notice.isEmpty() && !VideoLibrary.skipped().isEmpty()) {
+            this.notice = ignoredNote();
+        }
 
         this.buttonList.add(new GuiButton(0, this.left + 22, this.top + 176, 96, 18, "保存并应用"));
         this.buttonList.add(new GuiButton(1, this.left + 124, this.top + 176, 96, 18, "测试广播"));
@@ -138,6 +141,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
         // 让玩家退游戏、开文件管理器、再进来。
         this.buttonList.add(new GuiButton(3, this.left + 22, this.top + 200, 146, 18, "打开视频文件夹"));
         this.buttonList.add(new GuiButton(4, this.left + 178, this.top + 200, 120, 18, "刷新列表（F7）"));
+        // 音量与「强制限制返回」仍然只在设置窗口里：它不属于片源编辑，
+        // 但也不能凭空消失，所以给它一个明确的入口。
+        this.buttonList.add(new GuiButton(5, this.left + 22, this.top + 224, 146, 18, "播放器设置"));
     }
 
     @Override
@@ -162,10 +168,12 @@ public class GuiVideoBroadcaster extends GuiScreen {
         drawRect(l + 1, t + 22, l + W - 1, t + 23, 0xFF1A2028);
 
         this.fontRenderer.drawStringWithShadow("视频广播器", l + 12, t + 7, AMBER);
-        String header = "红石上升沿 → 全屏占用";
+        // 两种右键写在这里，因为没人会去读文档才知道要蹲下。
+        String header = "站立右键播放 · 蹲下右键本窗口";
         this.fontRenderer.drawStringWithShadow(header,
                 l + W - 12 - this.fontRenderer.getStringWidth(header), t + 8, DIM);
 
+        this.fontRenderer.drawStringWithShadow("音量 / 强制限制返回", l + 178, t + 229, 0xFF5A6674);
         this.fontRenderer.drawStringWithShadow("视频文件", l + 12, t + 30, DIM);
         this.fontRenderer.drawStringWithShadow("广播目标", l + 12, t + 132, DIM);
 
@@ -386,6 +394,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
             case 4:
                 refreshList();
                 break;
+            case 5:
+                this.mc.displayGuiScreen(new GuiVideoPlayerConfig(this.pos));
+                break;
             default:
                 this.mc.displayGuiScreen(null);
                 break;
@@ -409,9 +420,27 @@ public class GuiVideoBroadcaster extends GuiScreen {
     private void refreshList() {
         VideoLibrary.rescan();
         this.clips = VideoLibrary.names();
+        if (this.notice.isEmpty() && !VideoLibrary.skipped().isEmpty()) {
+            this.notice = ignoredNote();
+        }
         clampScroll();
-        this.notice = "已刷新：" + this.clips.size() + " 个视频";
+        this.notice = "已刷新：" + this.clips.size() + " 个视频" + ignoredNote();
         this.previewKey = "";
+    }
+
+    /** Why a dropped file did not appear - the only honest answer to "刷新无效". */
+    private String ignoredNote() {
+        List<String> ignored = VideoLibrary.skipped();
+        if (ignored.isEmpty()) {
+            return "";
+        }
+        String first = ignored.get(0);
+        if (first.length() > 24) {
+            first = first.substring(0, 23) + "…";
+        }
+        return (ignored.size() == 1
+                ? "；跳过 1 个不支持的文件：" + first + "（需打包成 zip）"
+                : "；跳过 " + ignored.size() + " 个不支持的文件：" + first + " 等（需打包成 zip）");
     }
 
     private void send(boolean test) {

@@ -52,6 +52,15 @@ public class HBMZZ {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
+        // 说清楚这一份是从哪儿加载的。"装进去没反应"里最常见的一种，是游戏读的
+        // 根本不是刚换的那个 jar（另一个实例、另一份 mods、或者根本没重启）。
+        try {
+            java.security.CodeSource source = HBMZZ.class.getProtectionDomain().getCodeSource();
+            logger.info("HBMZZ {} loaded from {}", VERSION,
+                    source == null ? "unknown source" : source.getLocation());
+        } catch (Throwable ignored) {
+            logger.info("HBMZZ {} loaded (source unavailable)", VERSION);
+        }
         HBMZZConfig.load(event.getSuggestedConfigurationFile());
         // The video shelf lives under <config>/hbmzz/videos/ and is read by both
         // sides (the server validates names, the client opens the clip). Without

@@ -105,10 +105,12 @@ public class BlockVideoBroadcaster extends BlockHorizontal implements ITileEntit
             return false;
         }
         if (world.isRemote) {
+            // 蹲下 = 编辑这台机器（片源、目标、文件夹、播放器设置）；站着 = 直接看片。
+            // 这样一次右键就能放，不需要先经过菜单再点"测试广播"。
             if (player.isSneaking()) {
-                HBMZZ.proxy.openVideoPlayerConfig(pos);
-            } else {
                 HBMZZ.proxy.openVideoBroadcaster(pos);
+            } else {
+                HBMZZ.proxy.openVideoPlayback(pos);
             }
             return true;
         }

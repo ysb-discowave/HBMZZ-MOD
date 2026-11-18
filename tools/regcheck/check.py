@@ -1108,6 +1108,42 @@ def main():
           "the broadcast packet carries the player's position",
           "VideoBroadcastMessage without pos cannot look the wall up on the client")
 
+    # 70. 播放器的两种右键各有各的活：站着是"看片"，蹲下是"改片"。
+    # 这一对写反过，后果不是打不开窗口，而是打开错的窗口——玩家想放片却看见
+    # 选择器，想改设置却开始播。所以直接按分支顺序读源码，不看注释。
+    block_body = member_body(read(os.path.join(SRC, "com/hbmzz/block/BlockVideoBroadcaster.java")),
+                             "onBlockActivated")
+    split = re.search(r"isSneaking\(\)[\s\S]*?openVideoBroadcaster\(pos\)[\s\S]*?else\s*\{[\s\S]*?"
+                      r"openVideoPlayback\(pos\)", block_body)
+    check(split is not None,
+          "sneak opens the editor and a plain click starts the film",
+          "BlockVideoBroadcaster must call openVideoBroadcaster() when sneaking and "
+          "openVideoPlayback() otherwise")
+
+    # 71. F 是播放窗口唯一的"看得见"的键。窗口盖住整个桌面，玩家没有别的地方
+    # 可以确认自己按的是什么，所以全屏切换必须真的调 Minecraft 的开关，而不是
+    # 只把某个布尔翻一下；退出时还要把进入前的显示模式还回去。
+    check("Keyboard.KEY_F" in takeover and "toggleFullscreen()" in takeover,
+          "the playback window toggles real fullscreen on F",
+          "GuiVideoScreen must handle Keyboard.KEY_F with Minecraft.toggleFullscreen()")
+    check("wasFullscreen" in takeover and "addScheduledTask" in takeover,
+          "leaving the film restores the display mode it found",
+          "GuiVideoScreen must remember gameSettings.fullScreen and restore it on close "
+          "(scheduled, not inside displayGuiScreen)")
+
+    # 72. 刷新必须说出被跳过的文件。video_screen 读的是图片帧序列，不是视频容器；
+    # 一个 .mp4 丢进目录永远不会出现在列表里，于是"按了刷新没反应"看起来像 bug。
+    # 这条守的是那句话本身：库要记账，窗口和 F7 都要把它念出来。
+    check("public static List<String> skipped()" in read(os.path.join(SRC, "com/hbmzz/video/VideoLibrary.java")),
+          "the library remembers files it could not use",
+          "VideoLibrary needs skipped() so a dropped .mp4 is named instead of ignored")
+    gui_broadcaster = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoBroadcaster.java"))
+    events = read(os.path.join(SRC, "com/hbmzz/client/ClientEvents.java"))
+    check("ignoredNote" in gui_broadcaster and "skipped()" in gui_broadcaster
+          and "skipped()" in events,
+          "refresh says why a file did not appear",
+          "both the window's 刷新 and the F7 key must report VideoLibrary.skipped()")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

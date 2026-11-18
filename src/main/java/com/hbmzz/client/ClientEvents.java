@@ -123,8 +123,14 @@ public class ClientEvents {
             com.hbmzz.video.VideoLibrary.rescan();
             int count = com.hbmzz.video.VideoLibrary.names().size();
             if (player != null) {
+                // Say when something was skipped: a .mp4 dropped in the folder
+                // can never appear in the list, and "刷新了但没变化" is what that
+                // looks like from the outside.
+                int ignored = com.hbmzz.video.VideoLibrary.skipped().size();
+                String note = ignored == 0 ? ""
+                        : "；跳过 " + ignored + " 个不支持的文件（需打包成 zip）";
                 player.sendStatusMessage(new net.minecraft.util.text.TextComponentString(
-                        "视频目录已刷新：" + count + " 个（F7）"), true);
+                        "视频目录已刷新：" + count + " 个（F7）" + note), true);
             }
         }
         if (player == null) {

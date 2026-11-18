@@ -264,6 +264,7 @@ window.HBMZZ_DATA = {
         "播放器的两种右键分工：普通右键直接开播（放这台机器上存的片源与音量，不经过菜单），蹲下右键才是编辑窗口（片源、广播目标、打开文件夹、刷新列表），音量与「强制限制返回」收进这个窗口里的「播放器设置」按钮。",
         "播放界面按 F 切全屏：调的是系统全屏，再按一次回窗口，底部常驻一行 <code>F 全屏</code>；退出播放会把进入前的显示模式还回去。",
         "「刷新无效 / 装进去不生效」查清了：不是模组没装上（日志里 hbmzz@3.8.0 正常加载），是目录里一个 .mp4 被静默忽略——视频库只认 名字.zip 与 名字/ 两种形状。现在库会记账，窗口与 F7 的回执直接点名「跳过 1 个不支持的文件：xxx.mp4（需打包成 zip）」，README 同步说明；preInit 还会打印 <code>HBMZZ 3.8.0 loaded from &lt;jar 路径&gt;</code>，下次装完没反应先看这行。",
+        "市面上的视频格式都能进了：蹲下右键播放器 →「导入视频…」，勾一行按「转换选中」，后台用 ffmpeg 把 mp4 / mkv / mov / avi / webm / flv / ts / wmv / rmvb 拆成帧包；帧率 6–30、宽度 320–1280 两排档位，进度与取消都在窗口里，关窗照转。播放端仍只解图片帧，格式多少取决于 ffmpeg。中文片名原样保留，分隔符仍被拒。",
         "FFmpeg 会自己下：首次启动若 config/rsaudiofm/bin 里没有可用 ffmpeg，主菜单阶段弹出进度页，后台线程走代理下 BtbN 的 win64 包（约 190 MB），支持 Range 就 64 段并行、断点续传，不支持退回单线程；解出 ffmpeg.exe 并用 .stamp 记住来源，之后不重复下载。这段逻辑在回到 3.7.1 基线时丢了，现已补回。",
         "视频大屏重做：画面直接画在世界里的方块表面。方向与镜像在渲染层一次算清 —— 面板中心用 <code>ConsoleRig.anchor</code> 对齐控制器格，旋转用 <code>yawOf(facing)</code>，图像 UV 用 <code>panelUv()</code>（u 是反向的，因为玩家站在正面时局部 +x 是他的左手）。四个朝向都正着看，不倒置、不镜像。",
         "尺寸不再右键循环，改成<b>蹲下右键</b>打开的配置窗口：宽、高分开加减，1–32 格；倍速 0.25x–3x，按四分之一步进。窗口里没有停止键 —— 停止仍然归拉杆。",
@@ -276,7 +277,7 @@ window.HBMZZ_DATA = {
         "音乐回到仓库原版：片头恢复静音，片尾仍用仓库自带的 <code>the-ending-of-melting.mp3</code>；上一版自制的两条配乐与英文口播脚本、成片一并移除，<code>tools/audio/ost_synth.py</code>、<code>voice_over.py</code> 不再留在仓库里。",
         "保留 3.8.0 已经交付的三件事：<b>防爆窗帘</b>、<b>纪念挂画</b>、DFC 监控屏几何缓存；以及那一处启动崩溃修复（<code>rsaudio:blast_door</code> 注册名只设一次）。",
         "基线明确：本版在 3.7.1（upstream master 快照）之上增量，3.7.1 已有的修复一条没回退；3.7.0 只移植了窗帘与挂画两件东西。",
-        "版本号固定 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处对齐）；离线检查 regcheck 79 条（新增「遥控器目标必须让出右键」「服务器先夹再存定位」「客户端按片长再夹一次」「播放界面不得出现按钮」「限制只在大屏缺席时成立」「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」「下载器还在」「启动时缺 ffmpeg 会去下」）、videocheck、linkercheck、rbmkcheck、termcheck、cecpcheck 全绿，但大屏的观感仍需进游戏实测。"
+        "版本号固定 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处对齐）；离线检查 regcheck 83 条（新增「遥控器目标必须让出右键」「服务器先夹再存定位」「客户端按片长再夹一次」「播放界面不得出现按钮」「限制只在大屏缺席时成立」「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」「下载器还在」「启动时缺 ffmpeg 会去下」「导入器真的调 ffmpeg」「产物是 VideoClip 认的形状」）、videocheck、linkercheck、rbmkcheck、termcheck、cecpcheck 全绿，但大屏的观感仍需进游戏实测。"
       ]
     },
     {
@@ -660,8 +661,8 @@ window.HBMZZ_DATA = {
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 570,
-      "javaLines": 133166,
+      "javaFiles": 573,
+      "javaLines": 134385,
       "resourceFiles": 627,
       "nodeTypes": 32,
       "controlTypes": 26

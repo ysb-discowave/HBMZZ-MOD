@@ -111,6 +111,13 @@
               目录里的 README 也写了同一句话——这个模组读的是图片帧序列，1.12.2 的 JRE 没有 H.264 解码器。
               另外 preInit 会打一行 <code>HBMZZ 3.8.0 loaded from &lt;jar 路径&gt;</code>，
               下次"装了没反应"先看这行指向哪个文件。</li>
+            <li><strong>市面上的视频格式都能进了：</strong>mp4 / mkv / mov / avi / webm / flv / ts / wmv / rmvb
+              这些不用再拿去跑命令行——蹲下右键播放器，窗口右下多了一个「导入视频…」：勾一行、按「转换选中」，
+              它就用 ffmpeg 把这集拆成帧包放进视频目录，回到列表按 F7 就能选到。帧率（6–30）与宽度（320–1280）
+              是两排档位，决定成品多大；转换在后台线程跑，关掉窗口照常继续，进度条和「取消转换」都在窗口里。
+              播放端仍然只解图片帧——1.12.2 只有一套 JRE，塞 H.264/AV1 解码器要给每个平台各带一份二进制；
+              所以这里换了个做法：让 ffmpeg 认格式，让播放器只认帧。中文片名转出来的包也叫中文（以前只能叫
+              <code>video</code>），名字里的分隔符依旧进不来。</li>
             <li><strong>FFmpeg 会自己下，不用再手动装：</strong>首次启动时如果 <code>config/rsaudiofm/bin</code>
               里还没有可用的 ffmpeg，主菜单阶段会弹出「正在准备音频播放器」进度页——后台线程走代理下载
               BtbN 的 win64 包（约 190 MB），支持 Range 就切 64 段并行、断了下次只补没下完的段，
@@ -161,9 +168,9 @@
             <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
               <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
               <a href="delivery-3.8.0.md">交付文档</a>。</li>
-            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 79 条（新加「遥控器要连的方块必须让出右键」
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 83 条（新加「遥控器要连的方块必须让出右键」
               「服务器先夹再存定位」「客户端按片长再夹一次」「播放界面不得出现按钮」「限制只在大屏缺席时成立」
-              「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」「下载器还在」「启动时缺 ffmpeg 会去下」）、videocheck、linkercheck、rbmkcheck、termcheck、
+              「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」「下载器还在」「启动时缺 ffmpeg 会去下」「导入器真的调 ffmpeg」「产物是 VideoClip 认的形状」）、videocheck、linkercheck、rbmkcheck、termcheck、
               cecpcheck、快速检查全绿。大屏的画面观感、倍速下的音画、32×32 的铺格手感、定位后的音画对齐
               <b>都还没进游戏看过</b>。</li>
           </ul>
@@ -768,7 +775,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=fb10a739be"></script>
+<script src="assets/data.js?v=79995895f0"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

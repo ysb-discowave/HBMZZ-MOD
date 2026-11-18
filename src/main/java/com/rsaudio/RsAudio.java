@@ -18,6 +18,7 @@ import com.rsaudio.tile.TileF9Controller;
 import com.rsaudio.tile.TileElevatorController;
 import com.rsaudio.tile.TileExhaustFan;
 import com.rsaudio.tile.TileGiantSign;
+import com.rsaudio.tile.TileHuangPoster;
 import com.rsaudio.tile.TileMonitorCamera;
 import com.rsaudio.tile.TileMonitorConsole;
 import com.rsaudio.tile.TileRedstoneComputer;
@@ -102,6 +103,10 @@ public class RsAudio {
         //   注册事件（RegistryEvent.Register<Block/Item>）在所有模组的 preInit 之后才发，
         //   所以写在这里不算晚；ModBlocks 里另有幂等闸门，两条路都挂着也不会重复注册。
         MinecraftForge.EVENT_BUS.register(ModBlocks.class);
+        // ★ 音效登记表同理：显式挂总线，不靠注解（理由见 ModSounds 类注释）
+        MinecraftForge.EVENT_BUS.register(ModSounds.class);
+        // ★ 让"原版铁铲潜行右键"能打到防爆窗帘上（理由见 CurtainToolHandler 类注释）
+        MinecraftForge.EVENT_BUS.register(com.rsaudio.util.CurtainToolHandler.class);
         GameRegistry.registerTileEntity(TileAudioPlayer.class, new ResourceLocation(MODID, "audio_player"));
         GameRegistry.registerTileEntity(TileRedstoneDelayer.class, new ResourceLocation(MODID, "redstone_delayer"));
         // ★ 结构加载器 / 红石计算机 / 警报灯 / 防核门 的方块实体
@@ -180,6 +185,9 @@ public class RsAudio {
         //   都在方块状态里），它存在的唯一理由是"TESR 只对带方块实体的方块调用"。
         //   漏注册的症状同上：放/读档一台起重机就 missing a mapping 崩世界。
         GameRegistry.registerTileEntity(TileCrane.class, new ResourceLocation(MODID, "crane"));
+        // ★ 纪念挂画：方块实体只存"当前第几页"。漏注册的症状同上（一进世界就崩），
+        //   而且翻页信息也会跟着丢。
+        GameRegistry.registerTileEntity(TileHuangPoster.class, new ResourceLocation(MODID, "huang_poster"));
         // ★★ 列车实体 —— 本模组的<b>第一个自定义实体</b>。
         //   registerModEntity 的 8 个参数依次是：
         //     ResourceLocation  实体名（存档里的 id）

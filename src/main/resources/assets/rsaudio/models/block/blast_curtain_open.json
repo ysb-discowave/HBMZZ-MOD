@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/access_cloth",
+    "down": "rsaudio:blocks/access_frame",
+    "up": "rsaudio:blocks/access_frame",
+    "north": "rsaudio:blocks/access_cloth",
+    "south": "rsaudio:blocks/access_cloth",
+    "east": "rsaudio:blocks/access_cloth",
+    "west": "rsaudio:blocks/access_cloth"
+  }
+}

@@ -1,2 +1,13 @@
 {
+  "block.huang_poster.chant": {
+    "category": "record",
+    "subtitle": "subtitles.rsaudio.huang_poster.chant",
+    "sounds": [
+      {
+        "name": "rsaudio:huang_chant",
+        "stream": true,
+        "attenuation_distance": 64
+      }
+    ]
+  }
 }

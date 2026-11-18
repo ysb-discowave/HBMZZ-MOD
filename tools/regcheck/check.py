@@ -718,8 +718,8 @@ def main():
     #
     # The three blocks below are the "only the machine may place this" ones
     # (see their class comments): no item, on purpose, and that list is frozen.
-    RS_NO_ITEM = {"BLAST_DOOR_PANEL", "TARTARUS_HATCH", "ELEVATOR_CAR"}
-    RS_NO_ITEM_NAMES = {"blast_door_panel", "tartarus_hatch", "elevator_car"}
+    RS_NO_ITEM = {"BLAST_DOOR_PANEL", "BLAST_CURTAIN_PANEL", "TARTARUS_HATCH", "ELEVATOR_CAR"}
+    RS_NO_ITEM_NAMES = {"blast_door_panel", "blast_curtain_panel", "tartarus_hatch", "elevator_car"}
 
     rs = os.path.join(SRC, "com/rsaudio")
     rs_modblocks_path = os.path.join(rs, "ModBlocks.java")
@@ -753,7 +753,11 @@ def main():
             if not name.endswith(".java"):
                 continue
             src = read(os.path.join(block_dir, name))
-            match = re.search(r"class\s+(\w+)\s+extends\s+Block\b", src)
+            # ★ 也算上"变体"：防爆窗帘 / 布帘格是 BlockBlastDoor(±Panel) 的子类，
+            #   它们自己就是带注册名的方块类；只认 "extends Block" 会让它们的
+            #   blockstate / 物品模型两条守卫直接失明。
+            match = re.search(
+                r"class\s+(\w+)\s+extends\s+(?:Block|BlockBlastDoor|BlockBlastDoorPanel)\b", src)
             if match:
                 rs_block_classes.append(match.group(1))
         orphans = [c for c in rs_block_classes if ("new " + c + "(") not in modblocks]

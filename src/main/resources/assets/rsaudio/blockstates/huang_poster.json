@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "rsaudio:huang_poster"
+    },
+    "facing=east": {
+      "model": "rsaudio:huang_poster",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "rsaudio:huang_poster",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "rsaudio:huang_poster",
+      "y": 270
+    }
+  }
+}

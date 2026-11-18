@@ -77,6 +77,59 @@ public class RenderDFCMonitor extends TileEntitySpecialRenderer<TileEntityDFCMon
     private static final Map<TileEntityDFCMonitor, DfcScreen> CANVASES =
             new WeakHashMap<TileEntityDFCMonitor, DfcScreen>();
 
+    /**
+     * 机器几何的缓存：{@code ConsoleModel.build(...)} 只由
+     * {@code (cols, rows, tilt, powered, ceiling)} 决定，和"现在是几点、屏幕在显示什么"无关。
+     * <p>
+     * ★ 以前每一帧、每一台监控屏都要重建一遍 Box / Face 列表（每个 Face 带四条 float[3]），
+     * 摆一台两台还看不出来，摆一面墙之后就是"每帧上千个临时对象" —— 表现是放下监控屏后
+     * 客户端卡顿、GC 一阵一阵地抽。这里按参数组合缓存，几何只在"尺寸/倾角/通电/吊架"
+     * 这四件事真的变了时才重建。
+     * <p>
+     * 键是小整数打包成的 long，组合数极少（尺寸受 {@code HBMZZConfig} 限制），
+     * 上限 {@link #MODEL_CACHE_LIMIT} 只是防御性兜底。
+     */
+    private static final Map<Long, List<Face>> MODELS = new java.util.HashMap<Long, List<Face>>();
+    private static final Map<Long, float[][]> PANELS = new java.util.HashMap<Long, float[][]>();
+    private static final int MODEL_CACHE_LIMIT = 64;
+
+    /** 取（或建）这套参数对应的几何。 */
+    private static List<Face> modelFor(int cols, int rows, int tilt, boolean powered, boolean ceiling) {
+        long key = modelKey(cols, rows, tilt, powered, ceiling);
+        List<Face> faces = MODELS.get(key);
+        if (faces == null) {
+            if (MODELS.size() >= MODEL_CACHE_LIMIT) {
+                MODELS.clear();
+                PANELS.clear();
+            }
+            faces = ConsoleModel.build(cols, rows, tilt, powered, ceiling);
+            MODELS.put(key, faces);
+        }
+        return faces;
+    }
+
+    /** 取（或建）这块屏幕玻璃的四个角。同样只跟尺寸与倾角有关。 */
+    private static float[][] panelFor(int cols, int rows, int tilt) {
+        long key = ((long) cols << 16) | ((long) rows << 4) | (tilt & 0xF);
+        float[][] corners = PANELS.get(key);
+        if (corners == null) {
+            corners = ConsoleModel.panelCorners(cols, rows, tilt);
+            PANELS.put(key, corners);
+        }
+        return corners;
+    }
+
+    private static long modelKey(int cols, int rows, int tilt, boolean powered, boolean ceiling) {
+        long key = ((long) cols << 24) | ((long) rows << 16) | ((long) (tilt & 0xF) << 8);
+        if (powered) {
+            key |= 1L;
+        }
+        if (ceiling) {
+            key |= 2L;
+        }
+        return key;
+    }
+
     @Override
     public void render(TileEntityDFCMonitor te, double x, double y, double z,
                        float partialTicks, int destroyStage, float alpha) {
@@ -130,9 +183,11 @@ public class RenderDFCMonitor extends TileEntitySpecialRenderer<TileEntityDFCMon
 
             // The faces come back already tipped about the hinge and pushed
             // forward, so there is no matrix work left to do here.
-            List<Face> faces = ConsoleModel.build(cols, rows, tilt, te.isPowered(), hasCeiling(te));
+            boolean ceiling = hasCeiling(te);
+            // ★ 走缓存：同一套参数的机器几何只建一次（理由见 MODELS 的注释）
+            List<Face> faces = modelFor(cols, rows, tilt, te.isPowered(), ceiling);
             drawFaces(faces);
-            drawPanel(canvas, ConsoleModel.panelCorners(cols, rows, tilt));
+            drawPanel(canvas, panelFor(cols, rows, tilt));
 
             GlStateManager.enableCull();
         } catch (Throwable throwable) {
@@ -227,6 +282,9 @@ public class RenderDFCMonitor extends TileEntitySpecialRenderer<TileEntityDFCMon
             }
         }
         CANVASES.clear();
+        // 几何缓存里没有世界引用，但换世界之后也没必要留着
+        MODELS.clear();
+        PANELS.clear();
     }
 
     private EnumFacing facingOf(TileEntityDFCMonitor te) {

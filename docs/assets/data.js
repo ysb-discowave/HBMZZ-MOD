@@ -633,17 +633,17 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "3.7.1",
-    "gradleVersion": "3.7.1",
+    "version": "3.8.0",
+    "gradleVersion": "3.8.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 548,
-      "javaLines": 127389,
-      "resourceFiles": 573,
+      "javaFiles": 556,
+      "javaLines": 128871,
+      "resourceFiles": 617,
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-17"
+    "generatedAt": "2026-11-18"
   }
 };

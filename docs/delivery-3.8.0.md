@@ -11,118 +11,87 @@
 | --- | --- |
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
-| 当前提交 | `ebe84ff`（片头 / 片尾英文口播） |
-| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,696,423 字节） |
-| 模组 SHA-256 | `985dd964dc7b96aa49cfc93df99b04c72984afec39a8905d391dcb23286bc472` |
-| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,793,935 字节，sha256 `2314f282…`） |
+| 当前提交 | `d1eabf0`（批次 #6：大屏重做 + 遥控器 + 播放器设置） |
+| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,698,711 字节） |
+| 模组 SHA-256 | `936c09c1939519ea17cf0b8731cd5ec5056c7577c4aa5c13541c84a2246e5668` |
+| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,799,358 字节，sha256 `509da4be…`） |
 | 源码仓库 | `C:\Users\37594\WorkBuddy\Claw\HBMZZ-MOD`（分支 master） |
 | 部署位置 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\mods\hbmzz-3.8.0.jar` |
 | 旧版归档 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\backupsmod\hbmzz-old-jars\` |
+| 视频包 | `…\config\hbmzz\videos\hbmzz-intro.zip`（1,721,077 B，静音，sha256 `c86dafe3…`）<br>`…\config\hbmzz\videos\hbmzz-credits.zip`（60,747,521 B，仓库原版配乐，sha256 `7007fb93…`） |
+| 旧视频包归档 | `…\backupsmod\hbmzz-old-videos\`（instrumental / voiced 两版都在，随时可换回） |
 
 部署命令固定为 `python tools/deploy.py`（`deploy.local.json` 已指向该 mods 目录）。
-脚本会比对 sha256、把旧 jar 改名并归档到 `backupsmod\hbmzz-old-jars`，`mods` 里只留当前版本。
+脚本会比对 sha256、把旧 jar 改名并归档到 `backupsmod\hbmzz-old-jars`，`mods` 里只留当前版本
+（第三方 `hbmzz-addon-0.1.0.jar` 不动）。
 
 ---
 
 ## 二、3.8.0 交付内容
 
-### 1. 视频大屏（新增）
+### 1. 视频大屏（重做）
 
-- 方块 `hbmzz:video_screen`，可 1×1 ~ 3×3 拼接，潜行右键循环尺寸。
-- 拆任意一格整块消失；与 DFC 监控屏共用填充板 `BlockDFCMonitorPart`，但加了守卫，不会误拆邻近的监控屏。
-- 连上视频广播器后，动画**直接渲染在方块表面**，不使用静态贴图，也不是弹窗。
-- 右键打开观看界面；世界内多块大屏共用一份解码器与时钟，超过 96 格冻结，默认静音（避免多屏叠音）。
+- 方块 `hbmzz:video_screen`：控制器格有方块实体，其余格是同一方块 `part=true` 的填充格，
+  **填充格没有方块实体**——画面只可能被画一次，不会出现「十二个控制器各画一遍」或「谁都以为别人画了」。
+- 朝向与镜像一次算清，全部取自 `dfc/ConsoleRig`：
+  - `anchor(cols, rows, facing)`：控制器是墙的左上格，面板中心要按列 / 行推过去；
+  - `yawOf(facing)`：把渲染器局部 `-z` 转到方块朝向；
+  - `panelUv()`：u 反向（玩家站在正面时局部 +x 是他的左手），图像左边缘才落在观看者左手边。
+  三处各自为政就是「北面正常、东西镜像、上下颠倒」的来源；现在四个朝向一致。
+- 画面用 `PanelPainter.glass` 画一张带 UV 的四边形，位置在方块表面外 0.002 格，不与方块模型 z-fighting。
+- 尺寸：1–32 格 × 1–32 格，从配置窗口调。变大补格、变小只收掉这面墙自己的格
+  （`trimParts` 只清 `part=true` 的同方块格，不碰玩家放的东西）。
+- 拆任意一格整面消失，只掉一个物品（`getDrops` 空表，掉落由拆除函数在被打的那格手动生成）。
+  控制器方块实体已丢失时按列 / 行扫描兜底，不会留下孤儿格。
 
-### 2. 观看界面（改造）
+### 2. 大屏遥控器（新增）
 
-- 从全屏接管改成底部悬浮面板：高度不超过屏幕 52%，不再遮挡视野。
-- `F` 切全屏 / 退出全屏，`ESC` 关闭。
-- 广播模式仍是单次播放，放完自动退出；观看窗口按包声明的循环方式执行，单次播完停在最后一帧并提示结束。
+- 物品 `hbmzz:video_remote`，16×16 手持机贴图（深灰机身、顶部信号窗、方向键、两枚按键），
+  由 `tools/art/make_video_textures.py` 生成，可重跑。
+- **普通物品，不是 `ItemBlock`**：不可放置、没有点击放置行为、也不会弹「不能放置」；
+  右键别的方块返回 `PASS`，把点击让回去。
+- 只做连接：右键播放器对准 → 右键大屏（点任一格）绑定。两者相距上限 64 格，玩家要够得着大屏（12 格内）。
+- 绑定在服务端落地：写大屏的播放器坐标、片名、音量，写播放器的大屏坐标。
 
-### 3. 序列帧播放器（重写）
+### 3. 播放器（视频广播器）与拉杆语义
 
-- `VideoClip` 从「文件列表」重构为「文件集 + 时间线」：文件只解一次，时间线槽位可以重复引用同一张图，定格与分段重复不额外占图片。
-- 顺序：默认按文件名自然排序（`f2` 在 `f10` 前，不要求补零）；`"order":"list"` + `"playlist"` 显式指定；也认安卓开机动画的 `desc.txt`（`p 2 0 part0` = 播两遍，`p 1 1.5 part1` = 播完定格 1.5 秒）。
-- 帧率：`fps` 支持 0.5~60 的小数，`1/fps` 即每张图的停留时间。
-- 循环：`"loop": true`（默认）/ `false`（停在最后一帧）/ `"pingpong"`（往返）/ 数字（播 N 遍）。广播走 `asSinglePass()` 强制单次。
-- 播放头是单调递增的位置，循环接缝与往返倒放都由解码线程顺序预取，不回退重解；后台线程解码，只保留有限帧环，丢帧不排队。
-- 音画同步：音轨与第一帧同一时钟启动，每个循环重新对齐；画面为主时钟，漂移超过 300ms 才 seek；`audioOffset` 跳过音轨开头空白；往返倒放段静音。
-- 视频源目录仍在首次加载时自动创建并落 `README.txt`（3.7.1 已有行为，本次未改动）。
+- 保留仓库原样子：右键开配置窗口（片名 + 选择器），红石上升沿触发。
+- **接上大屏之后**，红石只做开 / 停：上升沿让大屏开始播放，下降沿让它停；
+  误触拉杆不会把任何人切进全屏。
+- **没接大屏时**保持原逻辑：上升沿直接全屏接管，按「强制限制退出」决定能不能 ESC 中途退出。
+- 大屏所在区块没加载时不会偷偷降级成全屏，只写一行状态；大屏被拆则自动解绑，拉杆回到原行为。
+- 首次 tick 只「采纳」当前信号、不触发任何动作（登录在通电的拉杆旁边不会被突然接管）。
 
-### 4. DFC 监控屏（仅优化）
+### 4. 音量与「是否强制限制退出」
 
-- 卡顿根因：每帧重建 `ConsoleModel` 的 Box/Face。
-- 改为按「列数 / 行数 / 倾角 / 通电 / 吊装」打包成 long 型 key 缓存几何，带容量上限与清理入口。
-- 外观、尺寸、逻辑全部沿用，监控屏自身既有缺陷不在本次范围。
+- 从大屏搬到播放器：蹲下右键播放器打开，窗口里只有一条 0–200% 音量滑条与一个开关。
+- 开启后播放结束前 ESC 只提示、不退出；关闭后 ESC 立刻放行。
+- 两项随广播包走（片名 + 音量 + 退出策略），全屏与大屏两条路径用同一套设置。
+- 滑条是自绘的（`GuiVideoPlayerConfig`）：0.5 基线 × 百分比，100% = 默认音量，200% 才真的更响
+  （音频层在 1.0 处夹紧；基线若设成 0.65，滑条后半段会没有反应）。
 
-### 5. 移植的两件东西（来自 3.7.0 分支）
+### 5. 视频目录：运行中换片
 
-- **防爆窗帘**：没有照搬 3.7.0 的旧门实现，而是接回 3.7.1 的门体系做成一个变体（`BlockBlastCurtain` + 面板 + `TileBlastDoor` 的 `curtain` 状态）。铁铲潜行右键放行，3×3×3 范围内需要玻璃。
-- **纪念挂画**：走 `RenderWorldLastEvent` 而非 TESR，带一条 chant 音效（`ModSounds` 只注册这一条）。
+- 广播器窗口新增「打开视频文件夹」（`Desktop.open`，失败时把路径写进状态行）与「刷新列表」。
+- 新增刷新键 **F7**（`key.hbmzz.video_refresh`）：`VideoLibrary.rescan()` 清掉一秒列表缓存，并在物品栏上方报数量。
+  没用 F3+T —— 那是原版重载资源包，按一次会重新烘焙所有模型。
 
-### 6. 工具与文档
+### 6. 回退到仓库原实现，音乐回原版
 
-- `tools/video/pack.py`：新增小数 `--fps`、`--loop`、`--passes`、`--audio-offset`、`--audio`，帧名按自然序重排成 `f000001` 起。
-- 视频目录 `README.txt` 与 `docs/guide.html` 写清包格式、顺序、帧率、循环、同步规则。
-- `docs/changelog.html` 与 `tools/site/content.json` 补 v3.8.0 条目。
-- 版本号固定 3.8.0，三处对齐；提交 `c1b1b78` 起不再随改动升版。
+- 撤回上一版的替代实现：`VideoClip` 的「文件集 + 时间线 / playlist / desc.txt / pingpong」、
+  悬浮观看窗、多屏共用解码、旧的 `VideoScreenPlayback` 全部移除；
+  `VideoClip` / `VideoPlayer` / `VideoAudio` / `VideoLibrary` / `GuiVideoScreen` / `ItemMonitorLinker`
+  一律还原为仓库版本，视频仍按「文件名 + fps + 帧号」读取。
+- 数据线（`monitor_linker`）不再参与接大屏，回到仪表 / 堆芯 / 摄像头。
+- 音乐回到仓库原版：片头恢复**静音**（192 帧 / 24 fps / 8.0000 s，无 `audio` 字段），
+  片尾仍是仓库自带的 `the-ending-of-melting.mp3`（2326 帧 / 12 fps / 193.8333 s，带 `audio.wav`）。
+  自制配乐与英文口播的脚本（`tools/audio/ost_synth.py`、`voice_over.py`）与成片全部移除。
 
-### 7. 启动崩溃修复（批次 #3）
+### 7. 保留的既有交付
 
-- **症状**：客户端在 `Initializing game` 阶段直接退出，堆栈指向
-  `BlockBlastDoor.<init>` 与 `ModBlocks.<clinit>`，报
-  `IllegalStateException: Attempted to set registry name with existing registry name! New: rsaudio:blast_door Old: rsaudio:blast_door`。
-- **根因**：为了让 `tools/regcheck` 能静态读到注册名，在 `BlockBlastDoor` / `BlockBlastDoorPanel`
-  的无参构造函数里补写了一行字面量 `setRegistryName(RsAudio.MODID, "…")`；
-  而被委托的父类构造函数里已经用同样的名字设过一次。`IForgeRegistryEntry` 的注册名只能设一次，
-  第二次直接抛异常，而这个初始化发生在 static 字段里，所以整个客户端启动即死。
-  `BlockBlastCurtain` / `BlockBlastCurtainPanel` 同理，只是还没轮到它们就崩了。
-- **修法**：父类构造函数不再设注册名（只设显示名），注册名一律由具体类用字面量设一次；
-  既满足 regcheck 的静态读取，也只调用一次。
-- **防复发**：regcheck 新增第 64 条守卫「同一个类里 setRegistryName 只允许出现一次」。
-  反向验证：把重复的那行临时塞回 `BlockBlastDoor`，检查当场 FAIL 并指出文件；移除后恢复 PASS。
-- **部署工具同时修了一处误伤**：`tools/deploy.py` 原来用前缀 `hbmzz-` 判断「我们自己的 jar」，
-  把第三方附加包 `hbmzz-addon-0.1.0.jar` 当成旧版归档走了。现在判据改成
-  `hbmzz-<数字版本>.jar`（`OWN_JAR` / `OWN_BACKUP` 两个正则），已误归档的附加包已恢复回 `mods`。
-
-### 8. 片头 / 片尾原创配乐（批次 #4）
-
-两条曲子都是这一版新做的，`tools/audio/ost_synth.py` 从头合成（正弦 / 锯齿 + 包络 +
-Schroeder 混响），**不读、不采样、不参照** `docs/assets/audio/` 下任何 mp3，也不按它们的
-旋律、调性或段落对齐；时间只跟画面走。
-
-- **片头 8.000 s**：动作点是从 mp4 逐帧帧间差量出来的 —— 2.25 s 小标散开、4.00 s 碎片合拢、
-  6.50 s 部件咬合（全片最亮一帧，正好是 120 BPM 的重拍 13）、6.80 s 静止标出现。
-  配乐就换在这几处：Am → F → Dm → A，鼓只在 2.25–6.50 之间走，落点之后不再加打击，
-  6.50–8.00 只留和弦与钟衰减，末帧正好静默。
-- **片尾 193.833 s**：88 BPM、71 小节、D 小调 i–VI–III–VII。前 12 小节薄，A 段进鼓与
-  五声旋律，B 段加密，56–60 小节桥段退回长钟（名单还在滚，音乐只退后一步），
-  60 小节起收束，最后两小节散开成一条长和弦。
-- **音画对位**：包内 `audio.wav` 与 `frames / fps` 严格等长（实测偏差 0.0000 s），
-  `meta.json` 写 `"loop": false` —— 片头是一次性开场，片尾是一次性名单，循环会重说一遍。
-- **交付形态**：`hbmzz-intro.zip`（192 帧 / 24 fps / 3.0 MB）、`hbmzz-credits.zip`
-  （2326 帧 / 12 fps / 58.6 MB），另出 `hbmzz-intro-voiced.mp4` 与 `hbmzz-credits.mp4`
-  带音成片。片头要回到 SPEC 原静音交付，`package_intro.py --silent` 一条命令即可。
-
-**已知取舍**：两条都只有合成器音色（垫底、钟、贝斯、鼓），没有真人声与环境采样；
-片尾 RMS 比片头低约 4.5 dB，是故意的——它要在匀速滚动的名单底下待三分钟，不能抢字。
-
-### 9. 英文口播（批次 #5）
-
-片头与片尾各压了一层英文人声，全部台词英文，位置跟画面与配乐的死点对齐。
-
-- **片头四句**：`Don't blink.` 0.00 / `Break.` 2.25（散开帧）/ `Hold.` 4.00（合拢帧）/
-  `Locked.` 6.45（咬合前一帧，让字头正好撞在 6.50 的落点上）。8 秒里只放四个词，
-  多一个字都会糊在鼓上。
-- **片尾五处**：0:00 开场报台、0:32.7（第 12 小节）口号 `Push it to the top.`、
-  1:16.4（第 28 小节）左右点名、2:43.6（第 60 小节）收束句、3:06 收尾句。
-  名字滚动的主体段落（约 44 秒）一句话不留，避免抢字。
-- **混音**：每句按「那一刻音乐的电平 + 3 dB」自动定档，再对音乐做 −4.2 dB 侧链闪避，
-  带 15 ms 前瞻，字头不会顶在满电平上。整体只做衰减不做波形整形，片头 6.5 s 那一下不受影响。
-- **音色**：edge-tts 的 `en-US-GuyNeural`，干声缓存进 `tools/audio/.voice-cache/`，
-  重跑不再联网；超时自动 `atempo` 加速（上限 1.35x），不会压到下一句头上。
-- **交付形态**：`hbmzz-intro.zip`（3.0 MB，sha256 `fdfed696…`）、`hbmzz-credits.zip`
-  （58.6 MB，sha256 `fd8d5619…`）。纯音乐版 `intro.wav` / `credits.wav` 原样保留。
+- 防爆窗帘、纪念挂画（3.7.0 分支移植）。
+- DFC 监控屏几何缓存（按列 / 行 / 倾角 / 通电 / 吊装缓存 `ConsoleModel`）。
+- 启动崩溃修复：`rsaudio:blast_door` 注册名只设一次，父类只设显示名；regcheck 第 64 条守卫。
 
 ---
 
@@ -130,35 +99,34 @@ Schroeder 混响），**不读、不采样、不参照** `docs/assets/audio/` �
 
 | 项目 | 结果 |
 | --- | --- |
-| `./gradlew build -x test --offline` | BUILD SUCCESSFUL，产出 `build/libs/hbmzz-3.8.0.jar` |
+| `./gradlew build --offline`（JDK 8 / Gradle 4.10.3，离线） | BUILD SUCCESSFUL，产出 `build/libs/hbmzz-3.8.0.jar` |
 | jar 内 `mcmod.info` | modid `hbmzz`，version `3.8.0` |
-| regcheck（注册 / 配方 / 模型表） | 64/64（新增「注册名只许设一次」守卫） |
+| regcheck（注册 / 配方 / 模型表） | **65/65**（新增第 65 条「遥控器要连的方块必须让出右键」；第 64 条仍是注册名守卫） |
 | statecheck（blockstate 键序 / 状态数） | 4/4 |
-| videocheck（顺序 / 帧率 / 循环 / 同步） | 55/55 |
-| linkercheck（连接器握手） | 21 通过，1 跳过 |
+| videocheck（视频库 / 名字白名单） | 26/26 |
+| linkercheck（连接器握手） | 21 通过，1 跳过（CE 不在 classpath） |
 | rbmkcheck | 50/50 |
 | termcheck | 67/67 |
 | cecpcheck | 8/8 |
-| `checkall.py --fast` | 7/7 全 PASS |
-| 部署校验 | 目标目录 jar 与构建产物 sha256 一致 |
-| 视频包解析（模组 `VideoClip` 实跑） | 片头 192 帧 / 24 fps / 8.0000 s / ONCE / 有音轨；片尾 2326 帧 / 12 fps / 193.8333 s / ONCE / 有音轨 |
-| 音画等长 | intro.wav 8.0000 s、credits.wav 193.8333 s，与 `frames / fps` 偏差 0.0000 s |
-| 动作点对位 | 起音检测落在 2.22 / 3.97 / 6.47 s（40 ms 检测窗），与 2.25 / 4.00 / 6.50 的三个画面点一致 |
-| 成片流 | 两条 mp4 均为 h264 + AAC 立体声，时长 8.00 s / 3:13.83 |
-| 口播版解析 | 192 帧 / 24 fps / 8.0000 s；2326 帧 / 12 fps / 193.8333 s，均 ONCE 且有音轨 |
-| 口播时长控制 | 片头四句分别 0.00–0.71、2.25–2.78、4.00–4.48、6.45–7.00 s，末句留 1.0 s 收尾 |
-| 口播电平 | 每句按当地音乐 +3 dB 定档，侧链 −4.2 dB；整条限幅后峰值 0.96，无削波 |
+| gatecheck / dfccheck / reasimcheck | 全 PASS |
+| `python tools/checkall.py --fast` | 7/7 全 PASS（含站点数据一致性） |
+| 部署校验 | 目标目录 jar 与构建产物 sha256 一致：`936c09c1…` |
+| 视频包解析（模组 `VideoClip` 实跑） | 片头 192 帧 / 24 fps / 8.0000 s / **无音轨**；片尾 2326 帧 / 12 fps / 193.8333 s / 有音轨 |
+| 贴图 | 4 张方块贴图 + 1 张物品贴图，16×16，`make_video_textures.py` 可重跑 |
+| 网络 | 新消息 id 24 / 25 / 26，与既有 23 个 id 不冲突（regcheck「包序号唯一」通过） |
 
 ---
 
 ## 四、已知限制
 
-- 不内置 H.264 解码：运行时只吃图片序列 + WAV（也认 aiff/au）。ffmpeg 只在 `pack.py` 里离线抽帧用。
-- 渲染观感、多屏同放的显存占用、窗帘开合手感**没有进游戏看过**，只有编译与离线检查。
-- 世界内大屏默认静音是设计取舍（多屏共用一份播放，出声会叠音）。
-- 英文口播**没有人耳复核**：音色、语速、咬字只在波形上验过时长与电平，实际听感要你放一遍。
-- 两条新配乐**没有进游戏听过**：只有离线波形分析（动态包络、起音位置、静音段扫描）与规格核对，
-  实际在广播器里放的听感还得你跑一遍。
+- **没有进游戏实测**：大屏四个朝向的画面、32×32 的铺格手感、倍速下的观感、音量滑条、
+  遥控器两步连接，全部只经过编译、静态检查与离线解析。这是本批最大的一条未验证项。
+- 世界内大屏在同一客户端最多同时解码 **4 路**（超出的大屏保持黑屏，重新扳一次拉杆可再试），
+  目的是不让一屋子屏幕各开一条解码线程。
+- 音量 200% 受系统混音器 1.0 上限约束，响度到顶即止，不会破音。
+- F7 只在没有打开 GUI 时响应（原版按键状态在 GUI 内不更新）；窗口里有「刷新列表」按钮。
+- 大屏没有音轨时就是静音播放，播放器音量对它无效。
+- 帧率仍取包的 `fps`（整数），倍速只改播放头速度，不改解码帧率。
 - 3.7.0 分支的四向开合门、自定义贴图系统、旧 mixin 与运行时 FFmpeg 管线没有并入。
 
 ---
@@ -167,7 +135,10 @@ Schroeder 混响），**不读、不采样、不参照** `docs/assets/audio/` �
 
 1. 把 `backupsmod\hbmzz-old-jars\` 里对应的 `*.jar.bak` 改回 `*.jar` 放回 `mods`。
 2. 删掉 `mods\hbmzz-3.8.0.jar`（或一并归档）。
-3. 源码侧回滚到 `26195b1` 即完全回到 3.7.1 基线。
+3. 源码侧回滚到 `26195b1` 即完全回到 3.7.1 基线；只想退回上一版大屏与配乐，回滚到 `d5ed30b`。
+4. 视频包想换回配乐 / 口播版：把 `backupsmod\hbmzz-old-videos\` 里的
+   `hbmzz-intro-instrumental.zip`、`hbmzz-intro-voiced.zip`、`hbmzz-credits-instrumental.zip`
+   复制进 `config\hbmzz\videos\` 并改名为 `hbmzz-intro.zip` / `hbmzz-credits.zip`。
 
 ---
 
@@ -176,23 +147,28 @@ Schroeder 混响），**不读、不采样、不参照** `docs/assets/audio/` �
 | 批次 | 提交 | 内容 | 产物 sha256（前 12 位） |
 | --- | --- | --- | --- |
 | 2026-11-18 #1 | `7c4948f` `3bbe4aa` `bd8a7a0` | 防爆窗帘 + 纪念挂画 + DFC 几何缓存；视频大屏与观看界面悬浮化；序列帧播放器（顺序 / 帧率 / 循环 / 音画同步） | `317f7bd4…`（3.9.0 标签期） |
-| 2026-11-18 #2 | `c1b1b78` | 版本号回退并固定在 3.8.0，功能全部保留；重新出包并部署，3.9.0 归档 | `0895d885…` |
+| 2026-11-18 #2 | `c1b1b78` | 版本号回退并固定在 3.8.0，功能全部保留；重新出包并部署 | `0895d885…` |
 | 2026-11-18 #3 | `faa7f85` | 修复启动崩溃（blast_door 注册名设两次）；regcheck 加第 64 条守卫；deploy.py 不再误归档 `hbmzz-addon` | `985dd964…` |
-| 2026-11-18 #4 | `dac749c` | 片头 / 片尾重做原创配乐（8.000 s / 193.833 s，纯合成、不采样）；两条包改带音并写 `loop:false`；另出带音 mp4 | 片头包 `f7462851…`、片尾包 `d4869fac…` |
-| 2026-11-18 #5 | `ebe84ff` | 两条片子加英文口播（片头 4 句、片尾 5 处），侧链闪避与按句定档；纯音乐版保留 | 片头包 `fdfed696…`、片尾包 `fd8d5619…` |
+| 2026-11-18 #4 | `dac749c` | 片头 / 片尾重做原创配乐（后于 #6 撤回） | 片头包 `f7462851…`、片尾包 `d4869fac…` |
+| 2026-11-18 #5 | `ebe84ff` | 两条片子加英文口播（后于 #6 撤回） | 片头包 `fdfed696…`、片尾包 `fd8d5619…` |
+| 2026-11-18 #6 | `d1eabf0` | **撤回替代方案、恢复仓库原实现**；大屏朝向与镜像修正；遥控器取代数据线接大屏；拉杆只管开关；音量 / 退出限制搬到播放器；尺寸与倍速配置窗口（≤32×32、0.25–3x）；打开文件夹 + F7 刷新；音乐回仓库原版 | `936c09c1…` |
 
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。
+> 批次 #4 / #5 的自制配乐与口播已随 #6 撤回，产物仍在 `backupsmod\hbmzz-old-videos\`。
 
 ---
 
 ## 七、每次交付的固定动作
 
-1. 编译：`./gradlew build -x test --offline`，确认 `build/libs/hbmzz-3.8.0.jar` 的 `mcmod.info` 版本是 3.8.0。
-2. 检查：`python tools/checkall.py --fast`，再按改动范围补跑对应单测（视频改动的跑 videocheck）。
+1. 编译：`./gradlew build --offline`，确认 `build/libs/hbmzz-3.8.0.jar` 的 `mcmod.info` 版本是 3.8.0。
+2. 检查：`python tools/checkall.py --fast`，再按改动范围补跑对应单测
+   （视频改动跑 `tools/videocheck/run.sh`，注册表改动跑 `tools/regcheck/check.py`）。
+   Java 单测需要 `JAVA_HOME` 指向 JDK 8；`linkercheck` / `cecpcheck` 需要 `FASTUTIL` 指向
+   gradle 缓存里的 fastutil（本机缓存在 `E:\hbm\gradle-home`）。
 3. 部署：`python tools/deploy.py`，旧 jar 自动归档到 `backupsmod\hbmzz-old-jars`。
 4. 文档：在本文件「六、交付批次」追加一行，更新「一、当前交付批次」的提交与哈希，需要时补「四、已知限制」。
-5. 公告：`tools/site/content.json` 的 `timeline` 与 `docs/changelog.html` 同步新增/补充当前版本条目，然后
+5. 公告：`tools/site/content.json` 的 `timeline` 与 `docs/changelog.html` 同步当前版本条目，然后
    `python tools/site/sync_site.py` 刷新数据层。
 6. 汇报：向用户给出「模组 jar 路径 + 源码位置/提交 + 本次改了什么 + 验证结果 + 未验证项」五件事。
 7. 口吻：公告、文档、汇报一律按「刚发布」写 —— 新鲜、及时、简洁，像内容刚上线；

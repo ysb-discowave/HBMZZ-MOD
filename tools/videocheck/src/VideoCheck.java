@@ -81,6 +81,122 @@ public final class VideoCheck {
             check("不存在的名字返回 null", VideoLibrary.open("nope") == null);
             check("非法名字返回 null", VideoLibrary.open("../config") == null);
 
+            // ---- order, speed, loop -------------------------------------
+            // f2 must come before f10. Lexical sort gets this backwards, and a
+            // pack that did not zero-pad its numbering would play shuffled.
+            File nat = new File(VideoLibrary.root(), "nat");
+            check("自然排序包目录创建", nat.mkdirs());
+            writePng(new File(nat, "f1.png"), 8, 8, 0xFF0000);
+            writePng(new File(nat, "f2.png"), 8, 8, 0x00FF00);
+            writePng(new File(nat, "f10.png"), 8, 8, 0x0000FF);
+            write(new File(nat, "meta.json"), "{\"fps\":2.5}");
+            VideoClip natural = VideoLibrary.open("nat");
+            check("小数帧率被接受", natural != null && Math.abs(natural.fps() - 2.5) < 1e-9);
+            check("每帧 0.4 秒", natural != null && Math.abs(natural.frameSeconds() - 0.4) < 1e-9);
+            check("一个循环 1.2 秒", natural != null && Math.abs(natural.cycleSeconds() - 1.2) < 1e-9);
+            check("f2 排在 f10 前面", natural != null
+                    && rgbAt(natural, 0) == 0xFF0000
+                    && rgbAt(natural, 1) == 0x00FF00
+                    && rgbAt(natural, 2) == 0x0000FF);
+            check("不写 loop 时默认一直循环", natural != null && natural.repeating());
+            if (natural != null) {
+                natural.close();
+            }
+
+            File onceDir = new File(VideoLibrary.root(), "once");
+            check("单次包目录创建", onceDir.mkdirs());
+            writePng(new File(onceDir, "a.png"), 8, 8, 0x111111);
+            writePng(new File(onceDir, "b.png"), 8, 8, 0x222222);
+            write(new File(onceDir, "meta.json"), "{\"fps\":4,\"loop\":false}");
+            VideoClip once = VideoLibrary.open("once");
+            check("loop:false 是单次", once != null
+                    && once.loopMode() == VideoClip.LoopMode.ONCE && once.passes() == 1);
+            check("单次播完后播放头不再前进", once != null && once.positionAt(99.0D) == 1);
+            check("单次不算循环", once != null && !once.repeating());
+            if (once != null) {
+                once.close();
+            }
+
+            File pingDir = new File(VideoLibrary.root(), "ping");
+            check("往返包目录创建", pingDir.mkdirs());
+            writePng(new File(pingDir, "p1.png"), 8, 8, 0x010101);
+            writePng(new File(pingDir, "p2.png"), 8, 8, 0x020202);
+            writePng(new File(pingDir, "p3.png"), 8, 8, 0x030303);
+            write(new File(pingDir, "meta.json"), "{\"fps\":10,\"loop\":\"pingpong\"}");
+            VideoClip ping = VideoLibrary.open("ping");
+            check("loop:pingpong 是往返", ping != null
+                    && ping.loopMode() == VideoClip.LoopMode.PING_PONG);
+            check("往返序列 0,1,2,1,0", ping != null
+                    && ping.slotAt(0) == 0 && ping.slotAt(1) == 1 && ping.slotAt(2) == 2
+                    && ping.slotAt(3) == 1 && ping.slotAt(4) == 0);
+            check("往返时倒放段不出声", ping != null && ping.forwardAt(1) && !ping.forwardAt(3));
+            check("播放头按帧率换算", ping != null && ping.positionAt(0.25D) == 2);
+            check("播放头折回往返序列", ping != null && ping.slotAt(ping.positionAt(0.35D)) == 1);
+            check("强制单次覆盖往返", ping != null
+                    && ping.asSinglePass().loopMode() == VideoClip.LoopMode.ONCE);
+            if (ping != null) {
+                ping.close();
+            }
+
+            File threeDir = new File(VideoLibrary.root(), "three");
+            check("多遍包目录创建", threeDir.mkdirs());
+            writePng(new File(threeDir, "a.png"), 8, 8, 0x333333);
+            write(new File(threeDir, "meta.json"), "{\"fps\":10,\"loop\":3}");
+            VideoClip three = VideoLibrary.open("three");
+            check("loop:3 播三遍", three != null && three.passes() == 3
+                    && Math.abs(three.totalSeconds() - 0.3D) < 1e-9);
+            if (three != null) {
+                three.close();
+            }
+
+            // Explicit order beats the file system: an author who names the
+            // sequence means it.
+            File playlistDir = new File(VideoLibrary.root(), "playlist");
+            check("playlist 包目录创建", playlistDir.mkdirs());
+            writePng(new File(playlistDir, "a.png"), 8, 8, 0x00FF00);
+            writePng(new File(playlistDir, "b.png"), 8, 8, 0x0000FF);
+            writePng(new File(playlistDir, "c.png"), 8, 8, 0xFF0000);
+            write(new File(playlistDir, "meta.json"),
+                    "{\"fps\":10,\"order\":\"list\",\"playlist\":[\"c.png\",\"b.png\"]}");
+            VideoClip playlist = VideoLibrary.open("playlist");
+            check("playlist 只播列出的帧", playlist != null && playlist.frameCount() == 2);
+            check("playlist 的顺序被尊重", playlist != null
+                    && rgbAt(playlist, 0) == 0xFF0000 && rgbAt(playlist, 1) == 0x0000FF);
+            if (playlist != null) {
+                playlist.close();
+            }
+
+            // Boot-animation desc.txt: parts, repeat counts and pauses.
+            File bootDir = new File(VideoLibrary.root(), "boot");
+            check("开机动画包目录创建", bootDir.mkdirs() && new File(bootDir, "part0").mkdirs()
+                    && new File(bootDir, "part1").mkdirs());
+            writePng(new File(bootDir, "part0/1.png"), 8, 8, 0x101010);
+            writePng(new File(bootDir, "part0/2.png"), 8, 8, 0x202020);
+            writePng(new File(bootDir, "part1/1.png"), 8, 8, 0x303030);
+            write(new File(bootDir, "desc.txt"), "320 200 2\np 2 0 part0\np 1 0.5 part1\n");
+            VideoClip boot = VideoLibrary.open("boot");
+            check("desc.txt 的帧率生效", boot != null && Math.abs(boot.fps() - 2.0D) < 1e-9);
+            check("desc.txt 的 part 与定格算进时间线", boot != null && boot.slotCount() == 6);
+            check("desc.txt 时间线为 1,2,1,2,1,1", boot != null
+                    && boot.entryAt(0) == 0 && boot.entryAt(1) == 1 && boot.entryAt(2) == 0
+                    && boot.entryAt(3) == 1 && boot.entryAt(4) == 2 && boot.entryAt(5) == 2);
+            if (boot != null) {
+                boot.close();
+            }
+
+            File audioDir = new File(VideoLibrary.root(), "withsound");
+            check("带音轨包目录创建", audioDir.mkdirs());
+            writePng(new File(audioDir, "a.png"), 8, 8, 0x404040);
+            write(new File(audioDir, "audio.wav"), "RIFF0000WAVEfmt ");
+            write(new File(audioDir, "meta.json"), "{\"fps\":10,\"audioOffset\":1.5}");
+            VideoClip withSound = VideoLibrary.open("withsound");
+            check("audio.wav 被当成音轨", withSound != null && withSound.hasAudio());
+            check("audioOffset 被读出", withSound != null
+                    && Math.abs(withSound.audioOffset() - 1.5D) < 1e-9);
+            if (withSound != null) {
+                withSound.close();
+            }
+
             check("接受普通名字", VideoLibrary.isValidName("alarm_01"));
             check("拒绝穿越", !VideoLibrary.isValidName("../x"));
             check("拒绝路径分隔符", !VideoLibrary.isValidName("a/b"));
@@ -99,6 +215,15 @@ public final class VideoCheck {
         }
     }
 
+    private static int rgbAt(VideoClip clip, int frame) {
+        try {
+            BufferedImage image = clip.readFrame(frame);
+            return image.getRGB(0, 0) & 0xFFFFFF;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     private static boolean throwsOnBadFrame(VideoClip clip) {
         try {
             clip.readFrame(99);
@@ -108,18 +233,18 @@ public final class VideoCheck {
         }
     }
 
-    private static int defaultFps(File root) throws Exception {
+    private static double defaultFps(File root) throws Exception {
         File dir = new File(VideoLibrary.root(), "noMeta");
         if (!dir.mkdirs()) {
-            return -1;
+            return -1.0D;
         }
         writePng(new File(dir, "a.png"), 8, 8, 0x808080);
         writePng(new File(dir, "b.png"), 8, 8, 0x808080);
         VideoClip clip = VideoLibrary.open("noMeta");
         if (clip == null) {
-            return -1;
+            return -1.0D;
         }
-        int fps = clip.fps();
+        double fps = clip.fps();
         clip.close();
         return fps;
     }

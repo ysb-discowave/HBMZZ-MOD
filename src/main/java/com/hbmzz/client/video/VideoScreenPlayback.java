@@ -52,6 +52,12 @@ import java.util.WeakHashMap;
  *       position, so two screens on the same clip would double the volume; sound
  *       is what the watching window is for.</li>
  * </ul>
+ *
+ * <h3>Looping is the clip's decision</h3>
+ * <p>A screen honours what the pack declares - {@code loop}, {@code pingpong},
+ * a pass count - and holds the final frame when a one-shot clip ends. The
+ * screen never invents a loop of its own; if an operator wants an alarm that
+ * repeats, the pack says so and every client agrees.</p>
  */
 public final class VideoScreenPlayback {
 
@@ -255,12 +261,12 @@ public final class VideoScreenPlayback {
         }
 
         if (player.finished()) {
-            // A screen in the world is a loop, not a one-off: reopen straight
-            // away so the next frame is the first one again.
-            close(shared);
-            shared.retryAt = 0L;
+            // A screen that has played a one-shot clip stays on its last frame.
+            // Reopening would contradict "loop": false and, worse, would restart
+            // a clip the author meant to end - a shutdown slide, a title card.
+            player.showFrame(player.lastPosition());
             return;
         }
-        player.showFrame(player.frameIndex(player.elapsedSeconds()));
+        player.showFrame(player.positionAt(player.elapsedSeconds()));
     }
 }

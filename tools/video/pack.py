@@ -2,18 +2,21 @@
 """把一段视频打成 HBMZZ 视频广播器能播的包。
 
 用法一（有 ffmpeg）：
-    python tools/video/pack.py alarm.mp4 alarm --fps 12
+    python tools/video/pack.py alarm.mp4 alarm --fps 12 --loop pingpong
 
-用法二（已经有一堆图，比如手画的几帧）：
-    python tools/video/pack.py --frames my_frames alarm --fps 4
+用法二（已经有一堆图，比如手画的几帧 / 开机动画）：
+    python tools/video/pack.py --frames my_frames alarm --fps 24 --loop once
 
 产物是一个 <名字>.zip，扔进客户端 config/hbmzz/videos/ 就能在广播器里选到。
 包内结构（VideoClip.java 读的就是这个）：
 
-    meta.json    {"fps":12,"frames":240,"title":"alarm","audio":"audio.wav"}
+    meta.json    {"fps":12,"frames":240,"title":"alarm","audio":"audio.wav","loop":"pingpong"}
     f000001.jpg
     f000002.jpg
     audio.wav    可选
+
+三件事由这里的参数写进 meta.json：播放顺序（文件名自然排序，f2 在 f10 前）、
+帧率（0.5~60，可以是小数）、循环方式（loop / once / pingpong / --passes N）。
 
 为什么是图片序列而不是 mp4：1.12.2 的客户端只有一个 JRE，没有 H.264 解码器；
 塞原生解码库意味着每个平台各带一份二进制。图片序列 + ImageIO 什么平台都能解。
@@ -66,7 +69,7 @@ def default_out() -> str:
     return os.path.join("config", "hbmzz", "videos")
 
 
-def extract(video: str, fps: int, width: int, workdir: str) -> tuple[int, bool]:
+def extract(video: str, fps: float, width: int, workdir: str) -> tuple[int, bool]:
     ffmpeg = find_ffmpeg()
     if not ffmpeg:
         die("找不到 ffmpeg。请先安装（winget install Gyan.FFmpeg 或 scoop install ffmpeg），"
@@ -99,20 +102,32 @@ def extract(video: str, fps: int, width: int, workdir: str) -> tuple[int, bool]:
     return count, has_audio
 
 
+def natural_key(text: str):
+    """f2 排在 f10 前面。字符串排序会把 f10 排到 f2 前，动画就乱了。"""
+    return [(0, int(part)) if part.isdigit() else (1, part.lower())
+            for part in re.split(r"(\d+)", text)]
+
+
 def collect_frames(source: str) -> list[str]:
-    files = sorted(
-        os.path.join(source, n) for n in os.listdir(source) if n.lower().endswith(IMAGE_EXT)
+    names = sorted(
+        (n for n in os.listdir(source) if n.lower().endswith(IMAGE_EXT)),
+        key=natural_key,
     )
+    files = [os.path.join(source, n) for n in names]
     if not files:
         die(f"{source} 里没有 png/jpg。")
     return files
 
 
-def build(name: str, out_dir: str, fps: int, title: str, frames: list[str],
-          audio: str | None) -> str:
+def build(name: str, out_dir: str, fps: float, title: str, frames: list[str],
+          audio: str | None, loop: str, passes: int | None, audio_offset: float) -> str:
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, name + ".zip")
-    meta = {"fps": fps, "frames": len(frames), "title": title}
+    meta = {"fps": fps, "frames": len(frames), "title": title, "loop": loop}
+    if passes:
+        meta["loop"] = passes
+    if audio_offset:
+        meta["audioOffset"] = audio_offset
     if audio:
         meta["audio"] = "audio.wav"
     # ZIP_STORED：jpeg 已经压过了，deflate 只会白花时间。
@@ -129,35 +144,48 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="打包 HBMZZ 视频广播器用的视频包")
     parser.add_argument("source", help="输入视频文件，或 --frames 时的图片目录")
     parser.add_argument("name", help="包名（字母数字和下划线/点/短横），游戏里选的就是它")
-    parser.add_argument("--fps", type=int, default=12, help="帧率，默认 12")
+    parser.add_argument("--fps", type=float, default=12.0, help="帧率 0.5~60，可以是小数，默认 12")
     parser.add_argument("--width", type=int, default=854, help="缩放宽度，默认 854（高按比例）")
     parser.add_argument("--title", default=None, help="播放时左下角显示的名字，默认同包名")
     parser.add_argument("--frames", action="store_true", help="source 是图片目录而不是视频")
+    parser.add_argument("--audio", default=None, help="--frames 时外挂的音轨（WAV）")
+    parser.add_argument("--loop", default="loop", choices=("loop", "once", "pingpong"),
+                        help="循环方式：loop 一直循环（默认）、once 只播一遍、pingpong 来回")
+    parser.add_argument("--passes", type=int, default=None,
+                        help="播几遍后停下（覆盖 --loop 的次数，和 --loop loop 配合）")
+    parser.add_argument("--audio-offset", type=float, default=0.0,
+                        help="音轨从第几秒开始对齐动画第一帧，默认 0")
     parser.add_argument("--out", default=None, help="输出目录，默认 run/config/hbmzz/videos")
     args = parser.parse_args()
 
     if not NAME_RE.match(args.name):
         die("包名只能以字母数字开头，只含字母数字和 _ . -")
-    if not 1 <= args.fps <= 60:
-        die("fps 要在 1..60 之间")
+    if not 0.5 <= args.fps <= 60:
+        die("fps 要在 0.5..60 之间")
     if not os.path.exists(args.source):
         die(f"找不到 {args.source}")
+    if args.audio and not os.path.isfile(args.audio):
+        die(f"找不到音轨 {args.audio}")
 
     out_dir = args.out or default_out()
     title = args.title or args.name
+    loop = "loop" if args.passes else args.loop
 
     if args.frames:
         frames = collect_frames(args.source)
-        target = build(args.name, out_dir, args.fps, title, frames, None)
+        target = build(args.name, out_dir, args.fps, title, frames, args.audio,
+                       loop, args.passes, args.audio_offset)
     else:
         workdir = tempfile.mkdtemp(prefix="hbmzz-video-")
         try:
             count, has_audio = extract(args.source, args.fps, args.width, workdir)
             frames_dir = os.path.join(workdir, "frames")
-            frames = [os.path.join(frames_dir, n) for n in sorted(os.listdir(frames_dir))
-                      if n.lower().endswith(IMAGE_EXT)]
+            names = sorted((n for n in os.listdir(frames_dir) if n.lower().endswith(IMAGE_EXT)),
+                           key=natural_key)
+            frames = [os.path.join(frames_dir, n) for n in names]
             audio = os.path.join(workdir, "audio.wav") if has_audio else None
-            target = build(args.name, out_dir, args.fps, title, frames, audio)
+            target = build(args.name, out_dir, args.fps, title, frames, audio,
+                           loop, args.passes, args.audio_offset)
             print(f"共 {count} 帧，{count / args.fps:.1f} 秒")
         finally:
             shutil.rmtree(workdir, ignore_errors=True)

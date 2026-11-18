@@ -80,6 +80,7 @@ public class GuiVideoScreen extends GuiScreen {
     private String error;
     private boolean closing;
     private boolean fullscreen;
+    private boolean ended;
     private long openedAt;
     private int hintTicks;
 
@@ -129,7 +130,7 @@ public class GuiVideoScreen extends GuiScreen {
                 this.error = "视频名不合法：" + this.videoName;
                 return;
             }
-            this.player = VideoPlayer.open(this.videoName);
+            this.player = VideoPlayer.open(this.videoName, !this.viewer);
             if (this.player == null) {
                 this.error = "找不到视频文件：" + this.videoName + "\n" + VideoLibrary.describe(this.videoName)
                         + "\n请把视频放到客户端 config/hbmzz/videos/ 目录。";
@@ -161,20 +162,18 @@ public class GuiVideoScreen extends GuiScreen {
         }
         if (this.player.finished()) {
             if (this.viewer) {
-                // A screen loops, and the window should behave like the screen:
-                // reopen rather than dumping the player back into the world.
-                this.player.close();
-                this.player = VideoPlayer.open(this.videoName);
-                if (this.player != null) {
-                    this.openedAt = System.nanoTime();
-                    this.player.start();
-                }
+                // The clip has played out. A viewer holds the last frame
+                // instead of snapping shut: walking away from a screen that
+                // went black is more confusing than a still picture with a
+                // "finished" label under it.
+                this.ended = true;
+                this.player.showFrame(this.player.lastPosition());
             } else {
                 close();
             }
             return;
         }
-        this.player.showFrame(this.player.frameIndex(this.player.elapsedSeconds()));
+        this.player.showFrame(this.player.positionAt(this.player.elapsedSeconds()));
     }
 
     private void fail(String message) {
@@ -284,7 +283,14 @@ public class GuiVideoScreen extends GuiScreen {
             drawBar(py + ph - 12, pw, px);
         }
 
-        String hint = hasPicture() ? "F 全屏 · ESC 关闭" : "ESC 关闭";
+        String hint;
+        if (this.ended) {
+            hint = "播放结束 · ESC 关闭";
+        } else if (hasPicture()) {
+            hint = "F 全屏 · ESC 关闭 · " + loopLabel();
+        } else {
+            hint = "ESC 关闭";
+        }
         this.fontRenderer.drawStringWithShadow(hint, px + 1, py + ph + 6, DIM);
     }
 
@@ -318,10 +324,26 @@ public class GuiVideoScreen extends GuiScreen {
         drawRect(left, barTop, left + barWidth, barTop + 12, 0x99000000);
         drawRect(left, barTop, left + (int) (barWidth * this.player.percent()), barTop + 12, AMBER);
 
-        this.fontRenderer.drawStringWithShadow(fit(this.player.title(), barWidth - 70),
+        String label = this.player.title() + " · " + loopLabel();
+        this.fontRenderer.drawStringWithShadow(fit(label, barWidth - 70),
                 left + 5, barTop + 2, 0xFFFFFFFF);
         this.fontRenderer.drawStringWithShadow(time,
                 left + barWidth - 5 - this.fontRenderer.getStringWidth(time), barTop + 2, DIM);
+    }
+
+    /** How this clip repeats, in one word, for the progress bar and the hint. */
+    private String loopLabel() {
+        if (this.player == null) {
+            return "";
+        }
+        switch (this.player.loopMode()) {
+            case PING_PONG:
+                return "往返";
+            case ONCE:
+                return "单次";
+            default:
+                return "循环";
+        }
     }
 
     /** Centred error block; the anchor is the middle of whatever it sits in. */

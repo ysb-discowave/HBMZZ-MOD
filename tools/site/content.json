@@ -256,28 +256,57 @@
   ],
   "timeline": [
     {
-      "version": "3.6.1",
-      "title": "渲染换成本项目自己的实现，外观一处未改",
+      "version": "3.8.0",
+      "title": "视频上墙：一面 32×32 的大屏，和屏正中的一台电视",
       "items": [
-        "ConsoleModel 重写：部件表 + 一次性变换 + 角点索引表发射六面，替换原先逐盒带 lambda 的写法。0.075 半厚 / 0.10 边框 / 0.012 缝等尺寸是设计事实，沿用不动。",
-        "TerminalCanvas 的画布上传管线重写：ARGB 整型按 GL_BGRA 直传（不再逐像素写四个字节）、尺寸不变走 glTexSubImage2D、边缘改 CLAMP；每帧少约 140 万次字节写入。",
-        "新增 PanelPainter，两个渲染器共用的绘制状态机（消隐、混合、纹理单元复位、图集归还），替掉原先各写一份的渲染段。",
-        "为什么敢改渲染：本机没有 Minecraft，所以新增 tools/rigcheck —— 6 种面板尺寸 × 5 个倾角 × 通电/吊装共 121 组参数的全部顶点导出比对，新旧逐位一致；指纹入库，谁改了几何会当场红。",
-        "授权链：节枝的那份书面授权继续保留，但覆盖范围缩小到方块/方块实体的格子结构与倾角锚点数学；逐文件状态见 NOTICE 的「重写记录」。",
-        "未验证：只有编译、几何指纹与离线检查；TESR 的绘制顺序、坠落动画、画布上传都没进游戏看过。"
+        "<strong>视频第一次能挂到墙上：</strong>一块屏就是一面墙，不是单单一个方块——控制器那格带方块实体，其余是同方块的填充格，画面只可能被画一次。四个朝向的方向、镜像、UV 一次算清，不会出现「北面正常、东西镜像、上下颠倒」。尺寸 <b>1~32 格</b>，从配置窗口调（蹲下右键控制器 / Shift + 右键大屏），变大补格、变小只收这面墙自己的格；拆一格整面消失、只掉一件，掉在被拆的那一格。",
+        "<strong>屏正中一台电视：</strong>对着大屏按右键，屏幕正中开一台电视——外壳、边框、屏幕内圈、底座、电源灯都在，世界压暗但不盖掉。屏幕比例跟着片子走：4:3 的片就是 4:3 的屏。按 <b>F</b> 收掉外壳铺满、再按一次回到这台电视（窗内右键同效）；全屏与否由这台电视自己记账，本来全屏玩游戏时按 F 只是收外壳，不会把游戏踢成 854×480。ESC 原样退出，回到看片前的桌面状态。",
+        "<strong>遥控器两步接上：</strong><code>hbmzz:video_remote</code>，16×16 手持机贴图，普通物品、不能放置。右键播放器对准 → 右键大屏（点任一格）就接上了，两者相距上限 64 格、人要够得着大屏。绑定落在服务端：大屏记住播放器、片名、音量，拆大屏自动解绑，不留指空的连接。接大屏只靠这一支遥控器，不用在墙上拉线。",
+        "<strong>mp4 丢进文件夹就能播：</strong>蹲下右键播放器 →「导入视频…」→ 选文件，后台拆帧 + 音轨 + 打包，带进度、可取消，转完直接进列表。容器白名单 <code>mp4 / mkv / mov / avi / webm / flv / wmv / ts / m4v / mpg / mpeg / 3gp</code>；帧率档位 6 / 8 / 10 / 12 / 15 / 24 / 30 / 48 / 60 / 90 / 120，导入与读取两端都以 120 为上限（帧数 = 时长 × 帧率，默认仍是 12fps）。包名支持中文，分隔符、空格、控制字符、结尾点号一律拒绝。",
+        "<strong>播放与拉杆：</strong>站立右键（接了屏且屏在本机已加载区）= 大屏展示，画面是屏自己的解码器给的，窗口里没有第二份播放实例；蹲下右键 = 菜单（片源、导入、打开文件夹、刷新列表、播放器设置）。红石只做开停：上升沿播、下降沿停，误触拉杆不会把谁切进全屏。接屏后播放器的普通右键什么都不开；没接屏时才是本机播放。片尾停在最后一帧，不自动循环。",
+        "<strong>顺手修掉的几处老毛病：</strong>4 分钟的片子转出来只剩 2:46——播放端帧数上限写死 20000，提到 <b>500000</b> 后旧包不用重转；音轨按 <code>frames / fps</code> 用 <code>-t</code> 截断、超时随时长放大，不再比画面长或干脆没有；画面跟不上时解码线程按播放头丢帧追上，只清过期帧；目录里的 mp4 不再被当坏文件静默忽略，刷新会点名「待导入 N 个」；长片转换不再卡半路（ffmpeg 输出由守护线程一路读走，失败提示带上它自己的最后一句话）。",
+        "<strong>墙上的画面不再发灰：</strong>同一部片在播放器窗口里正常、贴到大屏就发暗——原因是画面画在<b>世界渲染阶段</b>，那时光照贴图还挂在纹理单元上，而这块四边形没有自己的光照坐标，于是乘上了「上一个画过的东西的亮度」。现在绘制前后把光照钉在满亮 <b>240</b> 再还原。转码没有丢亮度：包内第 7201 帧与源 MP4 同时间参考帧逐像素比，平均亮度 30.96 对 30.87，meanRGB 差 &lt; 1。",
+        "<strong>验证：</strong>这一版在真实客户端逐项实测过——大屏四个朝向、32×32 铺格、电视窗观感与 F 的手感、遥控器两步连接、导入视频、进度条拖动、音量与音源仲裁，全部走通；离线 <code>gradlew build --offline</code> 出包，regcheck <b>150/150</b>、videocheck 30/30、rbmkcheck 50/50、termcheck 67/67、cecpcheck 8/8、linkercheck 21（1 跳过），<code>checkall --fast</code> 7/7。"
+      ]
+    },
+    {
+      "version": "3.7.1",
+      "title": "视频包终于能被找到了，片头片尾两条动画也配齐",
+      "items": [
+        "<strong>视频包终于能被找到了：</strong><code>VideoLibrary.init()</code> 之前根本没被主模组调用，<code>&lt;config&gt;/hbmzz/videos/</code> 不会创建、广播器清单也永远为空。现在 <code>preInit</code> 会自动建该目录并写出 <code>README.txt</code>，服务端与客户端都生效。",
+        "<strong>视频包怎么放：</strong>放到<b>每一台需要观看的客户端</b>的 <code>config/hbmzz/videos/</code>；服务端不需要放视频文件，但也要装同一个 jar，因为视频名白名单校验两端都会走。",
+        "<strong>片头动画工具：</strong>新增片头动画生成工具与分镜 / 验收文档，产出 <code>hbmzz-intro.zip</code>：24fps / 192 帧 / 8 秒 / 静音。",
+        "<strong>片尾致谢工具：</strong>新增片尾致谢动画生成工具与名单配置，产出 <code>hbmzz-credits.zip</code>：12fps / 2326 帧，BGM《The ending of melting》。",
+        "<strong>版本号统一：</strong><code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 全部统一到 3.7.1。",
+        "<strong>验证：</strong>regcheck <b>63/63</b>、videocheck <b>26/26</b>、片头播放器包 <code>VideoLibrary</code> 读取校验 9/9（192 帧 / 24fps / 静音 / 首末帧可解码）全过；静态检查与离线播放器读取验证已完成。",
+        "<strong>许可：</strong>本体 GPL-3.0-only；附属包另见 <code>HBMZZ-MOD-addon</code> 仓库的 PolyForm Shield 声明，两者分开声明。"
+      ]
+    },
+    {
+      "version": "3.7.0",
+      "title": "防爆窗帘、纪念挂画，FFmpeg 改成在线下载",
+      "items": [
+        "<strong>一面能拉的防爆窗帘：</strong>布是布、不是门。顶部一根罗马杆、两端葫芦状柱头、一串挂环，杆固定不动、布收拢时挂环挤到两端；每 0.22 格一道手风琴竖向褶皱、前后起伏 0.032 格，下摆离地 0.05 格、两片对搭有前后层次、两端封边。开合方向在设置里循环切：上下 / 左右对开（默认）/ 向左收 / 向右收。放下那一刻检查周围 3×3×3，没有玻璃就撤掉方块、物品退回背包——原版玻璃、玻璃板、染色玻璃，别的模组的玻璃材质都认。",
+        "<strong>贴得合、不漏光：</strong>窗帘这一格按透明薄片参与渲染与光照，不会把邻格玻璃的面剔掉，也不会在布四周压出一圈 AO 黑边；碰撞盒压到布所在的那个门面（厚 0.12 格），正面背面都不留缝。宽高都能调到 <b>1 ~ 32 格</b>，开合那一瞬间逐格扫布面位置，持续开销和 3×3 一样；爆炸抗性 1000（防核门本体无限）。",
+        "<strong>给布换自己的图：</strong>设置里点「贴图…」打开的是<b>游戏内</b>选择器，不弹系统对话框（系统文件框的 owner 传空时会被游戏窗口盖住，玩家看到的是「点了没反应」）。把 PNG / JPG / BMP 放进 <code>config/rsaudio/curtain/</code>，点文件名即可，图自动裁成正方形、缩到 128×128。图存在服务端、所有玩家看到同一张，跟着存档走；单张上限 200 KB（Base64 后），点「恢复默认」回到自带的黑布。",
+        "<strong>纪念挂画：</strong>贴墙装饰，内置多张画面可翻页，多块相邻自动拼成一整幅。",
+        "<strong>内置 OST：</strong>首次启动把 jar 自带的曲目铺进 <code>config/rsaudio/audio/</code>，装完即可在播放器里选、播放，行为与玩家自己放进去的音轨完全一样，之后换、删、加曲目都不会被覆盖。随包三首：<code>HBMZZ OST 01 How to survive</code>、<code>02 When will it end</code>、<code>03 The ending of melting</code>。",
+        "<strong>FFmpeg 改成在线下载：</strong>jar 里不再内置 <code>ffmpeg.exe</code>，首次进游戏自动准备——弹一个下载进度页，显示阶段、分段数和百分比，后台下载、画面不卡。走代理取 BtbN 的 GitHub release 构建，<b>64 段并行 + 断点续传</b>，源包约 190 MB，断线不重头下；解压后缓存在 <code>config/rsaudiofm/bin/</code>，下次直接复用。代理与源地址可用 <code>-Drsaudiofm.ffmpeg.proxy=...</code> / <code>-Drsaudiofm.ffmpeg.source=...</code> 覆盖；失败自动跳过、回退到系统 PATH 或配置里的外置 ffmpeg，不卡启动。<code>mp3 / ogg / flac / wav / aiff</code> 始终直放，<code>aac / m4a / opus / wma / ape / wv</code> 走转码。",
+        "<strong>从上游 3.5.2 收进来的启动修复：</strong>三处启动 / 方块状态调整一并带上——<code>DfcBlastWatch.onServerStopped</code> 原本误挂 <code>@SubscribeEvent</code>，参数是 <code>FMLServerStoppedEvent</code>、不是 Forge <code>Event</code> 子类，会在 preInit 抛 <code>IllegalArgumentException</code> 让模组起不来，改为无参普通方法由 <code>HBMZZ.serverStopping</code> 显式调用；<code>rsaudio:giant_pipe</code> 六个布尔属性 = 64 态、超出 1.12.2 每方块 16 状态硬上限，压到水平四向 16 态；<code>hbmzz:ctrl_console</code> 与 <code>hbmzz:dfc_blast_sensor</code> 的变体键序改成属性名字母序，否则 16 条变体一条都不命中、显示紫黑缺失模型。判据不是「状态数 ≤ 16」，而是进 meta 的部分 ≤ 4 位。",
+        "<strong>验证与已知问题：</strong>到主菜单 13.9 s、<code>fatal=0</code>，43 个方块实例全部在册，<code>rsaudio</code> ERROR / Exception 与贴图加载失败都是 0；模型解析除上游 <code>tartarus_gate</code> 的既有报错外无新增。已知：竖直 T 形管道画不出来（16 态方案的固有代价，四向、碰撞盒、掉落、音效不受影响）；<code>tartarus_gate</code> 模型报错 12 条是上游自身缺陷；无网络且无外置 ffmpeg 时需要转码的格式不可播，<code>mp3 / flac / wav / aiff / au</code> 仍可。"
       ]
     },
     {
       "version": "3.6.0",
-      "title": "mp3 直接放，外加一处「点面板边缘会崩」的修复",
+      "title": "mp3 直接放，并掉一处点面板就崩的老 bug",
       "items": [
-        "并入 wzh3203 的 rsaudiofm（25 个文件、6,000 余行，com.rsaudio.formats）：config/rsaudio/audio 不再只认 .ogg，mp3 与 flac 放进去就能在播放器里选到、放出来。",
-        "MixinBooter 那一层拿掉了：原插件改不了宿主，只能靠 Mixin 注入 ClientSoundPlayer；合并后宿主同 jar，钩子直接写进 play/stop/stopAll/preview/stopPreview 五个方法，玩家不必再装 2.4 MB 的 coremod。",
-        "ffmpeg.exe 没有随包：他的 jar 41.6 MB 里约 35 MB 是这份二进制，而它只服务转码一条路。FfmpegFinder 仍按 config/rsaudiofm/bin → 游戏目录 → mods → PATH 探测，找不到就只关掉转码，直出照常。",
-        "四个解码库（JLayer / mp3spi / tritonus-share / jflac，约 0.48 MB）随仓库走并嵌进 jar；SPI 描述符必须合并，否则 mp3spi 与 jflac 的 AudioFileReader 互相覆盖，只有一种格式能被认出来且不报错。",
-        "修掉运行期 AbstractMethodError：填充板转发右键时走 IPanelOrigin.onBlockActivated，而 reobf 只把实现类改名成 func_180639_a，接口声明保持原名 → invokeinterface 找不到实现。现在按 Block 类型调用，接口里也不再声明它。3.1.0 起就在，只有真去点面板边缘才会撞上。",
-        "OST 三首烧了封面（mp3 走 ID3 APIC，ogg 走 METADATA_BLOCK_PICTURE），并统一了 artist / album / track：之前 ogg 的 artist 是 Yang Sibo、站点 mp3 是 HBMZZ。",
-        "主 jar 16,155,037 B → 17,054,958 B。编译一次过、离线检查全绿；本机仍无 Minecraft 实例，未做真机验证。"
+        "<strong>mp3 与 flac 放进去就能播：</strong>并入 wzh3203 的 <code>rsaudiofm</code>（25 个文件、6,000 余行，<code>com.rsaudio.formats</code>）。以前 <code>config/rsaudio/audio</code> 只认 <code>.ogg</code>，别的格式会被算成「放不了的文件」；现在 mp3、flac 放进去就能在播放器列表里选到、放出来，其余格式靠 ffmpeg 转码。<code>LibraryInjector</code> 把非 ogg 注入曲库，<code>PlaybackManager</code> 把解码后的 PCM 直接推给声卡。",
+        "<strong>MixinBooter 那一层拿掉了：</strong>原插件改不了宿主，只能靠 Mixin 注入 <code>ClientSoundPlayer</code>，玩家得额外装一个 2.4 MB 的 coremod。合并之后宿主代码就在同一枚 jar 里，钩子直接写进播放器的五个方法（<code>play</code> / <code>stop</code> / <code>stopAll</code> / <code>preview</code> / <code>stopPreview</code>）：直出接管时提前返回，返回 <code>false</code> 就照原样走原版引擎。两个 mixin 配置、加载器和第三方依赖一并消失。",
+        "<strong>ffmpeg.exe 没有随包：</strong>上游那版 41.6 MB 里约 35 MB 就是这份二进制，而它只服务「转码」一条路。<code>FfmpegFinder</code> 仍按 <code>config/rsaudiofm/bin</code> → 游戏目录 → <code>mods/</code> → <code>PATH</code> 找，找不到只关掉转码、直出照常。要用转码就把自己那份丢进 <code>config/rsaudiofm/bin/</code>。",
+        "<strong>SPI 描述符合并：</strong>四个解码库（JLayer / mp3spi / tritonus-share / jflac，约 0.48 MB）随仓库走并嵌进 jar。mp3spi 与 jflac 各带一个 <code>META-INF/services/javax.sound.sampled.spi.AudioFileReader</code>，直接叠在一起会互相覆盖——只有一种格式能被认出来，而且不报错。构建里的 <code>formatsServices</code> 任务把描述符并成一份。",
+        "<strong>修掉一处从 3.1.0 起就在的崩溃：</strong>点 2×2 吊装面板的三个填充格会抛 <code>AbstractMethodError</code>（点中间那格正常）。填充板转发右键原来走 <code>IPanelOrigin.onBlockActivated</code>，接口里这个方法叫这个名字，实现类的重写却被 reobf 改名成 <code>func_180639_a</code>，而接口不是 <code>Block</code> 的子类、映射表里没有它——<code>invokeinterface</code> 找到的是没人实现的方法。现在转发点直接按 <code>Block</code> 类型调用（塔塔鲁斯的 <code>BlockGatePart</code> 从第一天起就这么写），接口里也不再声明它。静态检查与编译都看不见，只有真去点面板边缘才撞上。",
+        "<strong>三首内置 OST 烧了封面：</strong>mp3 走 ID3v2.3 的 <code>APIC</code>、ogg 走 Vorbis comment 的 <code>METADATA_BLOCK_PICTURE</code>，同一张 512² 的 OST 标；标签也统一了——之前 ogg 的 artist 是 <code>Yang Sibo</code>、站点 mp3 是 <code>HBMZZ</code>，同一首歌显示两个作者名。<code>tools/audio/burn_cover.py</code> 现在是标签的唯一来源。",
+        "<strong>体积与验证：</strong>主 jar 从 <b>16,155,037 B</b> 增到 <b>17,054,958 B</b>（解码库 0.48 MB + 三首封面各约 0.13 MB）。编译器一次过，<code>checkall</code> 15 项全过（含 regcheck 63 条、statecheck、事件注解、内置 OST 资源、站点审计，以及 rbmk / cecp / term / video / linker / reasim / gate / dfc 八项构建档检查）。<b>已进游戏实测</b>：mp3 真的能响、点面板边缘不再崩，都在客户端确认过。"
       ]
     },
     {

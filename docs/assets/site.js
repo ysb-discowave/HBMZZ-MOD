@@ -129,7 +129,9 @@
     { id: "when-will-it-end", title: "When will it end?", secs: 317.9,
       src: "assets/audio/when-will-it-end.mp3" },
     { id: "the-ending-of-melting", title: "The ending of melting", secs: 193.8,
-      src: "assets/audio/the-ending-of-melting.mp3" }
+      src: "assets/audio/the-ending-of-melting.mp3" },
+    { id: "clsys", title: "clsys", secs: 245.8,
+      src: "assets/audio/clsys.mp3" }
   ];
 
   var OST = {
@@ -327,7 +329,7 @@
           artist: OST.artist,
           album: OST.album,
           /* 锁屏上那张图是站点自己的品牌封面，不是曲子自带的美术——
-             三首旧曲的源文件是黑屏导出，主题曲来自竖屏 mp4，都没有封面。 */
+             三首的源文件都是黑屏导出，本来就没有封面。 */
           artwork: [
             { src: "assets/brand/ost-cover-1024.png", sizes: "1024x1024", type: "image/png" },
             { src: "assets/brand/icon-512.png", sizes: "512x512", type: "image/png" }

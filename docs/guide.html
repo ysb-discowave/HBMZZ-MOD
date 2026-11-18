@@ -691,8 +691,17 @@
   f000001.jpg          f000001.jpg
   f000002.jpg          f000002.jpg
   audio.wav            audio.wav</pre>
-        <p style="color:var(--text-dim);margin:12px 0 0">meta.json 可以整个省掉：缺省 12 fps，帧数按目录里实际有几张图算。用一条命令把 mp4 打成包：</p>
-        <pre>python tools/video/pack.py alarm.mp4 alarm --fps 12</pre>
+        <p style="color:var(--text-dim);margin:12px 0 12px">一包就是一段序列帧加一条可选音轨，播起来和开机动画一样。三件事写在 <code>meta.json</code> 里：</p>
+        <pre>{
+  "fps": 24,                 // 帧率 0.5~60，可以是小数；1/fps 是每张图停留的时间
+  "order": "list",           // 可选：不写就按文件名自然排序（f2 在 f10 前）
+  "playlist": ["b.png", "a.png"],
+  "loop": "pingpong",        // true 循环 / false 单次 / "pingpong" 来回 / 3 播三遍
+  "audio": "audio.wav",      // 可选音轨，和第一帧同起点，每次循环重新对齐
+  "audioOffset": 1.2         // 可选：音轨从第几秒开始对齐动画
+}</pre>
+        <p style="color:var(--text-dim);margin:12px 0 0">meta.json 可以整个省掉：缺省 12 fps、一直循环，帧数按目录里实际有几张图算。想做安卓开机动画那种分段播放，放一个 <code>desc.txt</code> 即可（<code>p 2 0 part0</code> 表示 part0/ 播两遍、不暂停）。用一条命令把 mp4 打成包：</p>
+        <pre>python tools/video/pack.py alarm.mp4 alarm --fps 12 --loop pingpong</pre>
       </div>
 
       <div class="note note--red" style="margin-top:18px">
@@ -1122,8 +1131,8 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=f82037184b"></script>
-<script src="assets/site.js?v=123a8732ca"></script>
+<script src="assets/data.js?v=d11abdaf42"></script>
+<script src="assets/site.js?v=3a90f5f5a2"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>
 </html>

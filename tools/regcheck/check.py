@@ -1008,6 +1008,33 @@ def main():
     check(not uncovered, "every registered item has an explicit model location",
           "icon depends on a filename coincidence: " + ", ".join(uncovered))
 
+    # 65. setRegistryName() writes the field once and throws the second time
+    # ("Attempted to set registry name with existing registry name!"), and it
+    # throws from a static field initializer - so the client dies during
+    # "Initializing game" with a stacktrace that names the constructor, not the
+    # block that caused it. The 3.8.0 build shipped exactly that: a literal
+    # setRegistryName() added to BlockBlastDoor's no-arg constructor on top of
+    # the delegated one that already set the same name, and blast_door took the
+    # whole game down before the main menu. The rule that keeps it from coming
+    # back: one call per file. A concrete class sets its literal once (this
+    # script reads that line), and a shared parent sets none - if the parent
+    # sets it from a parameter, every subclass that adds its own literal is
+    # double-setting too, which is why the check counts per file and not per
+    # inheritance chain.
+    doubled = []
+    for base, _, files in os.walk(SRC):
+        for name in files:
+            if not name.endswith(".java"):
+                continue
+            path = os.path.join(base, name)
+            calls = [line for line in read(path).splitlines()
+                     if re.match(r"\s*setRegistryName\s*\(", line)]
+            if len(calls) > 1:
+                doubled.append(os.path.relpath(path, ROOT).replace(os.sep, "/"))
+    check(not doubled, "no class sets its registry name twice (crashes at startup)",
+          "second call throws in a static initializer, game dies at 'Initializing game': "
+          + ", ".join(sorted(doubled)))
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

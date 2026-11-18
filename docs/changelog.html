@@ -98,6 +98,15 @@
           </div>
           <h3>视频大屏直接在世界里放，DFC 监控屏不再越放越卡</h3>
           <ul>
+            <li><strong>修复：启动即崩（<code>rsaudio:blast_door</code> 注册名被设了两次）。</strong>
+              为了离线检查能静态读到注册名，门和门板的构造函数里补写了一行字面量
+              <code>setRegistryName</code>，而父类构造函数已经用同样的名字设过一次 ——
+              <code>IForgeRegistryEntry</code> 第二次设会抛
+              <code>Attempted to set registry name with existing registry name!</code>，
+              而它抛在静态字段初始化里，表现就是游戏在「Initializing game」阶段直接退出，
+              堆栈只指到构造器、看不出是哪个方块。现在注册名只在具体类里设一次，
+              父类构造函数只设显示名；同时给 regcheck 加了第 64 条守卫「同一个类不许设两次注册名」，
+              反向验证过（把那一行塞回去，检查当场 FAIL）。</li>
             <li><strong>基线先说清：</strong>本版是在 3.7.1（upstream master 快照，提交 <code>26195b1</code>）之上增量做的，
               3.7.1 已有的修复一条没回退。3.7.0 是另一条分支，这次只挑了两件东西移植，没有整体覆盖——那一支的四向开合门、
               自定义贴图系统和旧 mixin 都没进来。</li>
@@ -120,7 +129,7 @@
             <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
               <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
               <a href="delivery-3.8.0.md">交付文档</a>。</li>
-            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 63、videocheck 55、linkercheck 21（1 跳过）、
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 64、videocheck 55、linkercheck 21（1 跳过）、
               rbmkcheck 50、termcheck 67、cecpcheck 8、快速检查 7/7 全绿。但渲染观感、多屏同放的显存占用、
               窗帘开合的手感都<b>没进游戏看过</b>。</li>
           </ul>
@@ -725,7 +734,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=cf719c1ee3"></script>
+<script src="assets/data.js?v=e3fb88cc99"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

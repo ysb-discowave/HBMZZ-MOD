@@ -45,6 +45,11 @@ BUILD_LIBS = os.path.join(ROOT, "build", "libs")
 LOCAL_CONFIG = os.path.join(ROOT, "deploy.local.json")
 HOME = os.path.expanduser("~")
 
+# 我们的文件长什么样：hbmzz-<数字版本>.jar / hbmzz-<数字版本>.jar.bak* / rsaudio-*。
+# 刻意要求版本段以数字开头 —— hbmzz-addon-0.1.0.jar 是同前缀的第三方附加包。
+OWN_JAR = re.compile(r"^hbmzz-\d[\w.\-]*\.jar$", re.IGNORECASE)
+OWN_BACKUP = re.compile(r"^(?:hbmzz-\d|rsaudio-)[\w.\-]*\.bak.*$", re.IGNORECASE)
+
 
 def die(message):
     print("错误：" + message)
@@ -131,10 +136,17 @@ def resolve_mods(explicit):
 
 
 def installed_jars(mods):
+    """我们自己的产物。
+
+    ★★★ 不能只判 ``startswith("hbmzz-")``：``hbmzz-addon-0.1.0.jar`` 是别人做的
+    附加包，前缀撞上了，但它是<b>另一个模组</b>。2026-11-18 现场就是这么把它当旧版
+    归档走的，整合包里凭空少一个模组。判据必须是「hbmzz- + 数字版本」：
+    我们的产物一律叫 ``hbmzz-3.8.0.jar``，附加包是 ``hbmzz-addon-...``。
+    """
     return sorted(
         os.path.join(mods, name)
         for name in os.listdir(mods)
-        if name.lower().startswith("hbmzz-") and name.lower().endswith(".jar")
+        if OWN_JAR.match(name)
     )
 
 
@@ -180,12 +192,17 @@ def archive(mods, path):
 
 
 def sweep_old_backups(mods):
-    """把 mods 里我们自己的 .bak 历史文件收进归档目录，返回搬走的数量。"""
+    """把 mods 里我们自己的 .bak 历史文件收进归档目录，返回搬走的数量。
+
+    ★ 同样按 ``OWN_BACKUP`` 判，不用 ``hbmzz-*.bak*`` 通配：附加包被误改名成
+    ``hbmzz-addon-0.1.0.jar.bak`` 时，通配会把它再搬一次，而它的真身本就该留在 mods。
+    """
     moved = 0
-    for pattern in ("hbmzz-*.bak*", "rsaudio-*.bak*"):
-        for path in glob.glob(os.path.join(mods, pattern)):
-            if archive(mods, path):
-                moved += 1
+    for name in sorted(os.listdir(mods)):
+        if not OWN_BACKUP.match(name):
+            continue
+        if archive(mods, os.path.join(mods, name)):
+            moved += 1
     return moved
 
 

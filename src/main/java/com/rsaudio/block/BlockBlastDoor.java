@@ -87,9 +87,14 @@ public class BlockBlastDoor extends Block implements ITileEntityProvider {
 
     public BlockBlastDoor() {
         this("blast_door", false);
-        // ★ 再写一遍字面量：`tools/regcheck` 的注册名/方块状态比对读的就是
-        //   `setRegistryName(RsAudio.MODID, "字面量")` 这一行（它不跑 JVM、不解析变量）。
-        //   删掉它不会影响游戏，只会让"每个方块都有 blockstate / 没有孤儿 blockstate"两条守卫失明。
+        // ★ 注册名在这里<b>只设一次</b>，且必须是字面量：`tools/regcheck` 的注册名 /
+        //   方块状态比对读的就是 `setRegistryName(RsAudio.MODID, "字面量")` 这一行
+        //   （它不跑 JVM、不解析变量）。删掉它不会影响游戏，只会让"每个方块都有
+        //   blockstate / 没有孤儿 blockstate"两条守卫失明。
+        // ★★★ 反过来：父类构造函数里<b>不能再设一次</b>。IForgeRegistryEntry.setRegistryName
+        //   第二次调用会直接抛 IllegalStateException（"Attempted to set registry name with
+        //   existing registry name!"），而它抛在 static 字段初始化里，表现就是启动时
+        //   整个游戏崩在 Initializing game —— 2026-11-18 现场。
         setRegistryName(RsAudio.MODID, "blast_door");
     }
 
@@ -100,7 +105,8 @@ public class BlockBlastDoor extends Block implements ITileEntityProvider {
     protected BlockBlastDoor(String name, boolean curtain) {
         super(curtain ? Material.CLOTH : Material.IRON);
         this.curtain = curtain;
-        setRegistryName(RsAudio.MODID, name);
+        // ★ 这里<b>只设显示名，不设注册名</b>：注册名由具体子类用字面量设一次
+        //   （regcheck 要能静态读到）。两处都设 = 启动必崩，见无参构造函数里的长注释。
         setUnlocalizedName(RsAudio.MODID + "." + name);
         // ★ 窗帘要进创造栏：玩家得先手上有它才能挂上去（门也是同一个道理）。
         setCreativeTab(RsAudioTab.INSTANCE);

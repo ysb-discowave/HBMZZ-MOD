@@ -59,7 +59,9 @@ public class BlockBlastDoorPanel extends Block {
 
     public BlockBlastDoorPanel() {
         this("blast_door_panel", Material.IRON, SoundType.METAL, 50.0F, BlockBlastDoor.BLAST_RESISTANCE);
-        // ★ 字面量留给 tools/regcheck（理由同 BlockBlastDoor 构造函数里那段）
+        // ★ 字面量留给 tools/regcheck（理由同 BlockBlastDoor 构造函数里那段）。
+        //   注册名只在这一处设 —— 父类构造函数再设一次会抛
+        //   "Attempted to set registry name with existing registry name!"，启动即崩。
         setRegistryName(RsAudio.MODID, "blast_door_panel");
     }
 
@@ -74,7 +76,7 @@ public class BlockBlastDoorPanel extends Block {
      */
     protected BlockBlastDoorPanel(String name, Material material, SoundType sound, float hardness, float resistance) {
         super(material);
-        setRegistryName(RsAudio.MODID, name);
+        // ★ 只设显示名：注册名由具体类用字面量设一次（理由见无参构造函数）。
         setUnlocalizedName(RsAudio.MODID + "." + name);
         // ★ 不加进创造模式物品栏：门板只能由控制器生成
         setHardness(hardness);

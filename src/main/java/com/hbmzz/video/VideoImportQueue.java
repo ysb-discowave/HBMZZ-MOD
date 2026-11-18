@@ -266,8 +266,10 @@ public final class VideoImportQueue {
         boolean ok = runFrames(ffmpeg, job, work, expected);
         if (!ok || cancelRequested) {
             deleteTree(work.toPath());
+            String why = lastOutputLine();
             progress = new Progress(cancelRequested ? "已取消" : "失败", 0,
-                    job.source.getName() + "：ffmpeg 没能解出画面", false);
+                    job.source.getName() + "：ffmpeg 没能解出画面"
+                            + (why.isEmpty() ? "" : "（" + why + "）"), false);
             return;
         }
 
@@ -280,7 +282,10 @@ public final class VideoImportQueue {
 
         progress = new Progress("音轨", 96, frames.size() + " 帧，提取音轨", true);
         File audio = new File(work, "audio.wav");
-        if (!runAudio(ffmpeg, job.source, audio)) {
+        // 音轨按帧包的长度截断：画面是 frames/fps 秒，源音轨却可能是整段视频的
+        // 长度。不截的话，包短一截的时候声音会一直响到最后，而那段时间屏幕上
+        // 已经没有帧了 —— 也就是"有声音、没画面"。
+        if (!runAudio(ffmpeg, job.source, audio, frames.size() / (double) job.fps)) {
             audio.delete();
         }
 
@@ -347,8 +352,12 @@ public final class VideoImportQueue {
         }
     }
 
-    /** 音轨单独跑一遍：要的是 PCM WAV，和播放器那边的 {@code VideoAudio} 对得上。 */
-    private static boolean runAudio(String ffmpeg, File source, File out) {
+    /**
+     * 音轨单独跑一遍：要的是 PCM WAV，和播放器那边的 {@code VideoAudio} 对得上。
+     *
+     * @param seconds 帧包自己的长度，用来把音轨截到和画面一样长
+     */
+    private static boolean runAudio(String ffmpeg, File source, File out, double seconds) {
         List<String> cmd = new ArrayList<>();
         cmd.add(ffmpeg);
         cmd.add("-hide_banner");
@@ -359,6 +368,10 @@ public final class VideoImportQueue {
         cmd.add("-i");
         cmd.add(source.getAbsolutePath());
         cmd.add("-vn");
+        if (seconds > 0.0D) {
+            cmd.add("-t");
+            cmd.add(String.format(Locale.ROOT, "%.3f", seconds));
+        }
         cmd.add("-ac");
         cmd.add("2");
         cmd.add("-ar");
@@ -369,8 +382,11 @@ public final class VideoImportQueue {
         try {
             Process process = start(cmd);
             child = process;
+            // 一部番的 PCM 是几十兆，慢盘上要一会儿；原来固定 120 秒，
+            // 长片会被这条线掐断，于是包里只剩画面。
+            long budget = 120L + (long) Math.max(0.0D, seconds) * 2L;
             try {
-                if (!process.waitFor(120L, TimeUnit.SECONDS)) {
+                if (!process.waitFor(budget, TimeUnit.SECONDS)) {
                     process.destroy();
                     return false;
                 }
@@ -387,7 +403,68 @@ public final class VideoImportQueue {
     private static Process start(List<String> cmd) throws IOException {
         ProcessBuilder builder = new ProcessBuilder(cmd);
         builder.redirectErrorStream(true);
+        Process process = builder.start();
+        drainOutput(process);
+        return process;
+    }
+
+    /**
+     * 把子进程的输出读走并只留尾巴。
+     *
+     * <p>以前 {@code runFrames} 直接 {@code waitFor}，没人读这个管道。管道缓冲
+     * 只有 64 KB，而长片 / 高帧率转换时 ffmpeg 的告警（坏帧、像素格式、时序）
+     * 足够把它填满 —— 一旦填满，ffmpeg 就卡在 write 上，进度条停在那儿不动，
+     * 玩家看到的是"转到一半自己停了"。这里开一个守护线程一路读掉，只保留最后
+     * 一段用于失败原因。</p>
+     */
+    private static void drainOutput(final Process process) {
+        Thread reader = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                StringBuilder tail = new StringBuilder();
+                try (BufferedReader in = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        tail.append(line).append('\n');
+                        if (tail.length() > 8192) {
+                            tail.delete(0, tail.length() - 4096);
+                        }
+                    }
+                } catch (IOException ignored) {
+                    // 进程被杀掉时管道先断，这里没什么可做的
+                }
+                lastOutput = tail.toString();
+            }
+        }, "hbmzz-ffmpeg-output");
+        reader.setDaemon(true);
+        reader.start();
+    }
+
+    /** 最后一个 ffmpeg 进程的尾部输出，失败时用来解释原因。 */
+    private static volatile String lastOutput = "";
+
+    /** 读完整段输出（{@link #durationOf} 要解析其中的 Duration 行，不能被抓走）。 */
+    private static Process startRaw(List<String> cmd) throws IOException {
+        ProcessBuilder builder = new ProcessBuilder(cmd);
+        builder.redirectErrorStream(true);
         return builder.start();
+    }
+
+    /** 失败原因里带上 ffmpeg 自己的最后一句话，而不是只说"没能解出画面"。 */
+    private static String lastOutputLine() {
+        String output = lastOutput;
+        if (output == null) {
+            return "";
+        }
+        String[] lines = output.split("\n");
+        for (int i = lines.length - 1; i >= 0; i--) {
+            String line = lines[i].trim();
+            if (!line.isEmpty()) {
+                return line.length() > 90 ? line.substring(0, 89) + "…" : line;
+            }
+        }
+        return "";
     }
 
     /** 时长（秒）。读的是 {@code ffmpeg -i} 打在 stderr 上的那一行，没有就返回 0。 */
@@ -400,7 +477,7 @@ public final class VideoImportQueue {
         cmd.add(source.getAbsolutePath());
         Process process = null;
         try {
-            process = start(cmd);
+            process = startRaw(cmd);
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
             try {

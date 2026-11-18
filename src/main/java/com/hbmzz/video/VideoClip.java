@@ -69,8 +69,17 @@ public final class VideoClip implements Closeable {
     /** Frame rate assumed when {@code meta.json} does not say. */
     public static final int DEFAULT_FPS = 12;
 
-    /** Hard ceiling, so a pathological folder cannot make the player loop forever. */
-    public static final int MAX_FRAMES = 20000;
+    /**
+     * Hard ceiling, so a pathological folder cannot make the player loop forever.
+     *
+     * <p>Was 20000, which quietly broke long clips: a 4:23 film imported at
+     * 120 fps is 31618 frames, and cutting the list at 20000 made the same film
+     * report 2:46 - the soundtrack kept playing to the real end while the picture
+     * had already run out. A ceiling has to sit above anything a sane import can
+     * produce (500000 frames is 69 minutes at 120 fps, 11 hours at 12 fps), so a
+     * silent truncation can no longer be mistaken for a bad conversion.</p>
+     */
+    public static final int MAX_FRAMES = 500000;
 
     private final String name;
     private final String descriptor;

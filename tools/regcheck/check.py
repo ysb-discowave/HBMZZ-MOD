@@ -1368,6 +1368,90 @@ def main():
           "鼠标事件按原版的节奏一个个分派（不会把拖动事件吃掉）",
           "GuiVideoScreen.handleMouseInput must not loop over Mouse.next(); that starves the drag")
 
+    # 94. 长片不能被悄悄截断。VideoClip 曾经把帧数硬切在 20000：4 分 23 秒的片子
+    # 按 120fps 导入是 31618 帧，切完只剩 20000 帧，于是同一部片在游戏里报 2:46，
+    # 音轨却还在放到 4:23 —— 玩家看到的就是"只剩两分钟，而且有声音没画面"。
+    # 上限必须高到任何正常导入都碰不到，它只该挡住坏包。
+    video_clip = read(os.path.join(SRC, "com/hbmzz/video/VideoClip.java"))
+    clip_limit = re.search(r"MAX_FRAMES = (\d+)", video_clip)
+    check(clip_limit is not None and int(clip_limit.group(1)) >= 100000,
+          "长片不会被帧数上限悄悄截断（120fps 的四分钟片子仍是四分钟）",
+          "VideoClip.MAX_FRAMES is a bad-pack guard, not a length limit: " + (
+              clip_limit.group(1) if clip_limit else "missing"))
+
+    # 95. 播放头跑在解码前面时必须丢帧追上去。120fps 的片子配一台每秒只解得出
+    # 四五十帧的机器，缓存里永远没有播放头要的那一帧，画面一帧都不出来，声音却
+    # 照放 —— 这就是"有声音没画面"。追帧只在落后一整个缓冲时才触发，并且限频，
+    # 否则每帧都 seek 会把缓存清空得更彻底。
+    player_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoPlayer.java"))
+    show_body = member_body(player_src, "showFrame")
+    catch_body = member_body(player_src, "catchUp")
+    check("catchUp(index)" in show_body,
+          "缺帧时让解码器跳过一段追上来，而不是让画面一直空着",
+          "VideoPlayer.showFrame must ask the decoder to catch up when the frame is missing")
+    check("this.seekRequest = index" in catch_body and "this.cacheFrames" in catch_body
+          and "CATCH_UP_INTERVAL_MS" in catch_body,
+          "追帧只在落后一整个缓冲时触发，并且限频",
+          "VideoPlayer.catchUp must compare against cacheFrames and throttle")
+
+    # 96. 音轨按帧包自己的长度截断：帧包可能是 frames/fps 秒，源音轨却是整段视频
+    # 的长度，不截就会在画面已经放完之后继续响（同一个"有声音没画面"）。
+    import_src = read(os.path.join(SRC, "com/hbmzz/video/VideoImportQueue.java"))
+    audio_body = member_body(import_src, "runAudio")
+    check('cmd.add("-t")' in audio_body and "seconds" in audio_body,
+          "音轨截到与帧包一样长，声音不会比画面多放一截",
+          "VideoImportQueue.runAudio must bound the track with -t <pack seconds>")
+    check("frames.size() / (double) job.fps" in import_src,
+          "截断长度取自实际解出的帧数，而不是源视频时长",
+          "convert() must pass the pack's own duration to runAudio")
+
+    # 97. ffmpeg 的输出必须有人读。管道缓冲 64KB，长片 / 高帧率的告警足够填满它；
+    # 一旦填满，ffmpeg 卡在 write 上，进度条停在半路 —— 看起来像"转到一半停了"。
+    check("drainOutput(process)" in import_src and "hbmzz-ffmpeg-output" in import_src,
+          "一路读走 ffmpeg 的输出，长片转换不会卡在管道上",
+          "VideoImportQueue.start must drain the child's stdout")
+
+    # 98. 全屏的归属：接了屏归大屏，没接屏归播放器。所以"能不能按全屏"必须是一个
+    # 现算的判定，而不是打开窗口时记下来的布尔 —— 遥控器中途接上大屏，下一次按键
+    # 就该改口。接屏时右键播放器开出来的展示窗口不提供全屏入口。
+    check("private boolean canFullscreen()" in takeover and "this.mirror ? this.wallOwned" in takeover,
+          "全屏权限按'有没有接大屏 / 这窗口是不是从大屏进来的'现算",
+          "GuiVideoScreen must gate fullscreen through canFullscreen()")
+    key_body = member_body(takeover, "keyTyped")
+    check("canFullscreen()" in key_body,
+          "接了大屏以后 F 不再改桌面模式，只提示去右键大屏",
+          "GuiVideoScreen.keyTyped must ask canFullscreen() before toggling")
+    check("canFullscreen()" in mouse_body,
+          "接了大屏以后右键播放器不会把桌面切进全屏",
+          "GuiVideoScreen.handleMouseInput must ask canFullscreen() before toggling")
+    check("public static GuiVideoScreen watch(" in takeover
+          and "public static GuiVideoScreen mirror(" in takeover,
+          "展示窗口和'从大屏进来的全屏窗口'是两个入口，权限不同",
+          "GuiVideoScreen needs watch() (owns fullscreen) next to mirror() (does not)")
+
+    # 99. 全屏要在大屏那边按：右键大屏 → 大屏定位窗口 →「全屏观看」。点一下就该是
+    # 满屏，不是先给个窗口再让玩家自己找 F。
+    check("全屏观看" in seek_gui and "GuiVideoScreen.watch(" in seek_gui
+          and "enterFullscreen()" in seek_gui,
+          "大屏窗口里点「全屏观看」直接进全屏",
+          "GuiVideoSeek must offer 全屏观看 and open GuiVideoScreen.watch(...).enterFullscreen()")
+    check("public void enterFullscreen()" in takeover,
+          "进入全屏只有一条路（enterFullscreen），仍然走统一的显示状态记账",
+          "GuiVideoScreen must expose enterFullscreen() rather than poking Display directly")
+
+    # 100. 接上大屏以后「强制限制返回」的入口要从设置窗口里整个消失：那个开关只在
+    # 没接屏时成立，接屏后留着它只会让人以为按了有用。窗口开着时接上/拆掉大屏也要
+    # 立刻重排，不能等关窗重开。
+    config_gui = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoPlayerConfig.java"))
+    rebuild_body = member_body(config_gui, "rebuildButtons")
+    check("if (!this.screenLinked)" in rebuild_body and "new GuiButton(0" in rebuild_body,
+          "接上大屏后「强制限制返回」的入口不再画出来",
+          "GuiVideoPlayerConfig.rebuildButtons must only add the lock button while no wall is linked")
+    check("rebuildButtons()" in config_gui.split("public void initGui()")[1][:400]
+          and config_gui.count("rebuildButtons()") >= 3,
+          "连上/拆掉大屏时设置窗口就地重排",
+          "GuiVideoPlayerConfig.drawScreen must rebuild when the link state flips")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

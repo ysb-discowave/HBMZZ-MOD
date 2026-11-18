@@ -150,10 +150,14 @@ public class GuiVideoSeek extends GuiScreen {
         this.buttonList.add(new GuiButton(4, x0 + 4 * (column + GAP), y, column, 18, "+30s"));
 
         int wide = this.W - 2 * MARGIN;
-        int half = (wide - GAP) / 2;
-        this.restartButton = new GuiButton(5, x0, y + 24, half, 20, "回开头（重新播放）");
+        int third = (wide - 2 * GAP) / 3;
+        this.restartButton = new GuiButton(5, x0, y + 24, third, 20, "回开头");
         this.buttonList.add(this.restartButton);
-        this.buttonList.add(new GuiButton(6, x0 + half + GAP, y + 24, wide - half - GAP, 20, "关闭"));
+        // 全屏的入口在这里，而不是"右键播放器"：接了大屏以后画面属于这块屏，
+        // 那么"把这块屏铺满显示器"也该从这块屏按出来。
+        this.buttonList.add(new GuiButton(6, x0 + third + GAP, y + 24,
+                wide - 2 * third - 2 * GAP, 20, "全屏观看"));
+        this.buttonList.add(new GuiButton(7, x0 + wide - third, y + 24, third, 20, "关闭"));
     }
 
     /**
@@ -342,10 +346,30 @@ public class GuiVideoSeek extends GuiScreen {
                 NetworkHandler.sendToServer(VideoSeekMessage.restart(this.pos));
                 this.dragging = false;
                 return;
+            case 6:
+                openFullscreen();
+                return;
             default:
                 this.mc.displayGuiScreen(null);
                 return;
         }
+    }
+
+    /**
+     * 打开大屏全屏，并立刻把桌面切到全屏。
+     *
+     * <p>先换窗口再切显示模式：窗口在 {@code initGui} 里记下"看片之前的桌面
+     * 状态"，切全屏留给它自己去切，关窗时才能原样还回去。</p>
+     */
+    private void openFullscreen() {
+        TileEntityVideoScreen te = tile();
+        if (te == null) {
+            return;
+        }
+        com.hbmzz.client.GuiVideoScreen window = com.hbmzz.client.GuiVideoScreen.watch(
+                te.getPlayerPos(), this.pos);
+        this.mc.displayGuiScreen(window);
+        window.enterFullscreen();
     }
 
     @Override

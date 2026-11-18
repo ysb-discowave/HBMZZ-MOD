@@ -81,6 +81,20 @@ public final class VideoCheck {
             check("不存在的名字返回 null", VideoLibrary.open("nope") == null);
             check("非法名字返回 null", VideoLibrary.open("../config") == null);
 
+            // 长片不能被截断。21000 帧正好越过旧的 20000 上限：4 分 23 秒的片子
+            // 按 120fps 导入是 31618 帧，被切到 20000 以后同一部片只报 2:46，
+            // 画面先放完，音轨还在放到 4:23 —— 这就是"只剩两分钟、有声音没画面"。
+            File longZip = new File(VideoLibrary.root(), "long.zip");
+            writeZip(longZip, 21000, 21000);
+            VideoClip longClip = VideoLibrary.open("long");
+            check("长片不会被截断（21000 帧仍是 21000 帧）",
+                    longClip != null && longClip.frameCount() == 21000);
+            check("长片时长 = 帧数 / 帧率（21000/10 = 35 分钟）",
+                    longClip != null && Math.abs(longClip.durationSeconds() - 2100.0D) < 1.0e-6D);
+            if (longClip != null) {
+                longClip.close();
+            }
+
             check("接受普通名字", VideoLibrary.isValidName("alarm_01"));
             check("拒绝穿越", !VideoLibrary.isValidName("../x"));
             check("拒绝路径分隔符", !VideoLibrary.isValidName("a/b"));

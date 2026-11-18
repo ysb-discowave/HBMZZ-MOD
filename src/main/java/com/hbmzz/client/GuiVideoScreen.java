@@ -115,6 +115,14 @@ public class GuiVideoScreen extends GuiScreen {
     /** The wall being mirrored; null in takeover mode. */
     private final BlockPos wallPos;
     /**
+     * 这个展示窗口是不是"从大屏那边进来的"。
+     *
+     * <p>接了大屏以后，全屏这件事归大屏管：右键播放器开出来的展示窗口只是
+     * 一块放大镜，不提供全屏入口（提示行会直说"全屏请右键大屏"）。真正能把
+     * 画面铺满显示器的是从大屏打开的这一个 —— 右键大屏 →「全屏观看」。</p>
+     */
+    private final boolean wallOwned;
+    /**
      * Last known link state. The block entity can be out of loaded range mid-clip
      * (the audience may walk far away), and "I cannot see the wall right now" must
      * not read as "the wall was removed" - that would slam the lock back on a
@@ -159,6 +167,7 @@ public class GuiVideoScreen extends GuiScreen {
         this.restrictBack = restrictBack;
         this.mirror = false;
         this.wallPos = null;
+        this.wallOwned = false;
     }
 
     /**
@@ -166,12 +175,27 @@ public class GuiVideoScreen extends GuiScreen {
      *
      * <p>No player block of its own, no progress bar, no second soundtrack. The
      * window is a magnifying glass over a screen that is already running.</p>
+     *
+     * <p>Opened by right-clicking the <em>player</em>: this one is a look, not a
+     * takeover, so it deliberately has no fullscreen entry - when a wall is wired,
+     * the key that fills the monitor belongs to the wall.</p>
      */
     public static GuiVideoScreen mirror(BlockPos broadcaster, BlockPos wall) {
-        return new GuiVideoScreen(broadcaster, wall);
+        return new GuiVideoScreen(broadcaster, wall, false);
     }
 
-    private GuiVideoScreen(BlockPos broadcaster, BlockPos wall) {
+    /**
+     * 大屏全屏: the same mirror, opened from the wall itself.
+     *
+     * <p>This is the window the "全屏观看" button on 大屏定位 opens, and it is the
+     * only one that owns the fullscreen toggle while a wall is connected. Right
+     * click / F work here because here the picture really is the wall's.</p>
+     */
+    public static GuiVideoScreen watch(BlockPos broadcaster, BlockPos wall) {
+        return new GuiVideoScreen(broadcaster, wall, true);
+    }
+
+    private GuiVideoScreen(BlockPos broadcaster, BlockPos wall, boolean wallOwned) {
         this.pos = broadcaster;
         this.wallPos = wall == null ? null : wall.toImmutable();
         this.videoName = "";
@@ -179,6 +203,17 @@ public class GuiVideoScreen extends GuiScreen {
         // Entered by hand, so it is never a lock: ESC always closes it.
         this.restrictBack = false;
         this.mirror = true;
+        this.wallOwned = wallOwned;
+    }
+
+    /**
+     * 这个窗口现在能不能按全屏。
+     *
+     * <p>规则只有一条：接了屏，全屏归那块屏；没接屏，全屏归播放器。所以本机
+     * 播放的窗口要等"确实没有大屏"才给入口，展示窗口只有在从大屏进来时才有。</p>
+     */
+    private boolean canFullscreen() {
+        return this.mirror ? this.wallOwned : !screenLinked();
     }
 
     public boolean mirrors() {
@@ -489,6 +524,10 @@ public class GuiVideoScreen extends GuiScreen {
 
     /** 提示行里那句"现在全屏还是窗口"，按键前后各说一次。 */
     private String fullscreenHint() {
+        if (!canFullscreen()) {
+            // 接了大屏：这个窗口不提供全屏，入口在那块屏上。
+            return "全屏请右键大屏";
+        }
         return this.lastFullscreen ? "已全屏 · F / 右键 还原" : "F / 右键 全屏";
     }
 
@@ -569,7 +608,7 @@ public class GuiVideoScreen extends GuiScreen {
         drawRect(Math.max(0, handleX - 1), barTop, Math.min(this.width, handleX + 1), this.height, 0xFFFFFFFF);
 
         this.fontRenderer.drawStringWithShadow(this.player.title(), 6, barTop + 3, 0xFFFFFFFF);
-        String keys = "F / 右键 全屏";
+        String keys = canFullscreen() ? "F / 右键 全屏" : "全屏请右键大屏";
         this.fontRenderer.drawStringWithShadow(keys,
                 this.width - 6 - this.fontRenderer.getStringWidth(time)
                         - this.fontRenderer.getStringWidth(keys) - 12, barTop + 3, DIM);
@@ -629,8 +668,13 @@ public class GuiVideoScreen extends GuiScreen {
         }
         if (keyCode == Keyboard.KEY_F) {
             // 全屏是这台机器的事：F 让画面铺满显示器，再按一次回到原来的窗口
-            // （不是原版那个"启动尺寸"，否则窗口会突然变小）。
-            this.toggleFullscreen();
+            // （不是原版那个"启动尺寸"，否则窗口会突然变小）。接了大屏以后这个
+            // 键不归本窗口管，只提示一句去哪儿按。
+            if (canFullscreen()) {
+                this.toggleFullscreen();
+            } else {
+                this.hintTicks = 60;
+            }
             return;
         }
         if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -645,11 +689,12 @@ public class GuiVideoScreen extends GuiScreen {
     }
 
     /**
-     * 右键 = 全屏开关；其余点击一律吞掉。
+     * 右键 = 全屏开关（只在这个窗口拥有全屏的时候）；其余点击一律吞掉。
      *
-     * <p>哪块画面被放大由打开的是哪个窗口决定：接了屏，这个窗口画的是那块屏
-     * （大屏全屏）；没接屏，画的是本机播放器（播放器全屏）。所以右键在这里只
-     * 需要做一件事——切换全屏，对象就是当前这幅画面。</p>
+     * <p>哪块画面被放大由打开的是哪个窗口决定。没接屏时这个窗口画的是本机
+     * 播放器，右键把它铺满显示器；接了大屏以后，右键播放器开出来的是"展示"
+     * 窗口，这里不给全屏入口 —— 全屏要在大屏那边按（右键大屏 →「全屏观看」）。
+     * 所以右键在接屏状态下只是被吞掉，不会莫名其妙改桌面模式。</p>
      *
      * <p>不调 {@code super}：进入这个界面的目的就是不让点击落到背后的世界里。</p>
      */
@@ -659,7 +704,11 @@ public class GuiVideoScreen extends GuiScreen {
         // while (Mouse.next()) 会把后面的移动事件吃掉，拖动就断了。
         if (org.lwjgl.input.Mouse.getEventButton() == 1
                 && org.lwjgl.input.Mouse.getEventButtonState()) {
-            this.toggleFullscreen();
+            if (canFullscreen()) {
+                this.toggleFullscreen();
+            } else {
+                this.hintTicks = 60;
+            }
             return;
         }
         // 左键交给原版分派：本机播放的窗口里那条进度条可以拖。
@@ -718,6 +767,24 @@ public class GuiVideoScreen extends GuiScreen {
     /** F / 右键共用的一条路，顺带在提示行里说一句现在是什么状态。 */
     private void toggleFullscreen() {
         com.hbmzz.client.video.VideoFullscreen.toggle(this.mc);
+        this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
+        this.hintTicks = 60;
+    }
+
+    /**
+     * 直接进全屏（已经全屏就什么都不做）。
+     *
+     * <p>给「全屏观看」按钮用：点一下就该是满屏，而不是先开一个窗口再让玩家
+     * 自己按一次 F。显示状态的记账仍然由 {@link VideoFullscreen} 做，所以关窗
+     * 时还是回到进全屏之前的那个窗口尺寸。</p>
+     */
+    public void enterFullscreen() {
+        if (this.mc == null || !canFullscreen()) {
+            return;
+        }
+        if (!com.hbmzz.client.video.VideoFullscreen.active()) {
+            com.hbmzz.client.video.VideoFullscreen.toggle(this.mc);
+        }
         this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
         this.hintTicks = 60;
     }

@@ -142,7 +142,8 @@ public class GuiVideoBroadcaster extends GuiScreen {
         this.buttonList.add(new GuiButton(3, this.left + 22, this.top + 200, 146, 18, "打开视频文件夹"));
         this.buttonList.add(new GuiButton(4, this.left + 178, this.top + 200, 120, 18, "刷新列表（F7）"));
         // 音量与「强制限制返回」仍然只在设置窗口里：它不属于片源编辑，
-        // 但也不能凭空消失，所以给它一个明确的入口。
+        // 但也不能凭空消失，所以给它一个明确的入口（接上大屏后那一项会自己
+        // 从设置窗口里让位，因为退出已经不归它管）。
         this.buttonList.add(new GuiButton(5, this.left + 22, this.top + 224, 146, 18, "播放器设置"));
         // 目录里躺着一个 mp4 是最常见的开局。以前这里只能告诉玩家"不支持"，
         // 现在旁边就有一个能把它转成帧包的地方。

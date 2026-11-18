@@ -58,6 +58,8 @@ public final class VideoPlayer implements Closeable {
     /** How far ahead the decoder may run, in frames, regardless of config. */
     private static final int MIN_CACHE = 2;
     private static final int MAX_CACHE = 24;
+    /** Shortest gap between two catch-up seeks. */
+    private static final long CATCH_UP_INTERVAL_MS = 400L;
 
     private final VideoClip clip;
     private final int maxWidth;
@@ -71,6 +73,17 @@ public final class VideoPlayer implements Closeable {
     private volatile boolean running = true;
     /** Frame the decode thread should jump to next; -1 while it is in step. */
     private volatile int seekRequest = -1;
+    /**
+     * Frame the decode thread is working on next.
+     *
+     * <p>Readable so {@link #showFrame(int)} can tell "the frame I want is not
+     * decoded yet" from "the decoder is a whole buffer behind the playhead and
+     * will never catch up". The difference matters: the first is a normal tick of
+     * latency, the second is a permanently black screen.</p>
+     */
+    private volatile int decodeIndex;
+    /** Last time a catch-up seek was issued; keeps a slow machine from re-seeking sixty times a second. */
+    private long lastCatchUpAt;
     private volatile boolean decodeDone;
     private volatile String failure;
     private volatile int frameWidth;
@@ -155,6 +168,7 @@ public final class VideoPlayer implements Closeable {
                         this.ready.clear();
                         this.lock.notifyAll();
                     }
+                    this.decodeIndex = index;
                     while (this.running && this.seekRequest < 0 && this.ready.size() >= this.cacheFrames) {
                         this.lock.wait(200L);
                     }
@@ -168,6 +182,7 @@ public final class VideoPlayer implements Closeable {
                 if (index >= this.clip.frameCount()) {
                     // End of the film: keep the last frames servable and wait for
                     // a seek (or a close).
+                    this.decodeIndex = this.clip.frameCount();
                     this.decodeDone = true;
                     synchronized (this.lock) {
                         while (this.running && this.seekRequest < 0) {
@@ -187,6 +202,7 @@ public final class VideoPlayer implements Closeable {
                     this.lock.notifyAll();
                 }
                 index++;
+                this.decodeIndex = index;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -423,8 +439,37 @@ public final class VideoPlayer implements Closeable {
         if (image != null && index != this.uploaded) {
             this.texture.upload(image);
             this.uploaded = index;
+        } else if (image == null) {
+            // 追帧：解码线程已经落后一个缓冲以上时，让它直接跳到播放头。
+            // 不这么做的话，120fps 的片子配一台每秒只解得出四五十帧的机器，
+            // 播放头会一路跑到前面，缓存里永远没有它要的那一帧 —— 表现就是
+            // "有声音、没画面"，而且因为解码线程只是按顺序匀速前进，它再也追
+            // 不回来。丢几帧比停住整部片子划算，和声音对不上的画面也没有用。
+            catchUp(index);
         }
         return this.uploaded >= 0;
+    }
+
+    /**
+     * Asks the decode thread to skip to {@code index} when it is too far behind.
+     *
+     * <p>Only fires past the whole buffer, and at most a few times a second: a
+     * seek clears the ring and reopens nothing, so doing it on every render tick
+     * would thrash the cache instead of filling it.</p>
+     */
+    private void catchUp(int index) {
+        if (index - this.decodeIndex <= this.cacheFrames) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - this.lastCatchUpAt < CATCH_UP_INTERVAL_MS) {
+            return;
+        }
+        this.lastCatchUpAt = now;
+        this.seekRequest = index;
+        synchronized (this.lock) {
+            this.lock.notifyAll();
+        }
     }
 
     public int frameIndex(double seconds) {

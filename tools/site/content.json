@@ -270,16 +270,30 @@
       ]
     },
     {
-      "version": "3.6.1",
-      "title": "渲染换成本项目自己的实现，外观一处未改",
+      "version": "3.7.1",
+      "title": "视频包终于能被找到了，片头片尾两条动画也配齐",
       "items": [
-        "<strong>为什么动它：</strong>监控屏那套渲染最初参照了节枝的 JiezhiMod，2026-11-03 拿到了可按 GPL-3.0 使用的书面授权。授权能用，但让整个发布声明长期挂在一份「别人的代码」上不是办法，于是逐块重写，把授权压缩成历史记录。",
-        "<strong>几何重写（<code>ConsoleModel</code>）：</strong>改成「先收集部件表（后板、四条边框、四条阴影线、四颗螺钉、状态条、吊装总成）→ 一次性变换 → 一张角点索引表发射六面」。原先每个盒子自带一个 transform lambda，加零件时漏掉倾斜或推距不会被发现；现在没有那条路可走。0.075 半厚、0.10 边框、0.012 缝、吊架各段长度全部沿用——<b>这些是这台机器的设计事实，改了就是改版型</b>。",
-        "<strong>画布上传管线重写（<code>TerminalCanvas</code>）：</strong>AWT 给的是 ARGB 整型，小端机器上 <code>0xAARRGGBB</code> 的字节序恰好就是 BGRA——直接按 <code>GL_BGRA</code> 上传即可，不必每像素写四个字节；尺寸不变时改走 <code>glTexSubImage2D</code>，边缘加 <code>CLAMP</code>。600×400 的超采样画布每帧少约 140 万次字节写入。",
-        "<strong>新增 <code>PanelPainter</code>：</strong>两个渲染器本来各写一份「关消隐 / 开混合 / 绑纹理 / 归还图集」，一处修好另一处还烂着。现在只有一份，且写明了两条踩过的规矩：进入前关消隐、绑之前把纹理单元复位。",
-        "<strong>怎么证明外观没变：</strong>新增 <code>tools/rigcheck</code>——把 6 种面板尺寸 × 5 个倾角 × 通电/吊装共 <b>121 组参数</b>的全部顶点导成数字，新旧实现逐位比对（17,521 行，零差异），再压成 121 行指纹入库。谁以后改了几何，这条会当场红；改一个字符就 FAIL。",
-        "<strong>授权链：</strong>节枝的授权书与私信截图继续保留，但覆盖范围缩小为 <code>BlockDFCMonitor</code>、<code>BlockDFCMonitorPart</code>、<code>TileEntityDFCMonitor</code> 的控制器 + 占位格结构，以及 <code>ConsoleRig</code> 的倾角与锚点数学。逐文件状态写在 <code>NOTICE.md</code> 的「重写记录」里。",
-        "<strong>验证：</strong>已进游戏实测——TESR 绘制顺序、坠落动画的观感、画布上传在真驱动上的行为都在客户端确认过，外观与重写前一致；加上几何指纹与离线检查全绿。"
+        "<strong>视频包终于能被找到了：</strong><code>VideoLibrary.init()</code> 之前根本没被主模组调用，<code>&lt;config&gt;/hbmzz/videos/</code> 不会创建、广播器清单也永远为空。现在 <code>preInit</code> 会自动建该目录并写出 <code>README.txt</code>，服务端与客户端都生效。",
+        "<strong>视频包怎么放：</strong>放到<b>每一台需要观看的客户端</b>的 <code>config/hbmzz/videos/</code>；服务端不需要放视频文件，但也要装同一个 jar，因为视频名白名单校验两端都会走。",
+        "<strong>片头动画工具：</strong>新增片头动画生成工具与分镜 / 验收文档，产出 <code>hbmzz-intro.zip</code>：24fps / 192 帧 / 8 秒 / 静音。",
+        "<strong>片尾致谢工具：</strong>新增片尾致谢动画生成工具与名单配置，产出 <code>hbmzz-credits.zip</code>：12fps / 2326 帧，BGM《The ending of melting》。",
+        "<strong>版本号统一：</strong><code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 全部统一到 3.7.1。",
+        "<strong>验证：</strong>regcheck <b>63/63</b>、videocheck <b>26/26</b>、片头播放器包 <code>VideoLibrary</code> 读取校验 9/9（192 帧 / 24fps / 静音 / 首末帧可解码）全过；静态检查与离线播放器读取验证已完成。",
+        "<strong>许可：</strong>本体 GPL-3.0-only；附属包另见 <code>HBMZZ-MOD-addon</code> 仓库的 PolyForm Shield 声明，两者分开声明。"
+      ]
+    },
+    {
+      "version": "3.7.0",
+      "title": "防爆窗帘、纪念挂画，FFmpeg 改成在线下载",
+      "items": [
+        "<strong>一面能拉的防爆窗帘：</strong>布是布、不是门。顶部一根罗马杆、两端葫芦状柱头、一串挂环，杆固定不动、布收拢时挂环挤到两端；每 0.22 格一道手风琴竖向褶皱、前后起伏 0.032 格，下摆离地 0.05 格、两片对搭有前后层次、两端封边。开合方向在设置里循环切：上下 / 左右对开（默认）/ 向左收 / 向右收。放下那一刻检查周围 3×3×3，没有玻璃就撤掉方块、物品退回背包——原版玻璃、玻璃板、染色玻璃，别的模组的玻璃材质都认。",
+        "<strong>贴得合、不漏光：</strong>窗帘这一格按透明薄片参与渲染与光照，不会把邻格玻璃的面剔掉，也不会在布四周压出一圈 AO 黑边；碰撞盒压到布所在的那个门面（厚 0.12 格），正面背面都不留缝。宽高都能调到 <b>1 ~ 32 格</b>，开合那一瞬间逐格扫布面位置，持续开销和 3×3 一样；爆炸抗性 1000（防核门本体无限）。",
+        "<strong>给布换自己的图：</strong>设置里点「贴图…」打开的是<b>游戏内</b>选择器，不弹系统对话框（系统文件框的 owner 传空时会被游戏窗口盖住，玩家看到的是「点了没反应」）。把 PNG / JPG / BMP 放进 <code>config/rsaudio/curtain/</code>，点文件名即可，图自动裁成正方形、缩到 128×128。图存在服务端、所有玩家看到同一张，跟着存档走；单张上限 200 KB（Base64 后），点「恢复默认」回到自带的黑布。",
+        "<strong>纪念挂画：</strong>贴墙装饰，内置多张画面可翻页，多块相邻自动拼成一整幅。",
+        "<strong>内置 OST：</strong>首次启动把 jar 自带的曲目铺进 <code>config/rsaudio/audio/</code>，装完即可在播放器里选、播放，行为与玩家自己放进去的音轨完全一样，之后换、删、加曲目都不会被覆盖。随包三首：<code>HBMZZ OST 01 How to survive</code>、<code>02 When will it end</code>、<code>03 The ending of melting</code>。",
+        "<strong>FFmpeg 改成在线下载：</strong>jar 里不再内置 <code>ffmpeg.exe</code>，首次进游戏自动准备——弹一个下载进度页，显示阶段、分段数和百分比，后台下载、画面不卡。走代理取 BtbN 的 GitHub release 构建，<b>64 段并行 + 断点续传</b>，源包约 190 MB，断线不重头下；解压后缓存在 <code>config/rsaudiofm/bin/</code>，下次直接复用。代理与源地址可用 <code>-Drsaudiofm.ffmpeg.proxy=...</code> / <code>-Drsaudiofm.ffmpeg.source=...</code> 覆盖；失败自动跳过、回退到系统 PATH 或配置里的外置 ffmpeg，不卡启动。<code>mp3 / ogg / flac / wav / aiff</code> 始终直放，<code>aac / m4a / opus / wma / ape / wv</code> 走转码。",
+        "<strong>从上游 3.5.2 收进来的启动修复：</strong>三处启动 / 方块状态调整一并带上——<code>DfcBlastWatch.onServerStopped</code> 原本误挂 <code>@SubscribeEvent</code>，参数是 <code>FMLServerStoppedEvent</code>、不是 Forge <code>Event</code> 子类，会在 preInit 抛 <code>IllegalArgumentException</code> 让模组起不来，改为无参普通方法由 <code>HBMZZ.serverStopping</code> 显式调用；<code>rsaudio:giant_pipe</code> 六个布尔属性 = 64 态、超出 1.12.2 每方块 16 状态硬上限，压到水平四向 16 态；<code>hbmzz:ctrl_console</code> 与 <code>hbmzz:dfc_blast_sensor</code> 的变体键序改成属性名字母序，否则 16 条变体一条都不命中、显示紫黑缺失模型。判据不是「状态数 ≤ 16」，而是进 meta 的部分 ≤ 4 位。",
+        "<strong>验证与已知问题：</strong>到主菜单 13.9 s、<code>fatal=0</code>，43 个方块实例全部在册，<code>rsaudio</code> ERROR / Exception 与贴图加载失败都是 0；模型解析除上游 <code>tartarus_gate</code> 的既有报错外无新增。已知：竖直 T 形管道画不出来（16 态方案的固有代价，四向、碰撞盒、掉落、音效不受影响）；<code>tartarus_gate</code> 模型报错 12 条是上游自身缺陷；无网络且无外置 ffmpeg 时需要转码的格式不可播，<code>mp3 / flac / wav / aiff / au</code> 仍可。"
       ]
     },
     {

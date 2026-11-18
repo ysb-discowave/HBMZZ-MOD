@@ -307,8 +307,7 @@ def main():
     # so no camera, core or meter could ever be connected to it. The console is
     # exempt because it owns its editor and the cable only records it while
     # sneaking.
-    LINK_TARGETS = ["BlockDFCMonitor", "BlockMonitorCamera", "BlockCtrlPanel",
-                    "BlockVideoBroadcaster", "BlockVideoScreen"]
+    LINK_TARGETS = ["BlockDFCMonitor", "BlockMonitorCamera", "BlockCtrlPanel"]
     LINK_EXEMPT = {"BlockCtrlConsole"}
     offenders = []
     for name in LINK_TARGETS:
@@ -325,6 +324,25 @@ def main():
     check(not offenders, "every block the cable binds into declines the click for it",
           "claims the right-click, so ItemMonitorLinker.onItemUse never runs: "
           + ", ".join(offenders))
+
+    # 8b. 大屏这一对走的是另一件工具：大屏遥控器先对准播放器，再右键大屏。
+    # 同样的道理——方块只要把右键吞掉，遥控器的 onItemUse 就永远不会跑，
+    # 大屏也就永远接不上任何播放器。这条以前没单独写，是因为大屏曾经借用
+    # 监控数据线；现在两套工具分开，检查也得跟着分开。
+    REMOTE_TARGETS = ["BlockVideoBroadcaster", "BlockVideoScreen"]
+    remote_offenders = []
+    for name in REMOTE_TARGETS:
+        path = os.path.join(SRC, "com/hbmzz/block", name + ".java")
+        if not os.path.exists(path):
+            continue
+        text = read(path)
+        if "onBlockActivated" not in text:
+            continue
+        if "ItemVideoRemote" not in member_body(text, "onBlockActivated"):
+            remote_offenders.append(name)
+    check(not remote_offenders, "every block the remote connects declines the click for it",
+          "claims the right-click, so ItemVideoRemote.onItemUse never runs: "
+          + ", ".join(remote_offenders))
 
     # 9. Every control type must have a painter. A missing case does not fail to
     # compile - it silently falls through to `default: paintPlate`, which is a

@@ -23,18 +23,19 @@ import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.translation.I18n;
 import net.minecraft.world.World;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * The screen's item form, with the two things a player cannot guess written on
- * it: how it is fed, and what right-click does.
+ * The wall's item form, with the two lines nobody would guess.
  *
- * <p>A plain {@link ItemBlock} would ship a block whose entire use is "hold a
- * cable and click two things", discoverable only by reading the source. The
- * tooltip is three lines; that is cheaper than a manual.</p>
+ * <p>A plain {@code ItemBlock} would work - it is an ordinary block. What it
+ * cannot do is explain that the size window is behind sneak + right-click and that
+ * the wall is connected with the remote, and those are the only two things about
+ * this block that are not visible from looking at it. Tooltips are cheaper than a
+ * wiki page that nobody reads.</p>
  */
 public class ItemBlockVideoScreen extends ItemBlock {
 
@@ -43,9 +44,13 @@ public class ItemBlockVideoScreen extends ItemBlock {
     }
 
     @Override
-    public void addInformation(ItemStack stack, World world, List<String> tooltip, ITooltipFlag flag) {
-        tooltip.add(TextFormatting.GRAY + I18n.translateToLocal("hbmzz.video_screen.tip1"));
-        tooltip.add(TextFormatting.GRAY + I18n.translateToLocal("hbmzz.video_screen.tip2"));
-        tooltip.add(TextFormatting.DARK_GRAY + I18n.translateToLocal("hbmzz.video_screen.tip3"));
+    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip,
+                               ITooltipFlag flag) {
+        tooltip.add(TextFormatting.GREEN
+                + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip1"));
+        tooltip.add(TextFormatting.GRAY
+                + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip2"));
+        tooltip.add(TextFormatting.DARK_GRAY
+                + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip3"));
     }
 }

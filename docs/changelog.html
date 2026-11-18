@@ -96,55 +96,43 @@
             <span class="tl-ver">v3.8.0</span>
             <span class="tag tag--amber">最新</span>
           </div>
-          <h3>视频大屏直接在世界里放，DFC 监控屏不再越放越卡</h3>
+          <h3>视频大屏挂上遥控器，拉杆只负责开关</h3>
           <ul>
-            <li><strong>修复：启动即崩（<code>rsaudio:blast_door</code> 注册名被设了两次）。</strong>
-              为了离线检查能静态读到注册名，门和门板的构造函数里补写了一行字面量
-              <code>setRegistryName</code>，而父类构造函数已经用同样的名字设过一次 ——
-              <code>IForgeRegistryEntry</code> 第二次设会抛
-              <code>Attempted to set registry name with existing registry name!</code>，
-              而它抛在静态字段初始化里，表现就是游戏在「Initializing game」阶段直接退出，
-              堆栈只指到构造器、看不出是哪个方块。现在注册名只在具体类里设一次，
-              父类构造函数只设显示名；同时给 regcheck 加了第 64 条守卫「同一个类不许设两次注册名」，
-              反向验证过（把那一行塞回去，检查当场 FAIL）。</li>
-            <li><strong>片头和片尾都开口了，全英文：</strong>片头 8 秒里只放四个词——
-              <code>Don't blink.</code>（0.00）、<code>Break.</code>（2.25，散开帧）、<code>Hold.</code>（4.00，合拢帧）、
-              <code>Locked.</code>（6.45，字头正好撞在 6.50 的落点上）。片尾只在五处说话：开场报台、
-              0:32.7 的口号 <code>Push it to the top.</code>、1:16.4 的左右点名、2:43.6 的收束句、3:06 的收尾句；
-              名字滚动的主体四十多秒一句话不留，不抢字。人声按「那一刻音乐 +3 dB」逐句定档，音乐带 15 ms 前瞻的
-              −4.2 dB 侧链闪避。纯音乐版仍在 <code>intro.wav</code> / <code>credits.wav</code>，随时可回退。</li>
-            <li><strong>片头与片尾配上了新写的曲子：</strong>两条音轨都是这一版现做的，
-              由 <code>tools/audio/ost_synth.py</code> 从正弦 / 锯齿、包络与混响算出来——不采样、不引用
-              <code>docs/assets/audio/</code> 下任何一首 mp3，也不按它们的旋律或段落对齐，时间只跟画面走。
-              片头 8.000 s：2.25 s 小标散开、4.00 s 碎片合拢、6.50 s 咬合（全片最亮一帧，正好落在重拍上），
-              落点之后不再加打击，末帧正好静默。片尾 193.833 s：88 BPM、71 小节，名单匀速滚动时音乐退后半步，
-              结尾散成一条长和弦。两条包都写 <code>"loop": false</code>，音轨与帧数严格等长（实测偏差 0.0000 s）；
-              运行 <code>package_intro.py --silent</code> 仍可产出原来的静音版片头。</li>
-            <li><strong>基线先说清：</strong>本版是在 3.7.1（upstream master 快照，提交 <code>26195b1</code>）之上增量做的，
-              3.7.1 已有的修复一条没回退。3.7.0 是另一条分支，这次只挑了两件东西移植，没有整体覆盖——那一支的四向开合门、
-              自定义贴图系统和旧 mixin 都没进来。</li>
-            <li><strong>新增视频大屏（<code>video_screen</code>）：</strong>1×1 到 3×3 可拼，潜行右键循环尺寸，拆任意一格整块消失；
-              连上视频广播器后，动画<b>直接画在方块表面</b>——不是静态贴图，也不是弹窗。右键才打开观看界面。</li>
-            <li><strong>观看界面改成悬浮面板：</strong>压在屏幕底部、不超过高度 52%，<code>F</code> 切全屏、<code>ESC</code> 关闭，
-              不再糊住整个视野。广播仍是单次播放后自动退出，避免全屏接管后玩家退不出来。</li>
-            <li><strong>播放器升级成序列帧播放器：</strong><code>VideoClip</code> 从「文件列表」改成「文件集 + 时间线」——
-              自然排序修好了 <code>f2</code> 排在 <code>f10</code> 后面的问题，另支持 <code>playlist</code> 显式顺序与安卓开机动画式的
-              <code>desc.txt</code>（分段重复、播完定格）。帧率 0.5~60 可带小数；循环支持一直放 / 只放一遍 / 往返 / 播 N 遍。</li>
-            <li><strong>音画同步：</strong>音轨与第一帧同一时钟启动，每个循环重新对齐；画面是主时钟，漂移超过 300ms 才 seek，
-              不会为了对齐音轨跳帧。<code>audioOffset</code> 用来跳掉音轨开头的空白；往返倒放那一段静音。世界里的多块大屏
-              共用一份播放并默认静音（否则几块屏同时出声会叠音），声音交给观看窗口与广播。</li>
-            <li><strong>DFC 监控屏卡顿：</strong>根因是每帧重建 <code>ConsoleModel</code> 的 Box/Face。现在把
-              「列数 / 行数 / 倾角 / 通电 / 吊装」打包成缓存 key，几何只建一次，放置多块不再线性掉帧。外观一处未改，
-              仍然是那台机器的尺寸。</li>
-            <li><strong>移植 3.7.0 分支的两件东西：</strong>防爆窗帘没有照搬旧门实现，而是接回 3.7.1 的门体系做成一个变体
-              （铁铲潜行右键放行，3×3×3 范围内需要玻璃）；纪念挂画走 <code>RenderWorldLastEvent</code> 而不是 TESR，
-              带一条 chant 音效。</li>
+            <li><strong>大屏的朝向一次算清，四个面都正着看。</strong>
+              画面画在方块表面这层没变，变的是几何来源：面板中心用 <code>ConsoleRig.anchor</code> 从控制器格推出来，
+              旋转用 <code>yawOf(facing)</code>，贴图 UV 用 <code>panelUv()</code>——它的 u 是反向的，因为玩家站在正面时
+              局部 +x 正好是他的左手。以前这三件事各算一遍，结果是北面看着正常、东西两面镜像、上下颠倒；
+              现在统一从 <code>ConsoleRig</code> 取，四个朝向一致。</li>
+            <li><strong>尺寸不再靠右键循环，改成配置窗口：</strong>蹲下右键大屏（点哪一格都行，边缘格会转给控制器），
+              宽与高分开加减，各自 1–32 格；倍速 0.25x–3x，四分之一步进。窗口里<b>没有停止键</b>——停止仍然是拉杆的事，
+              一块屏不该有两个互相打架的开关。改大改小都会真的铺格 / 收格，只会动这面墙自己的格子。</li>
+            <li><strong>新增大屏遥控器（<code>video_remote</code>）：</strong>16×16 的手持机贴图，深灰机身、顶部信号窗、
+              中间方向键、底部两枚按键。它是普通物品，不可放置、不绑任何点击放置行为，也不会弹「不能放置」。
+              作用只有一个：右键播放器把它对准，再右键大屏完成连接（两者相距上限 64 格）。原来那条借用监控数据线
+              接大屏的路子整个移除，数据线回到它本来的工作——仪表、堆芯、摄像头。</li>
+            <li><strong>拉杆按「有没有大屏」分成两种语义：</strong>播放器接上大屏之后，红石只开 / 停那面墙，
+              误触拉杆不会把任何人切进全屏；没接大屏时保持仓库原逻辑——上升沿直接全屏接管，并按设置限制中途退出。
+              大屏所在区块没加载时也不会偷偷降级成全屏，只会写一行「大屏不在已加载区域」。</li>
+            <li><strong>音量与「是否强制限制退出」搬到了播放器上：</strong>蹲下右键播放器打开，窗口里只有一条
+              0–200% 的音量滑条和一个开关。开启后播放结束前按 ESC 只提示、不退出；关闭后 ESC 立刻放行。
+              这两项跟着播放器走，接不接大屏都生效。</li>
+            <li><strong>运行中就能换片：</strong>广播器窗口新增「打开视频文件夹」（直接叫系统文件管理器）与「刷新列表」，
+              另外加了一个没被占用的刷新键 <b>F7</b>，丢完 zip 按一下即可，不用退游戏。没用 F3+T——那是原版的重载资源包，
+              按一次会把所有模型重新烘焙。</li>
+            <li><strong>回退到仓库原实现：</strong>上一版那套「序列帧播放器」替代方案（<code>VideoClip</code> 的文件集/时间线、
+              <code>playlist</code>、<code>desc.txt</code> 分段、往返播放、悬浮观看窗、多屏共用解码）整个撤掉，
+              视频仍按仓库的「文件名 + fps + 帧号」读取。<strong>音乐也回到仓库原版</strong>：片头恢复静音，
+              片尾仍是仓库自带的 <code>the-ending-of-melting.mp3</code>；自制配乐与英文口播的脚本、成品一并移除。</li>
+            <li><strong>保留这一版已经交付的三件事：</strong>防爆窗帘、纪念挂画、DFC 监控屏几何缓存，
+              以及那处启动崩溃修复（<code>rsaudio:blast_door</code> 的注册名只设一次）。</li>
+            <li><strong>基线先说清：</strong>本版在 3.7.1（upstream master 快照，提交 <code>26195b1</code>）之上增量，
+              3.7.1 已有的修复一条没回退；3.7.0 是另一条分支，只移植了窗帘与挂画，没有整体覆盖。</li>
             <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
               <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
               <a href="delivery-3.8.0.md">交付文档</a>。</li>
-            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 64、videocheck 55、linkercheck 21（1 跳过）、
-              rbmkcheck 50、termcheck 67、cecpcheck 8、快速检查 7/7 全绿。但渲染观感、多屏同放的显存占用、
-              窗帘开合的手感都<b>没进游戏看过</b>。</li>
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 65 条（新加一条「遥控器要连的方块必须让出右键」）、
+              videocheck、linkercheck、rbmkcheck、termcheck、cecpcheck、快速检查全绿。大屏的画面观感、倍速下的音画、
+              32×32 的铺格手感<b>都还没进游戏看过</b>。</li>
           </ul>
         </div>
 
@@ -747,7 +735,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=b4dd88fe22"></script>
+<script src="assets/data.js?v=a8e1b458b3"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

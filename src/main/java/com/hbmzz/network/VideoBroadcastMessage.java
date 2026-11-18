@@ -40,22 +40,30 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 public class VideoBroadcastMessage implements IMessage {
 
     private String video = "";
+    private int volume = 100;
+    private boolean forceExit = true;
 
     public VideoBroadcastMessage() {
     }
 
-    public VideoBroadcastMessage(String video) {
+    public VideoBroadcastMessage(String video, int volume, boolean forceExit) {
         this.video = video == null ? "" : video;
+        this.volume = volume;
+        this.forceExit = forceExit;
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
         this.video = ByteBufUtils.readUTF8String(buf);
+        this.volume = buf.readShort();
+        this.forceExit = buf.readBoolean();
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
         ByteBufUtils.writeUTF8String(buf, this.video);
+        buf.writeShort(this.volume);
+        buf.writeBoolean(this.forceExit);
     }
 
     /**
@@ -70,8 +78,8 @@ public class VideoBroadcastMessage implements IMessage {
             if (ctx.side.isClient()) {
                 try {
                     Class.forName("com.hbmzz.client.ClientVideoBridge")
-                            .getMethod("onBroadcast", String.class)
-                            .invoke(null, message.video);
+                            .getMethod("onBroadcast", String.class, int.class, boolean.class)
+                            .invoke(null, message.video, message.volume, message.forceExit);
                 } catch (Throwable ignored) {
                 }
             }

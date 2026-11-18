@@ -1,8 +1,12 @@
 {
-  "parent": "block/orientable",
+  "parent": "block/cube",
   "textures": {
-    "top": "hbmzz:blocks/video_screen_top",
-    "front": "hbmzz:blocks/video_screen_front",
-    "side": "hbmzz:blocks/video_screen_side"
+    "particle": "hbmzz:blocks/video_screen_front",
+    "down": "hbmzz:blocks/video_screen_top",
+    "up": "hbmzz:blocks/video_screen_top",
+    "north": "hbmzz:blocks/video_screen_side",
+    "south": "hbmzz:blocks/video_screen_front",
+    "east": "hbmzz:blocks/video_screen_side",
+    "west": "hbmzz:blocks/video_screen_side"
   }
 }

@@ -58,7 +58,7 @@ import java.util.List;
 public class GuiVideoBroadcaster extends GuiScreen {
 
     private static final int W = 320;
-    private static final int H = 200;
+    private static final int H = 226;
     private static final int LIST_ROWS = 6;
     private static final int ROW_H = 12;
 
@@ -83,6 +83,8 @@ public class GuiVideoBroadcaster extends GuiScreen {
     private String preview = "";
     private int previewColor = DIM;
     private String previewKey = "";
+    /** One-line answer from the folder / refresh buttons. */
+    private String notice = "";
 
     public GuiVideoBroadcaster(BlockPos pos) {
         this.pos = pos;
@@ -132,6 +134,10 @@ public class GuiVideoBroadcaster extends GuiScreen {
         this.buttonList.add(new GuiButton(0, this.left + 22, this.top + 176, 96, 18, "保存并应用"));
         this.buttonList.add(new GuiButton(1, this.left + 124, this.top + 176, 96, 18, "测试广播"));
         this.buttonList.add(new GuiButton(2, this.left + 226, this.top + 176, 72, 18, "关闭"));
+        // 运行中往目录里丢一个 zip 是常态，所以这两件事必须在窗口里，而不是
+        // 让玩家退游戏、开文件管理器、再进来。
+        this.buttonList.add(new GuiButton(3, this.left + 22, this.top + 200, 146, 18, "打开视频文件夹"));
+        this.buttonList.add(new GuiButton(4, this.left + 178, this.top + 200, 120, 18, "刷新列表（F7）"));
     }
 
     @Override
@@ -181,6 +187,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
 
         TileEntityVideoBroadcaster te = tile();
         String status = te == null ? "" : te.getStatus();
+        if (!this.notice.isEmpty()) {
+            status = this.notice;
+        }
         if (!status.isEmpty()) {
             this.fontRenderer.drawStringWithShadow(fit(status, W - 24), l + 12, t + 162, DIM);
         }
@@ -371,10 +380,38 @@ public class GuiVideoBroadcaster extends GuiScreen {
             case 1:
                 send(true);
                 break;
+            case 3:
+                openFolder();
+                break;
+            case 4:
+                refreshList();
+                break;
             default:
                 this.mc.displayGuiScreen(null);
                 break;
         }
+    }
+
+    private void openFolder() {
+        boolean opened = VideoLibrary.openFolder();
+        this.notice = opened
+                ? "已打开：" + VideoLibrary.folderPath()
+                : "没能打开文件管理器，路径：" + VideoLibrary.folderPath();
+    }
+
+    /**
+     * Re-reads the shelf.
+     *
+     * <p>Same call the F7 key makes. The list is rebuilt rather than appended so a
+     * file removed from the folder disappears here too, and the scroll position is
+     * clamped because the list may have become shorter than the window.</p>
+     */
+    private void refreshList() {
+        VideoLibrary.rescan();
+        this.clips = VideoLibrary.names();
+        clampScroll();
+        this.notice = "已刷新：" + this.clips.size() + " 个视频";
+        this.previewKey = "";
     }
 
     private void send(boolean test) {

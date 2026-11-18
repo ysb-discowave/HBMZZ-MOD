@@ -25,9 +25,7 @@ python tools/video/intro/package_intro.py \
 - 脚本只接受 `--mp4` / `--out`；默认值就是上表两个路径。
 - **mp4 不存在时**：打印 `错误: 找不到片头 mp4: ...` 并以退出码 1 结束，**不会**写出任何 zip / 半成品。
 - 抽帧不足 192 帧同样报错退出；超长输入只取前 192 帧。
-- 带音版（默认）：包内有 `audio.wav`（8.000 ± 0.02 s），`meta.json` 含 `"audio"` 与 `"loop":false`。
-  静音版（`--silent`）：不生成 `audio.wav`，`meta.json` 不含 `audio` 字段——下面几条静音断言
-  只对 `--silent` 的产物成立。
+- 不生成 `audio.wav`，`meta.json` 不含 `audio` 字段（片头静音）。
 - 先写 `*.zip.tmp` 再原子改名，失败不残留半成品。
 
 ---

@@ -19,15 +19,13 @@
 package com.hbmzz.block;
 
 import com.hbmzz.HBMZZ;
-import com.hbmzz.HBMZZConfig;
 import com.hbmzz.ModContent;
 import com.hbmzz.dfc.ConsoleRig;
-import com.hbmzz.item.ItemMonitorLinker;
 import com.hbmzz.tile.TileEntityVideoScreen;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
@@ -35,133 +33,136 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-/**
- * 视频大屏: the wall the broadcast actually lands on.
- *
- * <h3>What it is not</h3>
- * <p>Not a second video pipeline. The broadcaster already owns the whole story -
- * a clip name arrives from the server, the client reads the file from its own
- * {@code config/hbmzz/videos/} - and this block only adds a surface to show it
- * on. It stores the name and draws; it never talks to the server about pixels.</p>
- *
- * <h3>How it is linked</h3>
- * <p>With the same cable that binds cameras and cores: point it at the
- * broadcaster (records it), then point it at the screen (binds it). Both blocks
- * decline the click while the cable is held, because 1.12.2 only calls
- * {@code Item.onItemUse} after the block says no - a block that claims every
- * right-click makes its own linking tool unreachable, which is a bug this mod
- * has already shipped once.</p>
- *
- * <h3>Why the panel is multi-cell</h3>
- * <p>Because "大屏" is the point. Cells after the origin are ordinary
- * {@link BlockDFCMonitorPart} filler: no tile entity, so the screen can only be
- * painted once no matter what the renderer does, and breaking any cell takes the
- * whole panel down and drops one screen. Sizes are cycled with sneak-right-click
- * rather than a window: a wall panel is a placement decision, and a window to
- * pick 2x2 would be a window for one click.</p>
- */
-public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProvider, IPanelOrigin {
+import java.util.Collections;
+import java.util.List;
 
-    /** Half thickness of the collidable plate, same as the monitor housing. */
-    private static final double HALF_THICK = 2.0D / 16.0D;
+/**
+ * 视频大屏: the wall a broadcaster's clip is drawn on.
+ *
+ * <h3>One block, two roles</h3>
+ * <p>The controller cell (the one the player placed) owns the tile entity and is
+ * the only cell the renderer draws from. Every other cell of the wall is the same
+ * block with {@link #PART} set, and has no tile entity at all - a cell that
+ * cannot paint cannot paint twice. That removes the whole class of bugs where a
+ * wall of identical controllers each decide a neighbour already drew the picture
+ * and the screen renders as air.</p>
+ *
+ * <h3>Geometry comes from the console rig</h3>
+ * <p>Cell layout and the renderer's local frame both go through
+ * {@link ConsoleRig}: {@code rightOf(facing)} for column order,
+ * {@code anchor(cols, rows, facing)} for the panel centre, {@code yawOf(facing)}
+ * for the rotation and {@code panelUv()} for the image orientation. Those four
+ * already encode "which way is the viewer's right", and the picture's left edge
+ * lands on the viewer's left because of it. Doing this arithmetic locally is how
+ * a screen ends up mirrored on west/east facings and upside down on the others.</p>
+ *
+ * <h3>Size</h3>
+ * <p>Set from the configuration window (sneak + right-click), separately in width
+ * and height, up to {@link TileEntityVideoScreen#MAX_SIZE} square. Growing places
+ * the new cells, shrinking removes only cells this block owns.</p>
+ */
+public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProvider {
+
+    /** True on every cell of the wall except the controller. */
+    public static final PropertyBool PART = PropertyBool.create("part");
+
+    /** Reentrancy guard for {@link #takeDown(World, BlockPos, IBlockState)}. */
+    private static boolean DISMANTLING;
 
     public BlockVideoScreen() {
         super(Material.IRON);
         setRegistryName(HBMZZ.MODID, "video_screen");
         setUnlocalizedName(HBMZZ.MODID + ".video_screen");
         setCreativeTab(CreativeTabs.REDSTONE);
-        setHardness(3.5F);
-        setResistance(10.0F);
-        // Same as the filler cells it grows into (they are the shared monitor
-        // part block, which lights at 0.25). A mismatch here would make the
-        // origin cell the one dark square of an otherwise glowing panel.
-        setLightLevel(0.25F);
-        setDefaultState(this.blockState.getBaseState().withProperty(FACING, EnumFacing.NORTH));
+        setHardness(2.5F);
+        setResistance(8.0F);
+        setLightLevel(0.15F);
+        setDefaultState(this.blockState.getBaseState()
+                .withProperty(FACING, EnumFacing.NORTH)
+                .withProperty(PART, Boolean.FALSE));
     }
 
     @Override
     protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer(this, FACING);
+        return new BlockStateContainer(this, FACING, PART);
     }
 
     @Override
     public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing, float hitX, float hitY,
                                             float hitZ, int meta, EntityLivingBase placer, EnumHand hand) {
-        return getDefaultState().withProperty(FACING, placer.getHorizontalFacing().getOpposite());
+        // The screen looks at whoever placed it: same convention as every other
+        // panel in this mod, so a wall built from the front faces the builder.
+        return getDefaultState().withProperty(FACING, placer.getHorizontalFacing().getOpposite())
+                .withProperty(PART, Boolean.FALSE);
     }
 
     @Override
     public int getMetaFromState(IBlockState state) {
-        return state.getValue(FACING).getHorizontalIndex();
+        return state.getValue(FACING).getHorizontalIndex() | (state.getValue(PART) ? 4 : 0);
     }
 
     @Override
     public IBlockState getStateFromMeta(int meta) {
-        return getDefaultState().withProperty(FACING, EnumFacing.getHorizontal(meta & 3));
+        return getDefaultState()
+                .withProperty(FACING, EnumFacing.getHorizontal(meta & 3))
+                .withProperty(PART, (meta & 4) != 0);
     }
 
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
-        return new TileEntityVideoScreen();
+        return (meta & 4) != 0 ? null : new TileEntityVideoScreen();
     }
 
-    // ------------------------------------------------------------- appearance
-
-    /** The block itself paints nothing; the renderer owns the whole housing. */
+    /**
+     * Only the controller owns a tile entity.
+     *
+     * <p>Stated explicitly rather than left to the meta test in
+     * {@link #createNewTileEntity}: the chunk decides whether to create one by
+     * asking this method, and a part cell that quietly got a tile entity would be
+     * a second renderer for the same picture.</p>
+     */
     @Override
-    public EnumBlockRenderType getRenderType(IBlockState state) {
-        return EnumBlockRenderType.INVISIBLE;
+    public boolean hasTileEntity(IBlockState state) {
+        return !state.getValue(PART);
     }
 
+    // ------------------------------------------------------------------ using
+
+    /**
+     * Sneak + right-click opens the size / speed window; a plain click does
+     * nothing at all.
+     *
+     * <p>The remote is declined first: {@code Item.onItemUse} only runs after the
+     * block says no, so a block that claims every click would make the remote
+     * dead the moment it is aimed at a screen - which is the one thing it exists
+     * for.</p>
+     */
     @Override
-    public boolean isOpaqueCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean isFullCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean isNormalCube(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return false;
-    }
-
-    private static AxisAlignedBB plateBox(EnumFacing facing) {
-        switch (facing) {
-            case EAST:
-            case WEST:
-                return new AxisAlignedBB(0.5D - HALF_THICK, 0.0D, 0.0D,
-                        0.5D + HALF_THICK, 1.0D, 1.0D);
-            case SOUTH:
-            case NORTH:
-            default:
-                return new AxisAlignedBB(0.0D, 0.0D, 0.5D - HALF_THICK,
-                        1.0D, 1.0D, 0.5D + HALF_THICK);
+    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
+                                    EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemVideoRemote) {
+            return false;
         }
+        BlockPos origin = state.getValue(PART) ? originOf(world, pos) : pos;
+        if (origin == null) {
+            return false;
+        }
+        if (world.isRemote) {
+            if (player.isSneaking()) {
+                HBMZZ.proxy.openVideoScreenConfig(origin);
+            }
+            return true;
+        }
+        world.notifyBlockUpdate(origin, world.getBlockState(origin), world.getBlockState(origin), 3);
+        return true;
     }
 
-    @Override
-    public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return plateBox(state.getValue(FACING));
-    }
-
-    @Override
-    public AxisAlignedBB getCollisionBoundingBox(IBlockState state, IBlockAccess world, BlockPos pos) {
-        return plateBox(state.getValue(FACING));
-    }
-
-    // -------------------------------------------------------------- placement
+    // ------------------------------------------------------------- placement
 
     @Override
     public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state,
@@ -178,19 +179,20 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
     }
 
     /**
-     * Makes every cell the panel claims a filler cell.
+     * Turns every cell the wall claims into a part cell.
      *
-     * <p>Only air and replaceables are taken: growing a screen into a wall must
-     * not delete the wall. The panel still renders at its configured size over
-     * whatever it could not claim, which is the same compromise the monitor
-     * makes when its footprint is obstructed.</p>
+     * <p>Cells that are already occupied by something else are skipped, not
+     * refused: a wall that grows into a wall of stone has a hole in it, which is
+     * visible and fixable, while refusing the resize would silently keep the old
+     * size and leave the player with a window that does nothing.</p>
      */
     public static void ensureParts(World world, BlockPos origin, EnumFacing facing, int cols, int rows) {
         if (world.isRemote) {
             return;
         }
-        IBlockState part = ModContent.BLOCK_MONITOR_PART.getDefaultState()
-                .withProperty(BlockDFCMonitorPart.FACING, facing);
+        IBlockState part = ModContent.BLOCK_VIDEO_SCREEN.getDefaultState()
+                .withProperty(FACING, facing)
+                .withProperty(PART, Boolean.TRUE);
         for (int col = 0; col < cols; col++) {
             for (int row = 0; row < rows; row++) {
                 if (col == 0 && row == 0) {
@@ -201,152 +203,109 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
                     continue;
                 }
                 IBlockState existing = world.getBlockState(cell);
-                Block block = existing.getBlock();
-                if (block instanceof BlockDFCMonitorPart) {
-                    // A cell of somebody else's panel (a DFC monitor next door
-                    // shares this filler block) is not ours to re-face. Without
-                    // this the grow step would silently turn a neighbour's cell
-                    // around and paint that panel backwards.
-                    BlockPos owner = BlockDFCMonitorPart.findOrigin(world, cell);
-                    if (owner != null && !owner.equals(origin)) {
-                        continue;
-                    }
-                    if (existing.getValue(BlockDFCMonitorPart.FACING) != facing) {
+                if (existing.getBlock() == ModContent.BLOCK_VIDEO_SCREEN) {
+                    if (existing.getValue(FACING) != facing || !existing.getValue(PART)) {
                         world.setBlockState(cell, part, 3);
                     }
                     continue;
                 }
-                if (block.isReplaceable(world, cell)) {
-                    world.setBlockState(cell, part, 3);
+                if (existing.getBlock().isReplaceable(world, cell)) {
+                    world.setBlockState(cell, part, 2);
                 }
             }
         }
     }
 
     /**
-     * Applies a new size: grows into free cells, and gives back the cells the
-     * panel no longer covers.
+     * Removes the part cells that fall outside a new, smaller size.
      *
-     * <p>Shrinking matters as much as growing. Without the release step a 3x3
-     * screen reduced to 1x1 would leave eight invisible filler cells standing in
-     * the wall - collidable, unbreakable-looking, and impossible to explain.</p>
+     * <p>Only cells of this wall are touched: a shrinking screen that ate the
+     * player's chest because it happened to stand where the wall used to be would
+     * be the worst kind of bug to explain.</p>
      */
-    public static void applySize(World world, BlockPos origin, IBlockState state, int cols, int rows) {
+    public static void trimParts(World world, BlockPos origin, EnumFacing facing, int cols, int rows) {
         if (world.isRemote) {
             return;
         }
-        TileEntity te = world.getTileEntity(origin);
-        if (!(te instanceof TileEntityVideoScreen)) {
-            return;
-        }
-        EnumFacing facing = state.getValue(FACING);
-        TileEntityVideoScreen screen = (TileEntityVideoScreen) te;
-        int oldCols = screen.getCols();
-        int oldRows = screen.getRows();
-
-        BlockDFCMonitorPart.DISMANTLING = true;
-        try {
-            for (int col = 0; col < oldCols; col++) {
-                for (int row = 0; row < oldRows; row++) {
-                    if (col < cols && row < rows) {
-                        continue;
-                    }
-                    BlockPos cell = ConsoleRig.partPos(origin, col, row, facing);
-                    if (cell == null || !world.isBlockLoaded(cell)) {
-                        continue;
-                    }
-                    if (world.getBlockState(cell).getBlock() instanceof BlockDFCMonitorPart) {
-                        // Only give back cells that are actually ours; a filler
-                        // that resolves to a different origin belongs to the
-                        // panel next door and must survive our resize.
-                        BlockPos owner = BlockDFCMonitorPart.findOrigin(world, cell);
-                        if (owner == null || owner.equals(origin)) {
-                            world.setBlockToAir(cell);
-                        }
-                    }
+        for (int col = 0; col < TileEntityVideoScreen.MAX_SIZE; col++) {
+            for (int row = 0; row < TileEntityVideoScreen.MAX_SIZE; row++) {
+                if (col < cols && row < rows) {
+                    continue;
+                }
+                BlockPos cell = ConsoleRig.partPos(origin, col, row, facing);
+                if (cell == null || !world.isBlockLoaded(cell)) {
+                    continue;
+                }
+                IBlockState existing = world.getBlockState(cell);
+                if (existing.getBlock() == ModContent.BLOCK_VIDEO_SCREEN && existing.getValue(PART)) {
+                    world.setBlockToAir(cell);
                 }
             }
-        } finally {
-            BlockDFCMonitorPart.DISMANTLING = false;
         }
-
-        screen.setSize(cols, rows);
-        ensureParts(world, origin, facing, cols, rows);
     }
 
-    // ------------------------------------------------------------------ using
+    // -------------------------------------------------------------- teardown
 
     @Override
-    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
-                                    EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        // The cable has to get the click - see the class comment.
-        if (player.getHeldItem(hand).getItem() instanceof ItemMonitorLinker) {
-            return false;
-        }
-        if (player.isSneaking()) {
-            if (!world.isRemote) {
-                cycleSize(world, pos, state, player);
+    public void breakBlock(World world, BlockPos pos, IBlockState state) {
+        if (!world.isRemote && !DISMANTLING) {
+            BlockPos origin = state.getValue(PART) ? originOf(world, pos) : pos;
+            if (origin != null && origin.equals(pos)) {
+                takeDown(world, pos, state, pos);
+            } else if (origin != null) {
+                takeDown(world, origin, world.getBlockState(origin), pos);
+            } else if (state.getValue(PART)) {
+                // An orphan cell: its controller is gone, so nothing else will
+                // ever clean it up.
+                world.setBlockToAir(pos);
             }
-            return true;
         }
-        if (world.isRemote) {
-            HBMZZ.proxy.openVideoViewer(pos);
-            return true;
-        }
-        // Push the current clip/link down before the window opens, so a client
-        // that walked up while it was bound elsewhere does not play a stale name.
-        world.notifyBlockUpdate(pos, state, state, 3);
-        return true;
+        super.breakBlock(world, pos, state);
     }
 
-    private static void cycleSize(World world, BlockPos pos, IBlockState state, EntityPlayer player) {
-        TileEntity te = world.getTileEntity(pos);
-        if (!(te instanceof TileEntityVideoScreen)) {
+    /**
+     * Removes every cell of the wall.
+     *
+     * <p>The part cells and the controller both disappear, but exactly one item
+     * is spawned, at the cell the player actually broke. {@code setBlockToAir}
+     * drops nothing, which is why {@link #getDrops} is empty: the drop is placed
+     * here by hand so a 4x3 wall cannot become twelve screens.</p>
+     */
+    private static void takeDown(World world, BlockPos origin, IBlockState state, BlockPos dropAt) {
+        if (world.isRemote || DISMANTLING) {
             return;
         }
-        TileEntityVideoScreen screen = (TileEntityVideoScreen) te;
-        int[] next = TileEntityVideoScreen.nextPreset(screen.getCols(), screen.getRows());
-        applySize(world, pos, state, next[0], next[1]);
-        player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_screen_size",
-                next[0], next[1]));
-    }
-
-    // ------------------------------------------------------------- panel origin
-
-    @Override
-    public int panelCols(World world, BlockPos origin) {
-        TileEntity te = world.getTileEntity(origin);
-        if (te instanceof TileEntityVideoScreen) {
-            return Math.max(1, ((TileEntityVideoScreen) te).getCols());
-        }
-        return Math.max(1, HBMZZConfig.defaultScreenCols);
-    }
-
-    @Override
-    public int panelRows(World world, BlockPos origin) {
-        TileEntity te = world.getTileEntity(origin);
-        if (te instanceof TileEntityVideoScreen) {
-            return Math.max(1, ((TileEntityVideoScreen) te).getRows());
-        }
-        return Math.max(1, HBMZZConfig.defaultScreenRows);
-    }
-
-    @Override
-    public ItemStack panelDrop() {
-        net.minecraft.item.Item item = net.minecraft.item.Item.getItemFromBlock(this);
-        return item == null ? ItemStack.EMPTY : new ItemStack(item, 1);
-    }
-
-    @Override
-    public void takeDown(World world, BlockPos origin, IBlockState state) {
-        if (world.isRemote || BlockDFCMonitorPart.DISMANTLING) {
-            return;
-        }
-        BlockDFCMonitorPart.DISMANTLING = true;
+        DISMANTLING = true;
         try {
-            EnumFacing facing = state.getValue(FACING);
-            int cols = panelCols(world, origin);
-            int rows = panelRows(world, origin);
+            EnumFacing facing = state.getBlock() instanceof BlockVideoScreen
+                    ? state.getValue(FACING) : EnumFacing.NORTH;
+            int cols = 1;
+            int rows = 1;
+            TileEntity te = world.getTileEntity(origin);
+            boolean haveSize = te instanceof TileEntityVideoScreen;
+            if (haveSize) {
+                cols = Math.max(1, ((TileEntityVideoScreen) te).getCols());
+                rows = Math.max(1, ((TileEntityVideoScreen) te).getRows());
+            } else {
+                // The tile entity is already gone (the chunk dropped it, or the
+                // block was replaced rather than broken). Walk the wall instead of
+                // leaving its cells behind: stop at the first column without a
+                // cell, and at the first gap inside a column.
+                for (int col = 0; col < TileEntityVideoScreen.MAX_SIZE; col++) {
+                    BlockPos probe = ConsoleRig.partPos(origin, col, 0, facing);
+                    if (!isCell(world, probe, facing)) {
+                        break;
+                    }
+                    cols = col + 1;
+                }
+                for (int row = 0; row < TileEntityVideoScreen.MAX_SIZE; row++) {
+                    BlockPos probe = ConsoleRig.partPos(origin, 0, row, facing);
+                    if (!isCell(world, probe, facing)) {
+                        break;
+                    }
+                    rows = row + 1;
+                }
+            }
             for (int col = 0; col < cols; col++) {
                 for (int row = 0; row < rows; row++) {
                     if (col == 0 && row == 0) {
@@ -356,25 +315,74 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
                     if (cell == null || !world.isBlockLoaded(cell)) {
                         continue;
                     }
-                    if (world.getBlockState(cell).getBlock() instanceof BlockDFCMonitorPart) {
-                        BlockPos owner = BlockDFCMonitorPart.findOrigin(world, cell);
-                        if (owner == null || owner.equals(origin)) {
-                            world.setBlockToAir(cell);
-                        }
+                    if (world.getBlockState(cell).getBlock() == ModContent.BLOCK_VIDEO_SCREEN) {
+                        world.setBlockToAir(cell);
                     }
                 }
             }
-            if (!world.isAirBlock(origin) && world.getBlockState(origin).getBlock() == this) {
+            if (world.getBlockState(origin).getBlock() == ModContent.BLOCK_VIDEO_SCREEN) {
                 world.setBlockToAir(origin);
             }
+            spawnAsEntity(world, dropAt, new ItemStack(ModContent.BLOCK_VIDEO_SCREEN));
         } finally {
-            BlockDFCMonitorPart.DISMANTLING = false;
+            DISMANTLING = false;
         }
     }
 
+    /** True when that position holds a part cell of a wall facing this way. */
+    private static boolean isCell(World world, BlockPos pos, EnumFacing facing) {
+        if (pos == null || !world.isBlockLoaded(pos)) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        return state.getBlock() == ModContent.BLOCK_VIDEO_SCREEN
+                && state.getValue(PART) && state.getValue(FACING) == facing;
+    }
+
+    /** The wall hands out its own item on break, so vanilla must not drop one too. */
     @Override
-    public void breakBlock(World world, BlockPos pos, IBlockState state) {
-        takeDown(world, pos, state);
-        super.breakBlock(world, pos, state);
+    public List<ItemStack> getDrops(net.minecraft.world.IBlockAccess world, BlockPos pos,
+                                    IBlockState state, int fortune) {
+        return Collections.emptyList();
+    }
+
+    /**
+     * Walks a cell back to its controller.
+     *
+     * <p>Bounded by the maximum size, and every candidate is confirmed with
+     * {@link ConsoleRig#covers}: two walls standing side by side is a legal
+     * layout, and the nearest controller is not necessarily ours.</p>
+     */
+    public static BlockPos originOf(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        if (state.getBlock() != ModContent.BLOCK_VIDEO_SCREEN) {
+            return null;
+        }
+        if (!state.getValue(PART)) {
+            return pos;
+        }
+        EnumFacing facing = state.getValue(FACING);
+        for (int back = 0; back < TileEntityVideoScreen.MAX_SIZE; back++) {
+            for (int up = 0; up < TileEntityVideoScreen.MAX_SIZE; up++) {
+                BlockPos candidate = ConsoleRig.partPos(pos, -back, -up, facing);
+                if (candidate == null || !world.isBlockLoaded(candidate)) {
+                    continue;
+                }
+                IBlockState candidateState = world.getBlockState(candidate);
+                if (candidateState.getBlock() != ModContent.BLOCK_VIDEO_SCREEN
+                        || candidateState.getValue(PART)) {
+                    continue;
+                }
+                TileEntity te = world.getTileEntity(candidate);
+                if (!(te instanceof TileEntityVideoScreen)) {
+                    continue;
+                }
+                TileEntityVideoScreen screen = (TileEntityVideoScreen) te;
+                if (ConsoleRig.covers(candidate, screen.getCols(), screen.getRows(), facing, pos)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
     }
 }

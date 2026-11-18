@@ -48,28 +48,16 @@ import java.util.Map;
  * the sound stays in sync. That is the correct failure for video - late frames
  * are worse than missing ones.</p>
  *
- * <h3>One cursor, every loop mode</h3>
- * <p>The playhead is a <em>monotonic</em> position in slots, not a slot number:
- * a clip with 60 slots counts 0..59, then 60..119, and so on. The clip folds
- * that back into a slot, which is what makes looping free - the seam between
- * the last frame and the first is just another decode step - and ping-pong
- * cheap, because the reverse pass was pre-decoded by the same forward walk.</p>
- *
- * <h3>Sound follows picture</h3>
- * <p>The clock starts when the first frame is actually on screen, never when
- * the screen opens. The track is restarted at every forward pass (so a looping
- * alarm does not slowly slide out of sync), paused on the reverse half of a
- * ping-pong, and nudged by a seek when it drifts more than
- * {@link #AUDIO_TOLERANCE}. The picture never waits for the sound.</p>
+ * <p><b>Normalise once.</b> Every frame is redrawn into {@code TYPE_INT_RGB} at
+ * one fixed size on the decode thread (flattening any alpha onto black, which is
+ * what a video screen does with it). The texture is therefore allocated exactly
+ * once, and the render path is a single sub-image upload.</p>
  */
 public final class VideoPlayer implements Closeable {
 
     /** How far ahead the decoder may run, in frames, regardless of config. */
     private static final int MIN_CACHE = 2;
     private static final int MAX_CACHE = 24;
-
-    /** Drift worth a seek; below this the mixer is just being a mixer. */
-    private static final double AUDIO_TOLERANCE = 0.30D;
 
     private final VideoClip clip;
     private final int maxWidth;
@@ -78,10 +66,12 @@ public final class VideoPlayer implements Closeable {
 
     private final VideoTexture texture = new VideoTexture();
     private final Object lock = new Object();
-    private final Map<Long, BufferedImage> ready = new LinkedHashMap<Long, BufferedImage>();
+    private final Map<Integer, BufferedImage> ready = new LinkedHashMap<>();
 
     private volatile boolean running = true;
-    private volatile long consumed;
+    private volatile int decoded;
+    private volatile int consumed;
+    private volatile boolean decodeDone;
     private volatile String failure;
     private volatile int frameWidth;
     private volatile int frameHeight;
@@ -90,8 +80,9 @@ public final class VideoPlayer implements Closeable {
     private VideoAudio audio;
     private long startNanos;
     private boolean started;
+    /** Playback rate, 1.0 = the clip's own frame rate. Set by the wall screen. */
+    private float speed = 1.0F;
     private int uploaded = -1;
-    private int audioCycle = -1;
 
     private VideoPlayer(VideoClip clip) {
         this.clip = clip;
@@ -102,19 +93,8 @@ public final class VideoPlayer implements Closeable {
 
     /** @return null when the clip is missing or unreadable; check {@link VideoLibrary} first */
     public static VideoPlayer open(String name) {
-        return open(name, false);
-    }
-
-    /**
-     * @param singlePass force one pass regardless of what the pack declares,
-     *                   which is what a full-screen broadcast must do
-     */
-    public static VideoPlayer open(String name, boolean singlePass) {
         VideoClip clip = VideoLibrary.open(name);
-        if (clip == null) {
-            return null;
-        }
-        return new VideoPlayer(singlePass ? clip.asSinglePass() : clip);
+        return clip == null ? null : new VideoPlayer(clip);
     }
 
     // --------------------------------------------------------------- control
@@ -129,61 +109,41 @@ public final class VideoPlayer implements Closeable {
         this.worker.start();
     }
 
-    /**
-     * Walks the playhead forward for as long as the clip lasts, prefetching
-     * frames for the render thread.
-     *
-     * <p>Positions, not frames, are the unit here: two slots may show the same
-     * image (a hold, a repeated part), and the decoded bitmap is reused instead
-     * of decoded twice.</p>
-     */
     private void decodeLoop() {
-        long position = 0L;
-        long limit = limitPositions();
-        int lastEntry = -1;
-        BufferedImage lastImage = null;
+        int index = 0;
         try {
-            while (this.running && position < limit) {
+            while (this.running && index < this.clip.frameCount()) {
                 synchronized (this.lock) {
-                    while (this.running && position - this.consumed >= this.cacheFrames) {
+                    while (this.running && this.decoded - this.consumed >= this.cacheFrames) {
                         this.lock.wait(200L);
                     }
                 }
                 if (!this.running) {
                     return;
                 }
-                int entry = this.clip.entryAt(this.clip.slotAt(position));
-                BufferedImage image;
-                if (entry == lastEntry && lastImage != null) {
-                    image = lastImage;
-                } else {
-                    image = normalise(this.clip.readFrame(entry));
-                    lastEntry = entry;
-                    lastImage = image;
-                }
+                BufferedImage raw = this.clip.readFrame(index);
+                BufferedImage normalised = normalise(raw);
                 synchronized (this.lock) {
-                    this.ready.put(position, image);
+                    this.ready.put(index, normalised);
+                    this.decoded = index + 1;
                     this.lock.notifyAll();
                 }
-                position++;
+                index++;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Throwable t) {
             // A corrupt frame at the start is fatal; later on it just means the
             // clip ends early, which the clock already handles.
-            if (position == 0L) {
+            if (index == 0) {
                 this.failure = "无法解码第 1 帧：" + t;
             }
+        } finally {
+            this.decodeDone = true;
+            synchronized (this.lock) {
+                this.lock.notifyAll();
+            }
         }
-    }
-
-    private long limitPositions() {
-        int passes = this.clip.passes();
-        if (passes <= 0) {
-            return Long.MAX_VALUE;
-        }
-        return (long) passes * this.clip.periodSlots();
     }
 
     /**
@@ -195,66 +155,76 @@ public final class VideoPlayer implements Closeable {
      * must not jump the playhead back to zero.</p>
      */
     public void beginPlayback() {
-        beginPlayback(true);
+        beginPlayback(0.65F);
     }
 
     /**
-     * Same, but able to stay silent.
+     * Same, at a caller-chosen level.
      *
-     * <p>A screen standing in the world plays muted: the audio path is a plain
-     * {@code Sound} with no position, so two screens showing the same clip
-     * would double the volume, and a wall of them would be unusable. Sound is
-     * what the watching window is for. The clock is anchored either way, so
-     * muting never desynchronises the picture.</p>
+     * <p>The wall screen has its own volume setting, which is why this is not a
+     * constant: a 32x32 wall at cinema volume and a 1x1 panel in a corridor should
+     * not sound identical. The clock is anchored either way.</p>
      */
-    public void beginPlayback(boolean withAudio) {
+    public void beginPlayback(float volume) {
         if (this.started) {
             return;
         }
         this.started = true;
         this.startNanos = System.nanoTime();
-        if (withAudio && HBMZZConfig.videoAudio && this.clip.hasAudio()) {
+        if (HBMZZConfig.videoAudio && this.clip.hasAudio()) {
             try {
-                this.audio = VideoAudio.play(this.clip.openAudio(), 0.65F, this.clip.audioOffset());
-                this.audioCycle = 0;
+                this.audio = VideoAudio.play(this.clip.openAudio(), volume);
             } catch (IOException ignored) {
             }
         }
+    }
+
+    /**
+     * Sets the playback rate.
+     *
+     * <p>Only the clock is scaled, never the decoder: frames are still listed in
+     * clip order and the ring buffer is unchanged. At 0.25x the playhead simply
+     * advances a quarter as fast, at 3x three times as fast - which is the whole
+     * feature, and is why it cannot desynchronise the audio relative to the
+     * picture at the moment playback starts.</p>
+     */
+    public void setSpeed(float speed) {
+        this.speed = Math.max(0.25F, Math.min(3.0F, speed));
+    }
+
+    public float speed() {
+        return this.speed;
+    }
+
+    /** Clip time reached so far, i.e. wall-clock time times the playback rate. */
+    public double filmSeconds() {
+        return elapsedSeconds() * this.speed;
     }
 
     public boolean started() {
         return this.started;
     }
 
-    public boolean hasAudio() {
-        return this.clip.hasAudio();
-    }
-
     public double elapsedSeconds() {
         return this.started ? (System.nanoTime() - this.startNanos) / 1.0e9D : 0.0D;
     }
 
-    /** Length of one cycle; what the progress bar spans. */
     public double durationSeconds() {
-        return this.clip.cycleSeconds();
+        return this.clip.durationSeconds();
     }
 
-    /** True once a finite clip has played out, with a tail for the last frame. */
+    /** True once the clip has played out, with a short tail for the last frame. */
     public boolean finished() {
         if (!this.started) {
             return false;
         }
-        int passes = this.clip.passes();
-        if (passes <= 0) {
-            return false;
-        }
-        double tail = this.clip.frameSeconds() + 0.25D;
-        return elapsedSeconds() >= passes * durationSeconds() + tail;
+        double tail = 1.0D / this.clip.fps() + 0.25D;
+        return filmSeconds() >= durationSeconds() + tail;
     }
 
-    /** False for a one-shot clip: the caller should stop showing it. */
-    public boolean looping() {
-        return this.clip.repeating();
+    /** True when decoding is over and nothing is left to show. */
+    public boolean exhausted() {
+        return this.decodeDone && this.uploaded >= this.clip.frameCount() - 1;
     }
 
     public String failure() {
@@ -264,46 +234,32 @@ public final class VideoPlayer implements Closeable {
     // ----------------------------------------------------------------- frames
 
     /**
-     * Puts a position on the texture if it is decoded.
+     * Puts frame {@code index} on the texture if it is decoded.
      *
      * @return true when something is (or already was) on screen
      */
-    public boolean showFrame(int position) {
-        if (position < 0) {
-            position = 0;
-        }
+    public boolean showFrame(int index) {
         BufferedImage image;
         synchronized (this.lock) {
-            image = this.ready.get((long) position);
+            image = this.ready.get(index);
             if (image != null) {
-                if (position > this.consumed) {
-                    this.consumed = position;
-                }
+                this.consumed = Math.max(this.consumed, index);
                 // One frame of slack behind the playhead covers a slow render
                 // tick; anything older can never be shown again.
-                final long floor = position - 1L;
-                this.ready.keySet().removeIf(key -> key < floor);
+                this.ready.keySet().removeIf(key -> key < index - 1);
                 this.lock.notifyAll();
             }
         }
-        if (image != null && position != this.uploaded) {
+        if (image != null && index != this.uploaded) {
             this.texture.upload(image);
-            this.uploaded = position;
-        }
-        if (this.audio != null && this.started) {
-            syncAudio(elapsedSeconds());
+            this.uploaded = index;
         }
         return this.uploaded >= 0;
     }
 
-    /** Elapsed seconds to a position on this clip's timeline. */
-    public int positionAt(double seconds) {
-        return this.clip.positionAt(seconds);
-    }
-
-    /** The final position of a finite clip, for holding its last frame. */
-    public int lastPosition() {
-        return this.clip.lastPosition();
+    public int frameIndex(double seconds) {
+        int index = (int) Math.floor(seconds * this.clip.fps());
+        return Math.max(0, Math.min(this.clip.frameCount() - 1, index));
     }
 
     public int textureId() {
@@ -322,7 +278,7 @@ public final class VideoPlayer implements Closeable {
         return this.clip.frameCount();
     }
 
-    public double fps() {
+    public int fps() {
         return this.clip.fps();
     }
 
@@ -330,56 +286,12 @@ public final class VideoPlayer implements Closeable {
         return this.clip.title();
     }
 
-    public VideoClip.LoopMode loopMode() {
-        return this.clip.loopMode();
-    }
-
     public double percent() {
-        int passes = this.clip.passes();
-        if (passes > 0) {
-            double total = passes * durationSeconds();
-            return total <= 0.0D ? 0.0D : Math.min(1.0D, elapsedSeconds() / total);
-        }
-        double cycle = durationSeconds();
-        return cycle <= 0.0D ? 0.0D : Math.min(1.0D, (elapsedSeconds() % cycle) / cycle);
+        double duration = durationSeconds();
+        return duration <= 0.0D ? 0.0D : Math.min(1.0D, filmSeconds() / duration);
     }
 
     // ------------------------------------------------------------- internals
-
-    /**
-     * Keeps the soundtrack on the picture.
-     *
-     * <p>A cycle is a natural sync point: restart the track there and the two
-     * agree to within one mixer buffer. Inside a cycle, drift beyond
-     * {@link #AUDIO_TOLERANCE} is corrected by seeking the audio, never by
-     * delaying the frame - the picture is the master clock.</p>
-     */
-    private void syncAudio(double elapsed) {
-        double cycle = this.clip.cycleSeconds();
-        if (cycle <= 0.0D) {
-            return;
-        }
-        int cycleIndex = (int) Math.floor(elapsed / cycle);
-        double inCycle = elapsed - cycleIndex * cycle;
-        boolean forward = inCycle <= this.clip.forwardSeconds();
-        if (!forward) {
-            // Ping-pong: the reverse half runs backward with no sound. Playing
-            // the track again there would double a one-pass soundtrack.
-            this.audio.setPaused(true);
-            return;
-        }
-        if (cycleIndex != this.audioCycle) {
-            this.audioCycle = cycleIndex;
-            this.audio.setPaused(false);
-            this.audio.restart(this.clip.audioOffset());
-            return;
-        }
-        this.audio.setPaused(false);
-        double expected = this.clip.audioOffset() + inCycle;
-        if (expected < this.audio.lengthSeconds()) {
-            this.audio.align(expected, AUDIO_TOLERANCE);
-        }
-    }
 
     private BufferedImage normalise(BufferedImage source) {
         int w = source.getWidth();

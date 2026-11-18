@@ -29,6 +29,7 @@ import com.hbmzz.item.ItemGun;
 import com.hbmzz.item.ItemHackerTablet;
 import com.hbmzz.item.ItemJetpack;
 import com.hbmzz.item.ItemMonitorLinker;
+import com.hbmzz.item.ItemVideoRemote;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -62,10 +63,13 @@ public final class ModContent {
     public static final Block BLOCK_VIDEO_BROADCASTER = new com.hbmzz.block.BlockVideoBroadcaster();
     /**
      * The wall the broadcast lands on: a multi-cell panel that plays the linked
-     * broadcaster's clip in the world. Filler cells are {@link #BLOCK_MONITOR_PART}.
+     * player's clip in the world. Its own filler cells are the same block with
+     * {@code part=true}, so a wall stays one block type in the creative tab.
      */
     public static final Block BLOCK_VIDEO_SCREEN = new com.hbmzz.block.BlockVideoScreen();
     public static final Item ITEM_LINKER = new ItemMonitorLinker();
+    /** 大屏遥控器: links a wall to its player. Never placed, never a block item. */
+    public static final Item ITEM_VIDEO_REMOTE = new ItemVideoRemote();
     /** The hacker tablet: opens a terminal that writes machine fields directly. */
     public static final Item ITEM_HACKER_TABLET = new ItemHackerTablet();
     public static final Item ITEM_BLOCK_MONITOR = new ItemBlockMonitor(BLOCK_MONITOR);
@@ -73,7 +77,8 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_CTRL_PANEL = new ItemBlock(BLOCK_CTRL_PANEL);
     public static final Item ITEM_BLOCK_CTRL_CONSOLE = new ItemBlock(BLOCK_CTRL_CONSOLE);
     public static final Item ITEM_BLOCK_VIDEO_BROADCASTER = new ItemBlock(BLOCK_VIDEO_BROADCASTER);
-    public static final Item ITEM_BLOCK_VIDEO_SCREEN = new com.hbmzz.item.ItemBlockVideoScreen(BLOCK_VIDEO_SCREEN);
+    public static final Item ITEM_BLOCK_VIDEO_SCREEN =
+            new com.hbmzz.item.ItemBlockVideoScreen(BLOCK_VIDEO_SCREEN);
 
     // ---- nuclear accident system -------------------------------------------
     /** The one bomb. A plain ItemBlock would do, except it cannot explain a refusal. */
@@ -189,6 +194,7 @@ public final class ModContent {
         ITEM_BLOCK_TARTARUS_GATE.setRegistryName(BLOCK_TARTARUS_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_TARTARUS_GATE);
         event.getRegistry().register(ITEM_LINKER);
+        event.getRegistry().register(ITEM_VIDEO_REMOTE);
         event.getRegistry().register(ITEM_HACKER_TABLET);
         event.getRegistry().register(ITEM_SPEED_COIL);
         event.getRegistry().register(ITEM_JUMP_COIL);
@@ -299,6 +305,20 @@ public final class ModContent {
                 'I', Items.IRON_INGOT,
                 'R', Items.REDSTONE
         ).setRegistryName(HBMZZ.MODID, "video_screen"));
+
+        // Remote: a handset, so the parts are a button (redstone), a case (iron)
+        // and a display window (glass pane). One per wall is enough, and it is
+        // reusable, which is why it is not consumed on binding.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "video_remote"),
+                new ItemStack(ITEM_VIDEO_REMOTE),
+                " R ",
+                "IGI",
+                " I ",
+                'R', Items.REDSTONE,
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE)
+        ).setRegistryName(HBMZZ.MODID, "video_remote"));
 
         // ---- nuclear accident system ----
         // The bomb is the most expensive thing in the mod by design: it ends a

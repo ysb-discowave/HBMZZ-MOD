@@ -50,11 +50,14 @@ public class CommonProxy {
     }
 
     /**
-     * Opens the watching window for a video block - a screen in the world or the
-     * broadcaster feeding it. Client only, like every other window here: the
-     * server has no pixels, it just carries the clip name in the update tag.
+     * Opens the wall's size / speed window. Client only, like every other window
+     * here: the server has no pixels, it just owns the numbers.
      */
-    public void openVideoViewer(BlockPos pos) {
+    public void openVideoScreenConfig(BlockPos pos) {
+    }
+
+    /** Opens the player's volume / exit-lock window. */
+    public void openVideoPlayerConfig(BlockPos pos) {
     }
 
     /**

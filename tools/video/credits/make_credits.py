@@ -8,13 +8,8 @@
 改名单只需要改同目录的 names.json，然后重跑这条命令。
 
 产物（tools/video/credits/out/）：
-    hbmzz-credits.wav   新写的配乐（tools/audio/ost_synth.py 合成）
-    hbmzz-credits.mp4   配了新乐的成片，留着自己看
+    hbmzz-credits.mp4   带 BGM 的成片，留着自己看
     hbmzz-credits.zip   视频包，丢进客户端 config/hbmzz/videos/
-
-音轨是这一版新做的，长度锁死在画面时长上（2326 帧 / 12 fps）。
-仓库里 docs/assets/audio/ 下那几首 mp3 不参与——不读、不剪、不对齐，
-只挂在网站上试听。
 
 原理：画面交给 ASS 字幕（libass）渲染。所有行共用同一段 \\move，
 各自只差一个固定的 y 偏移，于是整块内容匀速上移。行数、行距、起止 y
@@ -51,11 +46,10 @@ ROLE_X = 458              # Role 样式左对齐的锚点
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+BGM = os.path.join(ROOT, "docs", "assets", "audio", "the-ending-of-melting.mp3")
 NAMES = os.path.join(HERE, "names.json")
 OUT_DIR = os.path.join(HERE, "out")
-AUDIO = os.path.join(OUT_DIR, "credits-vo.wav")   # 配乐 + 英文口播，缺失时自动生成
 BUILD_DIR = os.path.join(HERE, ".build")
-AUDIO_TOOL = os.path.join(ROOT, "tools", "audio")
 MP4 = os.path.join(OUT_DIR, "hbmzz-credits.mp4")
 ZIP = os.path.join(OUT_DIR, "hbmzz-credits.zip")
 
@@ -165,24 +159,6 @@ def build_ass(rows: list[tuple[str, str, str]]) -> str:
 
 # ---------------------------------------------------------------- 生成
 
-def ensure_audio() -> str:
-    """配乐由 tools/audio/ost_synth.py 合成，不做任何采样；没有就现算一份。"""
-    if os.path.isfile(AUDIO) and os.path.getsize(AUDIO) > 1024:
-        return AUDIO
-    if os.path.basename(AUDIO) == "credits-vo.wav":
-        die("缺 credits-vo.wav：先跑 python tools/audio/voice_over.py --song credits")
-    sys.path.insert(0, AUDIO_TOOL)
-    try:
-        import ost_synth
-    except ImportError:
-        die("找不到 tools/audio/ost_synth.py，无法生成配乐")
-    if not ost_synth.HAS_NUMPY:
-        die("生成配乐需要 numpy：python -m pip install numpy")
-    print("合成配乐: %s" % AUDIO)
-    ost_synth.write_wav(AUDIO, ost_synth.render_credits())
-    return AUDIO
-
-
 def run(cmd: list[str], cwd: str | None = None) -> None:
     print("$ " + " ".join(cmd))
     if subprocess.call(cmd, cwd=cwd) != 0:
@@ -191,6 +167,8 @@ def run(cmd: list[str], cwd: str | None = None) -> None:
 
 def main() -> int:
     ffmpeg = find_ffmpeg()
+    if not os.path.isfile(BGM):
+        die("找不到 BGM: " + BGM)
     if not os.path.isfile(NAMES):
         die("找不到名单: " + NAMES)
 
@@ -209,20 +187,20 @@ def main() -> int:
     with open(ass_path, "w", encoding="utf-8") as handle:
         handle.write(build_ass(rows))
 
-    audio = ensure_audio()
-
-    # 1) 渲染成片：黑底 + 字幕 + 新配乐。cwd 切到 .build，避免 ass 滤镜吃盘符冒号。
+    # 1) 渲染成片：黑底 + 字幕 + BGM。cwd 切到 .build，避免 ass 滤镜吃盘符冒号。
     run([ffmpeg, "-y", "-loglevel", "error",
          "-f", "lavfi", "-i", "color=black:s=%dx%d:r=%d" % (WIDTH, HEIGHT, FPS),
-         "-i", audio,
+         "-i", BGM,
          "-vf", "ass=credits.ass",
          "-t", "%.4f" % DURATION,
          "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-b:a", "192k",
          MP4], cwd=BUILD_DIR)
 
-    # 2) 音轨直接用合成出来的 wav，不从 mp4 里二次抽（避免 AAC 二次压缩）。
-    audio_wav = audio
+    # 2) 音轨直接从原始 mp3 转，不从 mp4 里二次抽，避免 AAC 二次压缩。
+    audio_wav = os.path.join(BUILD_DIR, "audio.wav")
+    run([ffmpeg, "-y", "-loglevel", "error", "-i", BGM,
+         "-vn", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", audio_wav])
 
     # 3) 抽帧
     frames_dir = os.path.join(BUILD_DIR, "frames")
@@ -235,8 +213,7 @@ def main() -> int:
         die("ffmpeg 没有抽出任何帧。")
 
     # 4) 打包。ZIP_STORED：jpeg 已经压过了，deflate 只会白花时间。
-    meta = {"fps": FPS, "frames": len(frames), "title": "致谢",
-            "audio": "audio.wav", "loop": False}
+    meta = {"fps": FPS, "frames": len(frames), "title": "致谢", "audio": "audio.wav"}
     with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_STORED) as zf:
         zf.writestr("meta.json", json.dumps(meta, ensure_ascii=False, indent=2) + "\n")
         for index, name in enumerate(frames, start=1):
@@ -245,7 +222,7 @@ def main() -> int:
 
     shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
-    for path in (AUDIO, MP4, ZIP):
+    for path in (MP4, ZIP):
         print("%s  %.1f MB" % (path, os.path.getsize(path) / 1024.0 / 1024.0))
     print("共 %d 帧 / %.2f 秒" % (len(frames), len(frames) / FPS))
     return 0

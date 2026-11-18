@@ -117,6 +117,16 @@ public class ClientEvents {
         // 屏幕会一直占着一路解码，直到退出世界才释放。
         com.hbmzz.client.video.VideoScreenPlayback.tick();
         EntityPlayer player = mc.player;
+        // F7: pick up a zip dropped into config/hbmzz/videos while the game is
+        // running, without a restart and without F3+T's resource reload.
+        while (ClientProxy.KEY_REFRESH_VIDEOS.isPressed()) {
+            com.hbmzz.video.VideoLibrary.rescan();
+            int count = com.hbmzz.video.VideoLibrary.names().size();
+            if (player != null) {
+                player.sendStatusMessage(new net.minecraft.util.text.TextComponentString(
+                        "视频目录已刷新：" + count + " 个（F7）"), true);
+            }
+        }
         if (player == null) {
             // Leaving a world drops the server side state; forget ours as well so
             // the next press is sent again instead of staying latched.

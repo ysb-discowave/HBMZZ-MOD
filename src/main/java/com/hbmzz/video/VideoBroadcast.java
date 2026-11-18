@@ -50,6 +50,19 @@ public final class VideoBroadcast {
      * @return a one-line report for the tile entity (and the operator's HUD)
      */
     public static String fire(World world, BlockPos pos, String video, String selector) {
+        return fire(world, pos, video, selector, 100, true);
+    }
+
+    /**
+     * Same, with the player's own volume and exit policy attached.
+     *
+     * <p>They ride along with the clip name because the receiving window needs
+     * both before the first frame: starting at the default volume and dropping to
+     * the configured one a tick later is audible, and deciding the exit rule late
+     * means one unlucky player can dismiss a takeover that was meant to hold.</p>
+     */
+    public static String fire(World world, BlockPos pos, String video, String selector,
+                             int volume, boolean forceExit) {
         if (video == null || video.isEmpty()) {
             return "未设置视频文件";
         }
@@ -61,7 +74,7 @@ public final class VideoBroadcast {
             return result.error;
         }
         List<EntityPlayer> players = result.players;
-        VideoBroadcastMessage message = new VideoBroadcastMessage(video);
+        VideoBroadcastMessage message = new VideoBroadcastMessage(video, volume, forceExit);
         int sent = 0;
         for (EntityPlayer player : players) {
             // Fake players answer instanceof EntityPlayer too; they have no

@@ -259,20 +259,19 @@ window.HBMZZ_DATA = {
   "timeline": [
     {
       "version": "3.8.0",
-      "title": "视频大屏直接在世界里放，DFC 监控屏不再越放越卡",
+      "title": "视频大屏挂上遥控器，拉杆只负责开关",
       "items": [
-        "修复启动崩溃：<code>rsaudio:blast_door</code> 的注册名被设了两次。为让离线检查能静态读到名字，构造链里补写了一行字面量 <code>setRegistryName</code>，父类已经设过一次，第二次直接抛 <code>IllegalStateException</code>，而这个初始化发生在静态字段里 —— 游戏在「Initializing game」阶段退出。现在注册名只在具体类设一次，父类只设显示名；regcheck 新增第 64 条守卫「同一个类不许设两次注册名」，把那一行塞回去会当场 FAIL。",
-        "片头和片尾都开口了，全英文：片头 8 秒只放四个词 —— <code>Don't blink.</code>（0.00）、<code>Break.</code>（2.25，散开帧）、<code>Hold.</code>（4.00，合拢帧）、<code>Locked.</code>（6.45，字头撞在 6.50 的落点上）。片尾只在五处说话：开场报台、0:32.7 的 <code>Push it to the top.</code>、1:16.4 的左右点名、2:43.6 的收束句、3:06 的收尾句，名字滚动的主体四十多秒不插话。人声按「那一刻音乐 +3 dB」逐句定档，音乐带 15 ms 前瞻的 −4.2 dB 侧链闪避；纯音乐版仍在 <code>intro.wav</code> / <code>credits.wav</code>，可随时回退。",
-        "片头与片尾配上了新写的曲子：两条音轨都是这一版现做的，由 <code>tools/audio/ost_synth.py</code> 从正弦 / 锯齿、包络与混响算出来 —— 不采样、不引用 <code>docs/assets/audio/</code> 下任何一首 mp3，也不按它们的旋律或段落对齐，时间只跟画面走。片头 8.000 s（2.25 散开 / 4.00 合拢 / 6.50 咬合，落点后不再加打击，末帧静默）；片尾 193.833 s（88 BPM、71 小节，名单匀速滚动时音乐退后半步，结尾散成一条长和弦）。两条包写 <code>\"loop\": false</code>，音轨与帧数严格等长，实测偏差 0.0000 s；运行 <code>package_intro.py --silent</code> 仍可出原来的静音版片头。",
-        "基线明确：本版在 3.7.1（upstream master 快照）之上增量，3.7.1 已有的修复一条没回退；3.7.0 是另一条分支，只挑了两件东西移植，没有整体覆盖。",
-        "新增 <b>视频大屏</b>（<code>video_screen</code>）：可 1×1 到 3×3 拼接、潜行右键循环尺寸、拆任意一格整块消失；连上视频广播器后，动画直接画在方块表面（不是静态贴图、也不是弹窗），右键才开观看界面。",
-        "观看界面改成底部悬浮面板（不超过屏幕高度 52%），F 切全屏、ESC 关闭，不再糊住整个视野；广播仍是单次播放后自动退出，避免全屏接管退不出来。",
-        "播放器升级成真正的序列帧播放器：<code>VideoClip</code> 改成「文件集 + 时间线」，支持自然排序（f2 在 f10 前）、<code>playlist</code> 显式顺序、安卓开机动画式 <code>desc.txt</code>（分段重复 + 定格）；帧率 0.5~60 可带小数，循环支持 true / false / pingpong / 播 N 遍。",
-        "音画同步：音轨与第一帧同一时钟启动、每个循环重新对齐，画面是主时钟，漂移超过 300ms 才 seek；<code>audioOffset</code> 可跳掉音轨开头空白，往返倒放段静音。世界内多块大屏共用一份播放并静音，声音走观看窗口和广播。",
-        "DFC 监控屏卡顿根因是每帧重建 <code>ConsoleModel</code> 的 Box/Face：现在按「列数/行数/倾角/通电/吊装」打包成 key 缓存几何，放置多块不再线性掉帧，外观一处未改。",
-        "移植两件 3.7.0 分支的东西：<b>防爆窗帘</b>（不照搬旧门实现，接回 3.7.1 的门体系做成变体，铁铲潜行右键放行、3×3×3 内需玻璃）与<b>纪念挂画</b>（走 <code>RenderWorldLastEvent</code> 而非 TESR，带一条 chant 音效）。",
-        "视频源目录仍是首次加载自动创建并落 README（3.7.1 已有行为，未改动）；打包脚本 <code>tools/video/pack.py</code> 补上小数帧率、<code>--loop</code>、<code>--passes</code>、<code>--audio-offset</code>。",
-        "版本号固定 3.8.0 并三处对齐（build.gradle / mcmod.info / HBMZZ.VERSION），此后除非明确要求不再升版；离线检查 regcheck 64、videocheck 55、linkercheck 21、rbmkcheck 50、termcheck 67、cecpcheck 8 全绿，但渲染观感仍未进游戏实测。"
+        "视频大屏重做：画面直接画在世界里的方块表面。方向与镜像在渲染层一次算清 —— 面板中心用 <code>ConsoleRig.anchor</code> 对齐控制器格，旋转用 <code>yawOf(facing)</code>，图像 UV 用 <code>panelUv()</code>（u 是反向的，因为玩家站在正面时局部 +x 是他的左手）。四个朝向都正着看，不倒置、不镜像。",
+        "尺寸不再右键循环，改成<b>蹲下右键</b>打开的配置窗口：宽、高分开加减，1–32 格；倍速 0.25x–3x，按四分之一步进。窗口里没有停止键 —— 停止仍然归拉杆。",
+        "新增<b>大屏遥控器</b>（<code>video_remote</code>，16×16 手持机贴图）：不可放置、不绑点击放置、更不会弹「不能放置」；它只做一件事 —— 右键播放器对准，再右键大屏，把二者接起来（两者相距上限 64 格）。原来那条借用监控数据线接大屏的路子已经移除。",
+        "拉杆语义按有没有大屏分开：播放器接上大屏后，红石只负责开/停那面墙，误触拉杆不会把任何人切进全屏；没接大屏时保持仓库原逻辑 —— 上升沿直接全屏接管，并按播放器设置限制中途退出。",
+        "音量与「是否强制限制退出」搬到了播放器上（蹲下右键）：窗口里只有一条 0–200% 的音量滑条和一个开关。开启后播放结束前按 ESC 只提示、不退出；关闭后 ESC 立刻放行。设置跟着播放器走，接不接大屏都一样。",
+        "运行中就能往目录里丢文件：广播器窗口新增「打开视频文件夹」（直接调系统文件管理器）与「刷新列表」；另外新增一个没被占用的刷新键 <b>F7</b>（不用 F3+T —— 那会顺手重载整份资源包，连带重烘焙所有模型）。",
+        "回退到仓库原实现：撤掉上一版那套序列帧播放器替代方案（<code>VideoClip</code> 的文件集/时间线、<code>playlist</code>、<code>desc.txt</code> 分段、<code>pingpong</code>、悬浮观看窗、多屏共用解码），视频仍按仓库的「文件名 + fps + 帧号」读取，一帧不多、一帧不少。",
+        "音乐回到仓库原版：片头恢复静音，片尾仍用仓库自带的 <code>the-ending-of-melting.mp3</code>；上一版自制的两条配乐与英文口播脚本、成片一并移除，<code>tools/audio/ost_synth.py</code>、<code>voice_over.py</code> 不再留在仓库里。",
+        "保留 3.8.0 已经交付的三件事：<b>防爆窗帘</b>、<b>纪念挂画</b>、DFC 监控屏几何缓存；以及那一处启动崩溃修复（<code>rsaudio:blast_door</code> 注册名只设一次）。",
+        "基线明确：本版在 3.7.1（upstream master 快照）之上增量，3.7.1 已有的修复一条没回退；3.7.0 只移植了窗帘与挂画两件东西。",
+        "版本号固定 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处对齐）；离线检查 regcheck 65 条（新增「遥控器目标必须让出右键」）、videocheck、linkercheck、rbmkcheck、termcheck、cecpcheck 全绿，但大屏的观感仍需进游戏实测。"
       ]
     },
     {
@@ -656,9 +655,9 @@ window.HBMZZ_DATA = {
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 561,
-      "javaLines": 131442,
-      "resourceFiles": 624,
+      "javaFiles": 567,
+      "javaLines": 131206,
+      "resourceFiles": 627,
       "nodeTypes": 32,
       "controlTypes": 26
     },

@@ -34,7 +34,7 @@ public final class ClientVideoBridge {
     private ClientVideoBridge() {
     }
 
-    public static void onBroadcast(String video) {
+    public static void onBroadcast(String video, int volume, boolean forceExit) {
         final Minecraft mc = Minecraft.getMinecraft();
         if (mc == null) {
             return;
@@ -45,7 +45,7 @@ public final class ClientVideoBridge {
                 // screen left to take over.
                 return;
             }
-            mc.displayGuiScreen(new GuiVideoScreen(video));
+            mc.displayGuiScreen(new GuiVideoScreen(video, volume, forceExit));
         });
     }
 }

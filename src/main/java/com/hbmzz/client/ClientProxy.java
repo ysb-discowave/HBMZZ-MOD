@@ -37,6 +37,18 @@ import java.util.List;
 
 public class ClientProxy extends CommonProxy {
 
+    /**
+     * 刷新视频目录的键。
+     *
+     * <p>F7: nothing in vanilla uses it, and nothing in this jar does either. The
+     * obvious alternative, F3+T, is taken twice over - it reloads the resource
+     * packs, so pressing it to pick up a dropped zip also re-bakes every model in
+     * the game, and this mod's own model check runs on that path.</p>
+     */
+    public static final net.minecraft.client.settings.KeyBinding KEY_REFRESH_VIDEOS =
+            new net.minecraft.client.settings.KeyBinding("key.hbmzz.video_refresh",
+                    org.lwjgl.input.Keyboard.KEY_F7, "key.categories.hbmzz");
+
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         // 多格式音频（ogg 之外的 mp3 / flac / wav / m4a …），从 wzh 的 rsaudiofm 插件并进来。
@@ -52,6 +64,7 @@ public class ClientProxy extends CommonProxy {
         // The zd_tx orbit camera. Purely client-side presentation: the server
         // only says "watch this block", and this decides where the eye goes.
         ClientCinematic.init();
+        ClientRegistry.registerKeyBinding(KEY_REFRESH_VIDEOS);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
         // 视频大屏：世界里那块正在放片子的屏幕。走 TESR 而不是方块模型，因为
         // 画面每帧都在变，而方块模型是资源加载时烘焙一次的（理由见 RenderVideoScreen）。
@@ -116,6 +129,7 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("ctrl_console"));
         list.add(loc("video_broadcaster"));
         list.add(loc("video_screen"));
+        list.add(loc("video_remote"));
         list.add(loc("nuke"));
         list.add(loc("nuke_controller"));
         list.add(loc("nuke_monitor"));
@@ -156,6 +170,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_CTRL_CONSOLE);
         list.add(ModContent.ITEM_BLOCK_VIDEO_BROADCASTER);
         list.add(ModContent.ITEM_BLOCK_VIDEO_SCREEN);
+        list.add(ModContent.ITEM_VIDEO_REMOTE);
         list.add(ModContent.ITEM_BLOCK_NUKE);
         list.add(ModContent.ITEM_BLOCK_NUKE_CONTROLLER);
         list.add(ModContent.ITEM_BLOCK_NUKE_MONITOR);
@@ -184,8 +199,8 @@ public class ClientProxy extends CommonProxy {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  ammo_9mm  556  12ga
             0, 1, 2,
-            //  control_panel  console  video  screen  nuke  controller  nuke_monitor  code  alert  tablet
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            //  control_panel  console  video  screen  remote  nuke  controller  nuke_monitor  code  alert  tablet
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  dfc_blast_sensor
             0,
             //  and_gate  or_gate  xor_gate  not_gate
@@ -222,26 +237,14 @@ public class ClientProxy extends CommonProxy {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoBroadcaster(pos));
     }
 
-    /**
-     * The watching window for a video block.
-     *
-     * <p>Works for both ends: a screen in the world (it copies the clip from its
-     * broadcaster and syncs it) and a broadcaster itself (right-clicking one
-     * while not sneaking watches rather than configures). An unlinked screen
-     * opens the same window with an explanation, because "nothing happens" is the
-     * one answer that leaves the player with no next step.</p>
-     */
     @Override
-    public void openVideoViewer(BlockPos pos) {
-        String clip = "";
-        net.minecraft.tileentity.TileEntity te = Minecraft.getMinecraft().world == null
-                ? null : Minecraft.getMinecraft().world.getTileEntity(pos);
-        if (te instanceof com.hbmzz.tile.TileEntityVideoScreen) {
-            clip = ((com.hbmzz.tile.TileEntityVideoScreen) te).getVideo();
-        } else if (te instanceof com.hbmzz.tile.TileEntityVideoBroadcaster) {
-            clip = ((com.hbmzz.tile.TileEntityVideoBroadcaster) te).getVideo();
-        }
-        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoScreen(clip, true));
+    public void openVideoScreenConfig(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoScreenConfig(pos));
+    }
+
+    @Override
+    public void openVideoPlayerConfig(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoPlayerConfig(pos));
     }
 
     @Override

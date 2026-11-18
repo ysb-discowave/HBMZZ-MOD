@@ -1144,6 +1144,28 @@ def main():
           "refresh says why a file did not appear",
           "both the window's 刷新 and the F7 key must report VideoLibrary.skipped()")
 
+    # 73. 没有 ffmpeg 的时候必须自己去下，而不是安静地降级。这一段丢过一次：
+    # 源码回到 3.7.1 基线时，BundledFfmpeg 只剩下"从 jar 里释放资源"，而包里根本
+    # 没有那个资源，于是每次都是 null，播放器就一直说"没有 ffmpeg"。所以这里守
+    # 两件事：下载器还在（HTTP + 分段），以及引导阶段真的会在缺 ffmpeg 时开下载页。
+    bundled = read(os.path.join(SRC, "com/rsaudio/formats/convert/BundledFfmpeg.java"))
+    check("HttpURLConnection" in bundled and "DEFAULT_PROXY" in bundled
+          and "SEGMENTS" in bundled,
+          "the ffmpeg downloader is present (HTTP + segmented)",
+          "BundledFfmpeg lost its download path and only extracts a bundled resource")
+    bootstrap = read(os.path.join(SRC, "com/rsaudio/formats/FormatsBootstrap.java"))
+    check("BundledFfmpeg.isReady" in bootstrap and "GuiFfmpegDownload" in bootstrap,
+          "startup downloads ffmpeg when none is detected",
+          "FormatsBootstrap must ask BundledFfmpeg.isReady() and open GuiFfmpegDownload when false")
+
+    # 74. 下载不能挂在主线程上。190 MB 走主线程就是白屏到下载结束，而且进度页
+    # 也没机会画。进度页因此必须自己起线程调 ensure()，主线程只读 progress()。
+    gui_download = read(os.path.join(SRC, "com/rsaudio/client/GuiFfmpegDownload.java"))
+    check("new Thread" in gui_download and "BundledFfmpeg.ensure" in gui_download
+          and "BundledFfmpeg.progress" in gui_download,
+          "the download page runs the transfer off the render thread",
+          "GuiFfmpegDownload must call ensure() on a worker thread and only read progress() while drawing")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

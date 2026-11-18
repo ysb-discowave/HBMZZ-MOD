@@ -213,8 +213,27 @@ public final class FormatsBootstrap {
             // the mod loading phase; ConvertQueue is the only owner of that thread.
             try {
                 com.rsaudio.formats.convert.FfmpegFinder.setGameHint(mc.mcDataDir);
-                com.rsaudio.formats.convert.FfmpegFinder.reset();
-                ConvertQueue.scanAndEnqueue();
+                if (!com.rsaudio.formats.convert.BundledFfmpeg.isReady(mc.mcDataDir)) {
+                    // 没有 ffmpeg：先下一份（后台线程 + 进度页，主线程不卡），下完再扫描，
+                    // 这样 FfmpegFinder 立刻能看到新 exe，不会先按"没有 ffmpeg"把音频降级掉。
+                    // 失败也不会卡住：进度页在结束后照样回调，扫描会退到外置候选路径。
+                    FmLog.info("[ffmpeg] 未检测到可用的 ffmpeg，打开下载进度页");
+                    mc.displayGuiScreen(new com.rsaudio.client.GuiFfmpegDownload(
+                            mc.currentScreen, mc.mcDataDir, new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        com.rsaudio.formats.convert.FfmpegFinder.reset();
+                                        ConvertQueue.scanAndEnqueue();
+                                    } catch (Throwable t) {
+                                        logFailure("convert.scan.afterDownload", t);
+                                    }
+                                }
+                            }));
+                } else {
+                    com.rsaudio.formats.convert.FfmpegFinder.reset();
+                    ConvertQueue.scanAndEnqueue();
+                }
             } catch (Throwable t) {
                 logFailure("convert.scan", t);
             }

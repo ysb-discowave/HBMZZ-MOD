@@ -1,0 +1,531 @@
+/*
+ * HBMZZ - control panel and monitor extensions for HBM's Nuclear Tech.
+ * Copyright (C) 2026 Yang Sibo (ysb-discowave)
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * See NOTICE.md for third-party provenance.
+ */
+
+package com.hbmzz;
+
+import com.hbmzz.block.BlockCtrlPanel;
+import com.hbmzz.block.BlockDFCMonitor;
+import com.hbmzz.block.BlockDFCMonitorPart;
+import com.hbmzz.block.BlockMonitorCamera;
+import com.hbmzz.item.ItemAmmo;
+import com.hbmzz.item.ItemBlockMonitor;
+import com.hbmzz.item.ItemCoil;
+import com.hbmzz.item.ItemGun;
+import com.hbmzz.item.ItemHackerTablet;
+import com.hbmzz.item.ItemJetpack;
+import com.hbmzz.item.ItemMonitorLinker;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.oredict.ShapedOreRecipe;
+import net.minecraftforge.oredict.ShapelessOreRecipe;
+
+public final class ModContent {
+
+    public static final Block BLOCK_MONITOR = new BlockDFCMonitor();
+    /**
+     * Filler cell of a wall screen. Registered as a block but deliberately not
+     * as an item: it only ever exists as part of a placed panel. Registered
+     * after {@link #BLOCK_MONITOR} because the controller's placement hook
+     * reaches for it.
+     */
+    public static final Block BLOCK_MONITOR_PART = new BlockDFCMonitorPart();
+    /** A fixed observation camera that can be linked into the DFC monitor. */
+    public static final Block BLOCK_MONITOR_CAMERA = new BlockMonitorCamera();
+    /** Machine control panel: the block that actually drives other machines. */
+    public static final Block BLOCK_CTRL_PANEL = new BlockCtrlPanel();
+    /** Cursed-Edition style console: free-form control layout with a node graph. */
+    public static final Block BLOCK_CTRL_CONSOLE = new com.hbmzz.cecp.block.BlockCtrlConsole();
+    /** Takes over the screens of the players a selector names. */
+    public static final Block BLOCK_VIDEO_BROADCASTER = new com.hbmzz.block.BlockVideoBroadcaster();
+    public static final Item ITEM_LINKER = new ItemMonitorLinker();
+    /** The hacker tablet: opens a terminal that writes machine fields directly. */
+    public static final Item ITEM_HACKER_TABLET = new ItemHackerTablet();
+    public static final Item ITEM_BLOCK_MONITOR = new ItemBlockMonitor(BLOCK_MONITOR);
+    public static final Item ITEM_BLOCK_MONITOR_CAMERA = new ItemBlock(BLOCK_MONITOR_CAMERA);
+    public static final Item ITEM_BLOCK_CTRL_PANEL = new ItemBlock(BLOCK_CTRL_PANEL);
+    public static final Item ITEM_BLOCK_CTRL_CONSOLE = new ItemBlock(BLOCK_CTRL_CONSOLE);
+    public static final Item ITEM_BLOCK_VIDEO_BROADCASTER = new ItemBlock(BLOCK_VIDEO_BROADCASTER);
+
+    // ---- nuclear accident system -------------------------------------------
+    /** The one bomb. A plain ItemBlock would do, except it cannot explain a refusal. */
+    public static final Block BLOCK_NUKE = new com.hbmzz.block.BlockNuke();
+    public static final Block BLOCK_NUKE_CONTROLLER = new com.hbmzz.block.BlockNukeController();
+    public static final Block BLOCK_NUKE_MONITOR = new com.hbmzz.block.BlockNukeMonitor();
+    public static final Block BLOCK_CODE_BROADCASTER = new com.hbmzz.block.BlockCodeBroadcaster();
+    public static final Block BLOCK_ALERT_DISPLAY = new com.hbmzz.block.BlockAlertDisplay();
+    /** Redstone out while a DFC blast is running out of time. Detection lives in DfcBlastWatch. */
+    public static final Block BLOCK_DFC_BLAST_SENSOR = new com.hbmzz.blast.BlockDfcBlastSensor();
+    public static final Item ITEM_BLOCK_NUKE = new com.hbmzz.item.ItemBlockNuke(BLOCK_NUKE);
+    public static final Item ITEM_BLOCK_NUKE_CONTROLLER = new ItemBlock(BLOCK_NUKE_CONTROLLER);
+    public static final Item ITEM_BLOCK_NUKE_MONITOR = new ItemBlock(BLOCK_NUKE_MONITOR);
+    public static final Item ITEM_BLOCK_CODE_BROADCASTER = new ItemBlock(BLOCK_CODE_BROADCASTER);
+    public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
+    public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
+
+    /* 四种红石门。拆成四个方块而不是一块可切换的门，理由在 GateType 的类注释里：
+       1.12.2 的 meta 只有 4 位，朝向 4 × 亮灭 2 已经用掉 8 个组合，再塞 8 种运算
+       就得牺牲朝向或亮灭。 */
+    public static final Block BLOCK_AND_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.AND);
+    public static final Block BLOCK_OR_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.OR);
+    public static final Block BLOCK_XOR_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.XOR);
+    public static final Block BLOCK_NOT_GATE =
+            new com.hbmzz.redstone.BlockRedstoneGate(com.hbmzz.redstone.GateType.NOT);
+    public static final Item ITEM_BLOCK_AND_GATE = new ItemBlock(BLOCK_AND_GATE);
+    public static final Item ITEM_BLOCK_OR_GATE = new ItemBlock(BLOCK_OR_GATE);
+    public static final Item ITEM_BLOCK_XOR_GATE = new ItemBlock(BLOCK_XOR_GATE);
+    public static final Item ITEM_BLOCK_NOT_GATE = new ItemBlock(BLOCK_NOT_GATE);
+
+    /**
+     * The Tartarus gate: the community edition's giant blast door, laid flat.
+     * Two leaves in nine cells; only the corner cell carries the tile entity.
+     */
+    public static final Block BLOCK_TARTARUS_GATE = new com.hbmzz.gate.BlockTartarusGate();
+    public static final Block BLOCK_GATE_PART = new com.hbmzz.gate.BlockGatePart();
+    public static final Item ITEM_BLOCK_TARTARUS_GATE =
+            new com.hbmzz.item.ItemBlockTartarusGate(BLOCK_TARTARUS_GATE);
+
+    public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
+    public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
+    public static final Item ITEM_REGEN_COIL = new ItemCoil(ItemCoil.CoilType.REGEN);
+    public static final Item ITEM_JETPACK = new ItemJetpack();
+
+    public static final Item ITEM_AMMO = new ItemAmmo();
+    public static final Item ITEM_GUN_PISTOL = new ItemGun(ItemGun.GunType.SIDEARM);
+    public static final Item ITEM_GUN_RIFLE = new ItemGun(ItemGun.GunType.CARBINE);
+    public static final Item ITEM_GUN_SHOTGUN = new ItemGun(ItemGun.GunType.BREAKER);
+
+    private ModContent() {
+    }
+
+    @SubscribeEvent
+    public static void registerBlocks(RegistryEvent.Register<Block> event) {
+        event.getRegistry().register(BLOCK_MONITOR);
+        event.getRegistry().register(BLOCK_MONITOR_PART);
+        event.getRegistry().register(BLOCK_MONITOR_CAMERA);
+        event.getRegistry().register(BLOCK_CTRL_PANEL);
+        event.getRegistry().register(BLOCK_CTRL_CONSOLE);
+        event.getRegistry().register(BLOCK_VIDEO_BROADCASTER);
+        event.getRegistry().register(BLOCK_NUKE);
+        event.getRegistry().register(BLOCK_NUKE_CONTROLLER);
+        event.getRegistry().register(BLOCK_NUKE_MONITOR);
+        event.getRegistry().register(BLOCK_CODE_BROADCASTER);
+        event.getRegistry().register(BLOCK_ALERT_DISPLAY);
+        event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
+        event.getRegistry().register(BLOCK_AND_GATE);
+        event.getRegistry().register(BLOCK_OR_GATE);
+        event.getRegistry().register(BLOCK_XOR_GATE);
+        event.getRegistry().register(BLOCK_NOT_GATE);
+        event.getRegistry().register(BLOCK_TARTARUS_GATE);
+        event.getRegistry().register(BLOCK_GATE_PART);
+    }
+
+    @SubscribeEvent
+    public static void registerItems(RegistryEvent.Register<Item> event) {
+        ITEM_BLOCK_MONITOR.setRegistryName(BLOCK_MONITOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_MONITOR);
+        ITEM_BLOCK_MONITOR_CAMERA.setRegistryName(BLOCK_MONITOR_CAMERA.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_MONITOR_CAMERA);
+        ITEM_BLOCK_CTRL_PANEL.setRegistryName(BLOCK_CTRL_PANEL.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_CTRL_PANEL);
+        ITEM_BLOCK_CTRL_CONSOLE.setRegistryName(BLOCK_CTRL_CONSOLE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_CTRL_CONSOLE);
+        ITEM_BLOCK_VIDEO_BROADCASTER.setRegistryName(BLOCK_VIDEO_BROADCASTER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_VIDEO_BROADCASTER);
+        ITEM_BLOCK_NUKE.setRegistryName(BLOCK_NUKE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NUKE);
+        ITEM_BLOCK_NUKE_CONTROLLER.setRegistryName(BLOCK_NUKE_CONTROLLER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NUKE_CONTROLLER);
+        ITEM_BLOCK_NUKE_MONITOR.setRegistryName(BLOCK_NUKE_MONITOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NUKE_MONITOR);
+        ITEM_BLOCK_CODE_BROADCASTER.setRegistryName(BLOCK_CODE_BROADCASTER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_CODE_BROADCASTER);
+        ITEM_BLOCK_ALERT_DISPLAY.setRegistryName(BLOCK_ALERT_DISPLAY.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_ALERT_DISPLAY);
+        ITEM_BLOCK_DFC_BLAST_SENSOR.setRegistryName(BLOCK_DFC_BLAST_SENSOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
+        ITEM_BLOCK_AND_GATE.setRegistryName(BLOCK_AND_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_AND_GATE);
+        ITEM_BLOCK_OR_GATE.setRegistryName(BLOCK_OR_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_OR_GATE);
+        ITEM_BLOCK_XOR_GATE.setRegistryName(BLOCK_XOR_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_XOR_GATE);
+        ITEM_BLOCK_NOT_GATE.setRegistryName(BLOCK_NOT_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_NOT_GATE);
+        ITEM_BLOCK_TARTARUS_GATE.setRegistryName(BLOCK_TARTARUS_GATE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_TARTARUS_GATE);
+        event.getRegistry().register(ITEM_LINKER);
+        event.getRegistry().register(ITEM_HACKER_TABLET);
+        event.getRegistry().register(ITEM_SPEED_COIL);
+        event.getRegistry().register(ITEM_JUMP_COIL);
+        event.getRegistry().register(ITEM_REGEN_COIL);
+        event.getRegistry().register(ITEM_JETPACK);
+        event.getRegistry().register(ITEM_AMMO);
+        event.getRegistry().register(ITEM_GUN_PISTOL);
+        event.getRegistry().register(ITEM_GUN_RIFLE);
+        event.getRegistry().register(ITEM_GUN_SHOTGUN);
+    }
+
+    @SubscribeEvent
+    public static void registerRecipes(RegistryEvent.Register<IRecipe> event) {
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "dfc_monitor"),
+                new ItemStack(BLOCK_MONITOR),
+                "IGI",
+                "GRG",
+                "ICI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "dfc_monitor"));
+
+        // Control panel: steel plate, a dial's worth of comparators and a bed
+        // of redstone. Nothing rare - a control panel is something you build a
+        // few of, not one per world.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "control_panel"),
+                new ItemStack(BLOCK_CTRL_PANEL),
+                "IRI",
+                "GCG",
+                "IRI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "control_panel"));
+
+        // Cursed-Edition style console: the expensive one. It carries a node
+        // graph and drives redstone, so it asks for a comparator, a repeater and
+        // an observer rather than plain redstone dust.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "ctrl_console"),
+                new ItemStack(BLOCK_CTRL_CONSOLE),
+                "ICI",
+                "ROR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'C', Items.COMPARATOR,
+                'R', Items.REPEATER,
+                'O', Item.getItemFromBlock(Blocks.OBSERVER)
+        ).setRegistryName(HBMZZ.MODID, "ctrl_console"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "monitor_linker"),
+                new ItemStack(ITEM_LINKER),
+                " RG",
+                "RER",
+                "GR ",
+                'R', Items.REDSTONE,
+                'G', Items.GOLD_INGOT,
+                'E', Items.ENDER_PEARL
+        ).setRegistryName(HBMZZ.MODID, "monitor_linker"));
+
+        // Hacker tablet: a glass face for the screen, a pearl for the uplink, a
+        // comparator for the logic that reads a machine's internals. Kept
+        // deliberately expensive - it is the one item in the mod that can skip
+        // the control rods entirely, and it should not be something a player
+        // crafts before they have built their first reactor.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "hacker_tablet"),
+                new ItemStack(ITEM_HACKER_TABLET),
+                "GRG",
+                "IPI",
+                "ICI",
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'I', Items.IRON_INGOT,
+                'P', Items.ENDER_PEARL,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "hacker_tablet"));
+
+        // Video broadcaster: a glass face to be the screen, an observer because
+        // it is the block that watches for a signal, and redstone to carry it.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "video_broadcaster"),
+                new ItemStack(BLOCK_VIDEO_BROADCASTER),
+                "IGI",
+                "ROR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'O', Item.getItemFromBlock(Blocks.OBSERVER)
+        ).setRegistryName(HBMZZ.MODID, "video_broadcaster"));
+
+        // ---- nuclear accident system ----
+        // The bomb is the most expensive thing in the mod by design: it ends a
+        // world, and "one per save" is a rule about the save, not a cost.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "nuke"),
+                new ItemStack(BLOCK_NUKE),
+                "IOI",
+                "PRP",
+                "IOI",
+                'I', Items.IRON_INGOT,
+                'O', Item.getItemFromBlock(Blocks.OBSIDIAN),
+                'P', Items.ENDER_PEARL,
+                'R', Item.getItemFromBlock(Blocks.REDSTONE_BLOCK)
+        ).setRegistryName(HBMZZ.MODID, "nuke"));
+
+        // The controller is cheap on purpose: it is the part you want several of,
+        // one per lever or per alarm circuit.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "nuke_controller"),
+                new ItemStack(BLOCK_NUKE_CONTROLLER),
+                "IEI",
+                "RCR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'E', Items.ENDER_PEARL,
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "nuke_controller"));
+
+        // Deliberately NOT the DFC monitor's pattern. 1.12.2 resolves crafting by
+        // returning the first recipe that matches, so an identical grid makes the
+        // later registration silently unreachable - the player would craft a DFC
+        // monitor and never learn why the bomb screen is missing. The top row's
+        // glass pane becomes obsidian instead: same monitor, with the blast
+        // shielding the job calls for.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "nuke_monitor"),
+                new ItemStack(BLOCK_NUKE_MONITOR),
+                "IOI",
+                "GRG",
+                "ICI",
+                'I', Items.IRON_INGOT,
+                'O', Item.getItemFromBlock(Blocks.OBSIDIAN),
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "nuke_monitor"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "code_broadcaster"),
+                new ItemStack(BLOCK_CODE_BROADCASTER),
+                "IRI",
+                "GLG",
+                "IRI",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'L', Item.getItemFromBlock(Blocks.REDSTONE_LAMP)
+        ).setRegistryName(HBMZZ.MODID, "code_broadcaster"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "alert_display"),
+                new ItemStack(BLOCK_ALERT_DISPLAY),
+                "IGI",
+                "GRG",
+                "IEI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'E', Items.ENDER_PEARL
+        ).setRegistryName(HBMZZ.MODID, "alert_display"));
+
+        // 石英是这里唯一"准"的东西：传感器要的是稳定，不是威力。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "dfc_blast_sensor"),
+                new ItemStack(BLOCK_DFC_BLAST_SENSOR),
+                "IQI",
+                "GRG",
+                "IQI",
+                'I', Items.IRON_INGOT,
+                'Q', Items.QUARTZ,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "dfc_blast_sensor"));
+
+        // 四个门：外壳一样（铁），区别只在运算符那一层用什么材料。
+        // 四张字符画第三行各不相同，免得撞上 regcheck 第 61 条「有序配方不许重样」。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "and_gate"),
+                new ItemStack(BLOCK_AND_GATE),
+                "IRI",
+                "RQR",
+                "III",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "and_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "or_gate"),
+                new ItemStack(BLOCK_OR_GATE),
+                "IRI",
+                "RQR",
+                "GGG",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ,
+                'G', Items.GOLD_INGOT
+        ).setRegistryName(HBMZZ.MODID, "or_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "xor_gate"),
+                new ItemStack(BLOCK_XOR_GATE),
+                "IRI",
+                "RQR",
+                "QQQ",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "xor_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "not_gate"),
+                new ItemStack(BLOCK_NOT_GATE),
+                "IRI",
+                "RQR",
+                "RRR",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "not_gate"));
+
+        // 塔塔鲁斯大门：九个铁块围一块黑曜石，再压一块红石块。
+        // 第三行与任何已有配方都不同（regcheck 第 61 条）。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "tartarus_gate"),
+                new ItemStack(BLOCK_TARTARUS_GATE),
+                "III",
+                "IOI",
+                "IRI",
+                'I', Blocks.IRON_BLOCK,
+                'O', Blocks.OBSIDIAN,
+                'R', Blocks.REDSTONE_BLOCK
+        ).setRegistryName(HBMZZ.MODID, "tartarus_gate"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "monitor_camera"),
+                new ItemStack(BLOCK_MONITOR_CAMERA),
+                "IGI",
+                "GRG",
+                "IRI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "monitor_camera"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "speed_coil"),
+                new ItemStack(ITEM_SPEED_COIL),
+                "G G",
+                " R ",
+                "G G",
+                'G', Items.GOLD_INGOT,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "speed_coil"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "jump_coil"),
+                new ItemStack(ITEM_JUMP_COIL),
+                "S S",
+                " F ",
+                "S S",
+                'S', Items.SLIME_BALL,
+                'F', Items.FEATHER
+        ).setRegistryName(HBMZZ.MODID, "jump_coil"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "regen_coil"),
+                new ItemStack(ITEM_REGEN_COIL),
+                "M M",
+                " S ",
+                "M M",
+                'M', Items.SPECKLED_MELON,
+                'S', Items.SLIME_BALL
+        ).setRegistryName(HBMZZ.MODID, "regen_coil"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "jetpack"),
+                new ItemStack(ITEM_JETPACK),
+                "III",
+                "IBI",
+                "R R",
+                'I', Items.IRON_INGOT,
+                'B', Items.BLAZE_ROD,
+                'R', Item.getItemFromBlock(Blocks.REDSTONE_BLOCK)
+        ).setRegistryName(HBMZZ.MODID, "jetpack"));
+
+        // ---- ammunition ----
+        event.getRegistry().register(new ShapelessOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "ammo_9mm"),
+                new ItemStack(ITEM_AMMO, 16, 0),
+                Items.IRON_NUGGET, Items.GUNPOWDER, Items.GUNPOWDER
+        ).setRegistryName(HBMZZ.MODID, "ammo_9mm"));
+
+        event.getRegistry().register(new ShapelessOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "ammo_556"),
+                new ItemStack(ITEM_AMMO, 12, 1),
+                Items.IRON_NUGGET, Items.IRON_NUGGET, Items.GUNPOWDER, Items.GUNPOWDER, Items.GUNPOWDER
+        ).setRegistryName(HBMZZ.MODID, "ammo_556"));
+
+        event.getRegistry().register(new ShapelessOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "ammo_12ga"),
+                new ItemStack(ITEM_AMMO, 8, 2),
+                Items.IRON_NUGGET, Items.GUNPOWDER, Items.GUNPOWDER, Items.PAPER
+        ).setRegistryName(HBMZZ.MODID, "ammo_12ga"));
+
+        // ---- firearms ----
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "gun_pistol"),
+                new ItemStack(ITEM_GUN_PISTOL),
+                "I I",
+                "III",
+                " RG",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'G', Items.GUNPOWDER
+        ).setRegistryName(HBMZZ.MODID, "gun_pistol"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "gun_rifle"),
+                new ItemStack(ITEM_GUN_RIFLE),
+                "III",
+                "IGI",
+                "IR ",
+                'I', Items.IRON_INGOT,
+                'G', Items.GUNPOWDER,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "gun_rifle"));
+
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "gun_shotgun"),
+                new ItemStack(ITEM_GUN_SHOTGUN),
+                "III",
+                "GG ",
+                "RR ",
+                'I', Items.IRON_INGOT,
+                'G', Items.GUNPOWDER,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "gun_shotgun"));
+    }
+}

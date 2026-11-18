@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>附加包 hbmzz:addon — HBMZZ</title>
+<meta name="description" content="HBMZZ 分成两个包：本体 hbmzz 与控制台附加包 hbmzz:addon。两个 jar 都装才有控制台，两者许可是分开声明的。">
+<meta name="theme-color" content="#0a0c0f">
+<link rel="icon" href="assets/brand/logo-mark.svg" type="image/svg+xml">
+<link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-180.png">
+<meta property="og:image" content="https://hbm-zz.ysbdwz.dpdns.org/assets/brand/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website">
+<meta property="og:title" content="附加包 hbmzz:addon — HBMZZ">
+<meta property="og:description" content="本体与控制台附加包分开的缘由、装法与许可。">
+<link rel="stylesheet" href="assets/site.css?v=74056d427c">
+  <link rel="stylesheet" href="assets/reveal.css?v=2">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="addon.html" aria-current="page">附加包</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
+      <a href="thanks.html">致谢</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 附加包</div>
+      <h1>两个包，各管一段</h1>
+      <p class="lead">
+        从 2026-11-17 起，HBMZZ 拆成两枚 jar：<strong>本体 <code>hbmzz</code></strong> 与
+        <strong>控制台附加包 <code>hbmzz:addon</code></strong>。这不是打包习惯上的调整——
+        是因为两者里的代码来源不同、许可也不同，混在一份 GPL-3.0 声明里说不清楚。
+      </p>
+    </div>
+  </div>
+
+  <section class="section" id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 为什么拆</div>
+        <h2>许可不一样，就不能装进同一个声明</h2>
+      </div>
+      <div class="panel panel--bolted">
+        <p>
+          控制台那套面板（<code>com.hbmzz.cecp</code>）是从 <strong>NTM: 诅咒版</strong> 移植的，GPL-3.0，没问题。
+          但面板里那些仪器控件来自 <strong>NTM Cursed Addon</strong>，它在 2026-10-23 改成了
+          <strong>PolyForm Shield 1.0.0</strong>。
+        </p>
+        <p>
+          PolyForm 允许修改与再分发，但它的 <em>No Other Rights</em> 一节写明<b>不得 sublicense</b>，
+          还带一条 noncompete。把它们塞进「整仓库 GPL-3.0-only」里，等于替对方做了一份它没给的授权，
+          同时也没把它的条款传给拿到 jar 的人。
+        </p>
+        <p style="margin-bottom:0">
+          所以：<b>本体继续 GPL-3.0-only，附加包自己声明 PolyForm Shield 1.0.0</b>，
+          各自随包附各自的许可文件。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="install">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 怎么装</div>
+        <h2>两个都放进 mods 就行</h2>
+        <p>依赖方向只有一边：<b>附加包依赖本体</b>。单独装本体照常可用；单独装附加包能启动，但引用不到任何宿主接口，等于空跑。</p>
+        <p class="note" style="margin-top:14px"><span><b>名字说明：</b><code>hbmzz:addon</code> 是这个附加包的<b>项目名</b>，不是 modid——命名空间不能带冒号。它的 modid 是 <code>hbmzzaddon</code>；方块、方块实体与资源域仍沿用 <code>hbmzz</code>，因为那些名字写进了旧存档。</span></p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:22%">包</th><th style="width:30%">里面有什么</th><th>许可</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>hbmzz</strong><br><span style="color:var(--text-mute);font:500 11px var(--mono)">本体</span></td>
+              <td>监控屏、核事故系统、DFC 系列、红石音频、三首 OST</td>
+              <td><span class="tag tag--green">GPL-3.0-only</span></td>
+            </tr>
+            <tr>
+              <td><strong>hbmzz:addon</strong><br><span style="color:var(--text-mute);font:500 11px var(--mono)">附加包</span></td>
+              <td>控制台方块、节点图编辑器、面板仪器</td>
+              <td><span class="tag tag--amber">PolyForm Shield 1.0.0</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top:18px">
+        <span><b>旧存档：</b>注册名（<code>hbmzz:ctrl_console</code> 等）一个字都不改，
+        所以装回两个包之后，原来的控制台还会在原来的位置。<b>反过来说：拆掉附加包，控制台方块连同里面存的面板内容都会一起消失</b>——它们都在后者里。</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="status">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 当前状态</div>
+        <h2>拆分进行中</h2>
+      </div>
+      <div class="panel panel--bolted">
+        <p>
+          仓库已建：<a href="https://github.com/ysb-discowave/HBMZZ-MOD-addon">ysb-discowave/HBMZZ-MOD-addon</a>（公开）。
+          工程骨架、资源与许可文件正在往里搬，第一个版本号是 <code>0.1.0</code>。
+        </p>
+        <p style="margin-bottom:0">
+          <b>在附加包正式发布之前，控制台仍然只在本体里</b>——现在这一版（<span data-bind="auto.version">—</span>）
+          还没有真正拆开，请按原来的方式只装本体。页面先写在这里，是为了让状态可查，而不是提前宣称完成。
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="addon.html">附加包</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="ost.html">原声 · HBMZZ OST</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD-addon">附加包仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="thanks.html">致谢</a>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only · 附加包 PolyForm Shield 1.0.0</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js?v=4353b3bcd7"></script>
+<script src="assets/site.js?v=95371114ff"></script>
+  <script src="assets/reveal.js?v=2"></script>
+</body>
+</html>

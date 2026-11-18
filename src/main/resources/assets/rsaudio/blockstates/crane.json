@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,running=false": {
+      "model": "rsaudio:crane"
+    },
+    "facing=north,running=true": {
+      "model": "rsaudio:crane"
+    },
+    "facing=east,running=false": {
+      "model": "rsaudio:crane",
+      "y": 90
+    },
+    "facing=east,running=true": {
+      "model": "rsaudio:crane",
+      "y": 90
+    },
+    "facing=south,running=false": {
+      "model": "rsaudio:crane",
+      "y": 180
+    },
+    "facing=south,running=true": {
+      "model": "rsaudio:crane",
+      "y": 180
+    },
+    "facing=west,running=false": {
+      "model": "rsaudio:crane",
+      "y": 270
+    },
+    "facing=west,running=true": {
+      "model": "rsaudio:crane",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/f9_controller_side",
+    "down": "rsaudio:blocks/f9_controller_bottom",
+    "up": "rsaudio:blocks/f9_controller_top",
+    "north": "rsaudio:blocks/f9_controller_front",
+    "south": "rsaudio:blocks/f9_controller_side",
+    "east": "rsaudio:blocks/f9_controller_side",
+    "west": "rsaudio:blocks/f9_controller_side"
+  }
+}

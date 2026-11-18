@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "hbmzz:blocks/gate_side",
+    "down": "hbmzz:blocks/gate_side",
+    "up": "hbmzz:blocks/gate_side",
+    "north": "hbmzz:blocks/gate_side",
+    "east": "hbmzz:blocks/gate_side",
+    "west": "hbmzz:blocks/gate_side",
+    "south": "hbmzz:blocks/gate_not_on"
+  }
+}

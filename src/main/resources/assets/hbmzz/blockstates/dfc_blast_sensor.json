@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "active=false,facing=south": {
+      "model": "hbmzz:dfc_blast_sensor"
+    },
+    "active=false,facing=north": {
+      "model": "hbmzz:dfc_blast_sensor",
+      "y": 180
+    },
+    "active=false,facing=east": {
+      "model": "hbmzz:dfc_blast_sensor",
+      "y": 270
+    },
+    "active=false,facing=west": {
+      "model": "hbmzz:dfc_blast_sensor",
+      "y": 90
+    },
+    "active=true,facing=south": {
+      "model": "hbmzz:dfc_blast_sensor_on"
+    },
+    "active=true,facing=north": {
+      "model": "hbmzz:dfc_blast_sensor_on",
+      "y": 180
+    },
+    "active=true,facing=east": {
+      "model": "hbmzz:dfc_blast_sensor_on",
+      "y": 270
+    },
+    "active=true,facing=west": {
+      "model": "hbmzz:dfc_blast_sensor_on",
+      "y": 90
+    }
+  }
+}

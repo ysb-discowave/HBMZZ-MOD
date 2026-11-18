@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBMZZ 使用指南 — 监控屏 / 终端 / 面板工坊 / 机器控制</title>
+<meta name="description" content="HBMZZ 使用指南：DFC 监控屏的四个视图与开机、坠落、离线、ERROR 301 行为，可缩放终端与功率计绑定，面板工坊的「当+若+则」规则，机器控制面板与节点图控制台的操控方式，以及枪械、线圈与喷气背包。">
+<meta name="theme-color" content="#0a0c0f">
+<link rel="icon" href="assets/brand/logo-mark.svg" type="image/svg+xml">
+<link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/brand/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-180.png">
+<meta property="og:image" content="https://hbm-zz.ysbdwz.dpdns.org/assets/brand/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ 使用指南">
+<meta property="og:description" content="从放下一台 DFC 监控屏，到真的操控一台机器：实时屏幕、终端、面板工坊、机器控制面板与节点图控制台。">
+<link rel="stylesheet" href="assets/site.css?v=74056d427c">
+  <link rel="stylesheet" href="assets/reveal.css?v=2">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="addon.html">附加包</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
+      <a href="thanks.html">致谢</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HEAD ================= -->
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 使用指南</div>
+      <h1>从放下监控屏，到真的操控一台机器</h1>
+      <p class="lead">
+        HBMZZ 在方块正面画了一台工业控制台：你能用终端调它、用面板工坊给它写报警规则，
+        再接上节点图控制台去操控反应堆，最后用一套设施广播把整栋厂房的状况同步到每一块屏上。
+        下面按功能拆开讲，每块都只说仓库文档里写明的操作与行为。
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= 01 实时屏幕 ================= -->
+  <section class="section" id="screen">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 实时屏幕</div>
+        <h2>方块正面是一台真在绘制的显示器</h2>
+        <p>全部内容用 <code>Graphics2D</code> 画到一张位图，再作为单个纹理贴到一个 quad：21px 大号读数、10px 中文标签、真圆环刻度与抗锯齿曲线能同屏出现。画布按 256×192 逻辑像素排版、实际纹理 768×576（3 倍超采样）；墙屏可跨 1–4 格宽、1–3 格高，内容始终按 4:3 等比缩放居中、不拉伸。整面墙只渲染一次——只有控制器格有方块实体，其余是占位块。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-num">01</div>
+          <h3>四个视图</h3>
+          <p>终端里切换、服务端权威。下面每张图的屏上是什么：</p>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>视图</th><th>屏上是什么</th></tr></thead>
+              <tbody>
+                <tr><td><b>01 核心</b></td><td>双环量表：外环「温度/熔点」比例带指针刻度，内环稳定度；环心整数温度，环下注明熔点。右侧七路结构灯柱（STA/ABS/PLS/EMT/INJ/EXC/CMT），再往下是储能/输出/增益、崩溃风险条与熔毁预测。</td></tr>
+                <tr><td><b>02 部件</b></td><td>MIMIC 结构图：七路结构通道摆成环、连线接堆芯，装了的通道连线是琥珀色；下方 A/B 两列燃料条与能量摘要。</td></tr>
+                <tr><td><b>03 曲线</b></td><td>共用图：温度是填色曲线、发电量是细线，各用量程；顶部时间刻度、图底标 −60s / now，下方本次会话六项统计（最低/平均/最高/峰值/当前/斜率）。</td></tr>
+                <tr><td><b>04 自定义</b></td><td>你自己搭的面板：显示什么、怎么排、何时报警，全部由「面板工坊」定义（见下文）。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-num">02</div>
+          <h3>开机、坠落与离线</h3>
+          <p><b>开机流程</b>：<code>AHBSSMFI-OS</code> 启动画面（分段进度条）→ 逐行 POST 自检 → 主界面。开机动画<strong>只在三个时机播放</strong>：屏幕刚被放下、存档刚被加载、以及堆芯开始坍缩（此时播的是 ERROR 301，不是开机）。其余时间一直停在实时主界面，不会自己重播。</p>
+          <p style="margin-top:12px"><b>被打掉时</b>：挂钩留在天花板，一根电缆吊着整块屏掉下来、在半空摆动，屏上切成 <code>NO SIGNAL</code> 灰雪画面，30 秒后断电消失。</p>
+          <p style="margin-top:12px"><b>离线与故障</b>：堆芯温度不到 100°C 时整屏显示「离线」而不是满屏 0；堆芯开始坍缩时立刻切到 <strong>ERROR 301「与核心失去连接」</strong>，4 秒后自动重启屏幕。</p>
+        </div>
+      </div>
+
+      <div class="grid g3" style="margin-top:18px">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">崩溃告警</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">坍缩期间整条标题带转红、标题改成熔毁倒计时，量表与数值同步转红。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">链路指示灯</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">标题带右下、页脚跑马灯里都有 <code>LINK OK / LINK SLOW / 数据中断</code>，按最新样本的年龄变色——屏幕停住时直接告诉你停在哪一环。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">事件日志不刷屏</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">客户端比较前后两帧，只在<strong>跨越阈值</strong>时记一条：温度等级变化、稳定度下降、结构变化、燃料装卸、坍缩开始。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>数据推送与范围</h4>
+        <p style="margin:8px 0 0;color:var(--text-dim)">服务端按采样间隔（<code>display.displayInterval</code>）tick 采样一次，只推给 <code>display.displayRange</code> 格内的玩家；范围内没人时连反射读取都跳过。需求只是软依赖——没有 NTM 也能启动并打开终端，只是屏上写「未找到堆芯」。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 02 终端 ================= -->
+  <section class="section" id="terminal">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 终端</div>
+        <h2>右键打开，可缩放的调试窗口</h2>
+        <p>左列是控制、右半边是这块屏的实时预览——预览里的像素和你站在方块前看到的是同一份。页面、电源、墙屏尺寸都服务端权威。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="steps">
+          <div class="step">
+            <h3>真正可缩放</h3>
+            <p>拖右下角、滚轮、双击标题栏最大化、<code>复位</code>。上限就是你的游戏窗口；尺寸按方块保存在 NBT 里，客户端本地值不会被服务端下发的方块更新覆盖。</p>
+          </div>
+          <div class="step">
+            <h3>左列控制 + 底部墙屏栏</h3>
+            <p>电源与四个视图（2×2 排布）加上「面板工坊」入口在左列；<strong>墙屏宽/高/复位固定在窗口底边</strong>，无论窗口拖到多小都点得到。旧版本里这组控件是顺序排下去的，窗口矮到约 300px 就被静默跳过——这才是「大小不能改」的真正原因。</p>
+          </div>
+          <div class="step">
+            <h3>右侧实时预览</h3>
+            <p>跑的就是同一套画布，方块面在播开机动画时预览也在播。</p>
+          </div>
+          <div class="step">
+            <h3>服务端权威</h3>
+            <p>页面、电源、墙屏尺寸都发 <code>DFCPageMessage</code> / <code>DFCScreenMessage</code> 由服务端改，再广播给附近玩家，两个人同时开终端不会各改各的。</p>
+          </div>
+        </div>
+
+        <div class="panel panel--bolted">
+          <h4>功率计绑定</h4>
+          <p style="margin:10px 0 0;color:var(--text-dim)">用「监控数据线」右键一个 NTM 功率计（红色电缆仪表 <code>red_cable_gauge</code>），再右键监控屏，即可读取每 tick / 每秒输出。</p>
+          <div class="steps" style="margin-top:14px">
+            <div class="step"><h3>记录功率计</h3><p>手持监控数据线右键红色电缆仪表。</p></div>
+            <div class="step"><h3>绑定到屏</h3><p>再右键监控屏，读数即出现。</p></div>
+          </div>
+
+          <h4 style="margin-top:18px">摄像头接入（第 4 页）</h4>
+          <p style="margin:10px 0 0;color:var(--text-dim)">监控摄像头放下时按你的视线定角度，之后用数据线把它接到屏上：屏幕的第 4 页在有摄像头时显示它的画面，没有时仍是面板工坊的自定义页。</p>
+          <div class="steps" style="margin-top:14px">
+            <div class="step"><h3>记录摄像头</h3><p>手持监控数据线右键摄像头，聊天栏提示「已记录摄像头坐标：CAM-…」。</p></div>
+            <div class="step"><h3>绑定到屏</h3><p>再右键监控屏（点任一格都行，大屏的边缘格会转给控制器）。屏幕自动翻到第 4 页。</p></div>
+            <div class="step"><h3>断开</h3><p>手持数据线<strong>潜行右键</strong>监控屏，画面断开，回到数据页。</p></div>
+          </div>
+          <p style="margin:10px 0 0;color:var(--text-dim)">摄像头必须在屏的 64 格内；绑定写在方块 NBT 里，退出重进不会断。画面每 100 ms 取一帧——它是逐条射线采样出来的，不是真的渲染，所以看得清轮廓、看不清细节。</p>
+
+          <h4 style="margin-top:18px">融毁倒计时：两种算法</h4>
+          <p style="margin:10px 0 0;color:var(--text-dim)">坍缩阶段直接取 DFC 的 <code>explosionIn</code>（精确到秒）；稳定阶段按两颗催化剂 <code>damage</code> 的<strong>实测增长速率</strong>（滑动平均）推算到 100 的时间——<strong>损伤不再增长时不显示预测</strong>，而不是拿写死的速率假装在算。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 03 面板工坊 ================= -->
+  <section class="section" id="workshop">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 面板工坊</div>
+        <h2>第四页留给你自己，用「当 + 若 + 则」搭规则</h2>
+        <p>终端左列的「面板工坊」打开独立编辑窗口，编辑的是这块屏的一份副本，只有点「保存并应用」才真正写进世界。窗口分三区：<strong>控件设计</strong>（左列控件库 + 中列 31×19 格画布 + 右列属性表）、<strong>逻辑编排</strong>（规则列表与「当/若/则」积木）、<strong>预设库</strong>（最多 32 个命名预设）。画布与方块共用坐标，拖动重叠会被拒绝。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <h3>7 种可添加控件</h3>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>控件</th><th>显示什么</th></tr></thead>
+              <tbody>
+                <tr><td>数值表</td><td>大字实时读数（带单位）</td></tr>
+                <tr><td>条形仪表</td><td>14 段量条 + 右上角数值</td></tr>
+                <tr><td>环形仪表</td><td>240° 弧线表盘 + 指针 + 环心读数</td></tr>
+                <tr><td>状态灯</td><td>布尔指示灯（绿=是/红=否）+ 状态字</td></tr>
+                <tr><td>文本标签</td><td>静态说明文字</td></tr>
+                <tr><td>趋势曲线</td><td>最近 40 次采样的折线 + 当前值</td></tr>
+                <tr><td>报警横幅</td><td>当前报警文本；无事时显示「系统正常」</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:12px;color:var(--text-dim);font-size:14px">上限：控件最多 24 个、规则最多 8 条，每条规则最多 4 个条件、4 个动作。</p>
+        </div>
+
+        <div class="card">
+          <h3>数据通道（条件与控件共用）</h3>
+          <p style="margin:0 0 8px"><code>温度</code> <code>熔点</code> <code>稳定度</code> <code>储能</code> <code>输出功率</code> <code>增益</code> <code>催化剂损伤</code> <code>结构件</code> <code>燃料A 液位</code> <code>燃料B 液位</code> <code>熔毁倒计时</code> <code>堆芯在线</code> <code>坍缩中</code> <code>燃料装入</code></p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">前 11 个数值通道，后 3 个布尔通道。布尔通道做条件时不给比较符，直接给<strong>是 / 否</strong>——「堆芯在线 大于 0.5」这种句子不该出现在面板上。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--bolted" style="margin-top:18px">
+        <h3 style="margin-bottom:10px">一条规则的形状（来自 README）</h3>
+        <pre>当 [周期检测] 每 [20] 刻        冷却 [5] 秒    [已启用]
+若 [温度] [大于] [6000]         满足全部 ▸
+则 [触发报警] 等级 2 持续 10 秒
+   [切换页面] → 01 核心</pre>
+        <p style="margin:12px 0 0;color:var(--text-dim);font-size:14px">
+          <b>当</b>（事件积木）：周期检测、数值穿越、坍缩开始、数据中断、开机时。
+          <b>若</b>（条件积木）：左通道 + 比较符（<code>&gt; &gt;= &lt; &lt;= == !=</code>）+ 右值（常数或另一个通道），多条条件用「满足全部 / 满足任意」连接。
+          <b>则</b>（动作积木，最多 4 个）：触发报警、显示横幅、蜂鸣提示、切换页面、记录事件、红石输出、解除报警。
+        </p>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">触发与警报怎么生效</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">规则只在服务端评估，每 10 tick（0.5 秒）走一遍，所以俩人看同一块屏看到同一个报警。每条规则独立冷却（默认 5 秒）；边沿触发各记上次布尔状态、只在 0→1 触发，读档后第一遍只记录不补触发。报警是全屏叠加层（等级 2 红 / 等级 1 琥珀），红石经由 <code>getWeakPower</code>/<code>getStrongPower</code> 输出、到期自动归零。运行时（冷却、边沿记忆、红石剩余）不进 NBT。</p>
+        </div>
+        <div class="panel panel--flat">
+          <h3 style="margin-bottom:8px">保存、编辑与复用</h3>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">「保存并应用」把整份设计打成 NBT 发服务端校验后写进方块实体；<code>panelLayout</code>/<code>panelLogic</code> 随存档持久化。底栏「复制/粘贴」能跨屏复用；「预设库」写到 <code>config/hbmzz-panels.nbt</code>（最多 32 个，客户端资产）。重新打开工坊即当前生效设计，「还原」丢弃本次改动。新放下的屏自带 8 个控件与 2 条示例规则，第四页一打开就能用。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 04 机器控制面板 ================= -->
+  <section class="section" id="control-panel">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 机器控制面板</div>
+        <h2>监控屏只读，这块真的能动手</h2>
+        <p>贴墙装一块、右键打开、转动旋钮，几格外的 RBMK 控制棒就跟着进；把它接上警报器、防爆门、炮塔、流体储罐，逻辑也能自己动手。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-bottom:18px">
+        <h3 style="margin-bottom:8px">它凭什么能操控别人的机器</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">
+          抄了诅咒版给机器定的两条动词：机器 → 面板用 <code>IControllable.getQueryData()</code> 返回「名字→数值/字符串」表，面板 → 机器用 <code>IControllable.receiveEvent(pos, ControlEvent)</code> 收一条带命名变量的事件，<code>getInEvents()</code> 让机器声明自己接受哪些事件名。
+          <strong>反射不是编译依赖</strong>：<code>ctrl.MachineBridge</code> 反射找接口、缓存方法句柄，找不到就降级成「面板读不到数据」并在侧栏写明原因，不会在启动时崩。事件词表是抄来的（<code>rbmk_ctrl_set_level</code>、<code>rbmk_crane_move</code>、<code>tank_set_mode</code>、<code>turret_switch</code>、<code>turret_set_target</code>、<code>siren_set_state</code>、<code>door_toggle</code>、<code>lever_toggle</code>、<code>spinny_light_power</code> 等），本模组换成了扁平写法：6 个机器槽位 + 14 种控件 + 一句话规则。
+        </p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="card">
+          <h3>面板结构</h3>
+          <p style="margin:0 0 8px">版面 32×18 格（1 格 = 8 逻辑像素，共 256×144 画布），编辑器与方块面共用同一个 <code>CtrlPainter</code>。控件和规则只指向<strong>槽位</strong>，整体可复制到另一台反应堆旁、只重绑槽位。上限 24 控件、6 条联动规则；绑定距离 24 格、只在服务端校验——不在范围内的槽位会被清空但保留指向它的控件。</p>
+          <h4 style="margin:14px 0 8px">14 种控件</h4>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>显示件（读机器）</th><th>操作件（写机器）</th></tr></thead>
+              <tbody>
+                <tr><td>标签</td><td>按钮（瞬时）</td></tr>
+                <tr><td>指示灯</td><td>急停按钮（锁死/复位）</td></tr>
+                <tr><td>三色指示灯</td><td>拨动开关（两态）</td></tr>
+                <tr><td>数码管</td><td>旋钮开关（多档吸附）</td></tr>
+                <tr><td>文本屏</td><td>旋钮（连续）</td></tr>
+                <tr><td>指针表盘</td><td>滑杆（上下推杆）</td></tr>
+                <tr><td>条图</td><td></td></tr>
+                <tr><td colspan="2"><b>终端</b>（读写任意槽位，右键开窗）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>三个页签</h3>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>页签</th><th>作用</th></tr></thead>
+              <tbody>
+                <tr><td><b>运行</b></td><td>操作台：拖动旋钮/滑杆、单击开关与急停，下部是 A–F 六个槽位实时状态。</td></tr>
+                <tr><td><b>控件</b></td><td>14 个控件库、画布、右侧检查器（标签/槽位/数据键/事件/变量/量程/档位/小数/配色）。</td></tr>
+                <tr><td><b>联动</b></td><td>一句话规则：<code>当 [A] 的 [heat] 大于 [900] → 则 [B] 发 [rbmk_ctrl_set_level] 的 [level] = [0]</code>，含冷却与启停。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="margin:16px 0 8px">绑定一台机器</h4>
+          <div class="steps" style="margin-top:6px">
+            <div class="step"><h3>记录机器</h3><p>手持监控数据线右键机器，聊天栏提示「已记录机器坐标：RBMK 控制棒（手动）」。</p></div>
+            <div class="step"><h3>接进槽位</h3><p>手持数据线右键面板打开窗口；到「控件」页，A–F 某行的「绑定」按钮把它接到这个槽位。</p></div>
+            <div class="step"><h3>保存并应用</h3><p>点「保存并应用」才生效。赶时间可手持数据线<strong>潜行右键面板</strong>，直接塞进第一个空槽位并当场生效。</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h3 style="margin-bottom:8px">操控与规则怎么生效</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">每 10 tick（0.5 秒）由 <code>CtrlEngine</code> 走一轮——每台机器只采样一次（<code>getQueryData</code> 是反射调用，也是唯一贵的地方），再刷控件、跑规则。点旋钮只发「第几个 + 多少」，事件名、变量名、机器坐标都在服务端副本里，改过的客户端不能把 3 号旋钮改写成对任意方块发任意指令。规则服务端判、冷却真锁（默认 5 秒）；设计进 NBT，运行时（读数、急停锁定、冷却）不进。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px" id="terminal-control">
+        <h3 style="margin-bottom:8px">终端控件：一块面板上的一台命令行</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
+          表盘适合「一直看着某个数」，不适合「现在告诉我 4 号机组的蒸汽压力是多少」。终端就是为后者加的：它不绑某一台机器，它绑<strong>这块面板</strong>——A–F 六台上绑着的机器它都能读写，当场切换目标。到「控件」页把「终端」拖到画布上、保存，回「运行」页<strong>右键它</strong>（左键也行）就开窗。
+        </p>
+
+        <div class="grid g2" style="align-items:start">
+          <div>
+            <h4 style="margin:0 0 8px">命令</h4>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>命令</th><th>作用</th></tr></thead>
+                <tbody>
+                  <tr><td><code>ls</code></td><td>列出 A–F：名字、坐标、可读键数、可发事件数。<code>*</code> 是当前目标。</td></tr>
+                  <tr><td><code>use B</code></td><td>切换目标（也认 <code>sel</code>；只写字母即可）。</td></tr>
+                  <tr><td><code>read</code> / <code>read heat</code></td><td>读这台机器的全部数据，或只读一个键。</td></tr>
+                  <tr><td><code>keys</code></td><td>只列可读的键名。</td></tr>
+                  <tr><td><code>events</code></td><td>列出它接受的事件，以及每个事件带的变量。</td></tr>
+                  <tr><td><code>parts</code></td><td>列出这个槽位里有哪些部件、各几台（部件类型槽位专用；单品槽位回一句「只有一台」）。</td></tr>
+                  <tr><td><code>ev &lt;事件&gt; [变量=值]…</code></td><td>发事件，例如 <code>ev rbmk_ctrl_set_level level=40</code>；不带等号的词按 1 处理，适合 <code>turret_set_target passive</code> 这种开关量。</td></tr>
+                  <tr><td><code>set &lt;变量&gt; &lt;值&gt;</code></td><td>知道变量名就够了，终端自己找对应的事件。</td></tr>
+                  <tr><td><code>help</code> / <code>clear</code></td><td>命令列表 / 清屏（历史仍可用 <kbd>↑</kbd> 取回）。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h4 style="margin:0 0 8px">补全与切换</h4>
+            <p style="font-size:14px;color:var(--text-dim);margin:0 0 10px">
+              <kbd>Tab</kbd> 按上下文给候选：第一格是命令名，<code>use </code> 之后是<strong>已绑定</strong>的槽位（空格位不出现），<code>read </code> 之后是这台机器上报的键，<code>ev </code> 之后是它接受的事件，再往后补出该事件的变量名（<code>level=</code>）。多个候选时列表浮在输入框上方，继续 <kbd>Tab</kbd> 循环、<kbd>Shift</kbd>+<kbd>Tab</kbd> 反向、<kbd>Enter</kbd> 采用并执行。
+            </p>
+            <p style="font-size:14px;color:var(--text-dim);margin:0 0 10px">
+              目标机器有两个入口：窗口上方 <strong>A–F 六个标签</strong>点一下，或直接打 <code>use B</code>。提示符会跟着变成 <code>B&gt;</code>，面板上那块终端贴纸也会显示同一个目标——存档里存的是同一个字段，所以多人看到的目标一致，不是各看各的。
+            </p>
+            <p style="font-size:14px;color:var(--text-dim);margin:0">
+              <kbd>↑</kbd><kbd>↓</kbd> 取回历史，<kbd>PgUp</kbd>/<kbd>PgDn</kbd> 翻屏，<kbd>Esc</kbd> 回到面板。刚放下的终端会自己指向第一个已绑定槽位；目标槽位被解绑时自动落到下一台。
+            </p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>为什么它不能越权</h4>
+            <p style="margin:6px 0 0">窗口只把<strong>一行文本</strong>交给服务端；机器、事件、变量都由服务端拿着自己那份面板解析。改过的客户端能打任意字，但能做的事和它手动转一个旋钮完全一样，不多一件。命令限速每秒 10 条，因为旋钮一次只发一个值，而回车可以一直按。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px" id="terminal-console">
+        <h3 style="margin-bottom:8px">同一台终端，也可以装在 CE 控制台上</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
+          上面说的是模组自己的控制面板（32×18 网格、A–F 六个槽位）。从诅咒版移植过来的那块<strong>节点图控制台</strong>是另一套代码，它的编辑器里也能选到「终端」——控件列表最后一行。放一个、拖到你顺手的位置、保存，然后<strong>右键它</strong>开窗。
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>模组控制面板</th><th>CE 控制台</th></tr></thead>
+            <tbody>
+              <tr><td>槽位</td><td>A–F 六个固定槽</td><td>你在<strong>联动器页签</strong>里起的标签名，随绑定存在控件自己身上</td></tr>
+              <tr><td>切换目标</td><td><code>use B</code></td><td><code>use 反应堆</code>（带空格的标签整行都算名字）、<code>use 2</code>，或点窗口上方的标签</td></tr>
+              <tr><td>目标存在哪</td><td>终端控件的一个字段</td><td>控件自己的 <code>vars</code> 里，跟着面板 NBT 走</td></tr>
+              <tr><td>槽位顺序</td><td>固定 A→F</td><td>按标签名排序。那块 map 是从 <code>HashMap</code> 重建的，插入顺序不可靠，名次一变 <code>2</code> 号就换机器了</td></tr>
+              <tr><td>命令与补全</td><td colspan="2">完全一样：两边的补全与执行都挂在同一个 <code>TerminalHost</code> 上，动词、提示、错误文字只有一份</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p style="color:var(--text-dim);font-size:14px;margin:12px 0 0">
+          窗口上方只画得下 6 个标签：绑得更多时用 <code>ls</code> 看全表、<code>use 名字</code> 切换，不用只盯着标签。目标序号越界（比如你删了一个标签）时终端退回第一个槽位，而不是列着一堆槽位却一个都读不了。
+        </p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px" id="part-groups">
+        <h3 style="margin-bottom:8px">一台反应堆算一个部件类型</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0 0 12px">
+          一台实用的 RBMK 不是一格方块：十几个燃料通道、一排控制棒、一两个蒸汽发生器、一个吊车控制台。以前要给它们挨个起名字绑进面板，于是窗口里是十二个标签、十二次 <code>use</code>、十二次 <code>set</code>——而操作者脑子里想的只有一个东西：「这台反应堆」。现在<strong>同一类别的机器会折进同一个槽位</strong>，一个窗口调整台堆。
+        </p>
+
+        <div class="grid g2" style="align-items:start">
+          <div>
+            <h4 style="margin:0 0 8px">两级归类，槽位边界由你来划</h4>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>级别</th><th>怎么判定</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>部件类型</strong><br><span style="color:var(--text-dim)">family</span></td><td>看方块实体的类名。含 <code>RBMK</code> 归「RBMK 反应堆」；DFC 的零件是按<strong>功能</strong>命名的（<code>TileEntityCoreEmitter</code>、<code>CoreInjector</code>、<code>CoreReceiver</code>、<code>CoreStabilizer</code>、<code>CoreDetonator</code>、<code>CoreExchanger</code>，以及核心本身 <code>TileEntityCore</code>），它们全部归「DFC 反应堆」——要有这一条，一台大 DFC 才不会散成「发射器一个槽、注入器一个槽」。储罐、炮塔、警报器、门、电源盒、警示灯、控制面板各自一族。<strong>表里没有的机器类各自成族</strong>，不会被塞进别家的槽位。</td></tr>
+                  <tr><td><strong>槽位边界</strong><br><span style="color:var(--text-dim)">binding</span></td><td>折叠只在<strong>这块终端自己绑定的零件之间</strong>进行，<strong>完全不看坐标</strong>。30 格宽的 DFC、锅炉隔了一道墙的反应堆、沿管道排开的一串储罐，都还是同一个槽位。</td></tr>
+                  <tr><td><strong>部件名称</strong><br><span style="color:var(--text-dim)">part</span></td><td>机器类型名，例如「RBMK 控制棒（手动）」「RBMK 蒸汽发生器」。<strong>同名广播认的就是它</strong>，不是你起的联动器标签——标签的意义正是把两根控制棒区分开，而「控制棒」是它们共有的东西。</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="color:var(--text-dim);font-size:13px;margin:10px 0 0">
+              只有<strong>同一族至少 2 台</strong>时才折叠；单独一台仍用它原来的标签（<code>A</code>、你起的名字），所以六台互不相干的机器那块面板看起来和以前一模一样。没绑定机器的空槽也留在原位，标签条不会塌成「只剩接了线的几个」。
+            </p>
+          </div>
+          <div>
+            <h4 style="margin:0 0 8px">窗口里能看到 / 能调到什么</h4>
+            <ul style="font-size:14px;color:var(--text-dim);margin:0;padding-left:18px;line-height:1.75">
+              <li><strong>槽位＝部件类型。</strong>标题栏写「RBMK 反应堆 · 12 部件」，提示符变成 <code>RBMK&gt;</code>，<code>use</code> 也认这个名字。</li>
+              <li><strong><code>read</code> 读整组。</strong>数值键给<b>最小–最大</b>（四根棒 40/40/40/80 显示 <code>40–80</code>），文本键给不同的取值，最多三个；全部一致时就只有一个数。</li>
+              <li><strong><code>keys</code> / <code>events</code> / 变量名是并集。</strong>整台堆能读什么、能发什么，一次列全，不用来回切槽。</li>
+              <li><strong><code>parts</code> 是点名册。</strong>列出这个槽位里有哪些名字、各几台——也就是「我这一条命令会动到谁」。</li>
+              <li><strong>写入会显示实际台数。</strong><code>set level 40</code> 之后回一行 <code>→ RBMK rbmk_ctrl_set_level level=40 ×4</code>：四根棒动了，蒸汽发生器没动。</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin:16px 0 8px">同名广播：什么时候触发，作用到哪</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>规则</th></tr></thead>
+            <tbody>
+              <tr><td><strong>触发条件</strong></td><td>本模组<strong>任何一条</strong>发往机器的道路——面板旋钮、面板规则、CE 控制台的节点图、终端——把事件交给一台<strong>已被面板绑定</strong>的机器之后。</td></tr>
+              <tr><td><strong>命中条件</strong></td><td>与源机器<strong>被同一块终端绑在一起 + 同部件类型 + 同部件名称</strong>，且不是它自己。看的是绑定关系，不是坐标——离得多远都算。</td></tr>
+              <tr><td><strong>作用范围</strong></td><td>只限这些同名伙伴：<strong>不跨终端</strong>（另一块面板接的反应堆不会动）、不跨部件类型。一次最多复制到 32 台，超过的部分不动。没接面板的机器永远不会被写到。这块面板要是接了<strong>两台</strong>反应堆，广播就覆盖两台——要分开，给它们各一块终端。</td></tr>
+              <tr><td><strong>不触发的情形</strong></td><td>终端在<strong>部件类型槽位</strong>上发起的写入，以及节点图一次发往<strong>多个位置</strong>的广播——它们本身就是「发给整组」，再扩散一次就变成 N×N 次投递（瞬时按钮会被自己按两次）。这两条路径在写之前就把扩散关掉。</td></tr>
+              <tr><td><strong>失败时</strong></td><td>先送到你指定的那台；复制给同名的部分失败，只影响伙伴，不回滚、也不改你已经发出的那一份。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>为什么按「类名 + 绑定」，而不是按标签名或距离</h4>
+            <p style="margin:6px 0 0">标签是自由文本，随时能改名；要是靠命名约定（<code>1号堆-控制棒1</code>）分组，改个名字整个槽位就散了，而且每个人得先学会一套规矩才能用。类名是机器自己说的，不需要玩家配合。</p>
+            <p style="margin:6px 0 0">距离看着省事，其实是在替玩家回答一个玩家没问的问题。30 格宽的 DFC 会被判成好几台，锅炉装在隔壁房间的反应堆会被拆开，而两台碰巧贴着盖的堆又会被并成一台——三种情况玩家都没法反驳。改成「这块终端绑了哪些零件」，边界就落在玩家自己按下的那一次绑定上，大机器想多宽就多宽。</p>
+            <p style="margin:6px 0 0">代价写在明处：<strong>两台反应堆接到同一块面板上，会并成一个槽位</strong>，一条 <code>set</code> 两台一起动。<strong>要分开就再放一块面板或控制台，各接各的</strong>——这也正是你描述「我有两台堆」的方式。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <h4>已知限制</h4>
+          <p style="margin:6px 0 0">只有实现了 <code>IControllable</code> 的机器能绑；诅咒版里主要是 RBMK 控制棒 / 吊车控制台、防爆门、警报器、炮塔、流体储罐、电源盒、旋转警示灯。数据键与事件名完全取决于机器自身实现：机器没上报的键读出来是 <code>—</code>，机器没公布的事件发过去也不会有效果。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 05 RBMK 过热 ================= -->
+  <section class="section" id="rbmk-surge">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 反应堆事故</div>
+        <h2>RBMK 不再是一个 tick 就没了</h2>
+        <p>基座模组把一台过热的堆在一个 tick 内变成废墟。行为是对的，但它是<strong>发生在你身上</strong>，不是<strong>发生给你看</strong>：上一秒还在跑，下一秒就是瓦砾。这一段把那一 tick 换成一分钟，以及一分钟之后真正会飞的东西。</p>
+      </div>
+
+      <div class="panel panel--flat">
+        <h3 style="margin-bottom:10px">什么时候开始</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>条件</th><th>判定</th></tr></thead>
+            <tbody>
+              <tr><td><strong>温度</strong></td><td>这一台堆里<strong>任何一根</strong>柱子的 <code>heat</code> 超过 <strong>1000</strong>（可在 <code>rbmk.heat</code> 改）。1000 是刻意选的：基座模组在 <code>maxHeat()</code>（默认 1500）就自己动手了，取 1500 等于没有警告。</td></tr>
+              <tr><td><strong>ReaSim 蒸汽</strong></td><td>要么所有存着蒸汽的柱子都<strong>顶到容量</strong>，要么<strong>蒸汽总量连续三次采样（约 2 秒）一动不动</strong>。取并集是因为容量这个数在不同整合包里不一样：基座写的是 16000，而几个常见附属把它抬到 80000 却不改字段——只看字段的话 20% 就判满。</td></tr>
+              <tr><td><strong>两者都要</strong></td><td>只有热，是一台正常在跑的堆；只有蒸汽满，是一台在干活的锅炉。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin:18px 0 10px">然后发生什么</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>阶段</th><th>时长</th><th>在做的事</th></tr></thead>
+            <tbody>
+              <tr><td><strong>跳动</strong></td><td>1200 tick（一分钟）</td><td>控制棒在通道里上下砸，棒底喷出蒸汽，落回时发出撞击声。<strong>用的就是诅咒版的跳动函数</strong>：附属在柱子上加的 <code>leafia$damage</code> 字段驱动它，我们只把这一个整数从 240 一路抬到 1150。</td></tr>
+              <tr><td><strong>一次爆炸</strong></td><td>即刻</td><td>顶盖整体离堆，初速 <strong>3.2 格/ tick</strong>，升到约 <strong>64 格</strong>，翻着跟头往下掉。整段飞行它被<strong>夹在反应堆正上方</strong>（半径 = 顶盖半宽 + 2 格），只有最后落定时才松开。</td></tr>
+              <tr><td><strong>二次爆炸</strong></td><td>落地时</td><td>顶盖砸回堆芯 → <strong>氢弹尺度</strong>的一发（<code>rbmk.lidBlastPower</code>，默认 30）→ 带着横向分量再次掀飞（<strong>4.25 格/ tick</strong>，约 113 格）。</td></tr>
+              <tr><td><strong>落定</strong></td><td>落地后 1200 tick</td><td>最后落地时只炸 <code>lidBlastPower × 0.22</code>：第一个坑已经在，第二发满威力只会把第一个坑的证据擦掉。冒烟躺一分钟，随后碎掉消失。堆芯交给基座模组自己的熔毁。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:16px">
+          <div>
+            <h4>为什么这一分钟里热量被按住了</h4>
+            <p style="margin:6px 0 0">每根柱子的 <code>heat</code> 在倒计时期间被钉在 <code>maxHeat() - 50</code>。不钉住，基座模组会在头几秒走到自己的熔毁线，倒计时还没走完堆就没了、顶盖永远不会飞——那会是一段看起来能跑、只在真堆上失效的死代码。钉子由爆炸自己拔掉，之后一切照常。</p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>顶盖是实体，不是方块</h4>
+            <p style="margin:6px 0 0">落地时把自己放回世界，会<strong>在原地生成一根活的 RBMK 柱</strong>——一台从瓦砾里长出来、带方块实体、能继续运行的堆。所以它只是实体：带着原堆每根柱子的顶盖、按原样排布、各用各的 <code>cover</code> 贴图；落地只炸、只掉碎块，不改写世界。</p>
+            <p style="margin:6px 0 0">代价同样写在明处：<strong>没有做精细的落点碰撞</strong>，顶盖按五个采样点找最高的地面，落在斜坡上会有一角悬空；落地一分钟后碎掉，不会永久留成一台「切尔诺贝利顶盖」。</p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>像氢弹，但没有蘑菇云</h4>
+            <p style="margin:6px 0 0">蘑菇是<strong>地爆</strong>的产物：地面上的火球把尘土吸成一根柱子，柱子升到对流层顶再摊开，那是分钟级的画面。这台机器不是地爆，它是一个<strong>压力容器在露天散架</strong>；而且那片云会正好挡住整段演出唯一要展示的东西——顶盖飞上去。所以拆掉烟柱，剩下的三样照画：<strong>白闪光</strong>（几个 <code>EXPLOSION_HUGE</code> 加没有烟柱托底的火）、<strong>贴地扩散的尘环</strong>、<strong>喷射的水汽</strong>。</p>
+            <p style="margin:6px 0 0">冲击波会真的打到玩家身上：相机三轴各叠两条<strong>失谐</strong>正弦波（三轴不会连成一条斜向抖动），振幅按距离平方衰减、按剩余寿命平方收敛；<strong>物品栏</strong>整条平移而不是整个 HUD——准星在那个时刻必须还能看清，玩家正在逃跑；地上再画一圈向外跑的尘环。全部由客户端从<strong>一个 37 字节的包</strong>本地生成，不从服务器一帧一帧发粒子。<code>rbmk.shake</code> 可关。</p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:14px">
+          <div>
+            <h4>想看得更清楚：<code>zd_tx</code></h4>
+            <p style="margin:6px 0 0"><code>/gamerule zd_tx true</code>。打开后，堆开始<strong>跳棒</strong>的那一刻你的视角会开始缓慢绕堆旋转，一直到掀盖爆炸为止；<strong>DFC</strong> 进入坍缩最后 5 秒时同理，绕到它炸为止。两处都在爆炸那一刻把镜头交还——留在一个坑上转圈没有意义，你要看的是那一下。</p>
+            <p style="margin:6px 0 0">转速、半径、高度都在 <code>cinematic.*</code> 里（默认 0.72°/tick ≈ 25 秒一圈、18 格、+7 格）。起始角度取你<strong>当时站的方向</strong>，所以第一帧和你原来看到的是连续的。这是纯客户端演出：别的玩家看不到你的镜头在转，你的角色在他们眼里只是站着不动。</p>
+            <p style="margin:6px 0 0"><code>zd_tx</code> 管的是<strong>收尾</strong>。想看<strong>开场</strong>另有 <code>DFC-TSTX</code>：<code>/gamerule DFC-TSTX true</code>，核心一进入坍缩就强制环绕<strong>三秒</strong>（60 tick，半径 16、抬高 6、4°/tick），然后交还视角。两个规则互不抢镜头——长镜头已经在跑时，三秒这一轮直接跳过。规则名就是大写加连字符，因为 1.12.2 的 gamerule 就是一张按名字查的表。</p>
+          </div>
+        </div>
+
+        <div class="note note--red" style="margin-top:18px">
+          <div>
+            <h4>已知限制</h4>
+            <p style="margin:6px 0 0"><strong>跳动动画需要诅咒版附属（CE Addon / Leafia）。</strong>没装的时候倒计时照走、爆炸照炸，但棒子不会跳——日志里会写一行说明，而不是让你盯着一台安静了一分钟然后突然爆炸的反应堆。基座模组本身没有这个字段，也没有第二套可借用的跳动实现。</p>
+            <p style="margin:6px 0 0"><strong>只对<b>装好顶盖</b>的堆有完整效果。</strong>顶盖是柱子的元数据，没有盖子的堆（或者控制棒这种自带盖子的柱子）不会被抢走任何东西：一次爆炸照炸，只是没有东西飞。</p>
+            <p style="margin:6px 0 0"><strong>整台堆的边界由基座模组定义。</strong>相邻（上下左右，同高度）的柱子算一台堆，斜着挨在一起的不算——两侧堆在角上碰一下不会被当成一台。这条规则来自基座模组自己的熔毁扫描，不是本模组另立的规矩。</p>
+            <p style="margin:6px 0 0"><strong>不要和 <code>ntm-it</code> 同时装。</strong>那个模组也在做同一套事故（自己的跳棒、自己的顶盖实体、自己的足迹爆炸，落定时还有一发强度 50 的核爆）。两个模组同时反应在一台堆上，就是两块顶盖、两次熔毁、两种爆炸数量叠在一起。进存档后的第一次世界 tick 就会在日志里点出这一行——真出事时第一个该看的就是它。</p>
+            <p style="margin:6px 0 0"><strong>碎块里不会有带方块实体的方块。</strong>落块落地会把自己放回世界，一根 RBMK 柱子落回地面就是一台从瓦砾里长出来的活反应堆——这条规矩和「顶盖不能变方块」是同一条，2.7.1 之前碎块违反了它。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 06 节点图控制台 ================= -->
+  <section class="section" id="console">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 节点图控制台</div>
+        <h2>从诅咒版整套搬过来的控制台</h2>
+        <p>这块把 NTM: 诅咒版的控件、事件、变量、节点图、连线器整套搬了过来。它有 <span data-bind="auto.stats.controlTypes">25</span> 种控件、节点图里共 <span data-bind="auto.stats.nodeTypes">32</span> 种节点，表达力是图灵完备级别的。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-bottom:18px">
+        <h3 style="margin-bottom:8px">怎么放、怎么开</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">
+          放下方块时底边吸附在你点的那一面：对着天花板放是吊装（板面朝下），对着地板放是平台式，对着墙放是贴墙式。
+          <strong>手持螺丝刀</strong>右键打开布局编辑器（NTM 的「螺丝刀」「Desh 螺丝刀」按注册名都认，主手副手都行）；
+          <strong>手持监控数据线</strong>右键也能打开（没装 NTM 时的替代工具）。空手右键板面上的某个控件会按下它、发一条 <code>ctrl_press</code> 给这个控件自己的节点图；给旁边方块供电，红石值进入面板的 <code>redstone_input</code> 节点。方块会输出红石：任一 <code>redstone_output</code> 节点算出来的值就是这块方块的弱/强充能强度，六面都算——所以它也能当可编程红石控制器用。
+        </p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="card">
+          <h3>三层结构：控件 → 事件 → 节点图</h3>
+          <p style="margin:0 0 8px">每个控件带一张自己的电路图：物理控件（右键能按的立体模型）→ 几个有名字的 vars（<code>isPushed</code> / <code>isOn</code> / <code>value</code> / <code>color</code>）→ 接收事件（<code>ctrl_press</code> / <code>tick</code>）、发送事件（<code>set_redstone</code>）→ 节点图 <code>NodeSystem</code>（一个事件一张图，图里节点算完写回 vars）。真正动手的是节点图：放一个「红石输出」节点写的是控制台方块自己的红石，放一个「广播事件」节点把事件发给同一张面板上的别的控件。</p>
+        </div>
+
+        <div class="card">
+          <h3><span data-bind="auto.stats.controlTypes">25</span> 种控件（按类别）</h3>
+          <p style="margin:0 0 6px;font-size:14px"><b>来自诅咒版本体（14）</b>：按钮、急停按钮、防护按钮、拨动开关、旋转开关、垂直滑条、旋钮、七段数码、文字屏、方形仪表、圆形仪表、指示灯、RGB 指示灯、标签。</p>
+          <p style="margin:0 0 6px;font-size:14px"><b>来自诅咒版附属 Leafia（11）</b>：辉光数码管、大型按钮、大型拨杆开关、水平拨杆、竖直拨杆、水平仪表、竖直仪表、RBMK 阵列、图表、文字指示牌、方框标签。</p>
+          <p style="margin:0;font-size:14px;color:var(--text-dim)"><code>RBMK 阵列</code> 是唯一跨模组读数据的控件（反射调 CE 的 <code>getConsoleData()</code>）。模型与贴图一并带进来（6 个 .obj + 15 张 png），不依赖附属 jar 在不在。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>节点图里有什么</h4>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr><th>分类</th><th>节点</th></tr></thead>
+            <tbody>
+              <tr><td>输入</td><td>事件数据、读取变量、查询方块、红石输入、批量查询、图表区间</td></tr>
+              <tr><td>输出</td><td>广播事件、取消当前事件、设置变量、红石输出、播放声音、写入图表</td></tr>
+              <tr><td>数学</td><td>加减乘除、取余、幂、对数、指数、平方根、绝对值、比较、限幅、最大最小、取整（20 种运算，一个节点切着用）</td></tr>
+              <tr><td>布尔</td><td>AND / OR / NOT / XOR / NAND / NOR / XNOR，外加脉冲、SR 锁存</td></tr>
+              <tr><td>逻辑</td><td>函数（自定义表达式）、缓冲器（延迟一拍）、条件（if）</td></tr>
+              <tr><td>数据包</td><td>读取数据包、写入数据包（复合类型打包/拆包）</td></tr>
+              <tr><td>文本</td><td>文本拼接、取子串、格式化、数值缩写</td></tr>
+              <tr><td>实用</td><td>缓存、时钟、随机整数、随机小数、汇总、文本转数字</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:10px 0 0;color:var(--text-dim);font-size:14px">编辑器共 7 页：摆放页、连接页、节点页、事件页、变量页、安全页、控件配置页。变量分局部（控件内）与全局（整张面板共享）。事件表不是抄死的，而是运行时镜像 CE 自己的注册表，所以附属追加的事件在广播节点上也能带自己的变量。</p>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h3 style="margin-bottom:8px">汉化边界：协议字符串一律不翻译</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">
+          翻了的是会显示给人看的字：控件名、节点名、节点分类与菜单项、按钮标题、滑条与提示文字、数学/布尔运算显示名。
+          <strong>没翻的是协议</strong>：控件注册名（<code>button_push</code> 这类标识符）、NBT 键（<code>isPushed</code> / <code>nodeType</code> / <code>click_control</code>）、事件词表（<code>ctrl_press</code> / <code>initialize</code> / <code>tick</code>）、控件变量名（<code>value</code> / <code>isOn</code> / <code>isLit</code>）、六个方向名（<code>north</code> / <code>south</code>…）、数据包字段名。翻哪一个都会让面板读不到数、发不出事件或读不了旧存档。节点图现在整段保持 unicode 字模开启、小字号标签按实测宽度裁剪，中文不再变成方块。
+        </p>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:18px">
+        <h4>「机器控制面板」与「节点图控制台」怎么选</h4>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr><th></th><th>机器控制面板（本项目设计）</th><th>机器控制台（诅咒版移植）</th></tr></thead>
+            <tbody>
+              <tr><td>界面</td><td>窗口里的 2D 画布</td><td>世界里的立体面板 + 窗口编辑器</td></tr>
+              <tr><td>逻辑</td><td>6 槽位 + 一句话规则</td><td>每个控件一张节点图，可互相广播事件</td></tr>
+              <tr><td>控件</td><td>13 种，AWT 绘制</td><td>14 种，OBJ 立体模型</td></tr>
+              <tr><td>多机联动</td><td>有（槽位表）</td><td>有（连接器 + 查询方块节点）</td></tr>
+              <tr><td>上手成本</td><td>低，规则表就是全部</td><td>高，但表达力是图灵完备级别</td></tr>
+              <tr><td>代码来源</td><td>契约抄 CE，实现自写</td><td>整套抄 CE，只做兼容层与汉化</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:10px 0 0;color:var(--text-dim);font-size:14px">两块可以同时装、互不干扰，各用自己的界面。</p>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <h4>已知限制</h4>
+          <p style="margin:6px 0 0">OpenComputers 集成没有移植。渲染走兼容层，比 VAO 差一点。只有实现了 <code>IControllable</code> 的方块能被连接（CE 机器在自身包里实现同名接口，本模组用 <code>BridgedControllable</code> 包一层）。<strong>从机器发给面板的事件（机器→面板方向）暂时收不到</strong>，面板→机器是通的。节点图的存档与 CE 不通用，只存在本模组的方块实体里。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 07 枪械 / 线圈 / 喷气背包 ================= -->
+  <section class="section" id="extras">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 枪械 / 线圈 / 喷气背包</div>
+        <h2>顺带做的几件手持装备</h2>
+        <p>它们和监控屏共用同一套资源与配方体系，没有额外依赖。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="card">
+          <h3>制式枪械</h3>
+          <p>内置三把瞬发射线枪械，全部服务端裁判：客户端只上报扳机是否按住，射速、弹匣、命中判定都在服务端算，改客户端转速也打不快。Mk.1 制式手枪（9mm，半自动精度高）、Mk.2 卡宾枪（5.56mm，全自动）、Mk.3 破门霰弹枪（12 号，半自动强散布）；弹药统一是「弹药」物品，靠 metadata 分三种口径。</p>
+        </div>
+        <div class="card">
+          <h3>Roblox 线圈</h3>
+          <p>速度线圈、跳跃线圈、恢复线圈三个手持装备，无需 NTM：主手/副手持有即由服务端 <code>PlayerTickEvent</code> 施加对应效果（速度 / 跳跃提升 / 生命恢复），背包内不生效。效果与配方都取自 Roblox 风格设计。</p>
+        </div>
+        <div class="card">
+          <h3>喷气背包</h3>
+          <p>穿戴在胸甲位，按住跳跃键向上飞，消耗耐久。耐久即燃料（满 2400，连续飞行约 6 分钟），铁砧 + 铁锭可修复；客户端把「跳跃键按下」状态发给服务端，由服务端施加 <code>motionY</code> 推力与火焰粒子。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 08 视频广播器 ================= -->
+  <section class="section" id="video">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 视频广播器</div>
+        <h2>让某个人屏幕当场黑掉，然后开始播片</h2>
+        <p>一个方块，两个字段：播什么、播给谁。红石上升沿一到，被选中的玩家屏幕上没有任何过渡——画面直接切黑，然后开始播，播完自动恢复。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h3>放方块、接红石</h3>
+          <p>正面朝向你，红石线接到任意一面。正面小灯亮起表示正在被驱动。</p>
+        </div>
+        <div class="step">
+          <h3>右键开窗，选视频</h3>
+          <p>输入包名，或者从清单里点一个——清单只列 <code>config/hbmzz/videos/</code> 里真的有的东西。</p>
+        </div>
+        <div class="step">
+          <h3>填广播目标</h3>
+          <p>命令方块那套选择器：<code>@a[r=32]</code>、<code>@p</code>、<code>@a[team=red]</code>。输入框下面会实时告诉你现在匹配到几个人。</p>
+        </div>
+        <div class="step">
+          <h3>先按「测试广播」</h3>
+          <p>它走的是和红石完全相同的那条链路，所以能测通就是真能通。确认没问题再按「保存并应用」——保存本身<strong>不会</strong>触发。</p>
+        </div>
+      </div>
+
+      <div class="grid g3" style="margin-top:22px">
+        <div class="card">
+          <h3>只认上升沿</h3>
+          <p>拉杆一直按着是一次广播，不是每秒二十次。进存档或区块重载后的第一个 tick 只记录电平、不触发——站在红石块旁边上线，不该被自己的机器糊一脸。</p>
+        </div>
+        <div class="card">
+          <h3>轮询而不是听通知</h3>
+          <p>红石按 tick 结算，每 tick 问一次 <code>isBlockPowered</code> 与任何邻居钩子一样快，但不会漏：区块重载回来时是收不到那个「变化」的。这里漏一次，屏幕就永远不接管。</p>
+        </div>
+        <div class="card">
+          <h3>冷却兜底</h3>
+          <p>两次广播至少隔 <code>video.cooldownTicks</code>（默认 20 tick）。漏斗钟、中继器环那种高频信号会被忽略并写进状态行，免得视频变频闪。</p>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="card">
+          <h3>窗口里的两个字段</h3>
+          <p><strong>视频文件</strong>是包名，不是路径；<strong>广播目标</strong>是选择器原文。两者都存进方块 NBT，跟着存档走。窗口只编辑一份工作副本，按保存才发给服务端，服务端会重新校验一遍——包括名字白名单、长度、距离，以及（若开启）管理员权限。</p>
+        </div>
+        <div class="card">
+          <h3>目标是怎么算出来的</h3>
+          <p>解析交给原版 <code>EntitySelector</code>，方块扮成命令等级 2 的发送者。半径和坐标以<strong>方块</strong>为原点。注意 <code>@s</code> 会失败：它表示「执行这条命令的实体」，方块不是实体——而且它不会被偷偷换成 <code>@p</code>，那样在服务器上会广播到别人屏幕去。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h4>视频放哪、长什么样</h4>
+        <p style="color:var(--text-dim);margin:8px 0 12px">放在<strong>客户端</strong>的 <code>config/hbmzz/videos/</code> 下，两种形状都认：</p>
+        <pre>alarm.zip            alarm/
+  meta.json            meta.json
+  f000001.jpg          f000001.jpg
+  f000002.jpg          f000002.jpg
+  audio.wav            audio.wav</pre>
+        <p style="color:var(--text-dim);margin:12px 0 0">meta.json 可以整个省掉：缺省 12 fps，帧数按目录里实际有几张图算。用一条命令把 mp4 打成包：</p>
+        <pre>python tools/video/pack.py alarm.mp4 alarm --fps 12</pre>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>视频要放在每一台需要观看的客户端上。</strong>服务端只发「播 alarm」这几个字，不发帧——30 秒 480p 是几十 MB，网络上传不动，这跟材质包是同一个交易。客户端没有这个文件时，它不会给你一块沉默的黑屏，而是直接报出缺的文件名和它找过的路径。</p>
+          <p>另外，<strong>ESC 默认关不掉</strong>，其它按键也一律吞掉。这是刻意的；<code>video.allowEsc=true</code> 可以恢复，给不想吓人的服务器留了开关。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 红石音频 + reasim ================= -->
+  <section class="section" id="rsaudio">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 红石音频 · reasim</div>
+        <h2>这台播放器现在会「破」了</h2>
+      </div>
+      <p>
+        先说一件容易被措辞误读的事：<strong>Redstone Audio（红石音频，<code>rsaudio</code>）不是别人的模组。</strong>
+        它是<strong>本项目作者自己写的另一个独立模组</strong>，和 HBMZZ 同一个作者——以前单独发布、单独装一枚 jar，
+        名字叫 <code>rsaudio-1.0.0.jar</code>。2.9.0 做的事只是把它从「另外下一份」改成「同一枚 jar 里一起带」，
+        作者没变，代码也没换人写。
+      </p>
+      <p>
+        并进来的是整套：音频播放器、红石延迟器、结构加载器、
+        自动化红石计算机、六色警报灯、防核门、广播器、DMR 与 F9 两台反应堆、电梯、监控、门禁与气闸、
+        远程面板、列车和货运卡车，全部都在。
+        <strong>它仍然是一个独立模组</strong>（<code>modid = rsaudio</code>），只是打在同一枚 jar 里——
+        因为 <code>rsaudio:</code> 的方块 id 已经写进了存档，改名等于让老存档里所有红石音频的机器凭空消失。
+      </p>
+      <p>
+        <strong>装 2.9.0 之前请把 <code>mods/</code> 里独立的 <code>rsaudio-*.jar</code> 拿掉。</strong>
+        两份同时存在就是 duplicate modid，FML 会在加载阶段直接崩，而且报错文字完全指不到这件事上。
+        <code>tools/deploy.py</code> 现在会自动把它改名成 <code>.jar.merged</code>。
+      </p>
+
+      <h3 style="margin-top:26px">mp3 直接放：多格式音频（3.6.0）</h3>
+      <p>
+        以前只有 <code>.ogg</code> 能进这台播放器，别的格式会被统计成「放不了的文件」，界面里
+        明说让你先转码。3.6.0 把 <strong>wzh3203</strong> 的 <code>rsaudiofm</code> 插件并了进来：
+        <strong>mp3 与 flac 丢进 <code>config/rsaudio/audio</code> 就能直接选、直接放</strong>。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:18%">路线</th><th style="width:34%">怎么发声</th><th>需要什么</th></tr></thead>
+          <tbody>
+            <tr><td><strong>直出（PCM）</strong></td><td>解码成 PCM 直接推给声卡，绕过原版声音引擎，因此也不经过资源包</td><td>四个解码库，<b>已经在 jar 里</b></td></tr>
+            <tr><td><strong>转码</strong></td><td>用 ffmpeg 转成 ogg 存进 <code>config/rsaudiofm/cache</code>，再交给原版引擎</td><td><code>ffmpeg.exe</code>，<b>不随包</b>，自己放进 <code>config/rsaudiofm/bin/</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>默认走直出</strong>，不需要你装任何东西。想固定走转码：<code>config/rsaudiofm/rsaudiofm.cfg</code> 里 <code>route=NATIVE</code>。</li>
+        <li><strong>ffmpeg 我们故意没打进 jar。</strong>wzh3203 原版是 41.6 MB，其中约 35 MB 就是一份
+          <code>ffmpeg.exe</code>；而它只服务转码这一条路，找不到时直出照常工作。要用就自己放一份，
+          探测顺序是 <code>config/rsaudiofm/bin</code> → 游戏目录 → <code>mods/</code> → <code>PATH</code>。</li>
+        <li><strong>不用装 MixinBooter。</strong>原插件是独立模组、改不了宿主，只能靠 Mixin 注入播放器；
+          合并之后宿主代码就在同一枚 jar 里，钩子直接写进了播放器的五个方法，那个 2.4 MB 的
+          coremod 依赖因此消失。</li>
+        <li><strong>reasim 优先。</strong>打开 reasim 后直出路线不插手（reasim 只处理 ogg，两条路同时响会变两遍）。</li>
+      </ul>
+
+      <h3 style="margin-top:26px">顺手修掉的一个崩溃：点面板边缘会抛 AbstractMethodError</h3>
+      <p>
+        2×2 吊装面板里只有左上角是原点格，另外三格是填充板。右键填充板时，代码要「转发给原点格」，
+        而它原来是通过 <code>IPanelOrigin</code> 接口去调的：接口里这个方法叫 <code>onBlockActivated</code>，
+        实现类里那个重写却被 reobf 改名成了 <code>func_180639_a</code>——<b>接口声明不是 Block 的子类，
+        映射表里没有它，名字保持原样</b>。于是运行时 <code>invokeinterface</code> 找到的是一个没人实现的
+        方法，抛 <code>AbstractMethodError</code>：点面板中间那格正常，点边缘就没反应。
+      </p>
+      <p>
+        现在转发点直接按 <code>Block</code> 类型调用（那正是塔塔鲁斯门的 <code>BlockGatePart</code>
+        从第一天起就在用的写法），接口里也不再声明这个方法——声明了就会有人按接口去调，然后踩同一个坑。
+      </p>
+
+      <h3 style="margin-top:26px">jar 里自带三首 OST</h3>
+      <p>
+        这一版起，<a href="ost.html">原声</a>那三首曲子——<strong>How to survive?</strong>、
+        <strong>When will it end?</strong>、<strong>The ending of melting</strong>（都是本项目作者自己写的）——
+        一起打进了 jar：转成 ogg 后约 13 MB，首次启动时铺到
+        <code>config/rsaudio/audio</code>，右键音频播放器就能在列表里直接选到，不用再自己找音乐。
+      </p>
+      <ul>
+        <li><strong>它只是"首次帮你放进去"</strong>：之后和手动放进目录的文件完全一样，改名、替换、删除都随你。</li>
+        <li><strong>删掉不会再自己长回来</strong>：补装只做一次，记录在 <code>config/rsaudio/builtin-music.txt</code>；
+          想装回去就删掉那个文件、重启游戏。</li>
+        <li><strong>为什么不写进 jar 的 <code>sounds.json</code></strong>：这台播放器的曲库本来就是一个目录，
+          走同一条扫描链路才不会长出第二条播放路径，也不会在列表里凭空多出删不掉的项。</li>
+        <li>jar 因此从 2.3 MB 变成 16 MB 左右。体量确实变大了，但这 13 MB 是<strong>会响的音频本身</strong>，
+          不是 3.3.0 那条线里那套没人用的解码器与 ffmpeg 依赖。</li>
+      </ul>
+
+      <h3 style="margin-top:26px">开 reasim</h3>
+      <p>
+        右键播放器 → 模式那一行最右边多了一个 <code>REASIM</code> 按钮 → 进去把总开关打开。
+        之后这台机器放出来的就不再是"干净的音乐"，而是一只装在铁皮箱里的喇叭。
+      </p>
+      <p>
+        顺便说明一句：<strong>reasim 是 2.9.0 新写的</strong>，独立发布的 <code>rsaudio-1.0.0.jar</code> 里没有这个开关。
+        也就是说从 rsaudio 搬过来的只有它原本那套机器，reasim 是在这个仓库里长出来的新东西；
+        不打开它时，播放器行为和 1.0.0 逐字节一致。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:20%">滑条</th><th style="width:22%">范围（默认）</th><th>它到底做了什么</th></tr></thead>
+          <tbody>
+            <tr><td><strong>音量</strong></td><td>0 – 200%（100%）</td><td>功放增益。拧到 0 也还有一点嗡嗡声，因为底噪在增益之后。</td></tr>
+            <tr><td><strong>回声</strong></td><td>0 – 100%（30%）</td><td>带反馈的延迟线：延迟 90–280 ms，重复四次左右，每次更闷。</td></tr>
+            <tr><td><strong>自动回声</strong></td><td>开 / 关（关）</td><td>按周围空间实时算，见下。</td></tr>
+            <tr><td><strong>失真</strong></td><td>0 – 100%（0%）</td><td>软削波 + 位深从 16 位掉到 6 位。是"廉价 DAC"而不是"重金属"。</td></tr>
+            <tr><td><strong>电流声</strong></td><td>0 – 100%（18%）</td><td>50 Hz 工频哼声加二、三次谐波——铜线在磁场里的那个调子。</td></tr>
+            <tr><td><strong>沙沙声</strong></td><td>0 – 100%（10%）</td><td>带限白噪 + 稀疏爆裂，像接触不良的电位器。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:26px">自动回声是怎么量的</h3>
+      <p>
+        从方块中心朝六个方向各打一条最长 16 格的射线，取平均自由距离（空间感），
+        再统计半径 4 格内实心方块的占比（吸收面），最后一条：<strong>头顶能看见天就把混响砍到 35%</strong>。
+        三件事加起来已经足够区分「砌在铁皮机房里」和「插在旷野上」。
+        数值每 20 tick 重新量一次，显示在滑条右边。
+      </p>
+      <div class="note" style="margin-top:16px">
+        <div>
+          <p><strong>这不是假的。</strong>失真要波形整形，沙沙声要加噪声，回声要一条带反馈的延迟线——
+          这三件事都必须拿到采样才谈得上。普通的 <code>ISound</code> 只给了音量和音高（一个是线性缩放，
+          一个是重采样），做不出来。所以 reasim 绕开了它，直接解码 ogg、跑一遍 DSP、
+          再把 PCM 喂进 Minecraft 自带的 paulscode 声音引擎。</p>
+          <p>代价是这部分要碰引擎的私有字段。拿不到的时候（改过声音库的客户端、非官方启动器），
+          reasim 会安静地退回普通播放——<strong>只是没有那些效果，音乐不会不响</strong>，日志里会写明原因。</p>
+        </div>
+      </div>
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>音色是机器的，不是听的人的。</strong>参数存在方块实体上：多人服务器里所有人听到同一种破喇叭，
+          重进世界也还在。只有服务端能改，客户端改本地文件不会让别人的服务器上放出干净的声音。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 黑客入侵 ================= -->
+  <section class="section" id="hacker">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 3.0.0 新增玩法</div>
+        <h2>不拉控制棒，直接改堆</h2>
+        <p>黑客平板是一件手持道具：右键打开一个终端，输入指令就能改写全图任意一台机器的数值字段。
+        它不按按钮、不拉杆、<strong>也不经过机器自己的事件表</strong>——所以「温度该涨到哪」那条控制逻辑
+        整段被绕过去了。这是本模组里唯一一件能做到这件事的东西，配方因此刻意做贵。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="panel">
+          <h4>它到底改了什么东西</h4>
+          <p>改的是方块实体里那些 <strong>数值字段本身</strong>：反应堆的 <code>heat</code>、通量、控制棒插入量，
+          储能、蒸汽量，都能直接赋值。写之前有四道闸：</p>
+          <ul>
+            <li>类名必须以 <code>com.hbm.</code> / <code>com.hbmzz.</code> / <code>com.rsaudio.</code> 开头
+            ——<strong>带点</strong>，否则 <code>com.hbmzz</code> 会被 <code>com.hbm</code> 误匹配；</li>
+            <li>字段不能是 <code>static</code> 或 <code>final</code>；</li>
+            <li>只接受 7 种原始数值类型，字符串、数组、对象一律拒绝；</li>
+            <li>拒绝 <code>NaN</code> 与 <code>Infinity</code>——写进去会把机器的比较逻辑搞成永远为真。</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>作用范围是「你加载着的区块」</h4>
+          <p><code>target</code> 接受绝对坐标，也接受 <code>~</code> 相对写法。只要那个区块被加载、
+          那个方块实体属于 NTM 或本模组，就能写——<strong>不限距离</strong>，但区块卸载了就写不了。</p>
+          <p style="margin-top:10px">成功锁定之后它会额外告诉你<strong>有几台监测屏正在监视这个坐标</strong>。
+          没有屏看着这块地方的话，你写多少值都不会触发任何预警，而这件事在平板上原本完全看不见。</p>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 指令</div>
+        <h2>一行一条，回车执行</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>指令</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>pos</code> / <code>where</code></td><td>打印你站的位置与所在维度，方便直接填给 <code>target</code>。</td></tr>
+            <tr><td><code>target &lt;x&gt; &lt;y&gt; &lt;z&gt;</code></td><td>锁定目标方块实体，支持 <code>~</code>。约等于 <code>aim</code>。锁定结果会报出可写字段数与监视该坐标的屏数。</td></tr>
+            <tr><td><code>target clear</code></td><td>取消锁定（<code>none</code> 同义）。</td></tr>
+            <tr><td><code>field</code> / <code>fields</code> / <code>ls</code></td><td>列出当前目标所有可写字段与当前值——先看这个，再决定写什么。</td></tr>
+            <tr><td><code>read &lt;字段&gt;</code></td><td>读一个字段（<code>get</code> 同义）。</td></tr>
+            <tr><td><code>set &lt;字段&gt; &lt;值&gt;</code></td><td>写入。只有这一条会触发监测屏的入侵预警。</td></tr>
+            <tr><td><code>temp</code> / <code>flux</code> / <code>rod</code> / <code>steam</code> / <code>power</code></td><td>五个短别名，等价于 <code>set</code> 到对应字段：温度、中子通量、控制棒插入量、蒸汽、储能。例：<code>temp 9000</code>。</td></tr>
+            <tr><td><code>cut</code> / <code>sever</code></td><td>中断堆芯信号。平板与全世界所有监测屏立刻变成满屏 <code>ERROR#！</code>。</td></tr>
+            <tr><td><code>restore</code> / <code>reset</code></td><td>解除中断，信号立即回来。CUT 期间这是唯一被接受的指令。</td></tr>
+            <tr><td><code>help</code> / <code>?</code></td><td>内置帮助。</td></tr>
+            <tr><td><code>clear</code> / <code>cls</code></td><td>清屏（只清你窗口里的日志，不影响任何状态）。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 监测屏会看到什么</div>
+        <h2>三种状态，三档时长</h2>
+        <p>检测方式不是「猜数值跳变」——拉一根控制棒也是跳变，那样的启发式会天天误报。
+        屏读的是<strong>世界级的写入记录</strong>：谁把值直接写进了它正在看的那个坐标。</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>状态</th><th>触发条件</th><th>持续</th><th>屏上表现</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>连接节点断开</strong></td>
+              <td><code>set</code> 命中该屏绑定的堆芯坐标</td>
+              <td>60 tick / <strong>3 秒</strong>，每次写入重新计时</td>
+              <td>整屏黑底；<code>MONITOR → LINK → CORE</code> 三个节点、断线与红叉；大字「连接节点断开」+ <code>ERR 0x1F</code>；18 格恢复进度条；红色闪烁。</td>
+            </tr>
+            <tr>
+              <td><strong>读数污染</strong></td>
+              <td>断链结束之后</td>
+              <td>600 tick / <strong>30 秒</strong>（自最后一次写入计）</td>
+              <td>页面回来，但温度 / 储能 / 输出 / 发电四处显示 <code>Err</code>；顶部红条与四角红框每秒闪一次。结构灯柱、崩塌风险、燃料位照常。</td>
+            </tr>
+            <tr>
+              <td><strong>信号中断</strong></td>
+              <td>输入 <code>cut</code></td>
+              <td>1200 tick / <strong>60 秒</strong>，或 <code>restore</code> 立即解除</td>
+              <td>满屏 <code>ERROR#！</code>，红黑每 500 毫秒交替，不画任何仪表。平板那边只留一行输入，且只接受 <code>restore</code>。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>只让温度 / 储能 / 输出 / 发电变 Err 是刻意的。</strong>这四项都走堆芯自己的累积量，
+          正是字段写入落地的那条路径，所以它们「最先知道」自己被改了。全屏都写 Err 等于什么都没说。</p>
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <div>
+          <p><strong>不想要这套玩法：</strong>把 <code>config/hbmzz.cfg</code> 里 <code>[hacker]</code> 的
+          <code>enabled</code> 设成 <code>false</code>，所有指令都会被拒绝；三档时长也在同一段里，
+          键是 <code>disconnectTicks</code> / <code>degradedTicks</code> / <code>cutTicks</code>。
+          <code>cut</code> 给了 60 秒上限就是这个道理——不给超时的话，一次手滑要等到服务器重启才恢复。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 核事故系统 ================= -->
+  <section class="section" id="alert">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 核事故系统</div>
+        <h2>五个方块，一套设施广播，和一枚全图只有一颗的核弹</h2>
+        <p>这一套东西解决的是「设施里出事了，谁来说，说给谁听」这个问题。答案刻意做得很窄：
+          权威状态只有一份，显示器一个业务字段都不存，所以「所有屏幕显示一致」不是一条要靠自觉遵守的规矩，
+          而是结构上没有第二种可能。下面按方块职责、联动手势、代码含义三块讲。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-num">01</div>
+          <h3>五个方块，职责互不重叠</h3>
+          <p>每一块只做一件事，是因为跨维度引爆要求它们互不知情。</p>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>方块</th><th>它只负责</th></tr></thead>
+              <tbody>
+                <tr><td><strong>核弹</strong></td><td>长方形壳体、倒计时、起爆。不读红石，不知道自己被谁引爆。</td></tr>
+                <tr><td><strong>信号控制器</strong></td><td>红石上升沿，触发一次全图引爆。不持倒计时、不判当量。</td></tr>
+                <tr><td><strong>核弹监视屏</strong></td><td>按间隔采样绑定设备，推给半径内玩家，画最后一帧。不写世界。</td></tr>
+                <tr><td><strong>代码广播器</strong></td><td>红石上升沿把预设代码写进设施状态。不给谁单独发通知。</td></tr>
+                <tr><td><strong>事故显示器</strong></td><td><strong>零字段</strong>，纯读客户端那份缓存来画图。不记录、不推导。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:10px">核弹监视屏与事故显示器用的是 DFC 监视器那套<strong>吊装式工业外壳</strong>：2×2 格，顶上压条与吊杆、外壳、边框、螺丝全由渲染器画，默认 30 度下垂，和 DFC 监视器并排看是一批设备。放在头顶有方块的地方就是吊装；贴着墙放（头顶空着）则平贴墙面、不画吊架。拆任意一格都带走整台，不会掉四件。</p>
+        </div>
+
+        <div class="card">
+          <div class="card-num">02</div>
+          <h3>联动：木斧蹲下右键</h3>
+          <p>和 HBM 自己的核弹一个手势。不新增工具，因为斧子本来就在每个建筑玩家包里，
+            而且「潜行右键方块」在原版里什么也不做，这个手势是免费的。</p>
+          <div class="steps" style="margin-top:14px">
+            <div class="step"><h3>记录核弹</h3><p>蹲下右键它。再点<strong>同一颗</strong>是取消记录——玩家记录完通常紧接着就想确认「我刚才记的是哪一颗」。</p></div>
+            <div class="step"><h3>中止倒计时</h3><p>倒计时中蹲下右键它即可中止。慌的时候手上是什么就用什么，不该还要去找一台屏幕。</p></div>
+            <div class="step"><h3>绑定控制器 / 监视屏</h3><p>记录过之后，蹲下右键控制器或监视屏，即绑定到那台设备。</p></div>
+            <div class="step"><h3>解绑监视屏</h3><p>手上没有记录时蹲下右键监视屏 = 解绑。这是唯一不砸掉屏幕就能停止注视的办法。</p></div>
+          </div>
+          <div class="note" style="margin-top:14px">
+            <div><p>用手直接右键这些方块，永远只给读数（状态、当量、引信、绑定坐标、当前设施代码），
+              不会被工具抢走。</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:34px">
+        <div class="kicker">// 设施代码</div>
+        <h2>八级，从「一切正常」到「设施没了」</h2>
+        <p>代码广播器右键升一级，潜行右键降一级；红石上升沿把当前预设广播给<strong>全场</strong>。
+          只有 <code>ALPHA</code> 是系统自己升的，其余都由人决定。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:14%">代码</th><th style="width:34%">含义</th><th>谁触发</th></tr></thead>
+          <tbody>
+            <tr><td><code>GREEN</code></td><td>正常运行</td><td>广播器手动复位。处理完事故的人必须能把 <code>RED</code> 压回这里</td></tr>
+            <tr><td><code>YELLOW</code></td><td>发生小插曲</td><td>广播器（默认预设就是这一级）</td></tr>
+            <tr><td><code>ORANGE</code></td><td>小型暴乱</td><td>广播器</td></tr>
+            <tr><td><code>RED</code></td><td>重大事故</td><td>广播器。<strong><code>RED</code> 及以上视为警报</strong></td></tr>
+            <tr><td><code>MED</code></td><td>堆芯融毁事故</td><td>广播器</td></tr>
+            <tr><td><code>OMEGA</code></td><td>堆芯爆炸事故</td><td>广播器</td></tr>
+            <tr><td><code>ALPHA</code></td><td>核弹事件</td><td><strong>自动</strong>：起爆程序一开始就升，爆炸时再升一次并带上当量与坐标</td></tr>
+            <tr><td><code>DELTA</code></td><td>设施毁灭级事故</td><td>广播器。最高一级</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note note--red" style="margin-top:18px">
+        <div>
+          <p><strong>为什么两块屏不可能显示不同的代码。</strong>服务端只有一份设施状态（挂在主世界
+          <code>MapStorage</code> 的 <code>WorldSavedData</code>，全维度共用），客户端也只有一份副本。
+          每块事故显示器都不保存任何业务字段——它们不是在各自跟随同一条数据流，而是在读同样三行内容。
+          所以变更走的是全服广播的<strong>整条记录</strong>而不是增量：漏收三个包的客户端下一包就正确，
+          两块屏之间也没有地方可以产生分歧。</p>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <div>
+          <p><strong>显示器超过 5 秒收不到包就画 <code>NO LINK</code>。</strong>
+          <em>一块死了还在报正常的警报屏，是这套系统里唯一真正危险的失效模式</em>——
+          冻结在过期的 <code>GREEN</code> 上比黑屏危害大得多，所以宁可不显示。</p>
+        </div>
+      </div>
+
+      <div class="note note--mint" style="margin-top:14px">
+        <div>
+          <p><strong>调参：</strong><code>[nuke]</code> 节里是 <code>yield</code>（当量，默认 100 kT）、
+          <code>fuseTicks</code>（引信，默认 100 = 5 秒，够警报响完）、
+          <code>blastBase</code> / <code>blastPerKt</code> / <code>blastCap</code>（威力曲线，默认 6 / 0.28 / 48）；
+          <code>[alert]</code> 节里是 <code>refreshTicks</code>（显示器补发间隔）与
+          <code>klaxon</code>（广播代码时全服警报声）。当量与引信<strong>在放置那一刻抄进方块</strong>，
+          所以中途改配置不会悄悄动掉已经立在井里的那一颗。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 常见操作速查 ================= -->
+  <section class="section" id="cheatsheet">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 常见操作速查</div>
+        <h2>一表记住最常用的几步</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>操作</th><th>怎么做</th></tr></thead>
+          <tbody>
+            <tr><td>放下一台监控屏</td><td>正面自动开机；16 格内有 DFC 核心自动绑定。</td></tr>
+            <tr><td>打开终端</td><td>右键监控屏。</td></tr>
+            <tr><td>切换视图 / 页</td><td>终端左列 <code>1 核心</code> / <code>2 部件</code> / <code>3 曲线</code> / <code>4 自定义</code>。</td></tr>
+            <tr><td>绑定一台机器的核心（机器控制面板）</td><td>手持监控数据线右键机器记录，再右键面板，到「控件」页绑 A–F 槽位，保存并应用；急用可潜行右键面板塞进首槽。</td></tr>
+            <tr><td>绑定功率计（监控屏读数）</td><td>手持监控数据线右键红色电缆仪表，再右键监控屏。</td></tr>
+            <tr><td>把摄像头接到屏上</td><td>手持监控数据线右键摄像头记录，再右键监控屏，自动翻到第 4 页；潜行右键屏断开。</td></tr>
+            <tr><td>改墙屏尺寸</td><td>终端底部「宽度 / 高度」的 − / +。</td></tr>
+            <tr><td>打开面板工坊</td><td>终端左列「面板工坊」入口。</td></tr>
+            <tr><td>广播一段视频</td><td>放视频广播器 → 右键选视频与选择器 → 「测试广播」→「保存并应用」→ 给个红石上升沿。</td></tr>
+            <tr><td>打开黑客平板</td><td>手持黑客平板右键。第一件事敲 <code>pos</code>，再对着机器敲 <code>target &lt;坐标&gt;</code>。</td></tr>
+            <tr><td>看一台机器有什么可改</td><td><code>field</code> 列出全部可写字段与当前值；<code>read heat</code> 单独读一个。</td></tr>
+            <tr><td>绕过控制棒改温度</td><td><code>temp 9000</code>（等价 <code>set heat 9000</code>）。监测屏会在 3 秒内断链，随后 30 秒读数显示 Err。</td></tr>
+            <tr><td>让所有屏一起黑掉</td><td><code>cut</code>；敲 <code>restore</code> 立即恢复，不敲则 60 秒后自己回来。</td></tr>
+            <tr><td>放下一颗核弹</td><td>全图只能有一台。第二台放下去会被拒，并在聊天栏说明原因。</td></tr>
+            <tr><td>把控制器接到核弹上</td><td>木斧蹲下右键核弹记录 → 蹲下右键控制器绑定 → 给控制器一个红石上升沿。</td></tr>
+            <tr><td>中止正在进行的倒计时</td><td>木斧蹲下右键那颗核弹。不需要屏幕，也不需要拆掉它。</td></tr>
+            <tr><td>广播一级设施代码</td><td>右键代码广播器升一级、潜行右键降一级，再给它一个红石上升沿。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="addon.html">附加包</a>
+        <a href="reference.html#config">配置项</a>
+        <a href="ost.html">原声 · HBMZZ OST</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="thanks.html">致谢</a>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js?v=4353b3bcd7"></script>
+<script src="assets/site.js?v=95371114ff"></script>
+  <script src="assets/reveal.js?v=2"></script>
+</body>
+</html>

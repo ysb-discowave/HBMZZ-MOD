@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/exhaust_fan_housing",
+    "up": "rsaudio:blocks/exhaust_fan_housing",
+    "down": "rsaudio:blocks/exhaust_fan_housing",
+    "north": "rsaudio:blocks/exhaust_fan_front",
+    "south": "rsaudio:blocks/exhaust_fan_housing",
+    "west": "rsaudio:blocks/exhaust_fan_housing",
+    "east": "rsaudio:blocks/exhaust_fan_housing"
+  }
+}

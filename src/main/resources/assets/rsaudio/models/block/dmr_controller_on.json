@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/dmr_controller_side",
+    "down": "rsaudio:blocks/dmr_controller_bottom",
+    "up": "rsaudio:blocks/dmr_controller_top",
+    "north": "rsaudio:blocks/dmr_controller_front_on",
+    "south": "rsaudio:blocks/dmr_controller_side",
+    "east": "rsaudio:blocks/dmr_controller_side",
+    "west": "rsaudio:blocks/dmr_controller_side"
+  }
+}

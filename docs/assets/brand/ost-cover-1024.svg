@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" fill="#0a0c0f"/>
+<defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#232a33" stroke-width="1"/></pattern></defs>
+<rect width="1024" height="1024" fill="url(#grid)"/><radialGradient id="glow" cx="30%" cy="40%" r="60%"><stop offset="0" stop-color="#f5a524" stop-opacity=".07"/><stop offset="1" stop-color="#f5a524" stop-opacity="0"/></radialGradient>
+<rect width="1024" height="1024" fill="url(#glow)"/>
+<g transform="translate(396.00,283.00) scale(3.6250)"><!-- 屏框：与主标同一组数值 -->
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#e6ecf3" stroke-width="3.5"/>
+
+  <!-- 四角螺钉（大尺寸才画得出来） -->
+  <rect x="9.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="9.5" width="3" height="3" fill="#48525f"/>
+  <rect x="9.5" y="51.5" width="3" height="3" fill="#48525f"/>
+  <rect x="51.5" y="51.5" width="3" height="3" fill="#48525f"/>
+
+  <!-- 电平柱：底边统一压在 y=47，高度 14 / 30 / 21 -->
+  <rect x="15" y="33" width="7" height="14" fill="#f5a524"/>
+  <rect x="28.5" y="17" width="7" height="30" fill="#f5a524"/>
+  <rect x="42" y="26" width="7" height="21" fill="#f5a524"/></g>
+<text x="512.0" y="627.2" fill="#e6ecf3" font-family="Consolas, 'Cascadia Mono', 'Courier New', monospace" font-size="76" font-weight="700" letter-spacing="9.1" text-anchor="middle">HBMZZ</text>
+<text x="512.0" y="669.0" fill="#f5a524" font-family="Consolas, 'Cascadia Mono', 'Courier New', monospace" font-size="36" font-weight="700" letter-spacing="12.2" text-anchor="middle">OST</text>
+<rect x="362.0" y="694.0" width="300" height="5" fill="#f5a524"/>
+<text x="512.0" y="741.0" fill="#93a0b0" font-family="'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif" font-size="22" letter-spacing="1.32" text-anchor="middle">THREE TRACKS · 11:47</text>
+<text x="96" y="928" fill="#67737f" font-family="Consolas, 'Cascadia Mono', 'Courier New', monospace" font-size="14" letter-spacing="1.96">GPL-3.0-ONLY · hbm-zz.ysbdwz.dpdns.org</text>
+
+</svg>

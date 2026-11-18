@@ -1,0 +1,32 @@
+# PR 与 master 推送时跑「快速档」离线检查：几秒，不需要构建 Minecraft。
+#
+# 构建档（rbmkcheck / cecpcheck / termcheck / videocheck / linkercheck / reasimcheck）
+# 要真的编译并运行实现类，前置是一次 15–20 分钟的 ForgeGradle 构建。放在 GitHub 的
+# hosted runner 上要联网拉 MCP/Forge 反编译，慢且偶发失败，所以它不进 PR 闸门：
+# 由维护者在本地或 self-hosted runner 上跑 `python tools/checkall.py --full`。
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    name: 离线检查（快速档）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python 语法体检
+        run: python -m compileall -q tools
+
+      - name: regcheck / 站点审计 / 站点数据一致性
+        run: python tools/checkall.py --fast

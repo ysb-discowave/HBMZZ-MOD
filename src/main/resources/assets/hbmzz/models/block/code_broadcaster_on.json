@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "hbmzz:blocks/code_broadcaster_front",
+    "down": "hbmzz:blocks/code_broadcaster_side",
+    "up": "hbmzz:blocks/code_broadcaster_side",
+    "north": "hbmzz:blocks/code_broadcaster_side",
+    "south": "hbmzz:blocks/code_broadcaster_front",
+    "east": "hbmzz:blocks/code_broadcaster_side",
+    "west": "hbmzz:blocks/code_broadcaster_side"
+  }
+}

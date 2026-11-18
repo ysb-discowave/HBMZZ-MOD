@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "hbmzz:dfc_monitor_empty" },
+    "facing=south": { "model": "hbmzz:dfc_monitor_empty" },
+    "facing=west":  { "model": "hbmzz:dfc_monitor_empty" },
+    "facing=east":  { "model": "hbmzz:dfc_monitor_empty" }
+  }
+}

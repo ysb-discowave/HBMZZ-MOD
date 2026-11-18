@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原声 — HBMZZ OST</title>
+<meta name="description" content="HBMZZ 官网页面上那台常驻播放器的曲目页：三首作者自制的原声——How to survive?、When will it end? 与 The ending of melting，可在这里选曲、跳到任意页面继续听。">
+<meta name="theme-color" content="#0a0c0f">
+<link rel="icon" href="assets/brand/logo-mark.svg" type="image/svg+xml">
+<link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/brand/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-180.png">
+<meta property="og:image" content="https://hbm-zz.ysbdwz.dpdns.org/assets/brand/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HBMZZ 原声">
+<meta property="og:description" content="三首作者自制的曲子，一台钉在页面右边、翻页也不会停的机器。">
+<link rel="stylesheet" href="assets/site.css?v=74056d427c">
+  <link rel="stylesheet" href="assets/reveal.css?v=2">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="addon.html">附加包</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
+      <a href="thanks.html">致谢</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HEAD ================= -->
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 原声 · HBMZZ OST</div>
+      <h1>三首曲子，一台钉在右边的机器</h1>
+      <p class="lead">
+        这三首是作者自己写的，和模组本身没有音乐层面的关系——没有背景音乐循环，也没有战斗曲，
+        它们只活在这个站点上。播放器常驻在处理右侧的那台机器里：在这一页选好哪一首，
+        翻到指南、手册、更新日志，它接着往下走。
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= 宣传片 ================= -->
+  <section class="section" id="trailer">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 宣传片</div>
+        <h2>61 秒，把这套系统讲一遍</h2>
+        <p>片里每一帧都来自模组自己的渲染器：吊装面板是 <code>ConsoleModel</code> 交给游戏的那批
+          四边形做的正交投影，屏幕画面是 <code>AlertScreen</code> 与 <code>NukeScreen</code> 的真实画布。
+          <strong>没有游戏内录屏</strong>——这台机器上跑不起 Minecraft，所以不拿别的整合包的画面来凑。</p>
+      </div>
+
+      <div class="panel panel--bolted player">
+        <video controls preload="metadata" playsinline poster="assets/promo/poster.jpg">
+          <source src="assets/promo/hbmzz-trailer.mp4" type="video/mp4">
+          你的浏览器不支持 <code>&lt;video&gt;</code>，<a href="assets/promo/hbmzz-trailer.mp4">直接下载这一段</a>。
+        </video>
+        <div class="player-foot">
+          <span>1920×1080 · 30 fps · 61 s · H.264 / AAC · 12.4 MB</span>
+          <a class="btn btn--ghost" href="assets/promo/hbmzz-trailer.mp4" download="HBMZZ-trailer-1080p.mp4">下载成片</a>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:16px">
+        <span>配乐不是另做的：剪的是《How to survive?》里 <b>0:30–1:31</b> 那一段——按 5 秒窗口量响度挑出来最满的 61 秒，
+        两端各做了淡入淡出，整体归一到 −16 LUFS。播放器在片子里不打架：这里一按播放，右边那台机器的声音会自己停。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 曲目 ================= -->
+  <section class="section" id="tracks">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 曲目</div>
+        <h2>点哪一首，右边就放哪一首</h2>
+        <p>两行都是同一台机器：这里按下去，右侧竖条上的曲名、时长、进度会一起换过去。
+          再按一次是暂停，不会跳到别处去。</p>
+      </div>
+
+      <div class="panel panel--bolted ost-board">
+        <div class="ost-head">
+          <img class="ost-cover" src="assets/brand/ost-cover-thumb-256.png"
+               alt="HBMZZ OST 标：屏框里三根琥珀色电平柱，底边对齐"
+               width="68" height="68" loading="lazy" decoding="async">
+          <span class="ost-head-title">HBMZZ OST</span>
+          <span>3 TRACKS · 11:47</span>
+        </div>
+        <ol class="ost-rows">
+          <li class="ost-row" data-ost-row="how-to-survive">
+            <span class="ost-num">01</span>
+            <div class="ost-main">
+              <a class="ost-title" href="assets/audio/how-to-survive.mp3" download="How to survive - HBMZZ.mp3">How to survive?</a>
+              <span class="ost-meta">3:15 · 192 kbps · 44.1 kHz 立体声 · −15.7 LUFS</span>
+            </div>
+            <button class="ost-play" type="button" data-track-play="how-to-survive" aria-pressed="false">播放</button>
+          </li>
+          <li class="ost-row" data-ost-row="when-will-it-end">
+            <span class="ost-num">02</span>
+            <div class="ost-main">
+              <a class="ost-title" href="assets/audio/when-will-it-end.mp3" download="When will it end - HBMZZ.mp3">When will it end?</a>
+              <span class="ost-meta">5:17 · 192 kbps · 44.1 kHz 立体声 · −16.6 LUFS</span>
+            </div>
+            <button class="ost-play" type="button" data-track-play="when-will-it-end" aria-pressed="false">播放</button>
+          </li>
+          <li class="ost-row" data-ost-row="the-ending-of-melting">
+            <span class="ost-num">03</span>
+            <div class="ost-main">
+              <a class="ost-title" href="assets/audio/the-ending-of-melting.mp3" download="The ending of melting - HBMZZ.mp3">The ending of melting</a>
+              <span class="ost-meta">3:13 · 192 kbps · 44.1 kHz 立体声 · −17.5 LUFS</span>
+            </div>
+            <button class="ost-play" type="button" data-track-play="the-ending-of-melting" aria-pressed="false">播放</button>
+          </li>
+        </ol>
+      </div>
+
+      <div class="note" style="margin-top:16px">
+        <span>曲名本身是带问号的，下载属性里换成了短横线——问号进不了 Windows 文件名。
+        文件内嵌的 ID3 标题是原样的句子，拖进任何播放器显示的都是它们。
+        表里的时长是<b>截断</b>的（193.817 秒写成 3:13），和右栏那台机器读出来的一致——
+        四舍五入会让两处差一秒。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 三首 ================= -->
+  <section class="section" id="about">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 三首</div>
+        <h2>它们是什么，文件里有什么</h2>
+        <p>三首都来自黑屏导出的纯音频（视频轨抽帧全黑），<strong>曲子本身没有封面</strong>。
+          上面那张方形图是站点的品牌封面：一块屏框、一个 H、一道琥珀色横杠，它属于这个站点，
+          不属于任何一首曲子。下表是文件本身量出来的，不是写上去的。</p>
+      </div>
+
+      <div class="grid g3">
+        <div class="card">
+          <div class="card-num">TRACK 01</div>
+          <h3>How to survive?</h3>
+          <p>3 分 15 秒，整轨响度 −15.7 LUFS，动态范围 9.7 LU，真峰值 −1.4 dBFS。
+            这是站上第一首，也是右栏那台机器最早放的那首。</p>
+          <p style="margin-top:10px">文件 4,696,046 字节，ID3v2.3 与 ID3v1 都写了标题；
+            音轨从源文件直接转码一次，之后没有再动过。</p>
+        </div>
+        <div class="card">
+          <div class="card-num">TRACK 02</div>
+          <h3>When will it end?</h3>
+          <p>5 分 17 秒，整轨响度 −16.6 LUFS，动态范围 5.5 LU，真峰值 −1.6 dBFS。
+            比第一首长近两分钟，压得也更平——动态范围只有它的一半多一点。</p>
+          <p style="margin-top:10px">文件 7,630,262 字节。源文件是手机导出的 mp4，
+            里面只写了 <code>com.android.version=17</code>，没有曲名，标题是我按你说的填进 ID3 的。</p>
+        </div>
+        <div class="card">
+          <div class="card-num">TRACK 03</div>
+          <h3>The ending of melting</h3>
+          <p>3 分 13 秒，整轨响度 −17.5 LUFS——三首里最轻的一首，比第一首低 1.8 dB。
+            这个差我没动：母带是作者给的电平，不该由我在这里加增益。</p>
+          <p style="margin-top:10px">文件 4,653,433 字节。源文件同样是手机导出的竖屏 mp4，
+            视频轨全程纯黑，<code>meta</code> 里没有任何曲名。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 用法 ================= -->
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 用法</div>
+        <h2>这台机器怎么使</h2>
+        <p>它只有几个零件：播放方块、上/下一首、曲目开关、一条进度槽。没有音量条——
+          音量归系统管，页面里不重复造一个。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="panel panel--flat">
+          <h3 style="margin:0 0 10px;font-size:16px">鼠标与键盘</h3>
+          <p style="margin:0 0 12px;color:var(--text-dim);font-size:14px">
+            方块是播放 / 暂停，竖槽点哪儿跳哪儿、按住能拖。聚焦进度条后用
+            <b>↑</b> <b>↓</b>（窄屏横过来是 <b>←</b> <b>→</b>）走 5 秒，<b>Home</b> / <b>End</b> 跳首尾，
+            <b>Esc</b> 收起曲目面板。
+          </p>
+          <p style="margin:0;color:var(--text-dim);font-size:14px">
+            曲目开关上是「曲目 1/2」，点开浮出两行列表，序号前一道竖线指的是正在放的那首。
+            上/下一首只切歌，不改变「在不在播」以外的东西。
+          </p>
+        </div>
+
+        <div class="panel panel--flat">
+          <h3 style="margin:0 0 10px;font-size:16px">翻页不会断</h3>
+          <p style="margin:0 0 12px;color:var(--text-dim);font-size:14px">
+            站点是六个独立页面，翻页时那一声必然会断——新页面得重新开一个
+            <code>&lt;audio&gt;</code>，静态站绕不过去。位置按真实时间补回来：离开时记下「哪一首、第几秒」，
+            新页面重新对上，翻页花掉的几秒也算进去。
+          </p>
+          <p style="margin:0;color:var(--text-dim);font-size:14px">
+            浏览器不肯自动出声时先静音续上，在这一页随便按一下就有声；连静音播都不放行，
+            方块才亮着等你按——总之不会假装在播。离开超过八秒、或隔了半小时才回来，就不替你接着放了。
+          </p>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:16px">
+        <span>机器只咬视口右边那道留白：窗口宽、留白够，它就待在外面；留白不够，正文整体让开。
+        曲目面板是浮层，只在按住「曲目」那一刻盖住正文，点外面或按 Esc 就收。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 文件 ================= -->
+  <section class="section" id="files">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 文件</div>
+        <h2>两枚 MP3 的全部参数</h2>
+        <p>都能直接下载。它们放在站点目录里，<strong>不随 jar 分发</strong>——装了模组的人在游戏里听不到这三首。</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>曲目</th><th>时长</th><th>码率</th><th>采样率</th><th>响度</th><th>字节</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>How to survive?</td><td>3:15</td><td>192 kbps</td><td>44.1 kHz</td><td>−15.7 LUFS</td><td>4,696,046</td></tr>
+            <tr><td>When will it end?</td><td>5:17</td><td>192 kbps</td><td>44.1 kHz</td><td>−16.6 LUFS</td><td>7,630,262</td></tr>
+            <tr><td>The ending of melting</td><td>3:13</td><td>192 kbps</td><td>44.1 kHz</td><td>−17.5 LUFS</td><td>4,653,433</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel panel--quiet" style="margin-top:16px">
+        <p style="margin:0;color:var(--text-dim);font-size:14px">
+          三首都是作者自制的作品，随站点其余内容一样以仓库的 <a href="license.html">GPL-3.0</a> 提供；
+          转载、二次使用请保留署名。它们不是第三方素材，也不在模组的资源包里。
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="addon.html">附加包</a>
+        <a href="reference.html#config">配置项</a>
+        <a href="ost.html">原声 · HBMZZ OST</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="thanks.html">致谢</a>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span>
+      <span>MC 1.12.2 / Forge</span>
+      <span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>站内数据由 <code>tools/site/sync_site.py</code> 从仓库状态生成 · <span data-bind="auto.generatedAt">—</span></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js?v=4353b3bcd7"></script>
+<script src="assets/site.js?v=95371114ff"></script>
+  <script src="assets/reveal.js?v=2"></script>
+</body>
+</html>

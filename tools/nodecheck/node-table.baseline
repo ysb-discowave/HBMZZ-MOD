@@ -1,0 +1,17 @@
+# type | display | colour | spread | inputs | outputs
+sounder | NEEDS-CONTEXT NoClassDefFoundError
+leafia_pulse | 脉冲 | 255,0,255 | 26.00 | Input:NUMBER:1.0 | Pulse:NUMBER:0.0
+leafia_sr_latch | SR 锁存 | 255,0,255 | 26.00 | Set:NUMBER:0.0;Reset:NUMBER:0.0 | Output:NUMBER:0.0
+addString | 文本拼接 | 51,204,255 | 26.00 | Input 1:STRING:;Input 2:STRING: | Output:STRING:
+subString | 取子串 | 51,204,255 | 34.00 | Input:STRING:;Start:NUMBER:1.0;End:NUMBER:-1.0 | Output:STRING:
+sipfx | 数值缩写 | 51,204,255 | 26.00 | Input:NUMBER:0.0;Show Full:NUMBER:0.0 | Shortened:STRING:
+format | 格式化 | 51,204,255 | 26.00 | 1:STRING: | Output:STRING:
+leafia_cache | 缓存 | 255,156,48 | 18.00 | Input:NUMBER:0.0 | Output:NUMBER:0.0
+leafia_clock | 时钟 | 255,156,48 | 26.00 | Uptime:NUMBER:1.0;Downtime:NUMBER:1.0 | Clock Signal:NUMBER:0.0
+leafia_parse_float | 文本转数字 | 255,156,48 | 26.00 | Input:STRING:0 | Output:NUMBER:0.0;Is Error:NUMBER:0.0
+leafia_summarizer | 汇总 | 255,156,48 | 50.00 | Enable:NUMBER:0.0;New Value:NUMBER:0.0;Clear:NUMBER:0.0;Trim Count:NUMBER:20.0 | Summary:NUMBER:0.0
+leafia_rng | NEEDS-CONTEXT skipped
+leafia_rng_d | NEEDS-CONTEXT skipped
+bulkQuery | NEEDS-CONTEXT skipped
+leafia_graph | NEEDS-CONTEXT skipped
+leafia_graph_bounds | NEEDS-CONTEXT skipped

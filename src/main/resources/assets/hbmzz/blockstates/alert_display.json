@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "hbmzz:alert_display_empty"
+    },
+    "facing=north": {
+      "model": "hbmzz:alert_display_empty",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "hbmzz:alert_display_empty",
+      "y": 270
+    },
+    "facing=west": {
+      "model": "hbmzz:alert_display_empty",
+      "y": 90
+    }
+  }
+}

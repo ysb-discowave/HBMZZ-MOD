@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "east=false,north=false,south=false,west=false": {
+      "model": "rsaudio:giant_pipe_m17"
+    },
+    "east=false,north=false,south=false,west=true": {
+      "model": "rsaudio:giant_pipe_m32"
+    },
+    "east=false,north=false,south=true,west=false": {
+      "model": "rsaudio:giant_pipe_m8"
+    },
+    "east=false,north=false,south=true,west=true": {
+      "model": "rsaudio:giant_pipe_m40"
+    },
+    "east=false,north=true,south=false,west=false": {
+      "model": "rsaudio:giant_pipe_m4"
+    },
+    "east=false,north=true,south=false,west=true": {
+      "model": "rsaudio:giant_pipe_m36"
+    },
+    "east=false,north=true,south=true,west=false": {
+      "model": "rsaudio:giant_pipe_m12"
+    },
+    "east=false,north=true,south=true,west=true": {
+      "model": "rsaudio:giant_pipe_m44"
+    },
+    "east=true,north=false,south=false,west=false": {
+      "model": "rsaudio:giant_pipe_m2"
+    },
+    "east=true,north=false,south=false,west=true": {
+      "model": "rsaudio:giant_pipe_m34"
+    },
+    "east=true,north=false,south=true,west=false": {
+      "model": "rsaudio:giant_pipe_m10"
+    },
+    "east=true,north=false,south=true,west=true": {
+      "model": "rsaudio:giant_pipe_m42"
+    },
+    "east=true,north=true,south=false,west=false": {
+      "model": "rsaudio:giant_pipe_m6"
+    },
+    "east=true,north=true,south=false,west=true": {
+      "model": "rsaudio:giant_pipe_m38"
+    },
+    "east=true,north=true,south=true,west=false": {
+      "model": "rsaudio:giant_pipe_m14"
+    },
+    "east=true,north=true,south=true,west=true": {
+      "model": "rsaudio:giant_pipe_m46"
+    }
+  }
+}

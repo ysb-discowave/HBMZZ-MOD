@@ -1,0 +1,29 @@
+.gradle/
+.gradle-home/
+build/
+run/
+tmp/
+*.log
+build_log*.txt
+
+# 构建产物：二进制走 GitHub Releases，不进仓库
+release/
+dist/
+dist2/
+dist3/
+
+# 视频生成产物（mp4 / 播放器 zip / 抽帧）：成片走 Release 资产，不进仓库
+tools/video/*/out/
+
+# 本机部署目标（tools/deploy.py 读，别人的机器路径不同，不进仓库）
+deploy.local.json
+
+# 检查脚本跑出来的字节码缓存（tools/*/__pycache__）
+__pycache__/
+*.pyc
+
+# 编辑器 / 工具产生的本地数据
+.workbuddy/
+.idea/
+*.iml
+.vscode/

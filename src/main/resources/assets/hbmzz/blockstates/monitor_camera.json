@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "hbmzz:monitor_camera" },
+    "facing=south": { "model": "hbmzz:monitor_camera", "y": 180 },
+    "facing=west": { "model": "hbmzz:monitor_camera", "y": 270 },
+    "facing=east": { "model": "hbmzz:monitor_camera", "y": 90 }
+  }
+}

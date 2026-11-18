@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ 主标（浅色背景用）
+  同一套几何，只换两处颜色：边框与立柱用墨色 #0a0c0f，琥珀压深到 #d8871a——
+  #f5a524 压在纯白上对比度不够，细横杠会发飘。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ">
+  <title>HBMZZ</title>
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#0a0c0f" stroke-width="3.5"/>
+  <rect x="9.5" y="9.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="51.5" y="9.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="9.5" y="51.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="51.5" y="51.5" width="3" height="3" fill="#6b7684"/>
+  <rect x="19" y="17" width="7" height="30" fill="#0a0c0f"/>
+  <rect x="38" y="17" width="7" height="30" fill="#0a0c0f"/>
+  <rect x="19" y="28.5" width="30" height="7" fill="#d8871a"/>
+</svg>

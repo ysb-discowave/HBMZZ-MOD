@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ 主标（单色）
+  没有彩色，整块只有一个墨色。给「只能上一色」的地方用：印刷、烫印、水印、
+  以及需要把 logo 压到 20% 透明度的场合。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ">
+  <title>HBMZZ</title>
+  <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+        fill="none" stroke="#0a0c0f" stroke-width="3.5"/>
+  <rect x="19" y="17" width="7" height="30" fill="#0a0c0f"/>
+  <rect x="38" y="17" width="7" height="30" fill="#0a0c0f"/>
+  <rect x="19" y="28.5" width="30" height="7" fill="#0a0c0f"/>
+</svg>

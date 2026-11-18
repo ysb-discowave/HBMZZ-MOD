@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/airlock_controller_side",
+    "down": "rsaudio:blocks/airlock_controller_bottom",
+    "up": "rsaudio:blocks/airlock_controller_top",
+    "north": "rsaudio:blocks/airlock_controller_front_active",
+    "south": "rsaudio:blocks/airlock_controller_side",
+    "east": "rsaudio:blocks/airlock_controller_side",
+    "west": "rsaudio:blocks/airlock_controller_side"
+  }
+}

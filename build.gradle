@@ -1,0 +1,189 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = '3.7.1'
+group = 'com.hbmzz'
+archivesBaseName = 'hbmzz'
+
+sourceCompatibility = targetCompatibility = '1.8'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-proc:none'
+}
+
+minecraft {
+    version = '1.12.2-14.23.5.2847'
+    runDir = 'run'
+    mappings = 'snapshot_20171003'
+}
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    // ForgeGradle leaves its dev-only annotation caches in the classes dir;
+    // they have no business in a shipped jar.
+    exclude 'META-INF/fml_cache_annotation.json'
+    exclude 'META-INF/fml_cache_class_versions.json'
+    manifest {
+        attributes([
+            'Specification-Title'   : 'hbmzz',
+            'Specification-Vendor'  : 'hbmzz',
+            'Specification-Version' : '1',
+            'Implementation-Title'  : project.name,
+            'Implementation-Version': project.version
+        ])
+    }
+}
+
+// ForgeGradle 的 sourceJar 打的是 sourceSets.main.allSource —— 也就是 java + resources。
+// 内置 OST 那 13 MB 音频因此会被再打一遍进源码包（2.07 MB → 15.9 MB），而源码包是给
+// 读代码的人看的，音乐在发行的 jar 里已经有了。这里把它排掉；资源本身仍在主 jar 里。
+sourceJar {
+    exclude 'assets/hbmzz/sounds/ost/**'
+}
+
+// ------------------------------------------------------------ 内置音频解码器（mp3 / flac）
+// 多格式播放需要四个库：JLayer（mp3 解码）、mp3spi（把 JLayer 接进 Java Sound SPI）、
+// tritonus-share（SPI 基类）、jflac（flac）。它们必须**真的在 jar 里**，而且 SPI 描述符
+// 要合成一份：mp3spi 与 jflac 各自带一个 META-INF/services/javax.sound.sampled.spi.AudioFileReader，
+// 直接 zipTree 叠一起会互相覆盖，结果只有一种格式能被认出来——而且不报错，只是"读不出来"。
+// libs/ 里的 jar 是随仓库带的（这台机器构建时 --offline），版本写在文件名里。
+configurations {
+    formatsEmbed
+}
+
+dependencies {
+    compileOnly files('libs/jlayer-1.0.1.4.jar', 'libs/mp3spi-1.9.5.4.jar',
+                      'libs/tritonus-share-0.3.7-2.jar', 'libs/jflac-codec-1.5.2.jar')
+    formatsEmbed files('libs/jlayer-1.0.1.4.jar', 'libs/mp3spi-1.9.5.4.jar',
+                       'libs/tritonus-share-0.3.7-2.jar', 'libs/jflac-codec-1.5.2.jar')
+}
+
+// 把四个库的服务描述符并成一份：同名条目取并集，注释与空行丢掉。
+task formatsServices {
+    inputs.files configurations.formatsEmbed
+    outputs.dir "${buildDir}/formats-services"
+    doLast {
+        def outDir = file("${buildDir}/formats-services/META-INF/services")
+        outDir.deleteDir()
+        outDir.mkdirs()
+        def merged = [:]
+        configurations.formatsEmbed.files.each { jarFile ->
+            def zf = new java.util.zip.ZipFile(jarFile)
+            try {
+                zf.entries().each { e ->
+                    if (!e.isDirectory() && e.name.startsWith('META-INF/services/')) {
+                        def name = e.name.substring('META-INF/services/'.length())
+                        def lines = merged[name]
+                        if (lines == null) {
+                            lines = new LinkedHashSet<String>()
+                            merged[name] = lines
+                        }
+                        zf.getInputStream(e).text.readLines().each { line ->
+                            def s = line.trim()
+                            if (s && !s.startsWith('#')) {
+                                lines.add(s)
+                            }
+                        }
+                    }
+                }
+            } finally {
+                zf.close()
+            }
+        }
+        merged.each { name, lines ->
+            new File(outDir, name).text = lines.join('\n') + '\n'
+        }
+        logger.lifecycle("formatsServices: ${merged.size()} 个 SPI 描述符已合并")
+    }
+}
+
+// reobfJar re-adds the FML annotation caches after the jar task has run, so the
+// final artifact has to be rewritten once more before it is shipped.
+//
+// 同一趟里把四个解码器嵌进去。刻意放在 reobf **之后**：那些类是第三方字节码，
+// 让 reobf 过一遍既没必要也没好处（它的映射表里只有 Minecraft 的名字）。
+task stripDevCache {
+    dependsOn 'reobfJar', 'formatsServices'
+    doLast {
+        def target = file("${buildDir}/libs/${archivesBaseName}-${project.version}.jar")
+        if (!target.exists()) {
+            return
+        }
+        def written = new HashSet<String>()
+        def tmp = new File(target.parentFile, target.name + '.tmp')
+        def zin = new java.util.zip.ZipFile(target)
+        def zout = new java.util.zip.ZipOutputStream(new FileOutputStream(tmp))
+        try {
+            for (def entry : zin.entries()) {
+                if (entry.name.startsWith('META-INF/fml_cache')) {
+                    continue
+                }
+                written.add(entry.name)
+                zout.putNextEntry(new java.util.zip.ZipEntry(entry.name))
+                if (!entry.isDirectory()) {
+                    zout.write(zin.getInputStream(entry).bytes)
+                }
+                zout.closeEntry()
+            }
+            // 内置解码器
+            configurations.formatsEmbed.files.each { jarFile ->
+                def zf = new java.util.zip.ZipFile(jarFile)
+                try {
+                    for (def e : zf.entries()) {
+                        def name = e.name
+                        if (e.isDirectory() || written.contains(name)) {
+                            continue
+                        }
+                        // 清单 / 签名 / 服务描述符：前两个会打架，第三个由 formatsServices 合并后单独写
+                        if (name == 'META-INF/MANIFEST.MF' || name.startsWith('META-INF/services/')
+                                || name ==~ /META-INF\/.*\.(SF|RSA|DSA)/) {
+                            continue
+                        }
+                        written.add(name)
+                        zout.putNextEntry(new java.util.zip.ZipEntry(name))
+                        zout.write(zf.getInputStream(e).bytes)
+                        zout.closeEntry()
+                    }
+                } finally {
+                    zf.close()
+                }
+            }
+            // 合并后的服务描述符
+            def servicesDir = file("${buildDir}/formats-services/META-INF/services")
+            if (servicesDir.isDirectory()) {
+                servicesDir.listFiles().each { f ->
+                    def name = 'META-INF/services/' + f.name
+                    if (written.contains(name)) {
+                        return
+                    }
+                    written.add(name)
+                    zout.putNextEntry(new java.util.zip.ZipEntry(name))
+                    zout.write(f.bytes)
+                    zout.closeEntry()
+                }
+            }
+        } finally {
+            zout.close()
+            zin.close()
+        }
+        if (!target.delete()) {
+            throw new GradleException("could not replace ${target}")
+        }
+        tmp.renameTo(target)
+    }
+}
+
+assemble.dependsOn stripDevCache

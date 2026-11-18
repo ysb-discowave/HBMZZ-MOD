@@ -1,0 +1,19 @@
+# 统一换行：仓库内一律 LF，避免 Windows 提交产生 CRLF 噪声
+* text=auto eol=lf
+
+# 二进制资源，不做换行/合并处理
+*.jar   binary
+*.png   binary
+*.ogg   binary
+*.zip   binary
+
+# 模型与文本资源按文本处理
+*.obj   text eol=lf
+*.mtl   text eol=lf
+*.json  text eol=lf
+*.lang  text eol=lf
+
+# Windows 脚本保留 CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+gradlew text eol=lf

@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "hbmzz:blocks/video_broadcaster_front",
+    "down": "hbmzz:blocks/video_broadcaster_side",
+    "up": "hbmzz:blocks/video_broadcaster_side",
+    "north": "hbmzz:blocks/video_broadcaster_side",
+    "south": "hbmzz:blocks/video_broadcaster_front",
+    "east": "hbmzz:blocks/video_broadcaster_side",
+    "west": "hbmzz:blocks/video_broadcaster_side"
+  }
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ 主标（紧凑版，≤48px 专用）
+
+  两处改动都是为了「16px 还认得出」：去掉四角螺钉（那个尺寸下只是噪点），
+  边框与立柱各加粗到 5 和 8 个单位。favicon、标题栏图标、任何 16–48px 的位图
+  都从这个文件出，不要用 logo-mark.svg 缩小。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ">
+  <title>HBMZZ</title>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="2" ry="2"
+        fill="none" stroke="#e6ecf3" stroke-width="5"/>
+  <rect x="18" y="16" width="8" height="32" fill="#e6ecf3"/>
+  <rect x="38" y="16" width="8" height="32" fill="#e6ecf3"/>
+  <rect x="18" y="28" width="32" height="8" fill="#f5a524"/>
+</svg>

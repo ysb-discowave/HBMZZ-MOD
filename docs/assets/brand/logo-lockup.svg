@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ 横排组合标（标 + 字）
+
+  字用的是等宽字体栈，和站点 .brand 完全一致；SVG 里的 text 依赖阅读端有等宽字体，
+  所以**正式对外分享请用导出的 PNG**，这个 SVG 只给浏览器与本地排版用。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 128" width="560" height="128"
+     role="img" aria-label="HBMZZ">
+  <title>HBMZZ</title>
+  <g transform="translate(0,16) scale(1.5)">
+    <rect x="3.5" y="3.5" width="57" height="57" rx="3" ry="3"
+          fill="none" stroke="#e6ecf3" stroke-width="3.5"/>
+    <rect x="9.5" y="9.5" width="3" height="3" fill="#48525f"/>
+    <rect x="51.5" y="9.5" width="3" height="3" fill="#48525f"/>
+    <rect x="9.5" y="51.5" width="3" height="3" fill="#48525f"/>
+    <rect x="51.5" y="51.5" width="3" height="3" fill="#48525f"/>
+    <rect x="19" y="17" width="7" height="30" fill="#e6ecf3"/>
+    <rect x="38" y="17" width="7" height="30" fill="#e6ecf3"/>
+    <rect x="19" y="28.5" width="30" height="7" fill="#f5a524"/>
+  </g>
+  <text x="120" y="72" fill="#e6ecf3"
+        font-family="ui-monospace, Consolas, 'Cascadia Mono', 'Courier New', monospace"
+        font-size="54" font-weight="700" letter-spacing="8">HBMZZ</text>
+  <rect x="122" y="84" width="300" height="3" fill="#f5a524"/>
+  <text x="122" y="112" fill="#93a0b0"
+        font-family="ui-monospace, Consolas, 'Cascadia Mono', 'Courier New', monospace"
+        font-size="15" letter-spacing="2.5">核科技附属 · MINECRAFT 1.12.2</text>
+</svg>

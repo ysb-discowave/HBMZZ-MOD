@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>谢谢你们 — HBMZZ 致谢</title>
+<meta name="description" content="HBMZZ 致谢页：谢谢「我的世界晴天菊」、上、星座云（DSH-Tiny），以及每一个读到这里的人。">
+<meta name="theme-color" content="#0a0c0f">
+<style>
+/* ==========================================================================
+   HBMZZ 官网 — 设计系统（与 site.css 完全一致，内联以便单独打开）
+   视觉语言：琥珀磷光工业色 + 薄荷第二通道 + 状态色只用于状态词。
+   本次仅做排版打磨与文案扩充，主题色、设计语言均未改动。
+   ========================================================================== */
+:root{
+  --bg:#0a0c0f; --bg-deep:#070809; --panel:#0f1318; --panel-2:#141a20; --panel-3:#1a2129;
+  --line:#232a33; --line-soft:#1a2028;
+  --text:#d9e0e8; --text-dim:#93a0b0; --text-mute:#67737f;
+  --amber:#f5a524; --amber-hi:#ffc25c; --amber-dim:#8a5c14;
+  --mint:#43d9a3; --red:#e5484d; --yellow:#f2c744; --green:#46c26a;
+  --wrap:1180px; --radius:3px; --nav-h:58px;
+  --mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"Liberation Mono","Courier New",monospace;
+  --sans:"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 18px)}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.8 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
+  radial-gradient(900px 520px at 18% -8%,rgba(245,165,36,.10),transparent 70%),
+  radial-gradient(760px 460px at 88% 4%,rgba(67,217,163,.055),transparent 70%),
+  linear-gradient(to bottom,transparent,var(--bg-deep))}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:linear-gradient(to right,rgba(255,255,255,.022) 1px,transparent 1px),
+  linear-gradient(to bottom,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:24px 24px;
+  mask-image:radial-gradient(1200px 700px at 50% 0%,#000 30%,transparent 85%);
+  -webkit-mask-image:radial-gradient(1200px 700px at 50% 0%,#000 30%,transparent 85%)}
+.wrap{position:relative;z-index:1;width:100%;max-width:var(--wrap);margin:0 auto;padding:0 24px}
+
+/* ---- 导航 ---- */
+.nav{position:sticky;top:0;z-index:50;height:var(--nav-h);background:rgba(10,12,15,.86);backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid var(--line-soft)}
+.nav-in{position:relative;height:100%;max-width:var(--wrap);margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);font:700 16px/1 var(--mono);letter-spacing:.14em;white-space:nowrap}
+.brand-mark{width:22px;height:22px;display:block;flex:0 0 auto;filter:drop-shadow(0 0 6px rgba(245,165,36,.22))}
+.ver{font:600 10px/1 var(--mono);letter-spacing:.1em;color:var(--amber);border:1px solid var(--amber-dim);background:rgba(245,165,36,.08);padding:4px 6px;border-radius:2px;white-space:nowrap}
+.nav-links{display:flex;align-items:center;gap:2px;margin-left:auto}
+.nav-links a{position:relative;padding:7px 12px;border-radius:2px;color:var(--text-dim);text-decoration:none;font:500 13px/1 var(--mono);letter-spacing:.04em;transition:color .15s,background .15s}
+.nav-links a:hover{color:var(--text);background:var(--panel-2)}
+.nav-links a[aria-current="page"]{color:var(--amber);background:rgba(245,165,36,.07)}
+.nav-links a[aria-current="page"]::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:1px;background:var(--amber)}
+.nav-gh{display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:7px 12px;border:1px solid var(--line);border-radius:2px;color:var(--text);text-decoration:none;font:500 12px/1 var(--mono);transition:border-color .15s,color .15s}
+.nav-gh:hover{border-color:var(--amber-dim);color:var(--amber-hi)}
+.nav-toggle{display:none}
+
+/* ---- 排版 ---- */
+h1,h2,h3,h4{line-height:1.25;margin:0}
+h1{font:700 clamp(32px,4.6vw,54px)/1.12 var(--mono);letter-spacing:-.015em}
+h2{font:700 clamp(22px,2.7vw,30px)/1.25 var(--mono);letter-spacing:-.01em}
+h3{font:600 17px/1.4 var(--sans)}
+h4{font:600 13px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+p{margin:0 0 14px}p:last-child{margin-bottom:0}
+a{color:var(--amber);text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
+strong{color:#fff;font-weight:600}em{color:var(--mint);font-style:normal}
+code,kbd,.mono{font-family:var(--mono);font-size:.92em}
+code{background:rgba(255,255,255,.05);border:1px solid var(--line-soft);border-radius:2px;padding:.1em .38em;color:var(--amber-hi)}
+
+/* ---- 页头 / 章节 ---- */
+.page-head{position:relative;z-index:1;padding:60px 0 40px;border-bottom:1px solid var(--line-soft)}
+.page-head .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:14px}
+.page-head h1 .hl{color:var(--amber)}
+.page-head p.lead{margin:18px 0 0;max-width:min(68ch,100%);color:var(--text-dim);font-size:16.5px}
+.page-head p.lead + p.lead{margin-top:14px}
+.section{padding:58px 0}
+.section + .section{border-top:1px solid var(--line-soft)}
+.section-head{margin-bottom:28px}
+.section-head .kicker{font:600 11px/1 var(--mono);letter-spacing:.2em;color:var(--amber-dim);margin-bottom:10px}
+.section-head p{margin:10px 0 0;color:var(--text-dim);max-width:min(72ch,100%)}
+
+/* ---- 面板 ---- */
+.panel{position:relative;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 1px 0 rgba(0,0,0,.5)}
+.panel--bolted{background-image:
+  radial-gradient(circle at 9px 9px,#2f3742 0 1.5px,transparent 1.7px),
+  radial-gradient(circle at calc(100% - 9px) 9px,#2f3742 0 1.5px,transparent 1.7px),
+  radial-gradient(circle at 9px calc(100% - 9px),#2f3742 0 1.5px,transparent 1.7px),
+  radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#2f3742 0 1.5px,transparent 1.7px),
+  linear-gradient(180deg,var(--panel-2),var(--panel))}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card-num{font:700 11px/1 var(--mono);letter-spacing:.16em;color:var(--amber-dim)}
+
+/* ---- 按钮 / 提示 ---- */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:1px solid transparent;border-radius:2px;font:600 13px/1 var(--mono);letter-spacing:.05em;text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .1s}
+.btn:active{transform:translateY(1px)}
+.btn--ghost{background:var(--panel-2);border-color:var(--line);color:var(--text)}
+.btn--ghost:hover{border-color:var(--amber-dim);color:var(--amber-hi);text-decoration:none}
+.note{display:flex;gap:12px;padding:14px 16px;border:1px solid var(--line);border-left:2px solid var(--amber);border-radius:2px;background:rgba(245,165,36,.045);font-size:14px;color:var(--text-dim)}
+.note b{color:var(--text)}
+
+/* ---- 配乐条 ---- */
+.thanks-audio{padding:16px 20px}
+.thanks-audio-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.thanks-audio-meta{display:flex;flex-direction:column;gap:5px;min-width:0}
+.thanks-audio-meta strong{font:700 13px/1.3 var(--mono);letter-spacing:.1em;color:var(--text)}
+.thanks-audio-meta span{font:500 11.5px/1.5 var(--mono);letter-spacing:.05em;color:var(--text-mute)}
+.thanks-audio.is-on{border-color:rgba(245,165,36,.42)}
+.thanks-audio.is-err .thanks-audio-meta span{color:var(--amber)}
+
+/* ==========================================================================
+   本次美化新增：全部沿用上面既有 token，未引入任何新颜色
+   ========================================================================== */
+/* 页头右上角的终端式清单 */
+.roll{display:flex;align-items:center;gap:12px;margin-top:30px;font:600 11px/1 var(--mono);letter-spacing:.1em;color:var(--text-mute);flex-wrap:wrap}
+.roll .k{color:var(--amber-dim)}
+.roll .v{color:var(--amber-hi);font-size:13px}
+.roll .rule{flex:1 1 90px;height:1px;background:repeating-linear-gradient(to right,var(--line) 0 5px,transparent 5px 9px)}
+.roll .ok{color:var(--mint)}
+
+/* 信件面板：顶部一道琥珀细线 + 序号 */
+.letter{position:relative}
+.letter::before{content:"";position:absolute;left:24px;right:24px;top:0;height:1px;background:linear-gradient(to right,var(--amber),rgba(245,165,36,.18) 42%,transparent)}
+.letter-tag{display:inline-flex;align-items:center;gap:8px;font:600 10.5px/1 var(--mono);letter-spacing:.18em;color:var(--amber);margin-bottom:18px}
+.letter-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px rgba(245,165,36,.7)}
+.letter p{font-size:15.5px;color:var(--text-dim)}
+.letter p strong{color:#fff}
+.letter .pull{color:var(--text);font-size:17px;line-height:1.7}
+
+/* 人名卡片：名字加重、编号更像铭牌 */
+.person h3{font-size:19px;color:#fff;margin:10px 0 6px}
+.person .sub{color:var(--text-mute);font:500 11px/1.7 var(--mono);letter-spacing:.08em;margin:0 0 14px}
+.person p{margin:0 0 16px;color:var(--text-dim)}
+
+/* 结尾落款 */
+.signoff{margin-top:8px;text-align:center}
+.signoff .mark{font:700 clamp(40px,7vw,84px)/1 var(--mono);letter-spacing:.06em;color:transparent;-webkit-text-stroke:1px rgba(245,165,36,.28)}
+.signoff .line{margin:18px auto 0;max-width:520px;height:1px;background:linear-gradient(to right,transparent,var(--amber-dim),transparent)}
+.signoff p{margin:20px auto 0;max-width:min(58ch,100%);color:var(--text-dim);font-size:15.5px}
+.signoff .by{margin-top:22px;color:var(--text-mute);font:600 11px/1 var(--mono);letter-spacing:.16em}
+
+/* 滚动连动：透明度 / 位移 / 轻微翻折由 JS 按滚动进度逐帧写入。
+   下滑时下方渐显上浮、上方渐隐退出；上滑时完全反向。 */
+.reveal{opacity:0;transform:translateY(42px);will-change:opacity,transform;transform-origin:center center}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+  .reveal{opacity:1!important;transform:none!important}
+}
+
+/* ---- 页脚 ---- */
+.foot{position:relative;z-index:1;margin-top:24px;border-top:1px solid var(--line);background:var(--bg-deep);padding:44px 0 30px}
+.foot-grid{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:32px;margin-bottom:34px}
+.foot h4{margin-bottom:12px}
+.foot a{color:var(--text-dim);font-size:13.5px;display:block;margin-bottom:7px}
+.foot .brand{display:flex}
+.foot a:hover{color:var(--amber)}
+.foot p{color:var(--text-mute);font-size:13px}
+.foot-bottom{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding-top:22px;border-top:1px solid var(--line-soft);font:500 11.5px/1.6 var(--mono);color:var(--text-mute)}
+.foot-bottom .spacer{margin-left:auto}
+
+@media (max-width:980px){.foot-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){
+  .nav-toggle{display:inline-flex;margin-left:auto;background:none;border:1px solid var(--line);border-radius:2px;color:var(--text);padding:7px 10px;font:600 12px/1 var(--mono);cursor:pointer}
+  .nav-links{position:absolute;top:var(--nav-h);left:0;right:0;flex-direction:column;align-items:stretch;gap:0;padding:8px;background:var(--bg);border-bottom:1px solid var(--line);display:none}
+  .nav-links.open{display:flex}
+  .nav-links a{padding:12px 10px}
+  .nav-links a[aria-current="page"]::after{display:none}
+  .nav-gh{margin:6px 2px 2px;justify-content:center}
+  .g2{grid-template-columns:1fr}
+  .section{padding:40px 0}
+  .page-head{padding:38px 0 26px}
+  .foot-grid{grid-template-columns:1fr;gap:24px}
+  .wrap{padding:0 20px}
+}
+</style>
+<meta property="og:title" content="谢谢你们 — HBMZZ 致谢">
+<meta property="og:description" content="三个名字，一份一直记着的感谢。">
+<meta property="og:type" content="website">
+</head>
+<body data-no-dock data-thanks-track="assets/audio/thanks-theme.mp3">
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">菜单</button>
+    <nav class="nav-links" id="nav-menu">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="addon.html">附加包</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
+      <a href="thanks.html" aria-current="page">致谢</a>
+      <a href="license.html">许可</a>
+      <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= PAGE HEAD ================= -->
+  <div class="page-head">
+    <div class="wrap">
+      <div class="kicker">// 致谢 · ACKNOWLEDGEMENTS</div>
+      <h1>谢谢你们<span class="hl">.</span></h1>
+      <p class="lead">
+        一个模组能做到今天，从来都不是作者一个人的事。有人愿意在旁边看着，愿意说一句「这个不错」；也有人什么也没说，只是留了下来——这些看着很小的事，其实都是很实在的鼓励。它们会让一个改代码改到半夜的人，忽然觉得手里的活儿是有人在看、有人需要的。
+      </p>
+      <p class="lead">
+        这一页，想认认真真地记下三个名字。不是走流程，也不是客套，是因为这三份好，我一直都记着：<strong>我的世界晴天菊</strong>、<strong>上</strong>、还有<strong>星座云（DSH-Tiny）</strong>。最后，也谢谢正在读这段话的你。
+      </p>
+      <div class="roll">
+        <span class="k">NAMES_ON_RECORD</span>
+        <span class="v">03</span>
+        <span class="rule"></span>
+        <span class="ok">■ THANK YOU · OK</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 这一页的配乐 ================= -->
+  <section class="section" id="theme">
+    <div class="wrap">
+      <div class="panel panel--bolted thanks-audio" data-thanks-player>
+        <div class="thanks-audio-row">
+          <button class="btn btn--ghost" type="button" data-thanks-toggle aria-pressed="false"><span data-thanks-icon>▶</span> <span data-thanks-label>播放</span></button>
+          <div class="thanks-audio-meta">
+            <strong>致谢页配乐 · The Ending of Melting</strong>
+            <span data-thanks-state>准备播放…</span>
+          </div>
+        </div>
+        <audio data-thanks-audio loop preload="none"></audio>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 一封短信 ================= -->
+  <section class="section" id="letter">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">// 01 · 写给「我的世界晴天菊」</div>
+        <h2>做模组这件事，大部分时间是安静的</h2>
+      </div>
+
+      <div class="panel panel--bolted letter reveal">
+        <div class="letter-tag"><span class="dot"></span>LETTER / 001</div>
+        <p>
+          改一行代码，等十几分钟编译，进游戏看一眼，屏幕没亮，再改回来。中间没有观众，也没有掌声。某个方块到底亮不亮、某段逻辑到底跑没跑通，除了自己，没人知道，也没人在意。做模组这件事，大部分时间就是这样一个人的安静。
+        </p>
+        <p>
+          也正因为这样，当有人明确地说「我支持这个」，是会被牢牢记住的。那不是随手一句客气话，是有人在茫茫多的模组里停下来，认真看了它一眼，还愿意把那句话说出来。
+        </p>
+        <p class="pull">
+          <strong>「我的世界晴天菊」，谢谢你。</strong>谢谢你把这句话说出口，谢谢你在那些没人鼓掌的日子里，替它鼓了一次掌。
+        </p>
+        <p style="margin-bottom:0">
+          把这份感谢放在官网上，是想让它留在一个看得见、也不会被刷掉的地方——而不只是群里一闪而过的回复。哪天你偶然回来看，它还在。这就是我能想到的、最郑重的「谢谢」。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 还有两位 ================= -->
+  <section class="section" id="more">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">// 02 &amp; 03 · 还有两位</div>
+        <h2>一个没有留主页，一个留了</h2>
+        <p>页面上有什么就写什么：没有链接的那一位，这里也不会替他编一个。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="panel panel--bolted person reveal">
+          <div class="card-num">— / NO HOMEPAGE</div>
+          <h3>「上」</h3>
+          <p class="sub">SILENT SUPPORT · 沉默的支持</p>
+          <p>
+            他很神秘，没有留下主页，也没让这里写别的东西。那就只有一句最朴素的话：<strong>「上」，谢谢你。</strong>
+          </p>
+          <p style="margin-bottom:0">
+            有时候最安静的支持反而最实在。你没怎么说，但我知道你一直在；一句谢谢，就够了。
+          </p>
+        </div>
+
+        <div class="panel panel--bolted person reveal">
+          <div class="card-num">BILIBILI / WZH</div>
+          <h3>星座云 · DSH-Tiny</h3>
+          <p class="sub">SPACE.BILIBILI.COM / 3706961906371549</p>
+          <p>
+            三个人里他的名字最多：大家叫他<strong>星座云</strong>，网名叫 <strong>DSH-Tiny</strong>，仓库里的协作者 <strong>wzh3203</strong> 也是他。一个人有多少个名字，往往就有多少种不同的方式在帮忙。
+          </p>
+          <p>
+            谢谢你不只是「看着」，还真的动过手、改过东西、陪着把问题聊到底。有人愿意把时间花在别人的项目上，这件事本身就很珍贵。
+          </p>
+          <a class="btn btn--ghost" href="https://space.bilibili.com/3706961906371549?spm_id_from=333.337.0.0" target="_blank" rel="noopener noreferrer">打开 B 站主页 ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 找到他 / 找到我们 ================= -->
+  <section class="section" id="find">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">// 主页 · 社群</div>
+        <h2>他的 B 站主页，和我们的社群</h2>
+        <p>这两个链接都不是必须点的。放在这里，只是因为它们都是真的。</p>
+      </div>
+
+      <div class="grid g2">
+        <div class="panel panel--bolted person reveal">
+          <div class="card-num">BILIBILI</div>
+          <h3>「我的世界晴天菊」的 B 站主页</h3>
+          <p class="sub">SPACE.BILIBILI.COM / 1277437678</p>
+          <p style="margin-bottom:16px">想看看他、或者想留个关注，从这里进去。</p>
+          <a class="btn btn--ghost" href="https://space.bilibili.com/1277437678?spm_id_from=333.337.0.0" target="_blank" rel="noopener noreferrer">打开 B 站主页 ↗</a>
+        </div>
+
+        <div class="panel panel--bolted person reveal">
+          <div class="card-num">QQ GROUP</div>
+          <h3>HBMZZ玩家社群</h3>
+          <p class="sub">HBMZZ玩家社群 · 1134138830</p>
+          <p style="margin-bottom:16px">
+            模组的问题、想法、想加的东西，都可以在社群里说。装不上、崩了、屏幕不亮，把 <code>logs/latest.log</code> 带上来最省事。
+          </p>
+          <div class="note" style="margin:0">
+            <span>「HBMZZ玩家社群」群号 <b>1134138830</b>，在 QQ 里搜索即可加入。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:20px">
+        <span>这一页只讲感谢：不给谁安上没发生过的身份，也不替谁总结贡献。想帮忙的话，进群里说一声就行。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 写在最后 ================= -->
+  <section class="section" id="end">
+    <div class="wrap">
+      <div class="signoff reveal">
+        <div class="mark">THANK YOU</div>
+        <div class="line"></div>
+        <p>
+          有人问过我，做这个模组到底图什么。以前说不出口，现在可以答了：图的就是还有人愿意用它、愿意为它停一下。所以——谢谢你们三个，谢谢你们把那一点点时间和注意力，分给了这个小小的模组；也谢谢每一个读到这里的人。
+        </p>
+        <p style="margin-top:12px">
+          这一页不写谁贡献了多少、排在第几位，那不是感谢该干的事。它只想把一句话放稳：<em>真的，非常感谢。</em>
+        </p>
+        <div class="by">— HBMZZ 作者 / 2026</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+        <p>面向 HBM 的核科技社区版与 Leafia 诅咒版附属的 Minecraft 1.12.2 Forge 附属模组。与 NTM:CE、Leafia 官方无关，仅为社区附属。</p>
+      </div>
+      <div>
+        <h4>文档</h4>
+        <a href="guide.html">使用指南</a>
+        <a href="reference.html">参考手册</a>
+        <a href="changelog.html">更新日志</a>
+        <a href="addon.html">附加包</a>
+        <a href="reference.html#config">配置项</a>
+        <a href="ost.html">原声 · HBMZZ OST</a>
+      </div>
+      <div>
+        <h4>项目</h4>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+        <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+        <a href="reference.html#build">从源码构建</a>
+      </div>
+      <div>
+        <h4>许可与致谢</h4>
+        <a href="thanks.html">致谢</a>
+        <a href="license.html">GPL-3.0 全文</a>
+        <a href="license.html#notice">第三方来源</a>
+        <a href="license.html#authorization">节枝授权</a>
+        <a href="license.html#credits">署名</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>GPL-3.0-only</span><span>MC 1.12.2 / Forge</span><span>© 2026 Yang Sibo</span>
+      <span class="spacer"></span>
+      <span>谢谢你们 · THANK YOU</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // 移动端菜单
+  var t=document.querySelector('.nav-toggle'),m=document.getElementById('nav-menu');
+  if(t&&m)t.addEventListener('click',function(){var o=m.classList.toggle('open');t.setAttribute('aria-expanded',o?'true':'false')});
+
+  // 滚动连动：折叠式浮出 / 退出（上滑下滑都连续跟随）
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var els = [].slice.call(document.querySelectorAll('.reveal'));
+  if(els.length && !reduceMotion){
+    var ticking = false;
+    function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+    function paint(){
+      ticking = false;
+      var h = window.innerHeight || document.documentElement.clientHeight;
+      for(var i=0;i<els.length;i++){
+        var el = els[i], r = el.getBoundingClientRect();
+        // 元素中心相对视口中心的位置：-1 在上方之外，0 正中，1 在下方之外
+        var mid = (r.top + r.height/2 - h/2) / h;
+        var d = Math.abs(mid);
+        var t = clamp(1 - d/0.82, 0, 1);          // 0→1 连续进度
+        var e = t*t*(3-2*t);                       // smoothstep，进出更柔
+        // 折叠感：从下方来时绕 X 轴微收，从上方走时反向收
+        var fold = clamp(mid,-1,1) * -9 * (1-e);
+        el.style.opacity = (0.06 + 0.94*e).toFixed(3);
+        el.style.transform = 'perspective(1000px) translate3d(0,' + ((1-e)*46).toFixed(1) + 'px,0) rotateX(' + fold.toFixed(2) + 'deg) scale(' + (0.965 + 0.035*e).toFixed(3) + ')';
+      }
+    }
+    function onScroll(){ if(!ticking){ ticking = true; requestAnimationFrame(paint); } }
+    window.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('resize', onScroll);
+    paint();
+  }else{
+    els.forEach(function(el){ el.style.opacity=1; el.style.transform='none'; });
+  }
+
+  // 配乐播放器
+  var box=document.querySelector('[data-thanks-player]');
+  if(!box)return;
+  var btn=box.querySelector('[data-thanks-toggle]'),
+      ico=box.querySelector('[data-thanks-icon]'),
+      lab=box.querySelector('[data-thanks-label]'),
+      st=box.querySelector('[data-thanks-state]'),
+      au=box.querySelector('[data-thanks-audio]'),
+      src=document.body.getAttribute('data-thanks-track');
+  if(src)au.src=src;
+  au.addEventListener('play',function(){box.classList.add('is-on');btn.setAttribute('aria-pressed','true');ico.textContent='❚❚';lab.textContent='暂停';st.textContent='正在播放 · 谢谢你听'});
+  au.addEventListener('pause',function(){box.classList.remove('is-on');btn.setAttribute('aria-pressed','false');ico.textContent='▶';lab.textContent='播放';st.textContent='已暂停'});
+  au.addEventListener('error',function(){box.classList.add('is-err');st.textContent='配乐文件未找到 — 但感谢照旧'});
+  btn.addEventListener('click',function(){
+    if(au.paused){var p=au.play();if(p&&p.catch)p.catch(function(){st.textContent='点一下允许播放，谢谢'})}
+    else au.pause();
+  });
+})();
+</script>
+<script src="assets/data.js?v=4353b3bcd7"></script>
+<script>
+/* 这一页刻意做成单文件（样式内联、不引 site.js，避免右侧播放器跟过来），
+   但导航上的版本号是全站统一的 data-bind。这里只做那一件事：读 data.js 的
+   auto.version 填进去。拿不到数据就保持"v—"，不猜版本。 */
+(function () {
+  function fill() {
+    var d = window.HBMZZ_DATA;
+    if (!d || !d.auto) return;
+    var nodes = document.querySelectorAll('[data-bind="auto.version|v"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = 'v' + d.auto.version;
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fill);
+  else fill();
+})();
+</script>
+</body>
+</html>

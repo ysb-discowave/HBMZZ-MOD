@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/train_station_side",
+    "up": "rsaudio:blocks/train_station_top",
+    "down": "rsaudio:blocks/train_station_side",
+    "north": "rsaudio:blocks/train_station_side",
+    "south": "rsaudio:blocks/train_station_side",
+    "west": "rsaudio:blocks/train_station_side",
+    "east": "rsaudio:blocks/train_station_side"
+  }
+}

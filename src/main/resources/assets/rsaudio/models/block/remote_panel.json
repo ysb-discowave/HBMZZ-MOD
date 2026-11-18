@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "rsaudio:blocks/remote_panel_side",
+    "down": "rsaudio:blocks/remote_panel_bottom",
+    "up": "rsaudio:blocks/remote_panel_top",
+    "north": "rsaudio:blocks/remote_panel_front",
+    "south": "rsaudio:blocks/remote_panel_side",
+    "east": "rsaudio:blocks/remote_panel_side",
+    "west": "rsaudio:blocks/remote_panel_side"
+  }
+}

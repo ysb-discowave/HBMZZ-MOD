@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HBMZZ OST 标（紧凑版，≤48px 专用）
+
+  与主标的紧凑版同一套取舍：去掉四角螺钉（16px 下只是噪点），边框 3.5 加到 5、
+  柱子 7 加到 8。三根柱子之间留 6.5 个单位，缩到 16px 还有 1.6px 的空隙——
+  再窄就会连成一块琥珀色。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="HBMZZ OST">
+  <title>HBMZZ OST</title>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="2" ry="2"
+        fill="none" stroke="#e6ecf3" stroke-width="5"/>
+  <rect x="13.5" y="32" width="8" height="16" fill="#f5a524"/>
+  <rect x="28" y="14" width="8" height="34" fill="#f5a524"/>
+  <rect x="42.5" y="24" width="8" height="24" fill="#f5a524"/>
+</svg>

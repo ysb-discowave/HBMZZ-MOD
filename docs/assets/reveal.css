@@ -1,0 +1,21 @@
+/* ==========================================================================
+   HBMZZ 官网 — 滚动连动折叠动画（与致谢页同一套参数）
+   只负责 .reveal 的初始态与无障碍降级；具体逐帧计算在 reveal.js。
+   不引入任何新颜色，不改动 site.css 的既有样式。
+   ========================================================================== */
+
+/* 只有 reveal.js 成功启动后才会加上 .reveal-on —— 脚本没加载时内容照常可见 */
+.reveal-on .reveal{
+  opacity:0;
+  transform:translateY(42px);
+  transform-origin:center center;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .reveal-on .reveal{opacity:1!important;transform:none!important}
+}
+
+/* 打印：按原站的白底黑字走，正文一律全显 */
+@media print{
+  .reveal-on .reveal{opacity:1!important;transform:none!important}
+}

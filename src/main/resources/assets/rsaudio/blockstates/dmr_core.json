@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "lit=false,meltdown=false": {
+      "model": "rsaudio:dmr_core"
+    },
+    "lit=true,meltdown=false": {
+      "model": "rsaudio:dmr_core"
+    },
+    "lit=false,meltdown=true": {
+      "model": "rsaudio:dmr_core"
+    },
+    "lit=true,meltdown=true": {
+      "model": "rsaudio:dmr_core"
+    }
+  }
+}

@@ -107,6 +107,13 @@
               堆栈只指到构造器、看不出是哪个方块。现在注册名只在具体类里设一次，
               父类构造函数只设显示名；同时给 regcheck 加了第 64 条守卫「同一个类不许设两次注册名」，
               反向验证过（把那一行塞回去，检查当场 FAIL）。</li>
+            <li><strong>片头与片尾配上了新写的曲子：</strong>两条音轨都是这一版现做的，
+              由 <code>tools/audio/ost_synth.py</code> 从正弦 / 锯齿、包络与混响算出来——不采样、不引用
+              <code>docs/assets/audio/</code> 下任何一首 mp3，也不按它们的旋律或段落对齐，时间只跟画面走。
+              片头 8.000 s：2.25 s 小标散开、4.00 s 碎片合拢、6.50 s 咬合（全片最亮一帧，正好落在重拍上），
+              落点之后不再加打击，末帧正好静默。片尾 193.833 s：88 BPM、71 小节，名单匀速滚动时音乐退后半步，
+              结尾散成一条长和弦。两条包都写 <code>"loop": false</code>，音轨与帧数严格等长（实测偏差 0.0000 s）；
+              运行 <code>package_intro.py --silent</code> 仍可产出原来的静音版片头。</li>
             <li><strong>基线先说清：</strong>本版是在 3.7.1（upstream master 快照，提交 <code>26195b1</code>）之上增量做的，
               3.7.1 已有的修复一条没回退。3.7.0 是另一条分支，这次只挑了两件东西移植，没有整体覆盖——那一支的四向开合门、
               自定义贴图系统和旧 mixin 都没进来。</li>
@@ -734,7 +741,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=e3fb88cc99"></script>
+<script src="assets/data.js?v=6b2fc5eaa9"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

@@ -1081,9 +1081,11 @@ def main():
     # 观众一个中途退场的入口，而这正是这个功能存在的理由。所以那条界面里
     # 连 buttonList 都不该被碰。
     takeover = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoScreen.java"))
-    intrusive = [token for token in ("buttonList.add", "GuiButton", "mouseClicked(")
-                 if token in takeover]
-    check(not intrusive,
+    # 界面本身能有鼠标处理（底部那条进度条要能拖），但不能有"点一下就退场"的
+    # 控件：既不许有按钮，也不许在处理左键的路径里调 displayGuiScreen(null)。
+    intrusive = [token for token in ("buttonList.add", "GuiButton") if token in takeover]
+    click_body = member_body(takeover, "mouseClicked")
+    check(not intrusive and "displayGuiScreen(null)" not in click_body,
           "the takeover window offers no button that could dismiss it",
           "GuiVideoScreen grows a control: " + ", ".join(intrusive))
 
@@ -1126,9 +1128,13 @@ def main():
     check("Keyboard.KEY_F" in takeover and "toggleFullscreen()" in takeover,
           "the playback window toggles real fullscreen on F",
           "GuiVideoScreen must handle Keyboard.KEY_F with Minecraft.toggleFullscreen()")
-    check("wasFullscreen" in takeover and "addScheduledTask" in takeover,
-          "leaving the film restores the display mode it found",
-          "GuiVideoScreen must remember gameSettings.fullScreen and restore it on close "
+    # 71 补：退出时要还回去的不只是"全屏/窗口"这个开关，还有窗口大小 —— 原来直接
+    # 调 Minecraft.toggleFullscreen()，退全屏会回到启动尺寸（854x480），玩家看到的是
+    # "按了 F 之后游戏框反而变小了"。现在由 VideoFullscreen 记账并按进来的尺寸还原
+    # （#92 那条守着实现本身）。
+    check("VideoFullscreen.restore(" in takeover and "addScheduledTask" in takeover,
+          "leaving the film restores the display mode and window size it found",
+          "GuiVideoScreen.onGuiClosed must schedule VideoFullscreen.restore() "
           "(scheduled, not inside displayGuiScreen)")
 
     # 72. 刷新必须说出被跳过的文件。video_screen 读的是图片帧序列，不是视频容器；
@@ -1292,6 +1298,75 @@ def main():
           and "Math.min(120, fps)" in importer,
           "导入与读取两端都认到 120fps",
           "FPS_STEPS must reach 120 and both clamps must be 120, not 60")
+
+    # 88. 导入窗口"歪在一边"的真因是字段遮蔽：那个类自己有一个 width（导出宽度，
+    # 默认 480），和 GuiScreen.width（视口宽）同名，于是 layout() 和整块暗底都按
+    # 480 算 —— 1280 宽的界面上面板落在 x=60，左边还露着没盖住的地面。改名之后
+    # this.width 才是视口。这条守住"别再有人把导出宽度叫 width"。
+    check("private int videoWidth" in import_gui and "private int width" not in import_gui,
+          "导入窗口不再用 width 当导出宽度的字段名（否则会遮蔽视口宽）",
+          "GuiVideoImport must keep the export width in videoWidth, not width")
+    check("Mouse.getEventX() * this.width / this.mc.displayWidth" in import_gui,
+          "导入窗口的滚轮命中测试用的是视口宽度",
+          "handleMouseInput must map the mouse with GuiScreen.width, not the export width")
+
+    # 89. 进度条不能"点了就弹回去"。窗口画的是本机那份方块实体，服务端确认要一个
+    # 来回；这段时间里只画旧值，手柄就会自己回原位。所以跳转要先把播放头写进本地
+    # 方块实体，再把包发出去。
+    seek_gui = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoSeek.java"))
+    apply_body = member_body(seek_gui, "applySeek")
+    check("te.seekTo(clamped)" in apply_body and "sendSeekOnly(" in apply_body,
+          "拖动进度条先写本地播放头再发包，手柄不会弹回原位",
+          "GuiVideoSeek.applySeek must call te.seekTo(...) before sending the packet")
+    release_body = member_body(seek_gui, "mouseReleased")
+    click_body = member_body(seek_gui, "mouseClicked")
+    check("applySeek(msAt(mouseX))" in release_body and "applySeek(this.dragMs)" in click_body,
+          "松手那一刻的落点也会被写进去（不是只发一个包）",
+          "mouseClicked / mouseReleased must go through applySeek so the local playhead moves too")
+
+    # 90. 服务端改完播放头要把权威值直接回给发起者。区块更新也会发，但它是按
+    # "谁在看这个区块"路由的，晚一两 tick 到；那段空窗正是"弹回原位"看起来发生
+    # 的地方。回一发是最省事的收口。
+    seek_msg = read(os.path.join(SRC, "com/hbmzz/network/VideoSeekMessage.java"))
+    check("sender.connection.sendPacket(screen.getUpdatePacket())" in seek_msg,
+          "服务端把跳转后的权威播放头直接回给发起者",
+          "VideoSeekMessage.Handler must echo screen.getUpdatePacket() to the sender")
+
+    # 91. 没有本机副本时进度条不该接受拖动：没有长度就没有比例，点哪儿都只能跳到
+    # 一个猜出来的时间，手柄永远画在最左边 —— 那看上去就是"拖了又弹回去"。
+    over_body = member_body(seek_gui, "overBar")
+    check("if (!this.haveClip)" in over_body,
+          "没有本机副本时进度条不接受拖动（只能用 +/- 按钮）",
+          "GuiVideoSeek.overBar must refuse the bar when the clip length is unknown")
+
+    # 92. 全屏：方向以桌面真实状态为准，退出时回到"进来之前的窗口尺寸"。
+    # 直接调 Minecraft.toggleFullscreen() 会按它自己的字段翻面（字段与桌面不同步时
+    # 就是"按 F 反而变小"），而且退全屏会回到启动尺寸（854x480）。
+    fullscreen = read(os.path.join(SRC, "com/hbmzz/client/video/VideoFullscreen.java"))
+    check("Display.isFullscreen()" in fullscreen and "mc.toggleFullscreen()" in fullscreen
+          and "Display.setDisplayMode(new DisplayMode(windowWidth, windowHeight))" in fullscreen,
+          "全屏开关按桌面真实状态决定方向，退出来回到原窗口尺寸",
+          "VideoFullscreen must read Display.isFullscreen() and restore the captured window size")
+    check("VideoFullscreen.capture()" in takeover and "VideoFullscreen.restore(generation, client)" in takeover,
+          "播放窗口记下进来之前的显示状态，关闭时还回去",
+          "GuiVideoScreen must capture() on open and restore(generation, ...) when it closes")
+    key_body = member_body(takeover, "keyTyped")
+    check("this.toggleFullscreen()" in key_body and "mc.toggleFullscreen()" not in key_body,
+          "F 键走统一的全屏开关，不再直接翻 Minecraft 的字段",
+          "GuiVideoScreen.keyTyped must call its own toggleFullscreen() helper")
+    mouse_body = member_body(takeover, "handleMouseInput")
+    check("getEventButton() == 1" in mouse_body and "this.toggleFullscreen()" in mouse_body,
+          "窗口里右键 = 全屏开关（大屏展示时是大屏，本机播放时是播放器）",
+          "GuiVideoScreen.handleMouseInput must toggle fullscreen on the right button")
+
+    # 93. 播放窗口底部那条进度条也得能拖。以前它只是画出来的一个百分比，
+    # 点上去什么都不发生、画面照旧往前走——玩家的描述是"拖动之后又弹回原位"。
+    check("private boolean overBar(" in takeover and "player.seekTo(secondsAt(mouseX))" in takeover,
+          "本机播放窗口的进度条可以点、可以拖，松手就跳过去",
+          "GuiVideoScreen must accept a click/drag on its bottom bar and seekTo on release")
+    check("while (org.lwjgl.input.Mouse.next())" not in takeover,
+          "鼠标事件按原版的节奏一个个分派（不会把拖动事件吃掉）",
+          "GuiVideoScreen.handleMouseInput must not loop over Mouse.next(); that starves the drag")
 
     failed = [name for ok, name, _ in results if not ok]
     print()

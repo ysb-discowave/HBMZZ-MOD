@@ -3,8 +3,8 @@
  * Copyright (C) 2026 Yang Sibo (ysb-discowave)
  *
  * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the
- * Free Software Foundation, version 3.
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -39,22 +39,31 @@ import java.io.IOException;
  * "put it back to the start" happens in the middle of a screening with people
  * waiting. Nothing here changes blocks or settings - it moves a clock.</p>
  *
- * <p><b>Everything is a request to the server.</b> The window does not touch the
- * local decoder at all: it sends a seek / pause / rewind and then keeps drawing
- * whatever the block says. That is why the player who presses the button, the
- * player standing behind them and the player on the other side of a dedicated
- * server all end up looking at the same frame - the position lives in the wall,
- * not in a window.</p>
+ * <p><b>Everything is a request to the server.</b> The window does not own the
+ * playhead: it asks the server to move it, and then draws whatever the block
+ * says. That is why the player who presses the button, the player standing
+ * behind them and the player on the other side of a dedicated server all end up
+ * looking at the same frame - the position lives in the wall, not in a window.</p>
+ *
+ * <p><b>But the click has to land immediately.</b> A round trip is two ticks, and
+ * a bar that springs back for two ticks reads as "clicking does nothing" - which
+ * is exactly how the first version of this window behaved. So a jump is written
+ * into the local copy of the block entity first (it is just three fields: the
+ * playhead, the anchor tick, and a dirty flag) and the packet follows. If the
+ * server refuses the jump, its next update overwrites the lot and the bar goes
+ * back - honestly, because the wall really did not move.</p>
  *
  * <p>The bar is a direct handle rather than a set of fixed jumps, because "jump
  * to 0:23" is what the request usually is; the +/- buttons exist for the cases
  * where the picture matters more than the number. The length comes from the copy
  * of the clip on this client - the server does not have one - so a client without
- * that file gets an unlabelled bar, and the +/- buttons still work.</p>
+ * that file gets a bar it cannot drag (the +/- buttons still work, and the window
+ * says why).</p>
  */
 public class GuiVideoSeek extends GuiScreen {
 
-    private static final int W = 384;
+    private static final int MAX_W = 384;
+    private static final int MIN_W = 264;
     private static final int H = 152;
 
     private static final int AMBER = 0xFFF5A524;
@@ -63,6 +72,8 @@ public class GuiVideoSeek extends GuiScreen {
     private static final int TRACK = 0xFF1A2028;
     private static final int EDGE = 0xFF232A33;
 
+    private static final int MARGIN = 20;
+    private static final int GAP = 4;
     private static final int BAR_Y = 58;
     private static final int BAR_H = 10;
     private static final int BUTTON_Y = 96;
@@ -79,8 +90,12 @@ public class GuiVideoSeek extends GuiScreen {
     private int dragMs;
     private long lastSentAt;
 
+    /** 面板宽度按视口现算，窄窗口里会缩，而不是被切掉一截。 */
+    private int W = MAX_W;
     private int left;
     private int top;
+    private int laidOutWidth = -1;
+    private int laidOutHeight = -1;
 
     private GuiButton pauseButton;
     private GuiButton restartButton;
@@ -99,20 +114,46 @@ public class GuiVideoSeek extends GuiScreen {
 
     @Override
     public void initGui() {
-        this.left = (this.width - W) / 2;
-        this.top = (this.height - H) / 2;
         measureClip();
+        layout();
+    }
+
+    /**
+     * 版面按视口现算，永远居中。
+     *
+     * <p>以前这里是写死的 384 宽、按 {@code (width-384)/2} 定位。GUI 缩放调大以后
+     * 可用宽度会缩到 320，左边距变负数，面板左边一截被切在屏幕外——看上去整块
+     * 面板歪在一边。现在宽度夹在视口之内，按钮按列宽现算。</p>
+     */
+    private void layout() {
+        this.laidOutWidth = this.width;
+        this.laidOutHeight = this.height;
+        this.W = Math.max(MIN_W, Math.min(MAX_W, this.width - 16));
+        this.left = Math.max(4, (this.width - this.W) / 2);
+        this.top = Math.max(4, (this.height - H) / 2);
+        buildButtons();
+    }
+
+    private void buildButtons() {
         this.buttonList.clear();
-        int y = this.top + BUTTON_Y;
-        this.buttonList.add(new GuiButton(0, this.left + 20, y, 62, 18, "-30s"));
-        this.buttonList.add(new GuiButton(1, this.left + 90, y, 62, 18, "-5s"));
-        this.pauseButton = new GuiButton(2, this.left + 160, y, 64, 18, "暂停");
+        int l = this.left;
+        int t = this.top;
+        int y = t + BUTTON_Y;
+        int columns = 5;
+        int column = Math.max(44, (this.W - 2 * MARGIN - (columns - 1) * GAP) / columns);
+        int x0 = l + MARGIN;
+        this.buttonList.add(new GuiButton(0, x0, y, column, 18, "-30s"));
+        this.buttonList.add(new GuiButton(1, x0 + column + GAP, y, column, 18, "-5s"));
+        this.pauseButton = new GuiButton(2, x0 + 2 * (column + GAP), y, column, 18, "暂停");
         this.buttonList.add(this.pauseButton);
-        this.buttonList.add(new GuiButton(3, this.left + 232, y, 62, 18, "+5s"));
-        this.buttonList.add(new GuiButton(4, this.left + 302, y, 62, 18, "+30s"));
-        this.restartButton = new GuiButton(5, this.left + 20, y + 24, 132, 20, "回开头（重新播放）");
+        this.buttonList.add(new GuiButton(3, x0 + 3 * (column + GAP), y, column, 18, "+5s"));
+        this.buttonList.add(new GuiButton(4, x0 + 4 * (column + GAP), y, column, 18, "+30s"));
+
+        int wide = this.W - 2 * MARGIN;
+        int half = (wide - GAP) / 2;
+        this.restartButton = new GuiButton(5, x0, y + 24, half, 20, "回开头（重新播放）");
         this.buttonList.add(this.restartButton);
-        this.buttonList.add(new GuiButton(6, this.left + 164, y + 24, 132, 20, "关闭"));
+        this.buttonList.add(new GuiButton(6, x0 + half + GAP, y + 24, wide - half - GAP, 20, "关闭"));
     }
 
     /**
@@ -139,6 +180,14 @@ public class GuiVideoSeek extends GuiScreen {
             this.haveClip = this.durationMs > 0.0D;
         } finally {
             clip.close();
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        // 拉窗口 / 改全屏 / 换 GUI 缩放都会走这条路，按钮不能留在旧位置。
+        if (this.width != this.laidOutWidth || this.height != this.laidOutHeight) {
+            layout();
         }
     }
 
@@ -195,7 +244,7 @@ public class GuiVideoSeek extends GuiScreen {
 
         String foot = this.haveClip
                 ? "拖动进度条定位，或按 +/-5s / +/-30s 微调"
-                : "没有本机副本时只能按秒调整";
+                : "没有本机副本，进度条无法定位：只能用下面的 +/- 按钮";
         this.fontRenderer.drawStringWithShadow(foot, l + 20, t + 78, 0xFF5A6674);
 
         if (this.pauseButton != null) {
@@ -211,13 +260,13 @@ public class GuiVideoSeek extends GuiScreen {
     private void drawBar(int shownMs) {
         int l = this.left;
         int t = this.top;
-        int x0 = l + 20;
-        int x1 = l + W - 20;
+        int x0 = barLeft();
+        int x1 = barRight();
         drawRect(x0, t + BAR_Y, x1, t + BAR_Y + BAR_H, TRACK);
         double fraction = fractionOf(shownMs);
         int filled = x0 + (int) Math.round((x1 - x0) * fraction);
         if (filled > x0) {
-            drawRect(x0, t + BAR_Y, filled, t + BAR_Y + BAR_H, AMBER);
+            drawRect(x0, t + BAR_Y, filled, t + BAR_Y + BAR_H, this.haveClip ? AMBER : 0xFF2E3742);
         }
         // Handle: two pixels wide, so it stays visible against the fill at both
         // ends of the bar.
@@ -230,15 +279,22 @@ public class GuiVideoSeek extends GuiScreen {
         if (!this.haveClip || this.durationMs < 20_000.0D) {
             return;
         }
-        int l = this.left;
         int t = this.top;
-        int x0 = l + 20;
-        int x1 = l + W - 20;
+        int x0 = barLeft();
+        int x1 = barRight();
         int seconds = (int) Math.ceil(this.durationMs / 1000.0D);
         for (int s = 10; s < seconds; s += 10) {
             int x = x0 + (int) Math.round((x1 - x0) * (s * 1000.0D / this.durationMs));
             drawRect(x, t + BAR_Y + BAR_H, x + 1, t + BAR_Y + BAR_H + 3, EDGE);
         }
+    }
+
+    private int barLeft() {
+        return this.left + MARGIN;
+    }
+
+    private int barRight() {
+        return this.left + this.W - MARGIN;
     }
 
     private double fractionOf(int ms) {
@@ -268,19 +324,19 @@ public class GuiVideoSeek extends GuiScreen {
         int now = te.positionMs();
         switch (button.id) {
             case 0:
-                sendSeek(now - 30_000);
+                applySeek(now - 30_000);
                 return;
             case 1:
-                sendSeek(now - 5_000);
+                applySeek(now - 5_000);
                 return;
             case 2:
                 NetworkHandler.sendToServer(VideoSeekMessage.togglePause(this.pos));
                 return;
             case 3:
-                sendSeek(now + 5_000);
+                applySeek(now + 5_000);
                 return;
             case 4:
-                sendSeek(now + 30_000);
+                applySeek(now + 30_000);
                 return;
             case 5:
                 NetworkHandler.sendToServer(VideoSeekMessage.restart(this.pos));
@@ -297,7 +353,7 @@ public class GuiVideoSeek extends GuiScreen {
         if (mouseButton == 0 && overBar(mouseX, mouseY)) {
             this.dragging = true;
             this.dragMs = msAt(mouseX);
-            sendSeekNow(this.dragMs);
+            applySeek(this.dragMs);
             return;
         }
         super.mouseClicked(mouseX, mouseY, mouseButton);
@@ -312,10 +368,11 @@ public class GuiVideoSeek extends GuiScreen {
         this.dragMs = msAt(mouseX);
         // Throttled: a drag across a three-minute film is hundreds of pixels, and
         // one packet per pixel would be hundreds of seeks - each one clearing the
-        // decoder of every client watching.
+        // decoder of every client watching. The handle itself follows the mouse
+        // because drawScreen uses dragMs, so the only thing throttled is the wall.
         long now = System.currentTimeMillis();
         if (now - this.lastSentAt >= DRAG_INTERVAL_MS) {
-            sendSeekNow(this.dragMs);
+            sendSeekOnly(this.dragMs);
         }
     }
 
@@ -326,24 +383,27 @@ public class GuiVideoSeek extends GuiScreen {
             // Always send the final position, even if the drag ended inside the
             // throttle window: the last place the player pointed at is the one
             // they meant.
-            sendSeekNow(msAt(mouseX));
+            applySeek(msAt(mouseX));
             return;
         }
         super.mouseReleased(mouseX, mouseY, state);
     }
 
     private boolean overBar(int mouseX, int mouseY) {
-        int l = this.left;
+        if (!this.haveClip) {
+            // Without a local copy there is no fraction to compute, so a bar
+            // that accepts clicks could only ever jump to nowhere.
+            return false;
+        }
         int t = this.top;
-        return mouseX >= l + 20 && mouseX <= l + W - 20
+        return mouseX >= barLeft() && mouseX <= barRight()
                 && mouseY >= t + BAR_Y - 4 && mouseY <= t + BAR_Y + BAR_H + 4;
     }
 
     /** Bar pixel to film time, clamped into the clip. */
     private int msAt(int mouseX) {
-        int l = this.left;
-        int x0 = l + 20;
-        int x1 = l + W - 20;
+        int x0 = barLeft();
+        int x1 = barRight();
         if (x1 <= x0) {
             return 0;
         }
@@ -354,26 +414,32 @@ public class GuiVideoSeek extends GuiScreen {
     }
 
     /**
-     * Sends a jump, clamped locally first.
+     * 跳转：先写本地，再发服务端。
      *
-     * <p>The server clamps again - it has to - but a window that sends "-5s from
-     * 2s" as a negative number would flash an error at the wall instead of simply
-     * stopping at the first frame, and the player would have to work out that the
-     * button was refused rather than the wall being broken.</p>
+     * <p>本地这三行是"进度条不弹回去"的关键。窗口画的是本机这份方块实体，
+     * 而服务端确认要等一个来回；这段空档里如果只有旧值可画，手柄就会自己弹回
+     * 原处，玩家以为点了没反应。写入本地以后画面立刻跟过去，服务端随后发来的
+     * 权威值再把两边对齐——如果它拒绝了这次跳转，那就该弹回去，因为屏确实没动。</p>
      */
-    private void sendSeek(int millis) {
-        int clamped = millis;
-        if (clamped < 0) {
-            clamped = 0;
+    private void applySeek(int millis) {
+        int clamped = clamp(millis);
+        TileEntityVideoScreen te = tile();
+        if (te != null) {
+            te.seekTo(clamped);
         }
-        if (this.haveClip) {
-            clamped = (int) Math.min(clamped, Math.round(this.durationMs));
-        }
-        sendSeekNow(clamped);
+        sendSeekOnly(clamped);
     }
 
-    private void sendSeekNow(int millis) {
+    private int clamp(int millis) {
+        int value = Math.max(0, millis);
+        if (this.haveClip) {
+            value = (int) Math.min(value, Math.round(this.durationMs));
+        }
+        return value;
+    }
+
+    private void sendSeekOnly(int millis) {
         this.lastSentAt = System.currentTimeMillis();
-        NetworkHandler.sendToServer(VideoSeekMessage.seek(this.pos, millis));
+        NetworkHandler.sendToServer(VideoSeekMessage.seek(this.pos, clamp(millis)));
     }
 }

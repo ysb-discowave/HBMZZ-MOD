@@ -122,11 +122,15 @@ public class GuiVideoScreen extends GuiScreen {
      */
     private boolean screenLinked;
 
-    /** Fullscreen as it was when the film opened; put back when it closes. */
-    private boolean wasFullscreen;
-    private boolean fullscreenKnown;
+    /** 上一次全屏切换的方向，用来在提示行里说清"已经全屏/已经回到窗口"。 */
+    private boolean lastFullscreen;
+    /** 打开这个窗口时记下的桌面状态代次，关窗还原时用它认领。 */
+    private int displayGeneration;
 
     private VideoPlayer player;
+    /** 正在拖底部那条进度条；拖的时候画面跟着松手才跳。 */
+    private boolean barDragging;
+    private double barDragSeconds;
     /** Borrowed from the wall in mirror mode; never closed by this window. */
     private VideoPlayer wallPlayer;
     private String notice = "";
@@ -234,10 +238,10 @@ public class GuiVideoScreen extends GuiScreen {
     @Override
     public void initGui() {
         live = this;
-        if (!this.fullscreenKnown) {
-            this.fullscreenKnown = true;
-            this.wasFullscreen = this.mc.gameSettings.fullScreen;
-        }
+        // 打开时是普通游戏窗口（小框）：这里不主动改显示模式，只记下"看片之前
+        // 桌面是什么样"，退出时原样还回去。全屏是玩家按 F / 右键才发生的事。
+        this.displayGeneration = com.hbmzz.client.video.VideoFullscreen.capture();
+        this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
         if (this.mirror) {
             // initGui also runs on resize. Nothing to open: the decoder belongs to
             // the wall, and updateScreen picks it up again after the resize.
@@ -437,18 +441,15 @@ public class GuiVideoScreen extends GuiScreen {
         // The wall's decoder is not closed here: it belongs to the wall and is
         // still on screen in the world. Only the pointer goes.
         this.wallPlayer = null;
-        // Closing the film must not leave the desktop in a display mode the
-        // player did not choose. Scheduled, because displayGuiScreen() calls
-        // this while it is still swapping screens and a resize mid-swap is how
-        // you get a black window.
-        if (this.fullscreenKnown && this.mc != null
-                && this.mc.gameSettings.fullScreen != this.wasFullscreen) {
-            final boolean target = this.wasFullscreen;
-            this.mc.addScheduledTask(() -> {
-                if (this.mc.gameSettings.fullScreen != target) {
-                    this.mc.toggleFullscreen();
-                }
-            });
+        // Closing the film must not leave the desktop in a display mode or a
+        // window size the player did not choose. Scheduled, because
+        // displayGuiScreen() calls this while it is still swapping screens and a
+        // resize mid-swap is how you get a black window.
+        if (this.mc != null) {
+            final net.minecraft.client.Minecraft client = this.mc;
+            final int generation = this.displayGeneration;
+            client.addScheduledTask(() ->
+                    com.hbmzz.client.video.VideoFullscreen.restore(generation, client));
         }
     }
 
@@ -478,11 +479,17 @@ public class GuiVideoScreen extends GuiScreen {
         }
         if (this.hintTicks > 0) {
             String hint = "广播进行中 · 结束后自动恢复"
-                    + (restricted() ? " · 播放结束前无法退出" : " · ESC 可退出");
+                    + (restricted() ? " · 播放结束前无法退出" : " · ESC 可退出")
+                    + " · " + fullscreenHint();
             this.fontRenderer.drawStringWithShadow(hint,
                     (this.width - this.fontRenderer.getStringWidth(hint)) / 2,
                     this.height / 2 + 36, AMBER);
         }
+    }
+
+    /** 提示行里那句"现在全屏还是窗口"，按键前后各说一次。 */
+    private String fullscreenHint() {
+        return this.lastFullscreen ? "已全屏 · F / 右键 还原" : "F / 右键 全屏";
     }
 
     /**
@@ -515,7 +522,7 @@ public class GuiVideoScreen extends GuiScreen {
             drawCentre(this.notice.isEmpty() ? "正在准备画面…" : this.notice, DIM);
         }
         if (this.hintTicks > 0) {
-            String hint = "大屏展示 · F 全屏 · ESC 退出 · 蹲下右键播放器设置";
+            String hint = "大屏展示 · " + fullscreenHint() + " · ESC 退出";
             this.fontRenderer.drawStringWithShadow(hint,
                     (this.width - this.fontRenderer.getStringWidth(hint)) / 2,
                     this.height - 18, AMBER);
@@ -548,16 +555,21 @@ public class GuiVideoScreen extends GuiScreen {
         if (this.player == null || !this.player.started()) {
             return;
         }
-        double elapsed = this.player.elapsedSeconds();
         double duration = this.player.durationSeconds();
+        double elapsed = this.barDragging ? this.barDragSeconds : this.player.elapsedSeconds();
+        double fraction = duration > 0.0D
+                ? Math.max(0.0D, Math.min(1.0D, elapsed / duration)) : this.player.percent();
         String time = timecode(elapsed) + " / " + timecode(duration);
         int barTop = this.height - 14;
 
         drawRect(0, barTop, this.width, this.height, 0x99000000);
-        drawRect(0, barTop, (int) (this.width * this.player.percent()), this.height, AMBER);
+        drawRect(0, barTop, (int) (this.width * fraction), this.height, AMBER);
+        // 手柄：告诉玩家这条不是装饰，是可以抓的。
+        int handleX = (int) (this.width * fraction);
+        drawRect(Math.max(0, handleX - 1), barTop, Math.min(this.width, handleX + 1), this.height, 0xFFFFFFFF);
 
         this.fontRenderer.drawStringWithShadow(this.player.title(), 6, barTop + 3, 0xFFFFFFFF);
-        String keys = "F 全屏";
+        String keys = "F / 右键 全屏";
         this.fontRenderer.drawStringWithShadow(keys,
                 this.width - 6 - this.fontRenderer.getStringWidth(time)
                         - this.fontRenderer.getStringWidth(keys) - 12, barTop + 3, DIM);
@@ -616,10 +628,9 @@ public class GuiVideoScreen extends GuiScreen {
             return;
         }
         if (keyCode == Keyboard.KEY_F) {
-            // 全屏是这台机器的事，不是监听器的事：F 让窗口铺满显示器，
-            // 再按一次回到窗口。窗口以"进入前的状态"为准，退出时还回去。
-            this.mc.toggleFullscreen();
-            this.hintTicks = 40;
+            // 全屏是这台机器的事：F 让画面铺满显示器，再按一次回到原来的窗口
+            // （不是原版那个"启动尺寸"，否则窗口会突然变小）。
+            this.toggleFullscreen();
             return;
         }
         if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -633,9 +644,81 @@ public class GuiVideoScreen extends GuiScreen {
         // Everything else is swallowed: no inventory, no chat, no pause.
     }
 
-    /** Clicks must not fall through to the world behind the screen. */
+    /**
+     * 右键 = 全屏开关；其余点击一律吞掉。
+     *
+     * <p>哪块画面被放大由打开的是哪个窗口决定：接了屏，这个窗口画的是那块屏
+     * （大屏全屏）；没接屏，画的是本机播放器（播放器全屏）。所以右键在这里只
+     * 需要做一件事——切换全屏，对象就是当前这幅画面。</p>
+     *
+     * <p>不调 {@code super}：进入这个界面的目的就是不让点击落到背后的世界里。</p>
+     */
     @Override
     public void handleMouseInput() throws IOException {
-        // Intentionally empty.
+        // 每个鼠标事件调一次（原版就是这么调的），只读当前这一个：在里面
+        // while (Mouse.next()) 会把后面的移动事件吃掉，拖动就断了。
+        if (org.lwjgl.input.Mouse.getEventButton() == 1
+                && org.lwjgl.input.Mouse.getEventButtonState()) {
+            this.toggleFullscreen();
+            return;
+        }
+        // 左键交给原版分派：本机播放的窗口里那条进度条可以拖。
+        super.handleMouseInput();
+    }
+
+    /**
+     * 底部那条进度条的范围。
+     *
+     * <p>只有本机播放的窗口有它：大屏展示没有自己的播放头（进度归右键大屏的
+     * 定位窗口），画一条能拖的条只会让人以为拖的是屏。</p>
+     */
+    private boolean overBar(int mouseX, int mouseY) {
+        return !this.mirror && this.player != null && this.player.started()
+                && mouseY >= this.height - 16 && mouseY <= this.height;
+    }
+
+    private double secondsAt(int mouseX) {
+        double duration = this.player == null ? 0.0D : this.player.durationSeconds();
+        double fraction = mouseX / (double) Math.max(1, this.width);
+        return duration * Math.max(0.0D, Math.min(1.0D, fraction));
+    }
+
+    @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        if (mouseButton == 0 && overBar(mouseX, mouseY)) {
+            this.barDragging = true;
+            this.barDragSeconds = secondsAt(mouseX);
+            return;
+        }
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (this.barDragging) {
+            this.barDragSeconds = secondsAt(mouseX);
+            return;
+        }
+        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    }
+
+    @Override
+    protected void mouseReleased(int mouseX, int mouseY, int state) {
+        if (this.barDragging) {
+            this.barDragging = false;
+            if (this.player != null) {
+                // seekTo 同时挪画面和音轨，所以松手之后声音不会留在原地。
+                this.player.seekTo(secondsAt(mouseX));
+            }
+            return;
+        }
+        super.mouseReleased(mouseX, mouseY, state);
+    }
+
+    /** F / 右键共用的一条路，顺带在提示行里说一句现在是什么状态。 */
+    private void toggleFullscreen() {
+        com.hbmzz.client.video.VideoFullscreen.toggle(this.mc);
+        this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
+        this.hintTicks = 60;
     }
 }

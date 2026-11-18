@@ -71,7 +71,8 @@ public class GuiVideoImport extends GuiScreen {
     private int scroll;
     private int selected = -1;
     private int fps = VideoImportQueue.DEFAULT_FPS;
-    private int width = VideoImportQueue.DEFAULT_WIDTH;
+    /** 导出宽度（像素），**不是**视口宽度——同名会遮蔽 {@link GuiScreen#width}。 */
+    private int videoWidth = VideoImportQueue.DEFAULT_WIDTH;
     private List<File> files = new ArrayList<>();
     /** Last thing this window said on its own (排队、失败原因…). */
     private String notice = "";
@@ -98,6 +99,10 @@ public class GuiVideoImport extends GuiScreen {
      * 不是"歪掉"。</p>
      */
     private void layout() {
+        // 这里要的是视口尺寸（GuiScreen.width/height）。以前 this.width 指向
+        // 上面那个"导出宽度"字段（默认 480），于是面板按 480 居中：1280 宽的
+        // 界面上它落在 x=60，左边一截还盖着全屏暗底之外——玩家看到的就是
+        // "整块面板斜在一边"。
         this.laidOutWidth = this.width;
         this.laidOutHeight = this.height;
         this.W = Math.max(220, Math.min(MAX_W, this.width - 16));
@@ -119,7 +124,7 @@ public class GuiVideoImport extends GuiScreen {
         this.buttonList.add(new GuiButton(1, x1, t + 166, column, 18, "全部转换"));
         this.buttonList.add(new GuiButton(2, x2, t + 166, Math.max(56, wide - 2 * (column + GAP)), 18, "关闭"));
         this.buttonList.add(new GuiButton(3, x0, t + 188, column, 18, "帧率 " + this.fps));
-        this.buttonList.add(new GuiButton(4, x1, t + 188, column, 18, "宽度 " + this.width));
+        this.buttonList.add(new GuiButton(4, x1, t + 188, column, 18, "宽度 " + this.videoWidth));
         this.buttonList.add(new GuiButton(5, x2, t + 188, Math.max(56, wide - 2 * (column + GAP)), 18, "取消转换"));
         this.buttonList.add(new GuiButton(6, x0, t + 232, wide, 18, ffmpegButtonLabel()));
     }
@@ -142,7 +147,7 @@ public class GuiVideoImport extends GuiScreen {
                     button.displayString = "帧率 " + this.fps;
                     break;
                 case 4:
-                    button.displayString = "宽度 " + this.width;
+                    button.displayString = "宽度 " + this.videoWidth;
                     break;
                 case 6:
                     button.displayString = ffmpegButtonLabel();
@@ -392,7 +397,7 @@ public class GuiVideoImport extends GuiScreen {
                 this.fps = nextStep(VideoImportQueue.FPS_STEPS, this.fps);
                 break;
             case 4:
-                this.width = nextStep(VideoImportQueue.WIDTH_STEPS, this.width);
+                this.videoWidth = nextStep(VideoImportQueue.WIDTH_STEPS, this.videoWidth);
                 break;
             case 5:
                 VideoImportQueue.cancel();
@@ -433,7 +438,7 @@ public class GuiVideoImport extends GuiScreen {
             say("还没有 ffmpeg，先点下面的下载按钮", true);
             return;
         }
-        int added = VideoImportQueue.submit(targets, this.fps, this.width);
+        int added = VideoImportQueue.submit(targets, this.fps, this.videoWidth);
         if (added == 0) {
             say("这些文件已经在队列里了", false);
             return;

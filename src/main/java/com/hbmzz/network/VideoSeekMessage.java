@@ -137,6 +137,15 @@ public class VideoSeekMessage implements IMessage {
                         screen.seekTo(millis);
                         break;
                 }
+                // Echo the authoritative state straight back to whoever asked.
+                // The chunk-map update reaches them too, but it is routed by
+                // "who is watching that chunk" and arrives a tick or two later;
+                // in that window the window is drawing a playhead the server has
+                // already replaced, which is the "拖动后弹回原位" report. This
+                // packet closes that window to one frame.
+                if (screen.getUpdatePacket() != null) {
+                    sender.connection.sendPacket(screen.getUpdatePacket());
+                }
                 sender.sendStatusMessage(new TextComponentString(describe(screen)), true);
             });
             return null;

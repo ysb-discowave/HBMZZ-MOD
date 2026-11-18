@@ -262,6 +262,7 @@ window.HBMZZ_DATA = {
       "title": "视频大屏直接在世界里放，DFC 监控屏不再越放越卡",
       "items": [
         "修复启动崩溃：<code>rsaudio:blast_door</code> 的注册名被设了两次。为让离线检查能静态读到名字，构造链里补写了一行字面量 <code>setRegistryName</code>，父类已经设过一次，第二次直接抛 <code>IllegalStateException</code>，而这个初始化发生在静态字段里 —— 游戏在「Initializing game」阶段退出。现在注册名只在具体类设一次，父类只设显示名；regcheck 新增第 64 条守卫「同一个类不许设两次注册名」，把那一行塞回去会当场 FAIL。",
+        "片头和片尾都开口了，全英文：片头 8 秒只放四个词 —— <code>Don't blink.</code>（0.00）、<code>Break.</code>（2.25，散开帧）、<code>Hold.</code>（4.00，合拢帧）、<code>Locked.</code>（6.45，字头撞在 6.50 的落点上）。片尾只在五处说话：开场报台、0:32.7 的 <code>Push it to the top.</code>、1:16.4 的左右点名、2:43.6 的收束句、3:06 的收尾句，名字滚动的主体四十多秒不插话。人声按「那一刻音乐 +3 dB」逐句定档，音乐带 15 ms 前瞻的 −4.2 dB 侧链闪避；纯音乐版仍在 <code>intro.wav</code> / <code>credits.wav</code>，可随时回退。",
         "片头与片尾配上了新写的曲子：两条音轨都是这一版现做的，由 <code>tools/audio/ost_synth.py</code> 从正弦 / 锯齿、包络与混响算出来 —— 不采样、不引用 <code>docs/assets/audio/</code> 下任何一首 mp3，也不按它们的旋律或段落对齐，时间只跟画面走。片头 8.000 s（2.25 散开 / 4.00 合拢 / 6.50 咬合，落点后不再加打击，末帧静默）；片尾 193.833 s（88 BPM、71 小节，名单匀速滚动时音乐退后半步，结尾散成一条长和弦）。两条包写 <code>\"loop\": false</code>，音轨与帧数严格等长，实测偏差 0.0000 s；运行 <code>package_intro.py --silent</code> 仍可出原来的静音版片头。",
         "基线明确：本版在 3.7.1（upstream master 快照）之上增量，3.7.1 已有的修复一条没回退；3.7.0 是另一条分支，只挑了两件东西移植，没有整体覆盖。",
         "新增 <b>视频大屏</b>（<code>video_screen</code>）：可 1×1 到 3×3 拼接、潜行右键循环尺寸、拆任意一格整块消失；连上视频广播器后，动画直接画在方块表面（不是静态贴图、也不是弹窗），右键才开观看界面。",

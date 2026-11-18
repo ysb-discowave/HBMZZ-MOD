@@ -107,6 +107,12 @@
               堆栈只指到构造器、看不出是哪个方块。现在注册名只在具体类里设一次，
               父类构造函数只设显示名；同时给 regcheck 加了第 64 条守卫「同一个类不许设两次注册名」，
               反向验证过（把那一行塞回去，检查当场 FAIL）。</li>
+            <li><strong>片头和片尾都开口了，全英文：</strong>片头 8 秒里只放四个词——
+              <code>Don't blink.</code>（0.00）、<code>Break.</code>（2.25，散开帧）、<code>Hold.</code>（4.00，合拢帧）、
+              <code>Locked.</code>（6.45，字头正好撞在 6.50 的落点上）。片尾只在五处说话：开场报台、
+              0:32.7 的口号 <code>Push it to the top.</code>、1:16.4 的左右点名、2:43.6 的收束句、3:06 的收尾句；
+              名字滚动的主体四十多秒一句话不留，不抢字。人声按「那一刻音乐 +3 dB」逐句定档，音乐带 15 ms 前瞻的
+              −4.2 dB 侧链闪避。纯音乐版仍在 <code>intro.wav</code> / <code>credits.wav</code>，随时可回退。</li>
             <li><strong>片头与片尾配上了新写的曲子：</strong>两条音轨都是这一版现做的，
               由 <code>tools/audio/ost_synth.py</code> 从正弦 / 锯齿、包络与混响算出来——不采样、不引用
               <code>docs/assets/audio/</code> 下任何一首 mp3，也不按它们的旋律或段落对齐，时间只跟画面走。
@@ -741,7 +747,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=6b2fc5eaa9"></script>
+<script src="assets/data.js?v=b4dd88fe22"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

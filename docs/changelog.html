@@ -111,6 +111,12 @@
               目录里的 README 也写了同一句话——这个模组读的是图片帧序列，1.12.2 的 JRE 没有 H.264 解码器。
               另外 preInit 会打一行 <code>HBMZZ 3.8.0 loaded from &lt;jar 路径&gt;</code>，
               下次"装了没反应"先看这行指向哪个文件。</li>
+            <li><strong>FFmpeg 会自己下，不用再手动装：</strong>首次启动时如果 <code>config/rsaudiofm/bin</code>
+              里还没有可用的 ffmpeg，主菜单阶段会弹出「正在准备音频播放器」进度页——后台线程走代理下载
+              BtbN 的 win64 包（约 190 MB），支持 Range 就切 64 段并行、断了下次只补没下完的段，
+              不支持就退回单线程；下载完在本地解出 <code>ffmpeg.exe</code> 并用 <code>.stamp</code> 记住来源，
+              之后启动不再重复下载。这一版源码里这段逻辑是缺的（只剩"释放 jar 内资源"，而包里没有那个资源），
+              现已按上一版补回；下载期间播放线程问 ffmpeg 只会得到"暂时没有"，不会跟着下第二遍。</li>
             <li><strong>大屏的朝向一次算清，四个面都正着看。</strong>
               画面画在方块表面这层没变，变的是几何来源：面板中心用 <code>ConsoleRig.anchor</code> 从控制器格推出来，
               旋转用 <code>yawOf(facing)</code>，贴图 UV 用 <code>panelUv()</code>——它的 u 是反向的，因为玩家站在正面时
@@ -155,9 +161,9 @@
             <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
               <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
               <a href="delivery-3.8.0.md">交付文档</a>。</li>
-            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 76 条（新加「遥控器要连的方块必须让出右键」
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 79 条（新加「遥控器要连的方块必须让出右键」
               「服务器先夹再存定位」「客户端按片长再夹一次」「播放界面不得出现按钮」「限制只在大屏缺席时成立」
-              「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」）、videocheck、linkercheck、rbmkcheck、termcheck、
+              「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」「下载器还在」「启动时缺 ffmpeg 会去下」）、videocheck、linkercheck、rbmkcheck、termcheck、
               cecpcheck、快速检查全绿。大屏的画面观感、倍速下的音画、32×32 的铺格手感、定位后的音画对齐
               <b>都还没进游戏看过</b>。</li>
           </ul>
@@ -762,7 +768,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=2bf959a8ae"></script>
+<script src="assets/data.js?v=fb10a739be"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

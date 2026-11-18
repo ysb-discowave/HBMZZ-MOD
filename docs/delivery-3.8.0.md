@@ -11,10 +11,10 @@
 | --- | --- |
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
-| 当前提交 | `8c3af70`（批次 #9：右键直接播放 / 蹲下开菜单 / F 全屏，刷新与装包排查） |
-| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,714,516 字节） |
-| 模组 SHA-256 | `9272273c771d89fd…`（`build/libs` 与部署目录两处一致） |
-| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,818,632 字节，sha256 `62d8a19d…`） |
+| 当前提交 | `53378ce`（批次 #10：恢复 FFmpeg 自动下载） |
+| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,729,279 字节） |
+| 模组 SHA-256 | `f1c9d369c32ef489…`（`build/libs` 与部署目录两处一致） |
+| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,826,543 字节，sha256 `ecf91cb8…`） |
 | 源码仓库 | `C:\Users\37594\WorkBuddy\Claw\HBMZZ-MOD`（分支 master） |
 | 部署位置 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\mods\hbmzz-3.8.0.jar` |
 | 旧版归档 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\backupsmod\hbmzz-old-jars\` |
@@ -149,6 +149,34 @@
 - **"装进去不生效"的第二种可能**（游戏读的不是刚换的 jar）现在会自己说出来：
   preInit 打一行 `HBMZZ 3.8.0 loaded from <jar 路径>`，重启后先看这行指向哪个文件。
 
+### 10. FFmpeg 自动下载：确认已丢失，按上一版恢复（本批新增）
+
+- **核对结论：逻辑不在了。** 当前源码的 `BundledFfmpeg` 只剩"把 jar 内 `/assets/rsaudiofm/ffmpeg.exe`
+  释放出来"，而两种包里都没有这个资源（`unzip -l` 查过），于是候选 0 每次都是 null，日志只剩
+  一句"未找到可用的 ffmpeg"。上一版的下载器只留在 `backupsmod/hbmzz-old-jars/hbmzz-3.7.0.jar.bak` 里：
+  `BundledFfmpeg` 17 KB（带 `$HeadInfo` / `$Progress`）与 `GuiFfmpegDownload`。源码回到 3.7.1 基线时，
+  这两个文件跟着没了。
+- **恢复的东西**（据 3.7.0 的源码 `_srcpkg/370` 原样搬回，只补了一处并发保护）：
+  - `BundledFfmpeg`：在线下载 BtbN 的 `ffmpeg-master-latest-win64-gpl.zip`，走
+    `https://yxz.ysbdwz.dpdns.org/download?url=` 代理；HEAD 拿总长与 `Accept-Ranges`，支持就切 64 段
+    并行（每段一个 `.seg` + `.done` 标记，断了下次只补没下完的段），不支持退回单线程；合并后校验总长，
+    再流式解压出 `bin/ffmpeg.exe`；落到 `config/rsaudiofm/bin/`，同目录 `.stamp` 记住源 URL，命中就复用。
+    代理与源可被 `-Drsaudiofm.ffmpeg.proxy` / `-Drsaudiofm.ffmpeg.source` 覆盖。
+  - `GuiFfmpegDownload`：进世界前的进度页。后台线程跑 `ensure()`，主线程每帧只读 `progress()` 画条，
+    ESC 期间不响应，完成/失败都自动关闭并回调。
+  - `FormatsBootstrap.onClientTick` 第一次 tick：`setGameHint` 之后先问 `BundledFfmpeg.isReady(mc.mcDataDir)`；
+    没有就打开进度页，回调里 `FfmpegFinder.reset() + ConvertQueue.scanAndEnqueue()`（这样刚下好的 exe
+    立刻被识别）；有就直接 reset + 扫描。
+- **补的一处并发保护**：`ensure()` 用 `AtomicBoolean` 保证同一时刻只有一次下载。播放线程在下载中途问
+  `FfmpegFinder.path()` 时不再跟着下一遍（那会和进度页往同一批分片里写，拼出来的 zip 是坏的），
+  而是立刻拿 null 走外置候选，本次播放按"没有 ffmpeg"降级，下载完自动恢复。
+- **实跑验证**（本地假代理 + 假 zip，结构同 BtbN 包：`<root>/bin/ffmpeg.exe`）：
+  - 分段模式：1 个 HEAD + 64 个 206 Range 请求，1.4 s 完成，解出 1,048,576 字节，
+    `.stamp` 写入 `src=...`，`isReady` 由 false 变 true，下载目录只剩 `ffmpeg.exe` + `.stamp`（分片与 zip 全部清理）。
+  - 不支持 Range 的服务端：自动退回单线程，72 ms 同样成功，结果一致。
+- **首次启动的表现**：主菜单阶段弹出"正在准备音频播放器"进度页（约 190 MB），下完自动关闭，之后不再重复下载。
+  已有匹配 stamp 的本地副本时直接跳过这一步。
+
 ---
 
 ## 三、验证记录
@@ -157,7 +185,7 @@
 | --- | --- |
 | `./gradlew build --offline`（JDK 8 / Gradle 4.10.3，离线） | BUILD SUCCESSFUL，产出 `build/libs/hbmzz-3.8.0.jar` |
 | jar 内 `mcmod.info` | modid `hbmzz`，version `3.8.0` |
-| regcheck（注册 / 配方 / 模型表） | **76/76**（#65 遥控器目标必须让出右键；#66 服务器先夹再存定位；#66b 客户端按片长再夹一次；#67 播放界面不得出现可退出按钮；#68 限制只在大屏缺席时成立、客户端不许缓存结论；#69 广播包必须带播放器坐标。#67 / #68 / #70 / #71 做过反向验证：故意塞进 `buttonList.add`、把 `hasScreen()` 改成 `false`、把两个右键分支对调、把 F 换成 G，对应项都变红） |
+| regcheck（注册 / 配方 / 模型表） | **79/79**（#65 遥控器目标必须让出右键；#66 服务器先夹再存定位；#66b 客户端按片长再夹一次；#67 播放界面不得出现可退出按钮；#68 限制只在大屏缺席时成立、客户端不许缓存结论；#69 广播包必须带播放器坐标。#67 / #68 / #70 / #71 做过反向验证：故意塞进 `buttonList.add`、把 `hasScreen()` 改成 `false`、把两个右键分支对调、把 F 换成 G，对应项都变红；#73 / #74 也反向验证：把 `isReady` 判断改成 `false` 后「启动时会去下 ffmpeg」立刻变红） |
 | statecheck（blockstate 键序 / 状态数） | 4/4 |
 | videocheck（视频库 / 名字白名单） | 26/26 |
 | linkercheck（连接器握手） | 21 通过，1 跳过（CE 不在 classpath） |
@@ -166,7 +194,7 @@
 | cecpcheck | 8/8 |
 | gatecheck / dfccheck / reasimcheck | 全 PASS |
 | `python tools/checkall.py --fast` | 7/7 全 PASS（含站点数据一致性） |
-| 部署校验 | 目标目录 jar（23,714,516 字节）与构建产物 sha256 一致：`9272273c…` |
+| 部署校验 | 目标目录 jar（23,729,279 字节）与构建产物 sha256 一致：`f1c9d369…` |
 | 视频包解析（模组 `VideoClip` 实跑） | 片头 192 帧 / 24 fps / 8.0000 s / **无音轨**；片尾 2326 帧 / 12 fps / 193.8333 s / 有音轨 |
 | 贴图 | 4 张方块贴图 + 1 张物品贴图，16×16，`make_video_textures.py` 可重跑 |
 | 网络 | 新消息 id 24 / 25 / 26 / 27（定位），与既有 id 不冲突（regcheck「包序号唯一」通过） |
@@ -196,7 +224,8 @@
 - 大屏没有音轨时就是静音播放，播放器音量对它无效。
 - 帧率仍取包的 `fps`（整数），倍速只改播放头速度，不改解码帧率。
 - **不支持 mp4 / mkv / mov 直接播放**：需要先用 `tools/video/pack.py`（要 ffmpeg）转成图片帧 zip。
-  本机目前没有装 ffmpeg，所以那个 `Video_1781791115891_250.mp4` 只能被"跳过"并提示，不能自动转换。
+  首次启动会自动下载一份 ffmpeg 到 `config/rsaudiofm/bin/`，所以那个 `Video_1781791115891_250.mp4`
+  现在可以直接转：`python tools/video/pack.py <mp4> <名字> --fps 12`，再按 F7。
 - **手动进入的播放界面不受「强制限制返回」约束**：ESC 随时可退，那条限制只作用于红石触发的全屏接管。
 - 播放界面按 F 切换的是**系统全屏**（整块显示器），不是"隐藏底部进度条"；退出播放会还原进入前的显示模式。
 - 3.7.0 分支的四向开合门、自定义贴图系统、旧 mixin 与运行时 FFmpeg 管线没有并入。
@@ -228,6 +257,7 @@
 | 2026-11-18 #7 | `927aac4` | **播放进度定位与同步**：右键大屏开定位窗口（进度条 / ±秒 / 回开头 / 暂停继续）；播放头落到方块（progress + anchor + paused）；`VideoSeekMessage` 走服务端，单机同一条路；两层边界夹取；解码线程可回退、音轨随之定位；regcheck 67 条 | `92c36f4f…` |
 | 2026-11-18 #8 | `5e144a8` `7c4ea70` `ff1472b` | **强制限制返回**：默认开启，开关只在播放器设置窗口（当时的入口：蹲下右键），播放界面无按钮无入口；只在没接大屏时拦 ESC 并显示提示，接上大屏立即失效且不显示；状态每 tick / 每次按键现问方块实体，接上 / 拆掉都即时同步；广播包补播放器坐标；regcheck 71 条 | `d99621a2…` |
 | 2026-11-18 #9 | `8c3af70` | **交互重排**：站立右键直接开播、蹲下右键开菜单、播放界面 F 切全屏（退出还原显示模式）；播放器设置移到菜单按钮；**刷新无效排查**：目录里的 .mp4 被静默忽略 → 库记账并在窗口 / F7 里点名，README 同步；preInit 打印加载来源；regcheck 76 条 | `9272273c…` |
+| 2026-11-18 #10 | `53378ce` | **恢复 FFmpeg 自动下载**：源码里只剩"释放 jar 内资源"，而包里没有该资源 → 补回 3.7.0 的在线下载器（代理 + 64 段并行 + 续传 + zip 解压 + stamp 复用）与下载进度页，启动时 `isReady` 为假就自动去下；`ensure()` 加同一时刻只跑一次的并发保护；regcheck 79 条 | `f1c9d369…` |
 
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。

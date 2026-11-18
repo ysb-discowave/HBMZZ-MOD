@@ -12,9 +12,9 @@
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
 | 当前提交 | `927aac4`（批次 #7：大屏播放定位与服务器同步） |
-| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,710,847 字节） |
-| 模组 SHA-256 | `67981e88d423ebf5…`（完整值见 `build/libs` 与部署目录两处一致） |
-| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,812,648 字节，sha256 `12e6be03…`） |
+| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,710,815 字节） |
+| 模组 SHA-256 | `92c36f4fd45eae57…`（`build/libs` 与部署目录两处一致） |
+| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,812,590 字节，sha256 `5aec50ea…`） |
 | 源码仓库 | `C:\Users\37594\WorkBuddy\Claw\HBMZZ-MOD`（分支 master） |
 | 部署位置 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\mods\hbmzz-3.8.0.jar` |
 | 旧版归档 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\backupsmod\hbmzz-old-jars\` |
@@ -131,7 +131,7 @@
 | cecpcheck | 8/8 |
 | gatecheck / dfccheck / reasimcheck | 全 PASS |
 | `python tools/checkall.py --fast` | 7/7 全 PASS（含站点数据一致性） |
-| 部署校验 | 目标目录 jar（23,710,847 字节）与构建产物 sha256 一致：`67981e88…` |
+| 部署校验 | 目标目录 jar（23,710,815 字节）与构建产物 sha256 一致：`92c36f4f…` |
 | 视频包解析（模组 `VideoClip` 实跑） | 片头 192 帧 / 24 fps / 8.0000 s / **无音轨**；片尾 2326 帧 / 12 fps / 193.8333 s / 有音轨 |
 | 贴图 | 4 张方块贴图 + 1 张物品贴图，16×16，`make_video_textures.py` 可重跑 |
 | 网络 | 新消息 id 24 / 25 / 26 / 27（定位），与既有 id 不冲突（regcheck「包序号唯一」通过） |
@@ -181,7 +181,7 @@
 | 2026-11-18 #4 | `dac749c` | 片头 / 片尾重做原创配乐（后于 #6 撤回） | 片头包 `f7462851…`、片尾包 `d4869fac…` |
 | 2026-11-18 #5 | `ebe84ff` | 两条片子加英文口播（后于 #6 撤回） | 片头包 `fdfed696…`、片尾包 `fd8d5619…` |
 | 2026-11-18 #6 | `d1eabf0` | **撤回替代方案、恢复仓库原实现**；大屏朝向与镜像修正；遥控器取代数据线接大屏；拉杆只管开关；音量 / 退出限制搬到播放器；尺寸与倍速配置窗口（≤32×32、0.25–3x）；打开文件夹 + F7 刷新；音乐回仓库原版 | `936c09c1…` |
-| 2026-11-18 #7 | `927aac4` | **播放进度定位与同步**：右键大屏开定位窗口（进度条 / ±秒 / 回开头 / 暂停继续）；播放头落到方块（progress + anchor + paused）；`VideoSeekMessage` 走服务端，单机同一条路；两层边界夹取；解码线程可回退、音轨随之定位；regcheck 67 条 | `67981e88…` |
+| 2026-11-18 #7 | `927aac4` | **播放进度定位与同步**：右键大屏开定位窗口（进度条 / ±秒 / 回开头 / 暂停继续）；播放头落到方块（progress + anchor + paused）；`VideoSeekMessage` 走服务端，单机同一条路；两层边界夹取；解码线程可回退、音轨随之定位；regcheck 67 条 | `92c36f4f…` |
 
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。

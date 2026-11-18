@@ -136,15 +136,6 @@ public class TileEntityVideoScreen extends TileEntity {
         return clampMs(this.progressMs + advanced);
     }
 
-    /** Anchor the timeline was set at; clients use it to stay in step. */
-    public long getAnchorTick() {
-        return this.anchorTick;
-    }
-
-    public int getProgressMs() {
-        return this.progressMs;
-    }
-
     public boolean isPaused() {
         return this.paused;
     }

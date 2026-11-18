@@ -122,6 +122,13 @@ public class GuiVideoPlayerConfig extends GuiScreen {
         drawRect(l + W - 1, t, l + W, t + H, 0xFF232A33);
         drawRect(l + 1, t + 20, l + W - 1, t + 21, 0xFF1A2028);
 
+        // Read the link every frame: the state line is the only place that says
+        // whether the lock is in force, so it must not be a snapshot from open.
+        TileEntityVideoBroadcaster live = tile();
+        if (live != null) {
+            this.screenLinked = live.hasScreen();
+        }
+
         this.fontRenderer.drawStringWithShadow("视频播放器 · 设置", l + 12, t + 7, AMBER);
         String hint = "蹲下右键打开";
         this.fontRenderer.drawStringWithShadow(hint,

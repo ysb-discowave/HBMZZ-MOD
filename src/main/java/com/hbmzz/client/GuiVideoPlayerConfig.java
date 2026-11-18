@@ -144,7 +144,7 @@ public class GuiVideoPlayerConfig extends GuiScreen {
 
         this.fontRenderer.drawStringWithShadow("100% = 默认音量；200% 更响，0% 静音",
                 l + 12, volumeY + 16, 0xFF5A6674);
-        this.fontRenderer.drawStringWithShadow("强制限制返回：未接大屏时播放结束前无法退出；接上大屏后自动不生效",
+        this.fontRenderer.drawStringWithShadow("未接大屏：播放结束前无法退出；接上大屏：本项不生效",
                 l + 12, volumeY + 30, 0xFF5A6674);
         String state = this.screenLinked
                 ? "当前已接大屏 · 本项不生效，退出由大屏与拉杆决定"

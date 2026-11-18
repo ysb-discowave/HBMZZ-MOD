@@ -97,6 +97,8 @@ public class ClientEvents {
         if (event.getWorld() != null && event.getWorld().isRemote) {
             RenderDFCMonitor.clearCaches();
             RenderVideoScreen.clearCaches();
+            // 音源先断：换世界那一刻界面可能被直接扔掉，onGuiClosed 不一定跑。
+            com.hbmzz.client.video.VideoAudioPolicy.reset();
             RenderFallenScreen.clearCaches();
             RenderNukeMonitor.clearCaches();
             RenderAlertDisplay.clearCaches();
@@ -116,6 +118,9 @@ public class ClientEvents {
         // 世界里的视频大屏：把已经失效的屏幕的播放引用还回去，否则一块被拆掉/卸载的
         // 屏幕会一直占着一路解码，直到退出世界才释放。
         com.hbmzz.client.video.VideoScreenPlayback.tick();
+        // 谁在发声：设置窗口打开时全场静音，全屏接管时只留它自己，世界里只留最近
+        // 的那一块屏。放在 tick 而不是渲染里，是因为看不见的屏也必须闭嘴。
+        com.hbmzz.client.video.VideoAudioPolicy.tick(mc);
         EntityPlayer player = mc.player;
         // F7: pick up a zip dropped into config/hbmzz/videos while the game is
         // running, without a restart and without F3+T's resource reload.

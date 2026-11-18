@@ -222,6 +222,43 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
     }
 
     /**
+     * 大屏展示：站着右键播放器时，把片子放到接上的那块屏上并开播。
+     *
+     * <p>这不再是"给玩家弹一个窗口"——观众看的是世界里的那块屏，客户端开的
+     * 展示窗口只是把它放大，解码器和音源都还是屏自己那一路，所以一次右键只会有
+     * 一份播放实例。</p>
+     *
+     * <p>拉杆仍然是权威：下一次信号变化时 {@link #driveScreen(boolean)} 会把屏
+     * 重新对齐到红石状态。这里做的是"手动开播"，和按下拉杆是同一个结果，只是
+     * 不需要跑一趟红石。</p>
+     *
+     * @return true when a loaded wall took the request
+     */
+    public boolean startDisplay() {
+        if (this.video.isEmpty()) {
+            setStatus("未设置视频文件");
+            return false;
+        }
+        if (this.screenPos == null) {
+            setStatus("未接大屏");
+            return false;
+        }
+        TileEntityVideoScreen screen = loadedScreen();
+        if (screen == null) {
+            setStatus("大屏不在已加载区域，无法开始播放");
+            return false;
+        }
+        if (!this.video.equals(screen.getVideo())) {
+            screen.setVideo(this.video);
+        }
+        screen.setVolume(this.volume);
+        // 已经在播就不重播：右键是"展示给我看"，不是"从头再来"。
+        screen.setPlaying(true);
+        setStatus("大屏展示中：" + this.video);
+        return true;
+    }
+
+    /**
      * Tells the connected wall to play or stop.
      *
      * @return true when this block is wired to a wall, i.e. the full-screen path

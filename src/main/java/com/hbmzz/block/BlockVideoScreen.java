@@ -149,7 +149,10 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemVideoRemote) {
+        // 站立时把点击让给遥控器（它才是"接大屏"的那一步）；蹲下是"我要改这块
+        // 屏"，拿着遥控器也照样开窗口。
+        if (!player.isSneaking()
+                && player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemVideoRemote) {
             return false;
         }
         BlockPos origin = state.getValue(PART) ? originOf(world, pos) : pos;

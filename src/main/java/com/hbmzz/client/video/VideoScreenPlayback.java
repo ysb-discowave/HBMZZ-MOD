@@ -66,6 +66,18 @@ public final class VideoScreenPlayback {
     /** Walls that were turned away because the budget was full, and when. */
     private static final Map<TileEntityVideoScreen, Long> REFUSED = new IdentityHashMap<>();
 
+    /**
+     * The one wall that is allowed to make a sound right now.
+     *
+     * <p>A room with four screens showing the same clip is a normal thing to
+     * build, and four decoders each starting their own copy of the soundtrack is
+     * not "surround sound" - it is the same bar of music arriving four times a few
+     * milliseconds apart, which reads as a broken speaker. Exactly one wall
+     * speaks: the nearest playing one, chosen by {@code VideoAudioPolicy}. The
+     * others keep decoding, keep their clocks, and stay silent.</p>
+     */
+    private static TileEntityVideoScreen audible;
+
     /** How long a refused wall waits before asking again. */
     private static final long REFUSAL_MS = 5000L;
 
@@ -129,6 +141,10 @@ public final class VideoScreenPlayback {
         // the clock is nudged towards the published position and the pause state
         // is copied across, so a seek made by anyone anywhere lands here too.
         player.setPaused(te.isPaused());
+        // And the same every frame for the speakers: the policy can change its
+        // mind at any time (a window opened, another wall got closer), and a wall
+        // whose decoder is only created now must come up already silent.
+        player.setMuted(te != audible);
         LAST_SEEN.put(te, System.currentTimeMillis());
 
         if (!player.started()) {
@@ -204,6 +220,41 @@ public final class VideoScreenPlayback {
         CLIPS.clear();
         LAST_SEEN.clear();
         REFUSED.clear();
+        audible = null;
+    }
+
+    /**
+     * Chooses the wall that carries the sound.
+     *
+     * <p>Null means "nobody": a settings window is open, or the full-screen
+     * takeover has its own copy of the soundtrack and two of them would be one too
+     * many. Called once per client tick by {@code VideoAudioPolicy}, and safe to
+     * call with the same answer over and over.</p>
+     */
+    public static void setAudible(TileEntityVideoScreen te) {
+        if (audible == te) {
+            return;
+        }
+        TileEntityVideoScreen previous = audible;
+        audible = te;
+        if (previous != null) {
+            mute(previous, true);
+        }
+        if (te != null) {
+            mute(te, false);
+        }
+    }
+
+    /** The wall currently carrying the sound, or null. */
+    public static TileEntityVideoScreen audible() {
+        return audible;
+    }
+
+    private static void mute(TileEntityVideoScreen te, boolean muted) {
+        VideoPlayer player = ACTIVE.get(te);
+        if (player != null) {
+            player.setMuted(muted);
+        }
     }
 
     private static void release(TileEntityVideoScreen te) {
@@ -211,6 +262,9 @@ public final class VideoScreenPlayback {
         CLIPS.remove(te);
         LAST_SEEN.remove(te);
         REFUSED.remove(te);
+        if (audible == te) {
+            audible = null;
+        }
         if (player != null) {
             player.close();
         }

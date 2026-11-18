@@ -75,6 +75,10 @@ public class HBMZZ {
         // The wooden-axe wiring tool. An event handler rather than an item,
         // because the tool is a plain vanilla axe - see NukeLinkHandler for why.
         MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.NukeLinkHandler());
+        // 蹲下右键这两块视频方块，即使手里拿着东西也要把点击交给方块：原版在
+        // 潜行时只把点击给空手（或声明 doesSneakBypassUse 的堆），否则直接去用
+        // 手里的物品 —— "设置窗口有时候点了没反应"就是这么来的。
+        MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.VideoClickHandler());
         // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);

@@ -39,6 +39,16 @@ public final class VideoAudio implements Closeable {
 
     private Clip clip;
     private boolean paused;
+    /**
+     * Muted: the track keeps its position but makes no sound.
+     *
+     * <p>Different from {@link #paused} on purpose. A paused wall is paused for
+     * everybody; a muted one is still playing, it is just not this client's turn
+     * to be the speaker - the same wall shown full-screen, or another wall in the
+     * same room, is the one carrying the sound. Folding the two together would
+     * freeze the picture of every wall in the room whenever a window opened.</p>
+     */
+    private boolean muted;
 
     private VideoAudio() {
     }
@@ -113,7 +123,7 @@ public final class VideoAudio implements Closeable {
         try {
             this.clip.stop();
             this.clip.setMicrosecondPosition(microsOf(this.clip, seconds));
-            if (!this.paused) {
+            if (!this.paused && !this.muted) {
                 this.clip.start();
             }
         } catch (Throwable ignored) {
@@ -127,11 +137,35 @@ public final class VideoAudio implements Closeable {
             return;
         }
         this.paused = paused;
+        apply();
+    }
+
+    /**
+     * Silences or restores the track without moving it.
+     *
+     * <p>Used by {@code VideoAudioPolicy}, which decides whose soundtrack the
+     * player is actually hearing: one wall at a time in the world, nobody while a
+     * settings window is open.</p>
+     */
+    public void setMuted(boolean muted) {
+        if (this.muted == muted) {
+            return;
+        }
+        this.muted = muted;
+        apply();
+    }
+
+    public boolean muted() {
+        return this.muted;
+    }
+
+    /** One place that decides whether the clip should currently be running. */
+    private void apply() {
         if (this.clip == null) {
             return;
         }
         try {
-            if (paused) {
+            if (this.paused || this.muted) {
                 this.clip.stop();
             } else {
                 this.clip.start();

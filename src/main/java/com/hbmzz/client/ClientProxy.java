@@ -238,11 +238,15 @@ public class ClientProxy extends CommonProxy {
     }
 
     /**
-     * 站立右键：直接开播。
+     * 站立右键：大屏展示。
      *
-     * <p>没有片源时不开播放窗口——那只会得到一句"视频名不合法"，不如把菜单打开让人先挑一个。
-     * 手动进入不算接管：音量照设置走，但强制限制返回不参与，ESC 随时能退（F 切全屏）。
-     * 限制那条只对红石触发的全屏生效，否则点一下右键就把自己锁在片子里了。</p>
+     * <p>接了屏，就进"展示模式"看那块屏——画面是屏自己的解码器给的，声音也是那
+     * 一路，所以这里不会再多出一个播放实例来。没接屏（或者屏不在已加载区）才退回
+     * 本机全屏播放，那条路上只有它自己一份声音。</p>
+     *
+     * <p>拿不到方块实体时开菜单而不是什么都不做：方块实体是随方块更新同步下来
+     * 的，刚放下 / 刚重连的那一瞬间可能还没有，而"右键没反应"是玩家无法自查的
+     * 故障。</p>
      */
     @Override
     public void openVideoPlayback(BlockPos pos) {
@@ -252,6 +256,7 @@ public class ClientProxy extends CommonProxy {
         }
         net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(pos);
         if (!(te instanceof com.hbmzz.tile.TileEntityVideoBroadcaster)) {
+            mc.displayGuiScreen(new GuiVideoBroadcaster(pos));
             return;
         }
         com.hbmzz.tile.TileEntityVideoBroadcaster playerBlock =
@@ -260,6 +265,13 @@ public class ClientProxy extends CommonProxy {
             mc.displayGuiScreen(new GuiVideoBroadcaster(pos));
             return;
         }
+        BlockPos wall = playerBlock.getScreenPos();
+        if (wall != null && mc.world.isBlockLoaded(wall)) {
+            mc.displayGuiScreen(GuiVideoScreen.mirror(pos, wall));
+            return;
+        }
+        // 接了屏但屏不在本机已加载区（人跑远了 / 屏在另一个维度）：这边没有那块
+        // 屏在发声，本机全屏播放不会和谁重叠，是唯一能让玩家看到画面的路。
         mc.displayGuiScreen(new GuiVideoScreen(pos, playerBlock.getVideo(),
                 playerBlock.getVolume(), false));
     }

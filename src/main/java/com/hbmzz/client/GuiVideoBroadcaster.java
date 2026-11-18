@@ -172,7 +172,7 @@ public class GuiVideoBroadcaster extends GuiScreen {
 
         this.fontRenderer.drawStringWithShadow("视频广播器", l + 12, t + 7, AMBER);
         // 两种右键写在这里，因为没人会去读文档才知道要蹲下。
-        String header = "站立右键播放 · 蹲下右键本窗口";
+        String header = "站立右键大屏展示 · 蹲下右键本窗口";
         this.fontRenderer.drawStringWithShadow(header,
                 l + W - 12 - this.fontRenderer.getStringWidth(header), t + 8, DIM);
 

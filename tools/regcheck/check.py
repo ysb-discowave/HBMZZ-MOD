@@ -1192,6 +1192,87 @@ def main():
           "video containers are listed as pending imports, not as junk",
           "VideoLibrary needs importable() fed by VideoFormats.isImportable")
 
+    # 78. 站立右键开的是"大屏展示"，不是第二个播放器。玩家反映过：右键进去看见
+    # 一个带进度条的视频播放器窗口，而世界里的屏还在放、还在响。所以客户端必须先问
+    # 这台机器接没接屏：接了就把窗口做成屏的放大镜，没接（或屏不在已加载区，这边
+    # 根本没人发声）才退回本机全屏播放。
+    proxy = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
+    playback_body = member_body(proxy, "openVideoPlayback")
+    check("GuiVideoScreen.mirror(" in playback_body and "new GuiVideoScreen(" in playback_body
+          and playback_body.index("GuiVideoScreen.mirror(") < playback_body.index("new GuiVideoScreen("),
+          "a plain click shows the wall, and only falls back to the local player",
+          "ClientProxy.openVideoPlayback must open GuiVideoScreen.mirror() first and the "
+          "local player only when the wall is not usable here")
+    check("isBlockLoaded(wall)" in playback_body,
+          "the fallback happens when the wall is not loaded on this client",
+          "a mirror window for an unloaded chunk can only show an error")
+    # 一次"点了没反应"是玩家无法自查的故障：拿不到方块实体（刚放下 / 刚重连）
+    # 时也要开菜单。
+    check(playback_body.count("new GuiVideoBroadcaster(pos)") >= 2,
+          "a click never ends in silence when the block entity is not there yet",
+          "openVideoPlayback must fall back to the broadcaster window instead of returning")
+
+    # 79. 展示窗口不持有播放实例：它每帧向那块屏要帧，退出时只放下指针。
+    # 结构上排除"屏在放、窗口也在放"的双份音源。
+    mirror_body = member_body(takeover, "watchMirror")
+    closed_body = member_body(takeover, "onGuiClosed")
+    check("VideoScreenPlayback.active(" in mirror_body,
+          "大屏展示 borrows the wall's decoder instead of opening another one",
+          "GuiVideoScreen.watchMirror must call VideoScreenPlayback.active(wall)")
+    check("wallPlayer.close" not in takeover and "this.wallPlayer = null" in closed_body,
+          "closing 大屏展示 never closes the wall's decoder",
+          "onGuiClosed must drop the reference only; the wall still owns that player")
+
+    # 80. 一个房间里四块屏放同一部片子，曾经是四份音轨错开几毫秒一起响。
+    # 现在只有最近的那一块说话，其余继续解码、继续走时钟，只是静音。
+    wall_playback = read(os.path.join(SRC, "com/hbmzz/client/video/VideoScreenPlayback.java"))
+    active_body = member_body(wall_playback, "active")
+    check("public static void setAudible(" in wall_playback and "setMuted(te != audible)" in active_body,
+          "only one wall in the world is allowed a soundtrack",
+          "VideoScreenPlayback needs setAudible() and must push setMuted(te != audible) per frame")
+
+    # 81. 设置窗口一开，全场静音。这条是用户报的那个 bug 的正解：声音是
+    # VideoAudioPolicy 每 tick 统一判的，不是每个窗口各关各的（各有各的必然漏一个）。
+    policy = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudioPolicy.java"))
+    check("GuiVideoScreen.reap(mc)" in policy and "VideoScreenPlayback.setAudible(target)" in policy
+          and "else if (screen == null)" in policy,
+          "an open window silences every video source",
+          "VideoAudioPolicy must mute everything unless no window is open (or the window mirrors a wall)")
+    check("VideoAudioPolicy.tick(" in events and "VideoAudioPolicy.reset()" in events,
+          "the audio policy is ticked once per client tick and reset with the world",
+          "ClientEvents must tick VideoAudioPolicy and reset it on world unload")
+
+    # 82. 音轨静音不能顺带把画面停住：四块屏里三块静音，三块的时钟还得走。
+    audio = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudio.java"))
+    check("setMuted" in audio and "this.paused || this.muted" in audio,
+          "muting is not pausing",
+          "VideoAudio.apply() must stop the clip when paused OR muted, and seek must respect both")
+
+    # 83. 窗口没了，音源必须跟着没。换世界、被另一个界面顶掉、某条路径忘了
+    # onGuiClosed —— 三种都只能由一句"当前界面不是我了"来兜。
+    check("public static void reap(" in takeover and "mc.currentScreen != screen" in takeover,
+          "a window that is no longer on screen loses its decoder",
+          "GuiVideoScreen.reap must abandon a screen that is not mc.currentScreen any more")
+
+    # 84. 蹲下右键必须真的到得了方块。原版只有在"没蹲下"或"手里的东西声明
+    # doesSneakBypassUse"时才把点击交给方块 —— 空手能开、拿着镐子就开不了，
+    # 这就是"有时候点了没反应"。修法只有一条：RightClickBlock 事件里 ALLOW。
+    click_handler = read(os.path.join(SRC, "com/hbmzz/common/VideoClickHandler.java"))
+    hbmzz = read(os.path.join(SRC, "com/hbmzz/HBMZZ.java"))
+    check("setUseBlock(Event.Result.ALLOW)" in click_handler
+          and "BlockVideoBroadcaster" in click_handler and "BlockVideoScreen" in click_handler,
+          "sneak-clicking reaches the block even with something in hand",
+          "VideoClickHandler must ALLOW the use of the two video blocks while sneaking")
+    check("new com.hbmzz.common.VideoClickHandler()" in hbmzz,
+          "the sneak-click fix is registered on both sides",
+          "HBMZZ.preInit must register VideoClickHandler on the common event bus")
+
+    # 85. 右键开始展示要落到服务端：屏是世界状态，客户端说了不算。
+    broadcaster_tile = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoBroadcaster.java"))
+    check("public boolean startDisplay()" in broadcaster_tile and "startDisplay()" in block_body,
+          "a plain click starts the wall from the server side",
+          "BlockVideoBroadcaster must call TileEntityVideoBroadcaster.startDisplay() off-thread-free")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

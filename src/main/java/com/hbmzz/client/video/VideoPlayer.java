@@ -78,6 +78,15 @@ public final class VideoPlayer implements Closeable {
 
     private Thread worker;
     private VideoAudio audio;
+    /**
+     * Whether this decoder is allowed to make a sound right now.
+     *
+     * <p>Not a pause: the picture keeps running, the clock keeps running, only the
+     * track is held. {@link VideoAudioPolicy} owns the decision and pushes it
+     * down here, so "which of the four things that could be playing is actually
+     * audible" is answered in one place instead of in every window.</p>
+     */
+    private volatile boolean muted;
     private long startNanos;
     /**
      * Film time the clock is measured from, in seconds.
@@ -229,9 +238,41 @@ public final class VideoPlayer implements Closeable {
                 // opened at the right offset and then held, so resuming is a
                 // start rather than a fresh clip from zero.
                 this.audio.setPaused(this.paused);
+                // Same for a decoder that was opened while somebody else owns the
+                // speakers - a settings window, or another wall.
+                this.audio.setMuted(this.muted);
             } catch (IOException ignored) {
             }
         }
+    }
+
+    /**
+     * Silences or restores this decoder's soundtrack.
+     *
+     * <p>The clock and the picture are untouched: unmuting jumps the track back
+     * onto the film time the decoder is actually showing, because while it was
+     * muted the wall's playhead kept moving and a track that just resumed would
+     * be however many seconds behind the picture.</p>
+     */
+    public void setMuted(boolean muted) {
+        if (this.muted == muted) {
+            return;
+        }
+        this.muted = muted;
+        VideoAudio audio = this.audio;
+        if (audio == null) {
+            return;
+        }
+        if (muted) {
+            audio.setMuted(true);
+        } else {
+            audio.setMuted(false);
+            audio.seek(filmSeconds());
+        }
+    }
+
+    public boolean muted() {
+        return this.muted;
     }
 
     /**

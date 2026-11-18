@@ -1,6 +1,6 @@
 # HBMZZ 短片头生成器
 
-在 `tools/video/intro/` 下用 Pillow 逐帧重绘品牌矢量图形，再用 ffmpeg 编码成 **8 秒静音 mp4**。纯本地、离线、可重复运行——不联网、不依赖系统字体安装。所有几何与颜色都从 `docs/assets/brand/logo-mark.svg`（64 网格）与 `logo-lockup.svg`（横排版）派生，不修改品牌资产目录。
+在 `tools/video/intro/` 下用 Pillow 逐帧重绘品牌矢量图形，再用 ffmpeg 编码成 **8 秒 mp4**（画面轨本身无音；配乐在打包时合成并写入包内 `audio.wav` 与带音成片）。纯本地、离线、可重复运行——不联网、不依赖系统字体安装。所有几何与颜色都从 `docs/assets/brand/logo-mark.svg`（64 网格）与 `logo-lockup.svg`（横排版）派生，不修改品牌资产目录。
 
 ## 一条命令重新生成
 
@@ -23,6 +23,11 @@ py -3.12 tools/video/intro/make_intro.py
 ```bash
 python tools/video/intro/package_intro.py
 ```
+
+zip 现在默认带一版新配乐：`out/intro.wav`（8.000 s，由 `tools/audio/ost_synth.py`
+合成，不采样任何现成音频），同时另存 `out/hbmzz-intro-voiced.mp4` 方便离线看。
+配乐的三个动作点是从 mp4 逐帧量出来的：2.25 s 散开、4.00 s 合拢、6.50 s 咬合，
+8.000 s 正好落到静默。要出 SPEC 里的静音版，加 `--silent`。
 
 zip 的结构与 Java `VideoLibrary` 验收见同目录 `VALIDATE.md`。
 

@@ -62,13 +62,14 @@ import java.util.List;
  * a screen ends up mirrored on west/east facings and upside down on the others.</p>
  *
  * <h3>Size and playhead</h3>
- * <p>Size comes from the configuration window (sneak + right-click), separately in
- * width and height, up to {@link TileEntityVideoScreen#MAX_SIZE} square. Growing
- * places the new cells, shrinking removes only cells this block owns.</p>
+ * <p>Size, speed and the playhead all live in the menu behind <b>shift +
+ * right-click</b>, separately in width and height, up to
+ * {@link TileEntityVideoScreen#MAX_SIZE} square. Growing places the new cells,
+ * shrinking removes only cells this block owns.</p>
  *
- * <p>The playhead comes from the window a plain right-click opens: seek, pause,
- * rewind. It is a request to the server either way, so the wall's clock is the
- * same for every player looking at it.</p>
+ * <p>A plain right-click does exactly one thing: shows the wall fullscreen. The
+ * playhead moves are requests to the server either way, so the wall's clock is
+ * the same for every player looking at it.</p>
  */
 public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProvider {
 

@@ -170,7 +170,7 @@ public class GuiVideoPlayerConfig extends GuiScreen {
                 l + 12, volumeY + 16, 0xFF5A6674);
         // 接上大屏这一项就不存在了，所以这里只解释"现在是什么状态、去哪儿全屏"。
         String state = this.screenLinked
-                ? "已接大屏 · 退出与全屏都归大屏（右键大屏 → 全屏观看）"
+                ? "已接大屏 · 退出与全屏都归大屏（右键大屏即全屏）"
                 : this.restrictBack
                         ? "未接大屏 · 播放结束前无法退出（ESC 无效）"
                         : "未接大屏 · 播放中可以按 ESC 退出";

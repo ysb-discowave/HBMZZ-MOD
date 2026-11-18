@@ -171,25 +171,16 @@ public class GuiVideoScreen extends GuiScreen {
     }
 
     /**
-     * 大屏展示: the wall's own picture, on the whole window.
+     * 大屏全屏: the wall's own picture, on the whole window.
      *
      * <p>No player block of its own, no progress bar, no second soundtrack. The
      * window is a magnifying glass over a screen that is already running.</p>
      *
-     * <p>Opened by right-clicking the <em>player</em>: this one is a look, not a
-     * takeover, so it deliberately has no fullscreen entry - when a wall is wired,
-     * the key that fills the monitor belongs to the wall.</p>
-     */
-    public static GuiVideoScreen mirror(BlockPos broadcaster, BlockPos wall) {
-        return new GuiVideoScreen(broadcaster, wall, false);
-    }
-
-    /**
-     * 大屏全屏: the same mirror, opened from the wall itself.
-     *
-     * <p>This is the window the "全屏观看" button on 大屏定位 opens, and it is the
-     * only one that owns the fullscreen toggle while a wall is connected. Right
-     * click / F work here because here the picture really is the wall's.</p>
+     * <p>Opened by a plain right-click on the wall - and by the 「全屏观看」 button
+     * in the shift + right-click menu, which is the same thing with an extra
+     * click. It is the only window that owns the fullscreen toggle while a wall is
+     * connected: the picture is the wall's, so the monitor is the wall's too.
+     * Right click / F work here.</p>
      */
     public static GuiVideoScreen watch(BlockPos broadcaster, BlockPos wall) {
         return new GuiVideoScreen(broadcaster, wall, true);

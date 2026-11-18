@@ -1429,9 +1429,9 @@ def main():
           "接了大屏以后右键播放器不会把桌面切进全屏",
           "GuiVideoScreen.handleMouseInput must ask canFullscreen() before toggling")
     check("public static GuiVideoScreen watch(" in takeover
-          and "public static GuiVideoScreen mirror(" in takeover,
-          "展示窗口和'从大屏进来的全屏窗口'是两个入口，权限不同",
-          "GuiVideoScreen needs watch() (owns fullscreen) next to mirror() (does not)")
+          and "public static GuiVideoScreen mirror(" not in takeover,
+          "看大屏只有一个入口（watch）：接屏以后右键播放器不再开窗口",
+          "GuiVideoScreen.mirror() must be gone; watch() is the only wall window")
 
     # 99. 全屏要在大屏那边按：右键大屏 → 大屏定位窗口 →「全屏观看」。点一下就该是
     # 满屏，不是先给个窗口再让玩家自己找 F。
@@ -1482,9 +1482,9 @@ def main():
     speed_body = member_body(player_src, "setSpeed")
     align_body = member_body(player_src, "alignAudioToSpeed")
     audio_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudio.java"))
-    check("alignAudioToSpeed()" in speed_body,
+    check(re.search(r"^        this\.alignAudioToSpeed\(\);", speed_body, re.M) is not None,
           "改速率时顺手把音轨对齐（不是只搬时钟）",
-          "VideoPlayer.setSpeed must call alignAudioToSpeed()")
+          "VideoPlayer.setSpeed must call alignAudioToSpeed() as a statement, not in a comment")
     check("setSpeedMuted(true)" in align_body and "setSpeedMuted(false)" in align_body
           and "audio.seek(filmSeconds())" in align_body,
           "非 1x 扣住音轨，回 1x 先对齐再放开",

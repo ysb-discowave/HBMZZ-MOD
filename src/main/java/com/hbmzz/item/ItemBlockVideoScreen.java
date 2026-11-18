@@ -29,13 +29,13 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * The wall's item form, with the two lines nobody would guess.
+ * The wall's item form, with the lines nobody would guess.
  *
  * <p>A plain {@code ItemBlock} would work - it is an ordinary block. What it
- * cannot do is explain that the size window is behind sneak + right-click and that
- * the wall is connected with the remote, and those are the only two things about
- * this block that are not visible from looking at it. Tooltips are cheaper than a
- * wiki page that nobody reads.</p>
+ * cannot do is explain that a plain right-click opens the playhead, that the size
+ * window is behind sneak + right-click, and that the wall is connected with the
+ * remote. Those are the only things about this block that are not visible from
+ * looking at it, and a tooltip is cheaper than a wiki page nobody reads.</p>
  */
 public class ItemBlockVideoScreen extends ItemBlock {
 
@@ -50,7 +50,9 @@ public class ItemBlockVideoScreen extends ItemBlock {
                 + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip1"));
         tooltip.add(TextFormatting.GRAY
                 + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip2"));
-        tooltip.add(TextFormatting.DARK_GRAY
+        tooltip.add(TextFormatting.GRAY
                 + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip3"));
+        tooltip.add(TextFormatting.DARK_GRAY
+                + net.minecraft.util.text.translation.I18n.translateToLocal("hbmzz.video_screen.tip4"));
     }
 }

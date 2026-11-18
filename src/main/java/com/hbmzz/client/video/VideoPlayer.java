@@ -69,8 +69,8 @@ public final class VideoPlayer implements Closeable {
     private final Map<Integer, BufferedImage> ready = new LinkedHashMap<>();
 
     private volatile boolean running = true;
-    private volatile int decoded;
-    private volatile int consumed;
+    /** Frame the decode thread should jump to next; -1 while it is in step. */
+    private volatile int seekRequest = -1;
     private volatile boolean decodeDone;
     private volatile String failure;
     private volatile int frameWidth;
@@ -79,7 +79,18 @@ public final class VideoPlayer implements Closeable {
     private Thread worker;
     private VideoAudio audio;
     private long startNanos;
+    /**
+     * Film time the clock is measured from, in seconds.
+     *
+     * <p>Playback is a position plus a stopwatch, not a frame counter: the
+     * playhead is {@code baseSeconds}, and seeking only moves the base. That is
+     * what lets a wall start a film at 23 seconds, hold it there while the lever
+     * is paused, and carry on from the same place afterwards without the decoder
+     * knowing anything changed.</p>
+     */
+    private double baseSeconds;
     private boolean started;
+    private volatile boolean paused;
     /** Playback rate, 1.0 = the clip's own frame rate. Set by the wall screen. */
     private float speed = 1.0F;
     private int uploaded = -1;
@@ -109,23 +120,61 @@ public final class VideoPlayer implements Closeable {
         this.worker.start();
     }
 
+    /**
+     * Decodes forward, one bounded buffer ahead of the playhead.
+     *
+     * <p>The loop never finishes on its own: a wall can seek backwards after the
+     * film has already played out, and a decode thread that exited would leave
+     * those frames undecodable. It stops at the end of the clip and parks on the
+     * lock instead, waking up when {@link #seekTo(double)} asks for another
+     * position or when the wall is closed.</p>
+     *
+     * <p>Back-pressure is the size of the buffer rather than a frame counter,
+     * because a seek rewinds both the counter and the content: what matters is
+     * how many frames are waiting, not how many have ever been produced.</p>
+     */
     private void decodeLoop() {
         int index = 0;
         try {
-            while (this.running && index < this.clip.frameCount()) {
+            while (this.running) {
                 synchronized (this.lock) {
-                    while (this.running && this.decoded - this.consumed >= this.cacheFrames) {
+                    if (this.seekRequest >= 0) {
+                        index = this.seekRequest;
+                        this.seekRequest = -1;
+                        // Frames from the old position are worthless now, and
+                        // holding them would make a backwards seek decode nothing.
+                        this.ready.clear();
+                        this.lock.notifyAll();
+                    }
+                    while (this.running && this.seekRequest < 0 && this.ready.size() >= this.cacheFrames) {
                         this.lock.wait(200L);
+                    }
+                    if (this.seekRequest >= 0) {
+                        continue;
                     }
                 }
                 if (!this.running) {
                     return;
                 }
+                if (index >= this.clip.frameCount()) {
+                    // End of the film: keep the last frames servable and wait for
+                    // a seek (or a close).
+                    this.decodeDone = true;
+                    synchronized (this.lock) {
+                        while (this.running && this.seekRequest < 0) {
+                            this.lock.wait(200L);
+                        }
+                    }
+                    continue;
+                }
                 BufferedImage raw = this.clip.readFrame(index);
                 BufferedImage normalised = normalise(raw);
                 synchronized (this.lock) {
-                    this.ready.put(index, normalised);
-                    this.decoded = index + 1;
+                    // A seek that arrived while this frame was decoding wins:
+                    // putting the stale frame back would defeat the seek.
+                    if (this.seekRequest < 0) {
+                        this.ready.put(index, normalised);
+                    }
                     this.lock.notifyAll();
                 }
                 index++;
@@ -173,7 +222,13 @@ public final class VideoPlayer implements Closeable {
         this.startNanos = System.nanoTime();
         if (HBMZZConfig.videoAudio && this.clip.hasAudio()) {
             try {
-                this.audio = VideoAudio.play(this.clip.openAudio(), volume);
+                // From baseSeconds: a wall that starts at 23s hears 23s of the
+                // soundtrack, which is the whole point of being able to seek.
+                this.audio = VideoAudio.play(this.clip.openAudio(), volume, this.baseSeconds);
+                // A wall that starts while paused must stay silent: the track is
+                // opened at the right offset and then held, so resuming is a
+                // start rather than a fresh clip from zero.
+                this.audio.setPaused(this.paused);
             } catch (IOException ignored) {
             }
         }
@@ -189,16 +244,90 @@ public final class VideoPlayer implements Closeable {
      * picture at the moment playback starts.</p>
      */
     public void setSpeed(float speed) {
-        this.speed = Math.max(0.25F, Math.min(3.0F, speed));
+        float next = Math.max(0.25F, Math.min(3.0F, speed));
+        if (Math.abs(next - this.speed) < 1.0e-4F) {
+            return;
+        }
+        // Re-anchor at the current position before changing rate: a wall switched
+        // from 1x to 3x would otherwise jump two thirds of the film backwards,
+        // because the base is film time and only the elapsed part is scaled.
+        this.baseSeconds = filmSeconds();
+        this.startNanos = System.nanoTime();
+        this.speed = next;
+    }
+
+    /**
+     * Moves the playhead.
+     *
+     * <p>Only the base moves: the decode thread is asked for that frame, the
+     * soundtrack is repositioned, and the next {@link #showFrame(int)} paints it.
+     * Playback continues from there - seeking is not a restart, so the wall keeps
+     * whatever pause state it had.</p>
+     *
+     * <p>The target is clamped to the clip: negative times are "before the film"
+     * and anything past the end would park a wall on a black frame forever.</p>
+     */
+    public void seekTo(double seconds) {
+        double duration = durationSeconds();
+        double target = seconds;
+        if (target < 0.0D) {
+            target = 0.0D;
+        }
+        if (duration > 0.0D && target > duration) {
+            target = duration;
+        }
+        this.baseSeconds = target;
+        this.startNanos = System.nanoTime();
+        this.seekRequest = frameIndex(target);
+        // A decoder parked at the end of the film is not waiting on anything but
+        // this lock, so a backwards seek has to wake it.
+        synchronized (this.lock) {
+            this.lock.notifyAll();
+        }
+        if (this.audio != null) {
+            this.audio.seek(target);
+        }
+    }
+
+    /**
+     * Freezes or resumes the clock.
+     *
+     * <p>Pausing keeps the decoder and the current frame: the picture holds, the
+     * playhead does not advance, and resuming continues from the same place. A
+     * wall that released its decoder on pause would go black until it restarted
+     * the film, which is not what a pause means.</p>
+     */
+    public void setPaused(boolean paused) {
+        if (this.paused == paused) {
+            return;
+        }
+        if (paused) {
+            // Read the playhead while the clock is still running.
+            this.baseSeconds = filmSeconds();
+            this.paused = true;
+        } else {
+            this.startNanos = System.nanoTime();
+            this.paused = false;
+        }
+        if (this.audio != null) {
+            this.audio.setPaused(paused);
+        }
+    }
+
+    public boolean paused() {
+        return this.paused;
     }
 
     public float speed() {
         return this.speed;
     }
 
-    /** Clip time reached so far, i.e. wall-clock time times the playback rate. */
+    /** Clip time reached so far: the anchor plus wall-clock time at this rate. */
     public double filmSeconds() {
-        return elapsedSeconds() * this.speed;
+        if (!this.started || this.paused) {
+            return this.baseSeconds;
+        }
+        return this.baseSeconds + elapsedSeconds() * this.speed;
     }
 
     public boolean started() {
@@ -243,9 +372,9 @@ public final class VideoPlayer implements Closeable {
         synchronized (this.lock) {
             image = this.ready.get(index);
             if (image != null) {
-                this.consumed = Math.max(this.consumed, index);
                 // One frame of slack behind the playhead covers a slow render
-                // tick; anything older can never be shown again.
+                // tick; anything older can never be shown again. This is also what
+                // releases the decode thread's back-pressure.
                 this.ready.keySet().removeIf(key -> key < index - 1);
                 this.lock.notifyAll();
             }

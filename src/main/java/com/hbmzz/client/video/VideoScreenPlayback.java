@@ -69,6 +69,17 @@ public final class VideoScreenPlayback {
     /** How long a refused wall waits before asking again. */
     private static final long REFUSAL_MS = 5000L;
 
+    /**
+     * How far the local clock may drift from the wall's published playhead.
+     *
+     * <p>The screen's position is server-side truth (a seek, a pause, the tick the
+     * film started on); the local decoder runs on its own stopwatch. They agree
+     * to within a frame or two, so correcting anything smaller than this would
+     * mean seeking - clearing the buffer - several times a second for no visible
+     * gain. Anything larger is a jump somebody asked for, and gets applied.</p>
+     */
+    private static final double DRIFT_SECONDS = 0.35D;
+
     private VideoScreenPlayback() {
     }
 
@@ -86,6 +97,7 @@ public final class VideoScreenPlayback {
             release(te);
             return null;
         }
+        double target = te.positionMs() / 1000.0D;
         VideoPlayer player = ACTIVE.get(te);
         // A wall switched to a different clip must not keep decoding the old one.
         if (player != null && !te.getVideo().equals(CLIPS.get(te))) {
@@ -103,23 +115,56 @@ public final class VideoScreenPlayback {
                 return null;
             }
             player.setSpeed(te.getSpeed());
+            // Before start(): the decode thread then begins at the frame the wall
+            // is on, instead of decoding the whole film up to it.
+            player.seekTo(within(player, target));
+            player.setPaused(te.isPaused());
             player.start();
             ACTIVE.put(te, player);
             CLIPS.put(te, te.getVideo());
             REFUSED.remove(te);
         }
         player.setSpeed(te.getSpeed());
+        // The wall owns the playhead; the decoder owns the pixels. Every frame,
+        // the clock is nudged towards the published position and the pause state
+        // is copied across, so a seek made by anyone anywhere lands here too.
+        player.setPaused(te.isPaused());
         LAST_SEEN.put(te, System.currentTimeMillis());
 
         if (!player.started()) {
-            // Sound starts with the picture, never before it.
-            if (player.showFrame(0)) {
+            // Sound starts with the picture, never before it - and at the film
+            // time the wall is showing, not at zero.
+            if (player.showFrame(player.frameIndex(player.filmSeconds()))) {
                 player.beginPlayback(BASE_VOLUME * (te.getVolume() / 100.0F));
             }
         } else {
+            // Both sides clamped to the film. The wall's clock keeps running past
+            // the last frame (it is a stopwatch, not a frame counter), so without
+            // this an ended film would look like a drift of seconds and be seeked
+            // back to the end on every frame - clearing the decoder each time.
+            double local = within(player, player.filmSeconds());
+            if (Math.abs(local - within(player, target)) > DRIFT_SECONDS) {
+                player.seekTo(within(player, target));
+            }
             player.showFrame(player.frameIndex(player.filmSeconds()));
         }
         return player;
+    }
+
+    /**
+     * A film time clamped into the clip this client actually has.
+     *
+     * <p>The server can only bound the playhead by a sane maximum; the real length
+     * of the film is known here, and only here. Clamping both the requested and
+     * the local position with it is what keeps "the film ended two minutes ago"
+     * from looking like a drift worth correcting.</p>
+     */
+    private static double within(VideoPlayer player, double seconds) {
+        double duration = player.durationSeconds();
+        if (seconds < 0.0D) {
+            return 0.0D;
+        }
+        return duration > 0.0D ? Math.min(seconds, duration) : seconds;
     }
 
     /**

@@ -52,11 +52,36 @@ public class TileEntityVideoScreen extends TileEntity {
     public static final float MIN_SPEED = 0.25F;
     public static final float MAX_SPEED = 3.0F;
 
+    /**
+     * Longest playhead the server will accept, in milliseconds.
+     *
+     * <p>The server cannot know a clip's real length - the file lives in each
+     * client's own {@code config/hbmzz/videos} - so it bounds the number it does
+     * accept and every client clamps again against the clip it actually has. Six
+     * hours is far past any clip this mod can read, and small enough that a
+     * hostile packet cannot park a wall at some astronomically large time.</p>
+     */
+    public static final int MAX_PROGRESS_MS = 6 * 60 * 60 * 1000;
+
     private int cols = 1;
     private int rows = 1;
     private float speed = 1.0F;
     private String video = "";
     private boolean playing;
+    /**
+     * Playhead, in film milliseconds, anchored to a world tick.
+     *
+     * <p>The wall keeps a position and a stopwatch instead of counting frames, so
+     * everybody who looks at it agrees where the film is: the server publishes
+     * {@code progressMs} plus the tick it was set on, and a client works out
+     * "23.4 s" from its own world clock. Sending a position every tick would be
+     * both wasteful and jittery; sending the anchor once is exact.</p>
+     */
+    private int progressMs;
+    /** World time when {@link #progressMs} stopped being the whole truth. */
+    private long anchorTick = -1L;
+    /** A freeze on top of the lever: the picture holds, the clock does not run. */
+    private boolean paused;
     /** Volume the wall plays at, 0..200 percent; set by the broadcaster. */
     private int volume = 100;
     /** Controller position of the broadcaster feeding this wall, or null. */
@@ -94,6 +119,85 @@ public class TileEntityVideoScreen extends TileEntity {
             return;
         }
         this.volume = next;
+        markDirty();
+        sync();
+    }
+
+    /** Where the playhead sits right now, in film milliseconds. */
+    public int positionMs() {
+        if (!this.playing || this.paused || this.anchorTick < 0L) {
+            return this.progressMs;
+        }
+        long ticks = worldTicks() - this.anchorTick;
+        if (ticks <= 0L) {
+            return this.progressMs;
+        }
+        long advanced = Math.round(ticks * 50.0D * this.speed);
+        return clampMs(this.progressMs + advanced);
+    }
+
+    /** Anchor the timeline was set at; clients use it to stay in step. */
+    public long getAnchorTick() {
+        return this.anchorTick;
+    }
+
+    public int getProgressMs() {
+        return this.progressMs;
+    }
+
+    public boolean isPaused() {
+        return this.paused;
+    }
+
+    /**
+     * Moves the playhead and keeps playing from there.
+     *
+     * <p>This is the only entry point for a jump - window, packet and command all
+     * land here - and it deliberately does not change the play state: a seek
+     * while paused leaves the wall paused at the new position, and a seek while
+     * playing carries on. Starting or stopping is the lever's business.</p>
+     */
+    public void seekTo(int millis) {
+        this.progressMs = clampMs(millis);
+        this.anchorTick = worldTicks();
+        markDirty();
+        sync();
+    }
+
+    /**
+     * Freezes or resumes the clock without touching the lever.
+     *
+     * <p>Pause is a third state on purpose. Turning the lever off means "stop",
+     * and stopping resets the playhead; pausing means "hold this frame", which
+     * has to survive an unpause exactly where it was. Folding the two together
+     * would make pause either lose the film or leave the wall running with the
+     * lever off.</p>
+     */
+    public void setPaused(boolean paused) {
+        if (this.paused == paused) {
+            return;
+        }
+        // Read the playhead first: after the flag flips it is a stale anchor.
+        int now = positionMs();
+        this.paused = paused;
+        this.progressMs = now;
+        this.anchorTick = worldTicks();
+        markDirty();
+        sync();
+    }
+
+    /**
+     * Back to the first frame, still playing.
+     *
+     * <p>Two calls in one, because "从头播放" is one action for whoever presses it:
+     * jump to zero and make sure the clock is running. The lever keeps its own
+     * meaning - this does not turn a stopped wall on, since a wall with no signal
+     * has no business playing.</p>
+     */
+    public void restart() {
+        this.paused = false;
+        this.progressMs = 0;
+        this.anchorTick = worldTicks();
         markDirty();
         sync();
     }
@@ -142,6 +246,11 @@ public class TileEntityVideoScreen extends TileEntity {
         if (Math.abs(next - this.speed) < 1.0e-4F) {
             return;
         }
+        // Fold the film time played so far into the anchor first: the position is
+        // base + elapsed x speed, so changing speed without re-anchoring jumps the
+        // playhead by the difference.
+        this.progressMs = positionMs();
+        this.anchorTick = worldTicks();
         this.speed = next;
         markDirty();
         sync();
@@ -153,6 +262,11 @@ public class TileEntityVideoScreen extends TileEntity {
             return;
         }
         this.video = next;
+        // A different clip starts at its first frame: keeping the old playhead
+        // would open the new film at whatever second the last one had reached.
+        this.progressMs = 0;
+        this.paused = false;
+        this.anchorTick = worldTicks();
         markDirty();
         sync();
     }
@@ -168,12 +282,32 @@ public class TileEntityVideoScreen extends TileEntity {
             return;
         }
         this.playing = playing;
+        if (playing) {
+            // Continue from wherever the playhead was left. Normally that is zero,
+            // because stopping resets it; it is not zero when somebody seeked
+            // while the wall was stopped to pick a start point.
+            this.anchorTick = worldTicks();
+        } else {
+            // Stop means stop and rewind: a lever-driven broadcast starts at the
+            // top, which is also what it did before the playhead existed.
+            this.paused = false;
+            this.progressMs = 0;
+            this.anchorTick = -1L;
+        }
         markDirty();
         sync();
     }
 
     private static int clamp(int value) {
         return Math.max(1, Math.min(MAX_SIZE, value));
+    }
+
+    private static int clampMs(long value) {
+        return (int) Math.max(0L, Math.min(MAX_PROGRESS_MS, value));
+    }
+
+    private long worldTicks() {
+        return this.world == null ? 0L : this.world.getTotalWorldTime();
     }
 
     // ------------------------------------------------------------------ tick
@@ -203,6 +337,9 @@ public class TileEntityVideoScreen extends TileEntity {
         compound.setString("video", this.video);
         compound.setBoolean("playing", this.playing);
         compound.setInteger("volume", this.volume);
+        compound.setInteger("progress", this.progressMs);
+        compound.setBoolean("paused", this.paused);
+        compound.setLong("anchor", this.anchorTick);
         if (this.playerPos != null) {
             compound.setLong("player", this.playerPos.toLong());
         }
@@ -222,6 +359,11 @@ public class TileEntityVideoScreen extends TileEntity {
         // first tick if it is still powered. Restoring "playing" from disk is how
         // a film ends up running with nothing driving it.
         this.playing = false;
+        // Same reason: a reloaded wall starts at the top of its clip, not where
+        // the previous session happened to be.
+        this.progressMs = 0;
+        this.paused = false;
+        this.anchorTick = -1L;
         this.volume = Math.max(0, Math.min(200, compound.getInteger("volume")));
         this.playerPos = compound.hasKey("player") ? BlockPos.fromLong(compound.getLong("player")) : null;
     }
@@ -244,6 +386,11 @@ public class TileEntityVideoScreen extends TileEntity {
         this.speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, tag.getFloat("speed")));
         this.video = tag.getString("video");
         this.playing = tag.getBoolean("playing");
+        // The anchor travels with the position: a client that joined late can
+        // still work out where the film is, without waiting for the next tick.
+        this.progressMs = clampMs(tag.hasKey("progress") ? tag.getInteger("progress") : 0);
+        this.paused = tag.getBoolean("paused");
+        this.anchorTick = tag.hasKey("anchor") ? tag.getLong("anchor") : -1L;
         this.volume = Math.max(0, Math.min(200, tag.getInteger("volume")));
         this.playerPos = tag.hasKey("player") ? BlockPos.fromLong(tag.getLong("player")) : null;
     }

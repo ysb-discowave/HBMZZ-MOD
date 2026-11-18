@@ -56,6 +56,10 @@ public class CommonProxy {
     public void openVideoScreenConfig(BlockPos pos) {
     }
 
+    /** Opens the wall's playhead window: seek, pause, rewind. */
+    public void openVideoSeek(BlockPos pos) {
+    }
+
     /** Opens the player's volume / exit-lock window. */
     public void openVideoPlayerConfig(BlockPos pos) {
     }

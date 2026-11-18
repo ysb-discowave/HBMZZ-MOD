@@ -95,6 +95,11 @@ public final class NetworkHandler {
                 25, Side.SERVER);
         INSTANCE.registerMessage(VideoLinkMessage.Handler.class, VideoLinkMessage.class,
                 26, Side.SERVER);
+        // Wall timeline: seek, pause, rewind. Up only - the resulting position goes
+        // back out through the block's own update tag, so one code path serves the
+        // player who asked and everybody watching.
+        INSTANCE.registerMessage(VideoSeekMessage.Handler.class, VideoSeekMessage.class,
+                27, Side.SERVER);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

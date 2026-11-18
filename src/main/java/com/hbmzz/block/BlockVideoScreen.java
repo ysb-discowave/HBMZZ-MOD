@@ -61,10 +61,14 @@ import java.util.List;
  * lands on the viewer's left because of it. Doing this arithmetic locally is how
  * a screen ends up mirrored on west/east facings and upside down on the others.</p>
  *
- * <h3>Size</h3>
- * <p>Set from the configuration window (sneak + right-click), separately in width
- * and height, up to {@link TileEntityVideoScreen#MAX_SIZE} square. Growing places
- * the new cells, shrinking removes only cells this block owns.</p>
+ * <h3>Size and playhead</h3>
+ * <p>Size comes from the configuration window (sneak + right-click), separately in
+ * width and height, up to {@link TileEntityVideoScreen#MAX_SIZE} square. Growing
+ * places the new cells, shrinking removes only cells this block owns.</p>
+ *
+ * <p>The playhead comes from the window a plain right-click opens: seek, pause,
+ * rewind. It is a request to the server either way, so the wall's clock is the
+ * same for every player looking at it.</p>
  */
 public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProvider {
 
@@ -134,8 +138,8 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
     // ------------------------------------------------------------------ using
 
     /**
-     * Sneak + right-click opens the size / speed window; a plain click does
-     * nothing at all.
+     * Right-click opens the playhead window, sneak + right-click the size /
+     * speed window.
      *
      * <p>The remote is declined first: {@code Item.onItemUse} only runs after the
      * block says no, so a block that claims every click would make the remote
@@ -155,6 +159,11 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
         if (world.isRemote) {
             if (player.isSneaking()) {
                 HBMZZ.proxy.openVideoScreenConfig(origin);
+            } else {
+                // Where the film is, and how to move it. Opening a window must not
+                // depend on sneaking: this is the click somebody makes while a
+                // film is running, with an audience.
+                HBMZZ.proxy.openVideoSeek(origin);
             }
             return true;
         }

@@ -139,7 +139,7 @@ public class GuiVideoScreen extends GuiScreen {
             close();
             return;
         }
-        this.player.showFrame(this.player.frameIndex(this.player.elapsedSeconds()));
+        this.player.showFrame(this.player.frameIndex(this.player.filmSeconds()));
     }
 
     private void fail(String message) {

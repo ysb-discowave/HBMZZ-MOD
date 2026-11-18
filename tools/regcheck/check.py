@@ -1053,6 +1053,29 @@ def main():
           "second call throws in a static initializer, game dies at 'Initializing game': "
           + ", ".join(sorted(doubled)))
 
+    # 66. 大屏的播放定位：客户端发上来的是一个整数秒数，服务器必须先夹再存。
+    # 这条规则守的是"谁来定边界"——拖动进度条时窗口已经夹过一次，但窗口是
+    # 便利路径不是边界；一条 -5 秒或者 10 小时的报文只要漏过一处，墙面就会
+    # 停在一个永远到不了的时间上，而且看起来像画面坏了。所以 seekTo() 里
+    # 必须自己夹，且夹进 0..MAX_PROGRESS_MS。
+    screen_path = os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoScreen.java")
+    screen_text = read(screen_path)
+    seek_body = member_body(screen_text, "seekTo")
+    check("clampMs(" in seek_body and "MAX_PROGRESS_MS" in screen_text,
+          "the wall clamps a seek before it stores it",
+          "TileEntityVideoScreen.seekTo must go through clampMs(0..MAX_PROGRESS_MS): "
+          "an unclamped packet parks the wall on a time that never arrives")
+
+    # 66b. 客户端拿到的位置要按"本机这一段影片"再夹一次：服务器只知道一个
+    # 上限，真正的长度只有客户端手里那份文件知道。少了这一夹，片尾之后的
+    # 位置会一直被当成"跑偏了"而反复 seek，解码器每秒被清空好几次。
+    playback = read(os.path.join(SRC, "com/hbmzz/client/video/VideoScreenPlayback.java"))
+    check("within(player, player.filmSeconds())" in playback
+          and "durationSeconds()" in playback,
+          "the client clamps the playhead into the clip it actually has",
+          "VideoScreenPlayback must clamp the LOCAL side too, or an ended film "
+          "looks like drift and gets seeked every frame")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

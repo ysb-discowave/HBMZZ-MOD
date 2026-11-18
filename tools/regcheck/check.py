@@ -1386,7 +1386,7 @@ def main():
     player_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoPlayer.java"))
     show_body = member_body(player_src, "showFrame")
     catch_body = member_body(player_src, "catchUp")
-    check("catchUp(index)" in show_body,
+    check("catchUp(index);" in show_body and "// catchUp(index)" not in show_body,
           "缺帧时让解码器跳过一段追上来，而不是让画面一直空着",
           "VideoPlayer.showFrame must ask the decoder to catch up when the frame is missing")
     check("this.seekRequest = index" in catch_body and "this.cacheFrames" in catch_body

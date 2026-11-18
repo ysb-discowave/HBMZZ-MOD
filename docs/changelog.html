@@ -93,8 +93,42 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v3.6.1</span>
+            <span class="tl-ver">v3.8.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>视频大屏直接在世界里放，DFC 监控屏不再越放越卡</h3>
+          <ul>
+            <li><strong>基线先说清：</strong>本版是在 3.7.1（upstream master 快照，提交 <code>26195b1</code>）之上增量做的，
+              3.7.1 已有的修复一条没回退。3.7.0 是另一条分支，这次只挑了两件东西移植，没有整体覆盖——那一支的四向开合门、
+              自定义贴图系统和旧 mixin 都没进来。</li>
+            <li><strong>新增视频大屏（<code>video_screen</code>）：</strong>1×1 到 3×3 可拼，潜行右键循环尺寸，拆任意一格整块消失；
+              连上视频广播器后，动画<b>直接画在方块表面</b>——不是静态贴图，也不是弹窗。右键才打开观看界面。</li>
+            <li><strong>观看界面改成悬浮面板：</strong>压在屏幕底部、不超过高度 52%，<code>F</code> 切全屏、<code>ESC</code> 关闭，
+              不再糊住整个视野。广播仍是单次播放后自动退出，避免全屏接管后玩家退不出来。</li>
+            <li><strong>播放器升级成序列帧播放器：</strong><code>VideoClip</code> 从「文件列表」改成「文件集 + 时间线」——
+              自然排序修好了 <code>f2</code> 排在 <code>f10</code> 后面的问题，另支持 <code>playlist</code> 显式顺序与安卓开机动画式的
+              <code>desc.txt</code>（分段重复、播完定格）。帧率 0.5~60 可带小数；循环支持一直放 / 只放一遍 / 往返 / 播 N 遍。</li>
+            <li><strong>音画同步：</strong>音轨与第一帧同一时钟启动，每个循环重新对齐；画面是主时钟，漂移超过 300ms 才 seek，
+              不会为了对齐音轨跳帧。<code>audioOffset</code> 用来跳掉音轨开头的空白；往返倒放那一段静音。世界里的多块大屏
+              共用一份播放并默认静音（否则几块屏同时出声会叠音），声音交给观看窗口与广播。</li>
+            <li><strong>DFC 监控屏卡顿：</strong>根因是每帧重建 <code>ConsoleModel</code> 的 Box/Face。现在把
+              「列数 / 行数 / 倾角 / 通电 / 吊装」打包成缓存 key，几何只建一次，放置多块不再线性掉帧。外观一处未改，
+              仍然是那台机器的尺寸。</li>
+            <li><strong>移植 3.7.0 分支的两件东西：</strong>防爆窗帘没有照搬旧门实现，而是接回 3.7.1 的门体系做成一个变体
+              （铁铲潜行右键放行，3×3×3 范围内需要玻璃）；纪念挂画走 <code>RenderWorldLastEvent</code> 而不是 TESR，
+              带一条 chant 音效。</li>
+            <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
+              <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
+              <a href="delivery-3.8.0.md">交付文档</a>。</li>
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 63、videocheck 55、linkercheck 21（1 跳过）、
+              rbmkcheck 50、termcheck 67、cecpcheck 8、快速检查 7/7 全绿。但渲染观感、多屏同放的显存占用、
+              窗帘开合的手感都<b>没进游戏看过</b>。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v3.6.1</span>
           </div>
           <h3>渲染换成本项目自己的实现，外观一处未改</h3>
           <ul>
@@ -691,7 +725,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=6529916627"></script>
+<script src="assets/data.js?v=cf719c1ee3"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

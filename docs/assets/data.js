@@ -258,6 +258,21 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "3.8.0",
+      "title": "视频大屏直接在世界里放，DFC 监控屏不再越放越卡",
+      "items": [
+        "基线明确：本版在 3.7.1（upstream master 快照）之上增量，3.7.1 已有的修复一条没回退；3.7.0 是另一条分支，只挑了两件东西移植，没有整体覆盖。",
+        "新增 <b>视频大屏</b>（<code>video_screen</code>）：可 1×1 到 3×3 拼接、潜行右键循环尺寸、拆任意一格整块消失；连上视频广播器后，动画直接画在方块表面（不是静态贴图、也不是弹窗），右键才开观看界面。",
+        "观看界面改成底部悬浮面板（不超过屏幕高度 52%），F 切全屏、ESC 关闭，不再糊住整个视野；广播仍是单次播放后自动退出，避免全屏接管退不出来。",
+        "播放器升级成真正的序列帧播放器：<code>VideoClip</code> 改成「文件集 + 时间线」，支持自然排序（f2 在 f10 前）、<code>playlist</code> 显式顺序、安卓开机动画式 <code>desc.txt</code>（分段重复 + 定格）；帧率 0.5~60 可带小数，循环支持 true / false / pingpong / 播 N 遍。",
+        "音画同步：音轨与第一帧同一时钟启动、每个循环重新对齐，画面是主时钟，漂移超过 300ms 才 seek；<code>audioOffset</code> 可跳掉音轨开头空白，往返倒放段静音。世界内多块大屏共用一份播放并静音，声音走观看窗口和广播。",
+        "DFC 监控屏卡顿根因是每帧重建 <code>ConsoleModel</code> 的 Box/Face：现在按「列数/行数/倾角/通电/吊装」打包成 key 缓存几何，放置多块不再线性掉帧，外观一处未改。",
+        "移植两件 3.7.0 分支的东西：<b>防爆窗帘</b>（不照搬旧门实现，接回 3.7.1 的门体系做成变体，铁铲潜行右键放行、3×3×3 内需玻璃）与<b>纪念挂画</b>（走 <code>RenderWorldLastEvent</code> 而非 TESR，带一条 chant 音效）。",
+        "视频源目录仍是首次加载自动创建并落 README（3.7.1 已有行为，未改动）；打包脚本 <code>tools/video/pack.py</code> 补上小数帧率、<code>--loop</code>、<code>--passes</code>、<code>--audio-offset</code>。",
+        "版本号固定 3.8.0 并三处对齐（build.gradle / mcmod.info / HBMZZ.VERSION），此后除非明确要求不再升版；离线检查 regcheck 63、videocheck 55、linkercheck 21、rbmkcheck 50、termcheck 67、cecpcheck 8 全绿，但渲染观感仍未进游戏实测。"
+      ]
+    },
+    {
       "version": "3.6.1",
       "title": "渲染换成本项目自己的实现，外观一处未改",
       "items": [

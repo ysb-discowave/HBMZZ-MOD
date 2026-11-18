@@ -96,8 +96,21 @@
             <span class="tl-ver">v3.8.0</span>
             <span class="tag tag--amber">最新</span>
           </div>
-          <h3>视频大屏挂上遥控器，拉杆只管开关，右键能拨到任意一秒</h3>
+          <h3>播放器右键就能看片，蹲下才是设置，播放界面 F 切全屏</h3>
           <ul>
+            <li><strong>两种右键分工：</strong>对着视频播放器<b>普通右键直接开播</b>——放的是这台机器上存的片源
+              与音量，不经过任何菜单；<b>蹲下右键</b>才是编辑窗口（片源、广播目标、打开文件夹、刷新列表），
+              音量与「强制限制返回」收进这个窗口里的「播放器设置」按钮。以前右键先弹菜单、想看片还得再点
+              「测试广播」，现在是反过来：想改才蹲下。</li>
+            <li><strong>播放界面按 F 切全屏：</strong>F 调的是系统全屏，再按一次回到窗口；界面底部常驻一行
+              <code>F 全屏</code>。退出播放会把进入前的显示模式原样还回去，不会把桌面留在全屏里。</li>
+            <li><strong>「刷新无效 / 装进去不生效」查清了：</strong>不是模组没装上——日志里 <code>hbmzz@3.8.0</code>
+              正常加载，问题是视频目录里躺着一个 <code>.mp4</code>，而视频库只认 <code>名字.zip</code> 与
+              <code>名字/</code> 两种形状，它被静默忽略了，于是列表永远只有那两个 zip，看起来像按钮坏了。
+              现在库会把这个文件记下来，窗口与 F7 的回执直接点名：「跳过 1 个不支持的文件：xxx.mp4（需打包成 zip）」，
+              目录里的 README 也写了同一句话——这个模组读的是图片帧序列，1.12.2 的 JRE 没有 H.264 解码器。
+              另外 preInit 会打一行 <code>HBMZZ 3.8.0 loaded from &lt;jar 路径&gt;</code>，
+              下次"装了没反应"先看这行指向哪个文件。</li>
             <li><strong>大屏的朝向一次算清，四个面都正着看。</strong>
               画面画在方块表面这层没变，变的是几何来源：面板中心用 <code>ConsoleRig.anchor</code> 从控制器格推出来，
               旋转用 <code>yawOf(facing)</code>，贴图 UV 用 <code>panelUv()</code>——它的 u 是反向的，因为玩家站在正面时
@@ -142,9 +155,9 @@
             <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
               <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
               <a href="delivery-3.8.0.md">交付文档</a>。</li>
-            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 71 条（新加「遥控器要连的方块必须让出右键」
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 76 条（新加「遥控器要连的方块必须让出右键」
               「服务器先夹再存定位」「客户端按片长再夹一次」「播放界面不得出现按钮」「限制只在大屏缺席时成立」
-              「广播包必须带播放器坐标」）、videocheck、linkercheck、rbmkcheck、termcheck、
+              「广播包必须带播放器坐标」「蹲下开菜单 / 站立开播」「F 必须真的切全屏」「刷新必须点名被跳过的文件」）、videocheck、linkercheck、rbmkcheck、termcheck、
               cecpcheck、快速检查全绿。大屏的画面观感、倍速下的音画、32×32 的铺格手感、定位后的音画对齐
               <b>都还没进游戏看过</b>。</li>
           </ul>
@@ -749,7 +762,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=10a20ec40c"></script>
+<script src="assets/data.js?v=2bf959a8ae"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

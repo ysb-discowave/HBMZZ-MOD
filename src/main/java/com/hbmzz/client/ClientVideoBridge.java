@@ -19,6 +19,7 @@
 package com.hbmzz.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.math.BlockPos;
 
 /**
  * Loaded only on the physical client, via reflection from the packet handler -
@@ -34,7 +35,7 @@ public final class ClientVideoBridge {
     private ClientVideoBridge() {
     }
 
-    public static void onBroadcast(String video, int volume, boolean forceExit) {
+    public static void onBroadcast(BlockPos pos, String video, int volume, boolean restrictBack) {
         final Minecraft mc = Minecraft.getMinecraft();
         if (mc == null) {
             return;
@@ -45,7 +46,7 @@ public final class ClientVideoBridge {
                 // screen left to take over.
                 return;
             }
-            mc.displayGuiScreen(new GuiVideoScreen(video, volume, forceExit));
+            mc.displayGuiScreen(new GuiVideoScreen(pos, video, volume, restrictBack));
         });
     }
 }

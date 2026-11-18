@@ -105,7 +105,7 @@ public class VideoConfigMessage implements IMessage {
                     // volume and exit policy - otherwise the test would play at
                     // settings the real trigger never uses.
                     status = VideoBroadcast.fire(player.world, pos, video, selector,
-                            broadcaster.getVolume(), broadcaster.isForceExit());
+                            broadcaster.getVolume(), broadcaster.isRestrictBack());
                 } else if (!broadcaster.applyConfig(video, selector)) {
                     status = "视频名不合法，只能是字母、数字、下划线、点和短横";
                 } else {

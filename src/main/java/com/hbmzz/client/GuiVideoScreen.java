@@ -20,12 +20,15 @@ package com.hbmzz.client;
 
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.client.video.VideoPlayer;
+import com.hbmzz.tile.TileEntityVideoBroadcaster;
 import com.hbmzz.video.VideoLibrary;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
@@ -46,11 +49,20 @@ import java.io.IOException;
  * which reads as a display switching inputs, not as a stall), then the video,
  * then out. Sound starts with the picture, never before it.</p>
  *
- * <p><b>Why ESC does not work.</b> A takeover that a player can dismiss with one
- * key is not a takeover, so every key is swallowed for the duration. That is a
- * deliberate, configurable choice: {@code videoAllowEsc=true} in
- * {@code config/hbmzz.cfg} restores normal ESC behaviour, which is what a server
- * that would rather not surprise people should ship.</p>
+ * <p><b>Why ESC normally does not work.</b> A takeover that a player can dismiss
+ * with one key is not a takeover, so every key is swallowed for the duration.
+ * That is 强制限制返回, and it is on by default.</p>
+ *
+ * <p><b>But only while there is no wall.</b> Once this player block is wired to a
+ * screen, leaving is the wall's business - the lever decides what plays, and the
+ * full-screen path stops being the thing that holds the audience. So the lock is
+ * asked for again every time it matters (each key press, each frame that draws
+ * the hint), through the block entity's own link state. Nothing is cached at
+ * construction: a remote that connects a wall halfway through a clip takes effect
+ * on the next key press, and a wall that is broken in the same breath puts the
+ * lock back. The window never shows a sentence about a rule that is not in force,
+ * which is why an audience cannot tell the two states apart from the picture
+ * alone.</p>
  *
  * <p><b>And when there is no file</b>, this screen stops being a takeover and
  * says so, with the exact name and path it looked for. A silent black screen
@@ -66,11 +78,20 @@ public class GuiVideoScreen extends GuiScreen {
     /** Give up on a clip that has produced no frame at all after this long. */
     private static final double FIRST_FRAME_TIMEOUT = 6.0D;
 
+    /** The player block that fired this takeover; null when there is none. */
+    private final BlockPos pos;
     private final String videoName;
     /** 0..200 percent, from the broadcaster that fired this takeover. */
     private final int volume;
-    /** When true the takeover cannot be dismissed before the clip ends. */
-    private final boolean forceExit;
+    /** 强制限制返回 as configured; whether it bites depends on the wall. */
+    private final boolean restrictBack;
+    /**
+     * Last known link state. The block entity can be out of loaded range mid-clip
+     * (the audience may walk far away), and "I cannot see the wall right now" must
+     * not read as "the wall was removed" - that would slam the lock back on a
+     * player who is simply not standing next to the machine any more.
+     */
+    private boolean screenLinked;
 
     private VideoPlayer player;
     private String error;
@@ -79,13 +100,41 @@ public class GuiVideoScreen extends GuiScreen {
     private int hintTicks;
 
     public GuiVideoScreen(String videoName) {
-        this(videoName, 100, !HBMZZConfig.videoAllowEsc);
+        this(null, videoName, 100, !HBMZZConfig.videoAllowEsc);
     }
 
-    public GuiVideoScreen(String videoName, int volume, boolean forceExit) {
+    public GuiVideoScreen(BlockPos pos, String videoName, int volume, boolean restrictBack) {
+        this.pos = pos;
         this.videoName = videoName == null ? "" : videoName;
         this.volume = Math.max(0, Math.min(200, volume));
-        this.forceExit = forceExit;
+        this.restrictBack = restrictBack;
+    }
+
+    /**
+     * 现在能不能看到一台接上的大屏。
+     *
+     * <p>问的是本机这份方块实体，它随方块更新同步，和画面上那条"大屏播放中"
+     * 的状态行是同一个来源。方块不在已加载区时返回上一次的结论，而不是 false。</p>
+     */
+    private boolean screenLinked() {
+        if (this.pos != null && this.mc != null && this.mc.world != null
+                && this.mc.world.isBlockLoaded(this.pos)) {
+            TileEntity te = this.mc.world.getTileEntity(this.pos);
+            if (te instanceof TileEntityVideoBroadcaster) {
+                this.screenLinked = ((TileEntityVideoBroadcaster) te).hasScreen();
+            } else {
+                // The player block itself is gone: nothing can be wired to it,
+                // so the lock goes back on. Being unloaded is handled above and
+                // keeps the previous answer instead.
+                this.screenLinked = false;
+            }
+        }
+        return this.screenLinked;
+    }
+
+    /** 这条限制此刻是否真的在拦人：开了它，而且没有检测到大屏。 */
+    private boolean restricted() {
+        return this.restrictBack && !screenLinked();
     }
 
     public String videoName() {
@@ -110,6 +159,10 @@ public class GuiVideoScreen extends GuiScreen {
                 return;
             }
             this.player.start();
+            // Say it once, at the start, and only when it is true. A takeover
+            // that silently eats ESC reads as a broken client; a takeover that
+            // announces a lock it does not have is worse.
+            this.hintTicks = restricted() ? 40 : 0;
         }
     }
 
@@ -118,6 +171,7 @@ public class GuiVideoScreen extends GuiScreen {
         if (this.hintTicks > 0) {
             this.hintTicks--;
         }
+        watchWall();
         if (this.player == null || this.error != null) {
             return;
         }
@@ -140,6 +194,28 @@ public class GuiVideoScreen extends GuiScreen {
             return;
         }
         this.player.showFrame(this.player.frameIndex(this.player.filmSeconds()));
+    }
+
+    /**
+     * Follows the link state while the clip runs.
+     *
+     * <p>Connecting a wall mid-clip lifts the lock immediately and withdraws the
+     * sentence that explained it; losing the wall puts the lock back and says so.
+     * Both directions are visible in the same tick as the block entity update
+     * that caused them, because the answer is read, never remembered at open
+     * time.</p>
+     */
+    private void watchWall() {
+        boolean before = this.screenLinked;
+        boolean now = screenLinked();
+        if (now == before) {
+            return;
+        }
+        if (now) {
+            this.hintTicks = 0;
+        } else if (restricted()) {
+            this.hintTicks = 40;
+        }
     }
 
     private void fail(String message) {
@@ -188,7 +264,7 @@ public class GuiVideoScreen extends GuiScreen {
         }
         if (this.hintTicks > 0) {
             String hint = "广播进行中 · 结束后自动恢复"
-                    + (this.forceExit ? " · 播放结束前无法退出" : " · ESC 可退出");
+                    + (restricted() ? " · 播放结束前无法退出" : " · ESC 可退出");
             this.fontRenderer.drawStringWithShadow(hint,
                     (this.width - this.fontRenderer.getStringWidth(hint)) / 2,
                     this.height / 2 + 36, AMBER);
@@ -278,7 +354,7 @@ public class GuiVideoScreen extends GuiScreen {
             return;
         }
         if (keyCode == Keyboard.KEY_ESCAPE) {
-            if (!this.forceExit) {
+            if (!restricted()) {
                 close();
             } else {
                 // Not an error, just a reminder that the key is already known.

@@ -40,29 +40,29 @@ public class VideoPlayerConfigMessage implements IMessage {
 
     private BlockPos pos = BlockPos.ORIGIN;
     private int volume = 100;
-    private boolean forceExit = true;
+    private boolean restrictBack = true;
 
     public VideoPlayerConfigMessage() {
     }
 
-    public VideoPlayerConfigMessage(BlockPos pos, int volume, boolean forceExit) {
+    public VideoPlayerConfigMessage(BlockPos pos, int volume, boolean restrictBack) {
         this.pos = pos == null ? BlockPos.ORIGIN : pos;
         this.volume = volume;
-        this.forceExit = forceExit;
+        this.restrictBack = restrictBack;
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
         this.pos = BlockPos.fromLong(buf.readLong());
         this.volume = buf.readShort();
-        this.forceExit = buf.readBoolean();
+        this.restrictBack = buf.readBoolean();
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
         buf.writeLong(this.pos.toLong());
         buf.writeShort(this.volume);
-        buf.writeBoolean(this.forceExit);
+        buf.writeBoolean(this.restrictBack);
     }
 
     public static class Handler implements IMessageHandler<VideoPlayerConfigMessage, IMessage> {
@@ -75,7 +75,7 @@ public class VideoPlayerConfigMessage implements IMessage {
             final EntityPlayerMP sender = ctx.getServerHandler().player;
             final BlockPos pos = message.pos;
             final int volume = message.volume;
-            final boolean forceExit = message.forceExit;
+            final boolean restrictBack = message.restrictBack;
             sender.mcServer.addScheduledTask(() -> {
                 if (sender.getDistanceSqToCenter(pos) > 10.0D * 10.0D) {
                     return;
@@ -85,10 +85,14 @@ public class VideoPlayerConfigMessage implements IMessage {
                     return;
                 }
                 TileEntityVideoBroadcaster broadcaster = (TileEntityVideoBroadcaster) te;
-                broadcaster.applyPlayback(volume, forceExit);
+                broadcaster.applyPlayback(volume, restrictBack);
                 sender.sendStatusMessage(new TextComponentString(
                         "播放器：音量 " + broadcaster.getVolume() + "%"
-                                + (broadcaster.isForceExit() ? " · 播放结束前禁止退出" : " · 允许 ESC 退出")), true);
+                                + (broadcaster.restrictBackApplies()
+                                        ? " · 未接大屏，播放结束前禁止返回"
+                                        : broadcaster.isRestrictBack()
+                                        ? " · 已接大屏，本项不生效"
+                                        : " · 允许 ESC 退出")), true);
             });
             return null;
         }

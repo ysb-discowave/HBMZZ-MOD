@@ -19,6 +19,7 @@
 package com.hbmzz.network;
 
 import io.netty.buffer.ByteBuf;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
@@ -39,31 +40,35 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
  */
 public class VideoBroadcastMessage implements IMessage {
 
+    private BlockPos pos = BlockPos.ORIGIN;
     private String video = "";
     private int volume = 100;
-    private boolean forceExit = true;
+    private boolean restrictBack = true;
 
     public VideoBroadcastMessage() {
     }
 
-    public VideoBroadcastMessage(String video, int volume, boolean forceExit) {
+    public VideoBroadcastMessage(BlockPos pos, String video, int volume, boolean restrictBack) {
+        this.pos = pos == null ? BlockPos.ORIGIN : pos.toImmutable();
         this.video = video == null ? "" : video;
         this.volume = volume;
-        this.forceExit = forceExit;
+        this.restrictBack = restrictBack;
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
+        this.pos = BlockPos.fromLong(buf.readLong());
         this.video = ByteBufUtils.readUTF8String(buf);
         this.volume = buf.readShort();
-        this.forceExit = buf.readBoolean();
+        this.restrictBack = buf.readBoolean();
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
+        buf.writeLong(this.pos.toLong());
         ByteBufUtils.writeUTF8String(buf, this.video);
         buf.writeShort(this.volume);
-        buf.writeBoolean(this.forceExit);
+        buf.writeBoolean(this.restrictBack);
     }
 
     /**
@@ -78,8 +83,8 @@ public class VideoBroadcastMessage implements IMessage {
             if (ctx.side.isClient()) {
                 try {
                     Class.forName("com.hbmzz.client.ClientVideoBridge")
-                            .getMethod("onBroadcast", String.class, int.class, boolean.class)
-                            .invoke(null, message.video, message.volume, message.forceExit);
+                            .getMethod("onBroadcast", BlockPos.class, String.class, int.class, boolean.class)
+                            .invoke(null, message.pos, message.video, message.volume, message.restrictBack);
                 } catch (Throwable ignored) {
                 }
             }

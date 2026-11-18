@@ -66,8 +66,14 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
 
     /** Playback level, 0..200 percent. Owned by this block, not by the wall. */
     private int volume = 100;
-    /** When true a takeover cannot be dismissed until the clip ends. */
-    private boolean forceExit = !HBMZZConfig.videoAllowEsc;
+    /**
+     * 强制限制返回: 没接大屏时，全屏播放结束前 ESC 不生效。
+     *
+     * <p>默认开启。它只在<b>没有</b>检测到大屏时成立——接上大屏以后，谁能
+     * 退出由大屏和拉杆决定，全屏那条路不该再拦人。所以这里存的是"玩家的
+     * 意愿"，是否生效要再问一句 {@link #restrictBackApplies()}。</p>
+     */
+    private boolean restrictBack = !HBMZZConfig.videoAllowEsc;
     /**
      * The wall this player drives, if any.
      *
@@ -101,8 +107,19 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         return this.volume;
     }
 
-    public boolean isForceExit() {
-        return this.forceExit;
+    public boolean isRestrictBack() {
+        return this.restrictBack;
+    }
+
+    /**
+     * 这条限制此刻是否成立：玩家开了它，而且没有检测到大屏。
+     *
+     * <p>连接状态是唯一的事实来源，客户端每次要判断时都回来查一次，所以遥控器
+     * 中途接上大屏、或者大屏被拆掉，下一次按键就已经是新结论，不需要谁去通知
+     * 谁。拆掉大屏时 {@code loadedScreen()} 会顺手清空连接，于是限制自动恢复。</p>
+     */
+    public boolean restrictBackApplies() {
+        return this.restrictBack && this.screenPos == null;
     }
 
     public BlockPos getScreenPos() {
@@ -114,10 +131,10 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         return this.screenPos != null;
     }
 
-    /** Volume and the exit lock, from the player's own settings window. */
-    public void applyPlayback(int volume, boolean forceExit) {
+    /** Volume and 强制限制返回, from the player's own settings window. */
+    public void applyPlayback(int volume, boolean restrictBack) {
         this.volume = Math.max(0, Math.min(200, volume));
-        this.forceExit = forceExit;
+        this.restrictBack = restrictBack;
         markDirty();
         TileEntityVideoScreen screen = loadedScreen();
         if (screen != null) {
@@ -271,7 +288,7 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         }
         this.cooldown = Math.max(1, HBMZZConfig.videoCooldownTicks);
         setStatus(VideoBroadcast.fire(this.world, this.pos, this.video, this.selector,
-                this.volume, this.forceExit));
+                this.volume, this.restrictBack));
     }
 
     /** Lights the lamp on the block face; purely cosmetic, never gameplay. */
@@ -294,7 +311,7 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         compound.setString("video", this.video);
         compound.setString("selector", this.selector);
         compound.setInteger("volume", this.volume);
-        compound.setBoolean("forceExit", this.forceExit);
+        compound.setBoolean("restrictBack", this.restrictBack);
         if (this.screenPos != null) {
             compound.setLong("screen", this.screenPos.toLong());
         }
@@ -308,7 +325,9 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         this.selector = compound.hasKey("selector") ? compound.getString("selector") : DEFAULT_SELECTOR;
         this.volume = compound.hasKey("volume")
                 ? Math.max(0, Math.min(200, compound.getInteger("volume"))) : 100;
-        this.forceExit = compound.hasKey("forceExit") ? compound.getBoolean("forceExit")
+        // 旧存档里这一位叫 forceExit，读得到就用它，读不到才回默认值。
+        this.restrictBack = compound.hasKey("restrictBack") ? compound.getBoolean("restrictBack")
+                : compound.hasKey("forceExit") ? compound.getBoolean("forceExit")
                 : !HBMZZConfig.videoAllowEsc;
         this.screenPos = compound.hasKey("screen") ? BlockPos.fromLong(compound.getLong("screen")) : null;
         // Coming back from disk is not a redstone edge.
@@ -337,7 +356,7 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
             this.status = tag.getString("status");
         }
         this.volume = tag.hasKey("volume") ? tag.getInteger("volume") : 100;
-        this.forceExit = tag.hasKey("forceExit") ? tag.getBoolean("forceExit") : true;
+        this.restrictBack = tag.hasKey("restrictBack") ? tag.getBoolean("restrictBack") : true;
         this.screenPos = tag.hasKey("screen") ? BlockPos.fromLong(tag.getLong("screen")) : null;
     }
 

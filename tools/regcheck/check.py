@@ -1076,6 +1076,38 @@ def main():
           "VideoScreenPlayback must clamp the LOCAL side too, or an ended film "
           "looks like drift and gets seeked every frame")
 
+    # 67. 强制限制返回是"设置"，不是"画面上的控件"。它可以拦 ESC，但绝不
+    # 能出现在播放界面里：一块盖住整个屏幕的窗口上多一个按钮，就等于给了
+    # 观众一个中途退场的入口，而这正是这个功能存在的理由。所以那条界面里
+    # 连 buttonList 都不该被碰。
+    takeover = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoScreen.java"))
+    intrusive = [token for token in ("buttonList.add", "GuiButton", "mouseClicked(")
+                 if token in takeover]
+    check(not intrusive,
+          "the takeover window offers no button that could dismiss it",
+          "GuiVideoScreen grows a control: " + ", ".join(intrusive))
+
+    # 68. 这条限制必须在"没有大屏"时才成立，而"有没有大屏"只能问方块实体。
+    # 曾经把它当成打开窗口那一刻的布尔快照存下来，结果遥控器中途接上大屏，
+    # 画面还在拦人；大屏被拆掉，画面又已经放行。所以这条规则守两件事：
+    # 服务端的判定要读连接状态，客户端要每一帧重新问，而不是记着旧答案。
+    broadcaster = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoBroadcaster.java"))
+    applies_body = member_body(broadcaster, "restrictBackApplies")
+    check("screenPos == null" in applies_body and "restrictBack" in applies_body,
+          "强制限制返回 only holds while no wall is connected",
+          "TileEntityVideoBroadcaster.restrictBackApplies must read the live link state")
+    check("hasScreen()" in takeover and "restricted()" in takeover
+          and "screenLinked()" in takeover,
+          "the takeover asks the wall again instead of caching the answer",
+          "GuiVideoScreen must re-read hasScreen() through screenLinked() and gate on restricted()")
+
+    # 69. 客户端要知道"这台播放器接没接大屏"，就得知道它在哪。报文里少一个
+    # 坐标，播放界面就只能相信打开时那一刻的结论，68 那条也就守不住了。
+    broadcast_message = read(os.path.join(SRC, "com/hbmzz/network/VideoBroadcastMessage.java"))
+    check("pos.toLong()" in broadcast_message or "this.pos.toLong()" in broadcast_message,
+          "the broadcast packet carries the player's position",
+          "VideoBroadcastMessage without pos cannot look the wall up on the client")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

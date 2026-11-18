@@ -38,6 +38,14 @@ import java.io.IOException;
  * button. Those live one window over, on the block's plain right-click, where the
  * operator is editing the broadcast rather than its delivery.</p>
  *
+ * <p><b>强制限制返回 lives here and nowhere else.</b> It is a setting, not a
+ * control: the playback window deliberately has no button, no entry and no
+ * toggle for it, so a clip can never be interrupted by a player poking at its
+ * own overlay. This window also says whether the lock is currently in force,
+ * because a setting whose effect depends on another block's presence has to be
+ * readable somewhere - and the reading belongs next to the switch, not in the
+ * middle of a film.</p>
+ *
  * <p><b>The slider is drawn, not borrowed.</b> {@code GuiSlider} is a mod-defined
  * widget in this project's rsaudio half with its own look, and vanilla has no
  * slider at all. Drawing a 160-pixel track and a 6-pixel knob is less code than
@@ -47,7 +55,7 @@ import java.io.IOException;
 public class GuiVideoPlayerConfig extends GuiScreen {
 
     private static final int W = 300;
-    private static final int H = 132;
+    private static final int H = 148;
 
     private static final int AMBER = 0xFFF5A524;
     private static final int DIM = 0xFF8894A0;
@@ -59,7 +67,9 @@ public class GuiVideoPlayerConfig extends GuiScreen {
 
     /** 0..200 percent. */
     private int volume = 100;
-    private boolean forceExit = true;
+    private boolean restrictBack = true;
+    /** Whether a wall is wired right now; read once per frame, never stored. */
+    private boolean screenLinked;
     private boolean dragging;
     private boolean killed;
 
@@ -85,16 +95,17 @@ public class GuiVideoPlayerConfig extends GuiScreen {
         TileEntityVideoBroadcaster te = tile();
         if (te != null) {
             this.volume = te.getVolume();
-            this.forceExit = te.isForceExit();
+            this.restrictBack = te.isRestrictBack();
+            this.screenLinked = te.hasScreen();
         }
         this.buttonList.clear();
         this.buttonList.add(new GuiButton(0, this.left + 24, this.top + H - 30, 120, 20,
-                forceExitLabel()));
+                restrictBackLabel()));
         this.buttonList.add(new GuiButton(1, this.left + 156, this.top + H - 30, 120, 20, "完成"));
     }
 
-    private String forceExitLabel() {
-        return this.forceExit ? "强制限制退出：开" : "强制限制退出：关";
+    private String restrictBackLabel() {
+        return this.restrictBack ? "强制限制返回：开" : "强制限制返回：关";
     }
 
     // ------------------------------------------------------------------ draw
@@ -126,8 +137,13 @@ public class GuiVideoPlayerConfig extends GuiScreen {
 
         this.fontRenderer.drawStringWithShadow("100% = 默认音量；200% 更响，0% 静音",
                 l + 12, volumeY + 16, 0xFF5A6674);
-        this.fontRenderer.drawStringWithShadow("强制限制退出：开启后播放结束前无法退出；关闭后可按 ESC 中途退出",
+        this.fontRenderer.drawStringWithShadow("强制限制返回：未接大屏时播放结束前无法退出；接上大屏后自动不生效",
                 l + 12, volumeY + 30, 0xFF5A6674);
+        String state = this.screenLinked
+                ? "当前已接大屏 · 本项不生效，退出由大屏与拉杆决定"
+                : "当前未接大屏 · 本项生效中";
+        this.fontRenderer.drawStringWithShadow(state, l + 12, volumeY + 46,
+                this.screenLinked ? DIM : AMBER);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -191,8 +207,8 @@ public class GuiVideoPlayerConfig extends GuiScreen {
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id == 0) {
-            this.forceExit = !this.forceExit;
-            button.displayString = forceExitLabel();
+            this.restrictBack = !this.restrictBack;
+            button.displayString = restrictBackLabel();
             return;
         }
         close();
@@ -204,7 +220,7 @@ public class GuiVideoPlayerConfig extends GuiScreen {
             return;
         }
         this.killed = true;
-        NetworkHandler.sendToServer(new VideoPlayerConfigMessage(this.pos, this.volume, this.forceExit));
+        NetworkHandler.sendToServer(new VideoPlayerConfigMessage(this.pos, this.volume, this.restrictBack));
         this.mc.displayGuiScreen(null);
     }
 }

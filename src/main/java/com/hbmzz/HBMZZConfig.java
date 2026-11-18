@@ -240,7 +240,10 @@ public final class HBMZZConfig {
             videoCooldownTicks = cfg.getInt("cooldownTicks", "video", 20, 1, 200,
                     "Minimum ticks between two broadcasts; a faster redstone clock is ignored.");
             videoAllowEsc = cfg.getBoolean("allowEsc", "video", false,
-                    "Let players press ESC to leave a broadcast. False keeps the full-screen takeover until the clip ends.");
+                    "Default for 强制限制返回 on a freshly placed player: false means the lock starts ON."
+                            + " The lock is per-block, set by sneak-right-clicking the player, and it only"
+                            + " applies while no wall screen is connected. This option seeds new blocks and"
+                            + " blocks from saves that never stored the flag.");
             videoOperatorOnly = cfg.getBoolean("operatorOnly", "video", false,
                     "Require command level 2 (operator) to save settings or test-fire. The redstone trigger has no player behind it and is unaffected.");
             videoAudio = cfg.getBoolean("audio", "video", true,

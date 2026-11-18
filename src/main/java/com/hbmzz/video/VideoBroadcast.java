@@ -54,7 +54,7 @@ public final class VideoBroadcast {
     }
 
     /**
-     * Same, with the player's own volume and exit policy attached.
+     * Same, with the player's own volume and 强制限制返回 policy attached.
      *
      * <p>They ride along with the clip name because the receiving window needs
      * both before the first frame: starting at the default volume and dropping to
@@ -62,7 +62,7 @@ public final class VideoBroadcast {
      * means one unlucky player can dismiss a takeover that was meant to hold.</p>
      */
     public static String fire(World world, BlockPos pos, String video, String selector,
-                             int volume, boolean forceExit) {
+                             int volume, boolean restrictBack) {
         if (video == null || video.isEmpty()) {
             return "未设置视频文件";
         }
@@ -74,7 +74,10 @@ public final class VideoBroadcast {
             return result.error;
         }
         List<EntityPlayer> players = result.players;
-        VideoBroadcastMessage message = new VideoBroadcastMessage(video, volume, forceExit);
+        // 播放器坐标一起发过去：客户端要拿它回查"这台播放器接没接大屏"，
+        // 而这台机器上的方块实体是随方块更新同步下来的，问它比再开一条
+        // 同步通道便宜，也不会出现两个来源各说各话。
+        VideoBroadcastMessage message = new VideoBroadcastMessage(pos, video, volume, restrictBack);
         int sent = 0;
         for (EntityPlayer player : players) {
             // Fake players answer instanceof EntityPlayer too; they have no

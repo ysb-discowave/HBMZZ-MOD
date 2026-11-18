@@ -96,7 +96,7 @@
             <span class="tl-ver">v3.8.0</span>
             <span class="tag tag--amber">最新</span>
           </div>
-          <h3>视频大屏挂上遥控器，拉杆只负责开关</h3>
+          <h3>视频大屏挂上遥控器，拉杆只管开关，右键能拨到任意一秒</h3>
           <ul>
             <li><strong>大屏的朝向一次算清，四个面都正着看。</strong>
               画面画在方块表面这层没变，变的是几何来源：面板中心用 <code>ConsoleRig.anchor</code> 从控制器格推出来，
@@ -106,6 +106,15 @@
             <li><strong>尺寸不再靠右键循环，改成配置窗口：</strong>蹲下右键大屏（点哪一格都行，边缘格会转给控制器），
               宽与高分开加减，各自 1–32 格；倍速 0.25x–3x，四分之一步进。窗口里<b>没有停止键</b>——停止仍然是拉杆的事，
               一块屏不该有两个互相打架的开关。改大改小都会真的铺格 / 收格，只会动这面墙自己的格子。</li>
+            <li><strong>右键就能把片子拨到某一秒，所有人看到的是同一帧：</strong>
+              右键大屏打开「播放定位」——一条可拖动的进度条、+/-5s、+/-30s、回开头、暂停 / 继续；
+              窗口里的时间和状态每帧都从方块读，不是窗口自己记的数。定位请求发给服务端：服务器改的是
+              方块上的播放头，再回写给范围内所有客户端，所以按键的人、旁边站着的人、服务器另一头的人
+              都会跳到同一处；<b>单机走的是同一条路</b>（中间就是集成的那个服务端），两种模式不会分叉。
+              播放头是「基准时间 + 走时」而不是帧计数：拨到 23 秒就从 23 秒接着播，音轨一起跳；
+              暂停时画面定住、时间不走，继续时从原位接上。两头都夹边界——服务器只收 0–6 小时，
+              客户端再按自己手上那份片子夹一次，于是「-5 秒」不会变成负数，片尾之后也不会反复重定位。
+              拉杆关掉仍是回开头，和以前一样。</li>
             <li><strong>新增大屏遥控器（<code>video_remote</code>）：</strong>16×16 的手持机贴图，深灰机身、顶部信号窗、
               中间方向键、底部两枚按键。它是普通物品，不可放置、不绑任何点击放置行为，也不会弹「不能放置」。
               作用只有一个：右键播放器把它对准，再右键大屏完成连接（两者相距上限 64 格）。原来那条借用监控数据线
@@ -130,9 +139,10 @@
             <li><strong>版本号固定 3.8.0：</strong>三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> /
               <code>HBMZZ.VERSION</code>）对齐，此后除非明确要求不再升版。逐次交付记录见
               <a href="delivery-3.8.0.md">交付文档</a>。</li>
-            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 65 条（新加一条「遥控器要连的方块必须让出右键」）、
-              videocheck、linkercheck、rbmkcheck、termcheck、cecpcheck、快速检查全绿。大屏的画面观感、倍速下的音画、
-              32×32 的铺格手感<b>都还没进游戏看过</b>。</li>
+            <li><strong>验证与未验证：</strong>gradle 真实编译出包；regcheck 67 条（新加「遥控器要连的方块必须让出右键」
+              「服务器先夹再存定位」「客户端按片长再夹一次」）、videocheck、linkercheck、rbmkcheck、termcheck、
+              cecpcheck、快速检查全绿。大屏的画面观感、倍速下的音画、32×32 的铺格手感、定位后的音画对齐
+              <b>都还没进游戏看过</b>。</li>
           </ul>
         </div>
 
@@ -735,7 +745,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=d661055b5c"></script>
+<script src="assets/data.js?v=1b6ddeef59"></script>
 <script src="assets/site.js?v=95371114ff"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

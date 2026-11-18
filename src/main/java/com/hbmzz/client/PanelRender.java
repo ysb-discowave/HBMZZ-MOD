@@ -25,6 +25,7 @@ import com.hbmzz.client.ConsoleModel.Face;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
@@ -85,6 +86,14 @@ public final class PanelRender {
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();
 
+        // 屏幕是发光的板子，不是被房间照亮的板子：世界渲染阶段 unit 1 还挂着
+        // 光照贴图，没有自带光照坐标的四边形会按"上一个画过的东西的亮度"被乘
+        // 一次，于是同一张图在 GUI 里正常、贴到墙上发暗。这里和 PanelPainter.glass
+        // 一样钉成满亮，画完还原。
+        float lightX = OpenGlHelper.lastBrightnessX;
+        float lightY = OpenGlHelper.lastBrightnessY;
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
+
         GlStateManager.enableTexture2D();
         GlStateManager.disableLighting();
         GlStateManager.enableBlend();
@@ -110,6 +119,8 @@ public final class PanelRender {
                     .endVertex();
         }
         tessellator.draw();
+
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lightX, lightY);
 
         // Hand the terrain atlas back: leaving the panel texture bound here makes
         // whatever draws next - the next chunk, the clouds, another TESR - sample

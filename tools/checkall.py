@@ -294,7 +294,7 @@ FAST = [
     ("许可与协作文件（LICENSE / NOTICE / AUTHORIZATION / CONTRIBUTING）", check_files),
     ("statecheck（blockstate 键序 / 状态数与 meta 上限）", check_statecheck),
     ("事件注解（@SubscribeEvent 的参数必须是 Event 子类）", check_events),
-    ("regcheck（注册 / 配方 / 模型表 134 条）", check_regcheck),
+    ("regcheck（注册 / 配方 / 模型表 137 条）", check_regcheck),
     ("内置 OST（jar 资源 / Ogg 格式 / 落地名不撞车）", check_builtin_music),
     ("站点 HTML 审计", check_site_audit),
     ("站点数据一致性", check_site_data),

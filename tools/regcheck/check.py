@@ -1500,6 +1500,24 @@ def main():
           "丢帧追播放头时只清掉过期帧，不整张清空",
           "decodeLoop must prune frames behind the playhead instead of clearing the ring")
 
+    # 105. 大屏的画面不能被房间照亮。TESR 跑在世界渲染阶段，unit 1 还挂着光照
+    # 贴图，没有自带光照坐标的四边形会乘上"上一个画过的东西的亮度"——这就是
+    # "同一部片在播放器里正常、贴到墙上发暗"的来源。两个玻璃面绘制器都必须把
+    # 光照钉在 240（满亮）并在画完后还原。
+    painter = read(os.path.join(SRC, "com/hbmzz/client/PanelPainter.java"))
+    glass_body = member_body(painter, "glass")
+    check("setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F)" in glass_body,
+          "监视器画面钉满亮（世界里的屏不随房间变暗）",
+          "PanelPainter.glass must pin the lightmap to 240/240 before drawing the picture")
+    check("lightX" in glass_body and "setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lightX, lightY)" in glass_body,
+          "画完把光照还原回去（不留副作用给下一个 TESR）",
+          "PanelPainter.glass must restore the previous lightmap coordinates")
+    panel_render = read(os.path.join(SRC, "com/hbmzz/client/PanelRender.java"))
+    pr_body = member_body(panel_render, "glass")
+    check("240.0F, 240.0F" in pr_body and "lightX" in pr_body,
+          "另一个玻璃面绘制器同样钉满亮并还原",
+          "PanelRender.glass must pin and restore the lightmap the same way")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

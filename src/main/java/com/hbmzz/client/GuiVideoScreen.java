@@ -211,9 +211,30 @@ public class GuiVideoScreen extends GuiScreen {
      *
      * <p>规则只有一条：接了屏，全屏归那块屏；没接屏，全屏归播放器。所以本机
      * 播放的窗口要等"确实没有大屏"才给入口，展示窗口只有在从大屏进来时才有。</p>
+     *
+     * <p>例外是"接了屏，但那块屏不在本机视野里"（另一个维度、人走远了）：那时
+     * 大屏那边根本点不到，本机播放又不是重复的声音，所以入口留在这里——否则
+     * 玩家会在两边都按不出全屏。</p>
      */
     private boolean canFullscreen() {
-        return this.mirror ? this.wallOwned : !screenLinked();
+        if (this.mirror) {
+            return this.wallOwned;
+        }
+        return !screenLinked() || !wallReachable();
+    }
+
+    /** 接上的那块屏此刻在本机能不能点到（区块已加载）。 */
+    private boolean wallReachable() {
+        if (this.pos == null || this.mc == null || this.mc.world == null
+                || !this.mc.world.isBlockLoaded(this.pos)) {
+            return false;
+        }
+        TileEntity te = this.mc.world.getTileEntity(this.pos);
+        if (!(te instanceof TileEntityVideoBroadcaster)) {
+            return false;
+        }
+        BlockPos wall = ((TileEntityVideoBroadcaster) te).getScreenPos();
+        return wall != null && this.mc.world.isBlockLoaded(wall);
     }
 
     public boolean mirrors() {

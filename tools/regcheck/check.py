@@ -1414,7 +1414,8 @@ def main():
     # 98. 全屏的归属：接了屏归大屏，没接屏归播放器。所以"能不能按全屏"必须是一个
     # 现算的判定，而不是打开窗口时记下来的布尔 —— 遥控器中途接上大屏，下一次按键
     # 就该改口。接屏时右键播放器开出来的展示窗口不提供全屏入口。
-    check("private boolean canFullscreen()" in takeover and "this.mirror ? this.wallOwned" in takeover,
+    check("private boolean canFullscreen()" in takeover and "return this.wallOwned;" in takeover
+          and "return !screenLinked() || !wallReachable();" in takeover,
           "全屏权限按'有没有接大屏 / 这窗口是不是从大屏进来的'现算",
           "GuiVideoScreen must gate fullscreen through canFullscreen()")
     key_body = member_body(takeover, "keyTyped")

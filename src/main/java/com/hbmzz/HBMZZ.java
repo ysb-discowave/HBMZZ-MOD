@@ -76,6 +76,8 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "ctrl_console"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoBroadcaster.class,
                 new ResourceLocation(MODID, "video_broadcaster"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoScreen.class,
+                new ResourceLocation(MODID, "video_screen"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNuke.class,
                 new ResourceLocation(MODID, "nuke"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNukeController.class,

@@ -51,6 +51,16 @@ public class ItemMonitorLinker extends Item {
      */
     public static final int MAX_CAMERA_RANGE = 64;
 
+    /**
+     * How far a video screen may sit from its broadcaster, in blocks.
+     *
+     * <p>Same reasoning as the camera: the picture is read from each client's own
+     * video directory, so distance costs nothing technically - but a screen fed
+     * from across the map leaves the operator with no way to tell which
+     * broadcaster is which. 64 keeps the pair inside one loaded neighbourhood.</p>
+     */
+    public static final int MAX_VIDEO_RANGE = 64;
+
     public ItemMonitorLinker() {
         setRegistryName(HBMZZ.MODID, "monitor_linker");
         setUnlocalizedName(HBMZZ.MODID + ".monitor_linker");
@@ -88,6 +98,48 @@ public class ItemMonitorLinker extends Item {
             if (player.isSneaking()) {
                 return bindIntoPanel(player, world, pos, stack);
             }
+            return EnumActionResult.SUCCESS;
+        }
+
+        // Video: point at the broadcaster to record it, then at the screen to
+        // bind. Same two-click flow as a camera, and the same reason for living
+        // in this item rather than in a window: "wire this pair up" should not
+        // need a GUI.
+        BlockPos screenOrigin = videoScreenOrigin(world, pos);
+        boolean onVideoScreen = world.getBlockState(screenOrigin).getBlock()
+                instanceof com.hbmzz.block.BlockVideoScreen;
+        boolean onVideoBroadcaster = world.getTileEntity(pos)
+                instanceof com.hbmzz.tile.TileEntityVideoBroadcaster;
+
+        if (onVideoScreen || onVideoBroadcaster) {
+            if (world.isRemote) {
+                // Nothing recorded and a screen under the cursor: the player is
+                // here to look at it, not to wire it.
+                if (onVideoScreen && !hasVideoRecording(stack.getTagCompound())) {
+                    HBMZZ.proxy.openVideoViewer(screenOrigin);
+                }
+                return EnumActionResult.SUCCESS;
+            }
+            NBTTagCompound videoTag = stack.getTagCompound();
+            if (videoTag == null) {
+                videoTag = new NBTTagCompound();
+                stack.setTagCompound(videoTag);
+            }
+            if (onVideoBroadcaster) {
+                com.hbmzz.tile.TileEntityVideoBroadcaster broadcaster =
+                        (com.hbmzz.tile.TileEntityVideoBroadcaster) world.getTileEntity(pos);
+                String clip = broadcaster.getVideo();
+                videoTag.setLong("vid", pos.toLong());
+                videoTag.setString("vidName", clip);
+                player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_set",
+                        clip.isEmpty() ? "（还没设置视频）" : clip));
+                return EnumActionResult.SUCCESS;
+            }
+            if (!hasVideoRecording(videoTag)) {
+                player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_none"));
+                return EnumActionResult.SUCCESS;
+            }
+            bindVideoScreen(world, player, screenOrigin, videoTag);
             return EnumActionResult.SUCCESS;
         }
 
@@ -228,6 +280,57 @@ public class ItemMonitorLinker extends Item {
     /** True when the cable remembers something that a screen can be given. */
     private static boolean hasRecording(NBTTagCompound tag) {
         return tag != null && (tag.hasKey("meter") || tag.hasKey("core") || tag.hasKey("cam"));
+    }
+
+    /** True when the cable is holding a recorded video broadcaster. */
+    private static boolean hasVideoRecording(NBTTagCompound tag) {
+        return tag != null && tag.hasKey("vid");
+    }
+
+    /** The video screen's controller cell behind a click, or {@code pos} itself. */
+    private static BlockPos videoScreenOrigin(World world, BlockPos pos) {
+        if (world.getBlockState(pos).getBlock() instanceof com.hbmzz.block.BlockDFCMonitorPart) {
+            BlockPos origin = com.hbmzz.block.BlockDFCMonitorPart.findOrigin(world, pos);
+            return origin == null ? pos : origin;
+        }
+        return pos;
+    }
+
+    /**
+     * Connects a recorded broadcaster to a screen.
+     *
+     * <p>Checked rather than assumed: the coordinate was recorded minutes ago and
+     * the broadcaster may have been broken since. A screen fed by a dead
+     * broadcaster would look exactly like a screen with no feed at all, so both
+     * refusals say why.</p>
+     */
+    private static boolean bindVideoScreen(World world, EntityPlayer player, BlockPos screenPos,
+                                          NBTTagCompound tag) {
+        BlockPos broadcasterPos = BlockPos.fromLong(tag.getLong("vid"));
+        TileEntity te = world.getTileEntity(broadcasterPos);
+        if (!(te instanceof com.hbmzz.tile.TileEntityVideoBroadcaster)) {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_lost"));
+            return false;
+        }
+        if (broadcasterPos.distanceSq(screenPos) > MAX_VIDEO_RANGE * MAX_VIDEO_RANGE) {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_far", MAX_VIDEO_RANGE));
+            return false;
+        }
+        TileEntity screenTe = world.getTileEntity(screenPos);
+        if (!(screenTe instanceof com.hbmzz.tile.TileEntityVideoScreen)) {
+            return false;
+        }
+        com.hbmzz.tile.TileEntityVideoBroadcaster broadcaster =
+                (com.hbmzz.tile.TileEntityVideoBroadcaster) te;
+        ((com.hbmzz.tile.TileEntityVideoScreen) screenTe).link(broadcasterPos, broadcaster.getVideo());
+        if (broadcaster.getVideo().isEmpty()) {
+            // Bound, but there is nothing to show yet. Saying it out loud is the
+            // difference between "the cable worked" and "the cable did nothing".
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_bound_empty"));
+        } else {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.video_bound", broadcaster.getVideo()));
+        }
+        return true;
     }
 
     /**
@@ -373,6 +476,10 @@ public class ItemMonitorLinker extends Item {
         if (tag != null && tag.hasKey("cam")) {
             tooltip.add(TextFormatting.AQUA + "camera: " + tag.getString("camName")
                     + " @ " + BlockPos.fromLong(tag.getLong("cam")));
+        }
+        if (tag != null && tag.hasKey("vid")) {
+            tooltip.add(TextFormatting.AQUA + "video: " + tag.getString("vidName")
+                    + " @ " + BlockPos.fromLong(tag.getLong("vid")));
         }
         int[][] recorded = getLocations(stack);
         if (recorded != null) {

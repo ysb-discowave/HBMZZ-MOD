@@ -95,17 +95,43 @@ public class BlockVideoBroadcaster extends BlockHorizontal implements ITileEntit
         return new TileEntityVideoBroadcaster();
     }
 
+    /**
+     * Plain right-click watches, sneak-right-click configures.
+     *
+     * <p>The watching window is the thing a player standing in front of a video
+     * block wants; the settings window is what an operator wants, and 2.3.x had
+     * only the latter on every click. Sneak keeps both, and it matches the
+     * monitors (plain click = look at it, sneak = change it).</p>
+     *
+     * <p>The cable is declined first: {@code Item.onItemUse} only runs after the
+     * block says no, so a block that claims every click makes its own linking
+     * tool dead - which is exactly how the video screen could never be bound.</p>
+     */
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        if (player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemMonitorLinker) {
+            return false;
+        }
         if (world.isRemote) {
-            HBMZZ.proxy.openVideoBroadcaster(pos);
+            if (!player.isSneaking() && hasClip(world, pos)) {
+                HBMZZ.proxy.openVideoViewer(pos);
+            } else {
+                HBMZZ.proxy.openVideoBroadcaster(pos);
+            }
             return true;
         }
         // Push the current settings down before the window opens, so a client
         // that walked up while the block was edited elsewhere does not edit a
-        // stale copy.
+        // stale copy (or play a name that has since changed).
         world.notifyBlockUpdate(pos, state, state, 3);
         return true;
+    }
+
+    /** True when this broadcaster is set to a clip, i.e. watching it means something. */
+    private static boolean hasClip(World world, BlockPos pos) {
+        TileEntity te = world.getTileEntity(pos);
+        return te instanceof TileEntityVideoBroadcaster
+                && !((TileEntityVideoBroadcaster) te).getVideo().isEmpty();
     }
 }

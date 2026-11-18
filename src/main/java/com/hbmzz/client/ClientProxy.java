@@ -53,6 +53,10 @@ public class ClientProxy extends CommonProxy {
         // only says "watch this block", and this decides where the eye goes.
         ClientCinematic.init();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
+        // 视频大屏：世界里那块正在放片子的屏幕。走 TESR 而不是方块模型，因为
+        // 画面每帧都在变，而方块模型是资源加载时烘焙一次的（理由见 RenderVideoScreen）。
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.tile.TileEntityVideoScreen.class, new RenderVideoScreen());
         // The two nuclear-system panels: one cell each, same housing hardware as
         // the DFC monitor, different canvas.
         ClientRegistry.bindTileEntitySpecialRenderer(
@@ -111,6 +115,7 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("control_panel"));
         list.add(loc("ctrl_console"));
         list.add(loc("video_broadcaster"));
+        list.add(loc("video_screen"));
         list.add(loc("nuke"));
         list.add(loc("nuke_controller"));
         list.add(loc("nuke_monitor"));
@@ -150,6 +155,7 @@ public class ClientProxy extends CommonProxy {
         list.add(Item.getItemFromBlock(ModContent.BLOCK_CTRL_PANEL));
         list.add(ModContent.ITEM_BLOCK_CTRL_CONSOLE);
         list.add(ModContent.ITEM_BLOCK_VIDEO_BROADCASTER);
+        list.add(ModContent.ITEM_BLOCK_VIDEO_SCREEN);
         list.add(ModContent.ITEM_BLOCK_NUKE);
         list.add(ModContent.ITEM_BLOCK_NUKE_CONTROLLER);
         list.add(ModContent.ITEM_BLOCK_NUKE_MONITOR);
@@ -178,8 +184,8 @@ public class ClientProxy extends CommonProxy {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  ammo_9mm  556  12ga
             0, 1, 2,
-            //  control_panel  console  video  nuke  controller  nuke_monitor  code  alert  tablet
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            //  control_panel  console  video  screen  nuke  controller  nuke_monitor  code  alert  tablet
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  dfc_blast_sensor
             0,
             //  and_gate  or_gate  xor_gate  not_gate
@@ -214,6 +220,28 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void openVideoBroadcaster(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoBroadcaster(pos));
+    }
+
+    /**
+     * The watching window for a video block.
+     *
+     * <p>Works for both ends: a screen in the world (it copies the clip from its
+     * broadcaster and syncs it) and a broadcaster itself (right-clicking one
+     * while not sneaking watches rather than configures). An unlinked screen
+     * opens the same window with an explanation, because "nothing happens" is the
+     * one answer that leaves the player with no next step.</p>
+     */
+    @Override
+    public void openVideoViewer(BlockPos pos) {
+        String clip = "";
+        net.minecraft.tileentity.TileEntity te = Minecraft.getMinecraft().world == null
+                ? null : Minecraft.getMinecraft().world.getTileEntity(pos);
+        if (te instanceof com.hbmzz.tile.TileEntityVideoScreen) {
+            clip = ((com.hbmzz.tile.TileEntityVideoScreen) te).getVideo();
+        } else if (te instanceof com.hbmzz.tile.TileEntityVideoBroadcaster) {
+            clip = ((com.hbmzz.tile.TileEntityVideoBroadcaster) te).getVideo();
+        }
+        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoScreen(clip, true));
     }
 
     @Override

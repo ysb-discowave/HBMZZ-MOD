@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "hbmzz:video_screen_empty" },
+    "facing=south": { "model": "hbmzz:video_screen_empty" },
+    "facing=west":  { "model": "hbmzz:video_screen_empty" },
+    "facing=east":  { "model": "hbmzz:video_screen_empty" }
+  }
+}

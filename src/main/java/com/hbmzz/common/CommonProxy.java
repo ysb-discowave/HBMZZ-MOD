@@ -50,6 +50,14 @@ public class CommonProxy {
     }
 
     /**
+     * Opens the watching window for a video block - a screen in the world or the
+     * broadcaster feeding it. Client only, like every other window here: the
+     * server has no pixels, it just carries the clip name in the update tag.
+     */
+    public void openVideoViewer(BlockPos pos) {
+    }
+
+    /**
      * Opens the command window of one terminal control.
      *
      * <p>{@code kind} says which panel the control lives on - this mod's own

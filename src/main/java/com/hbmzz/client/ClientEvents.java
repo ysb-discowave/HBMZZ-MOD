@@ -96,6 +96,7 @@ public class ClientEvents {
     public void onWorldUnload(net.minecraftforge.event.world.WorldEvent.Unload event) {
         if (event.getWorld() != null && event.getWorld().isRemote) {
             RenderDFCMonitor.clearCaches();
+            RenderVideoScreen.clearCaches();
             RenderFallenScreen.clearCaches();
             RenderNukeMonitor.clearCaches();
             RenderAlertDisplay.clearCaches();
@@ -112,6 +113,9 @@ public class ClientEvents {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
+        // 世界里的视频大屏：把已经失效的屏幕的播放引用还回去，否则一块被拆掉/卸载的
+        // 屏幕会一直占着一路解码，直到退出世界才释放。
+        com.hbmzz.client.video.VideoScreenPlayback.tick();
         EntityPlayer player = mc.player;
         if (player == null) {
             // Leaving a world drops the server side state; forget ours as well so

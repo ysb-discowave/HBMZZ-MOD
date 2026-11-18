@@ -60,6 +60,11 @@ public final class ModContent {
     public static final Block BLOCK_CTRL_CONSOLE = new com.hbmzz.cecp.block.BlockCtrlConsole();
     /** Takes over the screens of the players a selector names. */
     public static final Block BLOCK_VIDEO_BROADCASTER = new com.hbmzz.block.BlockVideoBroadcaster();
+    /**
+     * The wall the broadcast lands on: a multi-cell panel that plays the linked
+     * broadcaster's clip in the world. Filler cells are {@link #BLOCK_MONITOR_PART}.
+     */
+    public static final Block BLOCK_VIDEO_SCREEN = new com.hbmzz.block.BlockVideoScreen();
     public static final Item ITEM_LINKER = new ItemMonitorLinker();
     /** The hacker tablet: opens a terminal that writes machine fields directly. */
     public static final Item ITEM_HACKER_TABLET = new ItemHackerTablet();
@@ -68,6 +73,7 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_CTRL_PANEL = new ItemBlock(BLOCK_CTRL_PANEL);
     public static final Item ITEM_BLOCK_CTRL_CONSOLE = new ItemBlock(BLOCK_CTRL_CONSOLE);
     public static final Item ITEM_BLOCK_VIDEO_BROADCASTER = new ItemBlock(BLOCK_VIDEO_BROADCASTER);
+    public static final Item ITEM_BLOCK_VIDEO_SCREEN = new com.hbmzz.item.ItemBlockVideoScreen(BLOCK_VIDEO_SCREEN);
 
     // ---- nuclear accident system -------------------------------------------
     /** The one bomb. A plain ItemBlock would do, except it cannot explain a refusal. */
@@ -131,6 +137,7 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_CTRL_PANEL);
         event.getRegistry().register(BLOCK_CTRL_CONSOLE);
         event.getRegistry().register(BLOCK_VIDEO_BROADCASTER);
+        event.getRegistry().register(BLOCK_VIDEO_SCREEN);
         event.getRegistry().register(BLOCK_NUKE);
         event.getRegistry().register(BLOCK_NUKE_CONTROLLER);
         event.getRegistry().register(BLOCK_NUKE_MONITOR);
@@ -157,6 +164,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_CTRL_CONSOLE);
         ITEM_BLOCK_VIDEO_BROADCASTER.setRegistryName(BLOCK_VIDEO_BROADCASTER.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_VIDEO_BROADCASTER);
+        ITEM_BLOCK_VIDEO_SCREEN.setRegistryName(BLOCK_VIDEO_SCREEN.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_VIDEO_SCREEN);
         ITEM_BLOCK_NUKE.setRegistryName(BLOCK_NUKE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_NUKE);
         ITEM_BLOCK_NUKE_CONTROLLER.setRegistryName(BLOCK_NUKE_CONTROLLER.getRegistryName());
@@ -277,6 +286,19 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'O', Item.getItemFromBlock(Blocks.OBSERVER)
         ).setRegistryName(HBMZZ.MODID, "video_broadcaster"));
+
+        // Video screen: mostly glass (it is a panel, not a machine) on an iron
+        // frame, with one redstone to say it is wired to something.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "video_screen"),
+                new ItemStack(BLOCK_VIDEO_SCREEN),
+                "GGG",
+                "IRI",
+                "III",
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "video_screen"));
 
         // ---- nuclear accident system ----
         // The bomb is the most expensive thing in the mod by design: it ends a

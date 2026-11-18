@@ -307,7 +307,8 @@ def main():
     # so no camera, core or meter could ever be connected to it. The console is
     # exempt because it owns its editor and the cable only records it while
     # sneaking.
-    LINK_TARGETS = ["BlockDFCMonitor", "BlockMonitorCamera", "BlockCtrlPanel"]
+    LINK_TARGETS = ["BlockDFCMonitor", "BlockMonitorCamera", "BlockCtrlPanel",
+                    "BlockVideoBroadcaster", "BlockVideoScreen"]
     LINK_EXEMPT = {"BlockCtrlConsole"}
     offenders = []
     for name in LINK_TARGETS:

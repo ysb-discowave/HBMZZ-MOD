@@ -153,12 +153,25 @@ public final class VideoPlayer implements Closeable {
      * must not jump the playhead back to zero.</p>
      */
     public void beginPlayback() {
+        beginPlayback(true);
+    }
+
+    /**
+     * Same, but able to stay silent.
+     *
+     * <p>A screen standing in the world plays muted: the audio path is a plain
+     * {@code Sound} with no position, so two screens showing the same clip
+     * would double the volume, and a wall of them would be unusable. Sound is
+     * what the watching window is for. The clock is anchored either way, so
+     * muting never desynchronises the picture.</p>
+     */
+    public void beginPlayback(boolean withAudio) {
         if (this.started) {
             return;
         }
         this.started = true;
         this.startNanos = System.nanoTime();
-        if (HBMZZConfig.videoAudio && this.clip.hasAudio()) {
+        if (withAudio && HBMZZConfig.videoAudio && this.clip.hasAudio()) {
             try {
                 this.audio = VideoAudio.play(this.clip.openAudio(), 0.65F);
             } catch (IOException ignored) {

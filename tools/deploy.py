@@ -12,7 +12,9 @@
 装进去这件事每次发版都要做一遍，手点资源管理器容易装错版本、也容易把上一版
 留在目录里让游戏同时加载两个 hbmzz。这个脚本只做一件事：拿 build/libs 里
 那个由 build.gradle 版本号算出来的 jar，校验和比对后放进 mods，旧的那份改名
-`.jar.bak`（和一直以来手工部署的规矩一致，不删任何东西）。
+`.jar.bak`（和一直以来手工部署的规矩一致，不删任何东西）。整合包目录里若有
+`backupsmod`，改名后的旧版会挪进 `backupsmod/hbmzz-old-jars`，mods 里只留当前
+版本——同一模组的两份 jar 同时在目录里，轻则白占内存，重则 duplicate modid。
 
     python tools/deploy.py                 # 自动找游戏目录
     python tools/deploy.py --mods "D:/mc/versions/mp3mod/mods"
@@ -42,6 +44,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD_LIBS = os.path.join(ROOT, "build", "libs")
 LOCAL_CONFIG = os.path.join(ROOT, "deploy.local.json")
 HOME = os.path.expanduser("~")
+
+# 我们的文件长什么样：hbmzz-<数字版本>.jar / hbmzz-<数字版本>.jar.bak* / rsaudio-*。
+# 刻意要求版本段以数字开头 —— hbmzz-addon-0.1.0.jar 是同前缀的第三方附加包。
+OWN_JAR = re.compile(r"^hbmzz-\d[\w.\-]*\.jar$", re.IGNORECASE)
+OWN_BACKUP = re.compile(r"^(?:hbmzz-\d|rsaudio-)[\w.\-]*\.bak.*$", re.IGNORECASE)
 
 
 def die(message):
@@ -129,10 +136,17 @@ def resolve_mods(explicit):
 
 
 def installed_jars(mods):
+    """我们自己的产物。
+
+    ★★★ 不能只判 ``startswith("hbmzz-")``：``hbmzz-addon-0.1.0.jar`` 是别人做的
+    附加包，前缀撞上了，但它是<b>另一个模组</b>。2026-11-18 现场就是这么把它当旧版
+    归档走的，整合包里凭空少一个模组。判据必须是「hbmzz- + 数字版本」：
+    我们的产物一律叫 ``hbmzz-3.8.0.jar``，附加包是 ``hbmzz-addon-...``。
+    """
     return sorted(
         os.path.join(mods, name)
         for name in os.listdir(mods)
-        if name.lower().startswith("hbmzz-") and name.lower().endswith(".jar")
+        if OWN_JAR.match(name)
     )
 
 
@@ -150,6 +164,46 @@ def standalone_rsaudio(mods):
         for name in os.listdir(mods)
         if name.lower().startswith("rsaudio-") and name.lower().endswith(".jar")
     )
+
+
+def archive_dir(mods):
+    """整合包目录里有 backupsmod 就归档进去，没有就留在原地改名。
+
+    只对「确实是我们自己的旧版本」动手：``hbmzz-*`` 与 ``rsaudio-*``（后者
+    2.9.0 起并进了 hbmzz）。其它模组的任何文件一概不碰，删除更是从来不删。
+    """
+    backups = os.path.join(os.path.dirname(mods), "backupsmod")
+    if os.path.isdir(backups):
+        return os.path.join(backups, "hbmzz-old-jars")
+    return None
+
+
+def archive(mods, path):
+    """把一份旧文件挪进归档目录；没有归档目录就返回 None。"""
+    dest = archive_dir(mods)
+    if not dest:
+        return None
+    os.makedirs(dest, exist_ok=True)
+    target = os.path.join(dest, os.path.basename(path))
+    if os.path.exists(target):
+        os.remove(target)
+    shutil.move(path, target)
+    return target
+
+
+def sweep_old_backups(mods):
+    """把 mods 里我们自己的 .bak 历史文件收进归档目录，返回搬走的数量。
+
+    ★ 同样按 ``OWN_BACKUP`` 判，不用 ``hbmzz-*.bak*`` 通配：附加包被误改名成
+    ``hbmzz-addon-0.1.0.jar.bak`` 时，通配会把它再搬一次，而它的真身本就该留在 mods。
+    """
+    moved = 0
+    for name in sorted(os.listdir(mods)):
+        if not OWN_BACKUP.match(name):
+            continue
+        if archive(mods, os.path.join(mods, name)):
+            moved += 1
+    return moved
 
 
 def main():
@@ -176,7 +230,8 @@ def main():
 
     stale = [path for path in installed_jars(mods) if os.path.abspath(path) != os.path.abspath(target)]
     duplicates = standalone_rsaudio(mods)
-    plan = [("改名 .bak", path) for path in stale] + [("复制", jar)]
+    label = "归档旧版" if archive_dir(mods) else "改名 .bak"
+    plan = [(label, path) for path in stale] + [("复制", jar)]
 
     if args.dry_run:
         for action, path in plan:
@@ -192,8 +247,9 @@ def main():
             os.replace(path, backup)
         except PermissionError:
             die("改不动 %s —— 游戏还开着？先退出游戏再跑一次" % os.path.basename(path))
+        archived = archive(mods, backup)
         print("独立 rsaudio 已停用 %s（已并进 hbmzz，两份同时装会 duplicate modid）"
-              % os.path.basename(backup))
+              % os.path.basename(archived or backup))
 
     for path in stale:
         backup = path + ".bak"
@@ -201,7 +257,11 @@ def main():
             os.replace(path, backup)
         except PermissionError:
             die("改不动 %s —— 游戏还开着？先退出游戏再跑一次" % os.path.basename(path))
-        print("旧版改名 %s" % os.path.basename(backup))
+        archived = archive(mods, backup)
+        if archived:
+            print("旧版归档 %s" % os.path.basename(archived))
+        else:
+            print("旧版改名 %s" % os.path.basename(backup))
 
     try:
         shutil.copy2(jar, target)
@@ -213,6 +273,10 @@ def main():
         die("复制后校验和不一致，别进游戏，先查磁盘：" + target)
 
     print("装好了 %s（%d 字节，sha256 %s…）" % (os.path.basename(target), os.path.getsize(target), digest[:12]))
+    swept = sweep_old_backups(mods)
+    dest = archive_dir(mods)
+    if swept and dest:
+        print("顺手归档了 %d 份历史 .bak → %s" % (swept, dest))
     backups = glob.glob(os.path.join(mods, "hbmzz-*.jar.bak"))
     if backups:
         total = sum(os.path.getsize(path) for path in backups)

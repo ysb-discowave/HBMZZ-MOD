@@ -58,7 +58,7 @@ import java.util.List;
 public class GuiVideoBroadcaster extends GuiScreen {
 
     private static final int W = 320;
-    private static final int H = 200;
+    private static final int H = 250;
     private static final int LIST_ROWS = 6;
     private static final int ROW_H = 12;
 
@@ -83,6 +83,8 @@ public class GuiVideoBroadcaster extends GuiScreen {
     private String preview = "";
     private int previewColor = DIM;
     private String previewKey = "";
+    /** One-line answer from the folder / refresh buttons. */
+    private String notice = "";
 
     public GuiVideoBroadcaster(BlockPos pos) {
         this.pos = pos;
@@ -128,10 +130,24 @@ public class GuiVideoBroadcaster extends GuiScreen {
         }
 
         this.clips = VideoLibrary.names();
+        if (this.notice.isEmpty()) {
+            this.notice = pendingNote();
+        }
 
         this.buttonList.add(new GuiButton(0, this.left + 22, this.top + 176, 96, 18, "保存并应用"));
         this.buttonList.add(new GuiButton(1, this.left + 124, this.top + 176, 96, 18, "测试广播"));
         this.buttonList.add(new GuiButton(2, this.left + 226, this.top + 176, 72, 18, "关闭"));
+        // 运行中往目录里丢一个 zip 是常态，所以这两件事必须在窗口里，而不是
+        // 让玩家退游戏、开文件管理器、再进来。
+        this.buttonList.add(new GuiButton(3, this.left + 22, this.top + 200, 146, 18, "打开视频文件夹"));
+        this.buttonList.add(new GuiButton(4, this.left + 178, this.top + 200, 120, 18, "刷新列表（F7）"));
+        // 音量与「强制限制返回」仍然只在设置窗口里：它不属于片源编辑，
+        // 但也不能凭空消失，所以给它一个明确的入口（接上大屏后那一项会自己
+        // 从设置窗口里让位，因为退出已经不归它管）。
+        this.buttonList.add(new GuiButton(5, this.left + 22, this.top + 224, 146, 18, "播放器设置"));
+        // 目录里躺着一个 mp4 是最常见的开局。以前这里只能告诉玩家"不支持"，
+        // 现在旁边就有一个能把它转成帧包的地方。
+        this.buttonList.add(new GuiButton(6, this.left + 178, this.top + 224, 120, 18, "导入视频…"));
     }
 
     @Override
@@ -156,7 +172,8 @@ public class GuiVideoBroadcaster extends GuiScreen {
         drawRect(l + 1, t + 22, l + W - 1, t + 23, 0xFF1A2028);
 
         this.fontRenderer.drawStringWithShadow("视频广播器", l + 12, t + 7, AMBER);
-        String header = "红石上升沿 → 全屏占用";
+        // 两种右键写在这里，因为没人会去读文档才知道要蹲下。
+        String header = "站立右键大屏展示 · 蹲下右键本窗口";
         this.fontRenderer.drawStringWithShadow(header,
                 l + W - 12 - this.fontRenderer.getStringWidth(header), t + 8, DIM);
 
@@ -181,6 +198,9 @@ public class GuiVideoBroadcaster extends GuiScreen {
 
         TileEntityVideoBroadcaster te = tile();
         String status = te == null ? "" : te.getStatus();
+        if (!this.notice.isEmpty()) {
+            status = this.notice;
+        }
         if (!status.isEmpty()) {
             this.fontRenderer.drawStringWithShadow(fit(status, W - 24), l + 12, t + 162, DIM);
         }
@@ -371,10 +391,78 @@ public class GuiVideoBroadcaster extends GuiScreen {
             case 1:
                 send(true);
                 break;
+            case 3:
+                openFolder();
+                break;
+            case 4:
+                refreshList();
+                break;
+            case 5:
+                this.mc.displayGuiScreen(new GuiVideoPlayerConfig(this.pos));
+                break;
+            case 6:
+                this.mc.displayGuiScreen(new GuiVideoImport(this.pos, this));
+                break;
             default:
                 this.mc.displayGuiScreen(null);
                 break;
         }
+    }
+
+    private void openFolder() {
+        boolean opened = VideoLibrary.openFolder();
+        this.notice = opened
+                ? "已打开：" + VideoLibrary.folderPath()
+                : "没能打开文件管理器，路径：" + VideoLibrary.folderPath();
+    }
+
+    /**
+     * Re-reads the shelf.
+     *
+     * <p>Same call the F7 key makes. The list is rebuilt rather than appended so a
+     * file removed from the folder disappears here too, and the scroll position is
+     * clamped because the list may have become shorter than the window.</p>
+     */
+    private void refreshList() {
+        VideoLibrary.rescan();
+        this.clips = VideoLibrary.names();
+        if (this.notice.isEmpty()) {
+            this.notice = pendingNote();
+        }
+        clampScroll();
+        this.notice = "已刷新：" + this.clips.size() + " 个视频" + ignoredNote();
+        this.previewKey = "";
+    }
+
+    /**
+     * 目录里既有"能转的"也有"真不支持的"，这句话把两件事都说清楚。
+     *
+     * <p>mp4 不再算失败：它在待导入清单里，点一下就能转。剩下那些才需要
+     * "做成 zip"的解释。</p>
+     */
+    private String pendingNote() {
+        StringBuilder text = new StringBuilder();
+        int waiting = VideoLibrary.importable().size();
+        if (waiting > 0) {
+            text.append("；有 ").append(waiting).append(" 个视频待导入（点「导入视频…」）");
+        }
+        text.append(ignoredNote());
+        return text.toString();
+    }
+
+    /** Why a dropped file did not appear - the only honest answer to "刷新无效". */
+    private String ignoredNote() {
+        List<String> ignored = VideoLibrary.skipped();
+        if (ignored.isEmpty()) {
+            return "";
+        }
+        String first = ignored.get(0);
+        if (first.length() > 24) {
+            first = first.substring(0, 23) + "…";
+        }
+        return (ignored.size() == 1
+                ? "；跳过 1 个不支持的文件：" + first + "（需打包成 zip）"
+                : "；跳过 " + ignored.size() + " 个不支持的文件：" + first + " 等（需打包成 zip）");
     }
 
     private void send(boolean test) {

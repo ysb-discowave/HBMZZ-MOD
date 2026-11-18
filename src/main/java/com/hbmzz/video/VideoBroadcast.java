@@ -50,6 +50,19 @@ public final class VideoBroadcast {
      * @return a one-line report for the tile entity (and the operator's HUD)
      */
     public static String fire(World world, BlockPos pos, String video, String selector) {
+        return fire(world, pos, video, selector, 100, true);
+    }
+
+    /**
+     * Same, with the player's own volume and 强制限制返回 policy attached.
+     *
+     * <p>They ride along with the clip name because the receiving window needs
+     * both before the first frame: starting at the default volume and dropping to
+     * the configured one a tick later is audible, and deciding the exit rule late
+     * means one unlucky player can dismiss a takeover that was meant to hold.</p>
+     */
+    public static String fire(World world, BlockPos pos, String video, String selector,
+                             int volume, boolean restrictBack) {
         if (video == null || video.isEmpty()) {
             return "未设置视频文件";
         }
@@ -61,7 +74,10 @@ public final class VideoBroadcast {
             return result.error;
         }
         List<EntityPlayer> players = result.players;
-        VideoBroadcastMessage message = new VideoBroadcastMessage(video);
+        // 播放器坐标一起发过去：客户端要拿它回查"这台播放器接没接大屏"，
+        // 而这台机器上的方块实体是随方块更新同步下来的，问它比再开一条
+        // 同步通道便宜，也不会出现两个来源各说各话。
+        VideoBroadcastMessage message = new VideoBroadcastMessage(pos, video, volume, restrictBack);
         int sent = 0;
         for (EntityPlayer player : players) {
             // Fake players answer instanceof EntityPlayer too; they have no

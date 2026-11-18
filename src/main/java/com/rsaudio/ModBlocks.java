@@ -5,8 +5,11 @@ import com.rsaudio.block.BlockAirlockController;
 import com.rsaudio.block.BlockAlarmLight;
 import com.rsaudio.block.BlockAnnouncer;
 import com.rsaudio.block.BlockAudioPlayer;
+import com.rsaudio.block.BlockBlastCurtain;
+import com.rsaudio.block.BlockBlastCurtainPanel;
 import com.rsaudio.block.BlockBlastDoor;
 import com.rsaudio.block.BlockBlastDoorPanel;
+import com.rsaudio.block.BlockHuangPoster;
 import com.rsaudio.block.BlockTartarus;
 import com.rsaudio.block.BlockTartarusHatch;
 import com.rsaudio.block.BlockDmrCasing;
@@ -85,6 +88,14 @@ public final class ModBlocks {
     public static final Block ANNOUNCER = new BlockAnnouncer();
     /** 防核门门板（无物品） */
     public static final Block BLAST_DOOR_PANEL = new BlockBlastDoorPanel();
+
+    /**
+     * 防爆窗帘：和防核门<b>同一套机构</b>的布面变体（布材质、抗性 1000、门板换成布帘板、
+     * 由渲染器画成带褶皱的黑布）。见 {@link BlockBlastCurtain}。
+     */
+    public static final Block BLAST_CURTAIN = new BlockBlastCurtain();
+    /** 防爆窗帘的布帘格（无物品，由控制器生成 / 移除） */
+    public static final Block BLAST_CURTAIN_PANEL = new BlockBlastCurtainPanel();
 
     /**
      * 塔塔鲁斯舱盖门（圆形、巨型、向下缓慢开合的活板门）：
@@ -216,6 +227,8 @@ public final class ModBlocks {
     public static final Block EXHAUST_FAN = new BlockExhaustFan();
     /** 巨大标志牌：三行可编辑文字 + 八色 + 照明 */
     public static final Block GIANT_SIGN = new BlockGiantSign();
+    /** 纪念挂画（彩蛋）：十一张画面，右键翻页，潜行右键放歌 */
+    public static final Block HUANG_POSTER = new BlockHuangPoster();
     /** 起重机：右键切换运行/停臂，龙门架/回转臂/吊钩由 CraneRenderer 画 */
     public static final Block CRANE = new BlockCrane();
     /** 货运卡车车位：潜行右键放出一台 {@link com.rsaudio.entity.EntityFreightTruck} */
@@ -245,6 +258,8 @@ public final class ModBlocks {
         registry.register(REDSTONE_COMPUTER);
         registry.register(BLAST_DOOR);
         registry.register(BLAST_DOOR_PANEL);
+        registry.register(BLAST_CURTAIN);
+        registry.register(BLAST_CURTAIN_PANEL);
         registry.register(TARTARUS);
         registry.register(TARTARUS_HATCH);
         registry.register(ANNOUNCER);
@@ -278,6 +293,7 @@ public final class ModBlocks {
         registry.register(GIANT_PIPE);
         registry.register(EXHAUST_FAN);
         registry.register(GIANT_SIGN);
+        registry.register(HUANG_POSTER);
         // ★ 起重机 + 卡车车位（起重组）。漏注册的症状和装饰组那三块一样：
         //   物品在、放下去变空气。
         registry.register(CRANE);
@@ -299,6 +315,8 @@ public final class ModBlocks {
         registry.register(makeItemBlock(STRUCTURE_LOADER));
         registry.register(makeItemBlock(REDSTONE_COMPUTER));
         registry.register(makeItemBlock(BLAST_DOOR));
+        // ★ 窗帘要有物品：玩家得先手上有它才能挂上去（门板那两块则故意没有）
+        registry.register(makeItemBlock(BLAST_CURTAIN));
         // ★ 塔塔鲁斯控制器必须有物品。之前只注册了方块、没注册 ItemBlock ——
         //   症状是"东西明明写了，创造模式物品栏里却根本没有、也放不下去"，
         //   玩家看到的就是"塔塔鲁斯被吃掉了"。舱盖格 TARTARUS_HATCH 则故意没有物品
@@ -340,6 +358,8 @@ public final class ModBlocks {
         //   （少注册的症状见上面塔塔鲁斯那条注释："写了却根本拿不到"）。
         registry.register(makeItemBlock(CRANE));
         registry.register(makeItemBlock(TRUCK_PAD));
+        // 纪念挂画（彩蛋）：玩家要能拿在手上挂到墙上
+        registry.register(makeItemBlock(HUANG_POSTER));
         for (Block alarm : ALARM_LIGHTS) {
             registry.register(makeItemBlock(alarm));
         }
@@ -413,7 +433,8 @@ public final class ModBlocks {
                 missing++;
             }
             // 这三个是「只能由机器生成」的方块，故意没有物品 —— 见各自的类注释
-            if (block == BLAST_DOOR_PANEL || block == TARTARUS_HATCH || block == ELEVATOR_CAR) {
+            if (block == BLAST_DOOR_PANEL || block == BLAST_CURTAIN_PANEL
+                    || block == TARTARUS_HATCH || block == ELEVATOR_CAR) {
                 continue;
             }
             if (ForgeRegistries.ITEMS.getValue(name) == null) {

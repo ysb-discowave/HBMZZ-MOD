@@ -87,6 +87,9 @@ public class ClientModelRegistry {
         registerItem(ModBlocks.STRUCTURE_LOADER, "structure_loader");
         registerItem(ModBlocks.REDSTONE_COMPUTER, "redstone_computer");
         registerItem(ModBlocks.BLAST_DOOR, "blast_door");
+        // ★ 防爆窗帘（布面变体）：漏这一行 = 手上/物品栏里是紫黑块。
+        //   布帘格（BLAST_CURTAIN_PANEL）没有 ItemBlock，所以这里<b>不</b>写它。
+        registerItem(ModBlocks.BLAST_CURTAIN, "blast_curtain");
         registerItem(ModBlocks.ANNOUNCER, "announcer");
         for (int i = 0; i < ModBlocks.ALARM_LIGHTS.length; i++) {
             registerItem(ModBlocks.ALARM_LIGHTS[i], "alarm_" + BlockAlarmLight.COLOR_NAMES[i]);
@@ -154,6 +157,8 @@ public class ClientModelRegistry {
         //   漏一行 = "方块放得出来、手上和物品栏里是紫黑块"（本项目已踩多次）。
         registerItem(ModBlocks.CRANE, "crane");
         registerItem(ModBlocks.TRUCK_PAD, "truck_pad");
+        // 纪念挂画（彩蛋）。同一条死线：漏这一行 = 手上/物品栏里是紫黑块。
+        registerItem(ModBlocks.HUANG_POSTER, "huang_poster");
     }
 
     private static void registerItem(Block block, String name) {

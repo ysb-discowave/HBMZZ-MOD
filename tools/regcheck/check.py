@@ -325,6 +325,25 @@ def main():
           "claims the right-click, so ItemMonitorLinker.onItemUse never runs: "
           + ", ".join(offenders))
 
+    # 8b. 大屏这一对走的是另一件工具：大屏遥控器先对准播放器，再右键大屏。
+    # 同样的道理——方块只要把右键吞掉，遥控器的 onItemUse 就永远不会跑，
+    # 大屏也就永远接不上任何播放器。这条以前没单独写，是因为大屏曾经借用
+    # 监控数据线；现在两套工具分开，检查也得跟着分开。
+    REMOTE_TARGETS = ["BlockVideoBroadcaster", "BlockVideoScreen"]
+    remote_offenders = []
+    for name in REMOTE_TARGETS:
+        path = os.path.join(SRC, "com/hbmzz/block", name + ".java")
+        if not os.path.exists(path):
+            continue
+        text = read(path)
+        if "onBlockActivated" not in text:
+            continue
+        if "ItemVideoRemote" not in member_body(text, "onBlockActivated"):
+            remote_offenders.append(name)
+    check(not remote_offenders, "every block the remote connects declines the click for it",
+          "claims the right-click, so ItemVideoRemote.onItemUse never runs: "
+          + ", ".join(remote_offenders))
+
     # 9. Every control type must have a painter. A missing case does not fail to
     # compile - it silently falls through to `default: paintPlate`, which is a
     # blank grey square where a control should be. That is exactly how a new
@@ -718,8 +737,8 @@ def main():
     #
     # The three blocks below are the "only the machine may place this" ones
     # (see their class comments): no item, on purpose, and that list is frozen.
-    RS_NO_ITEM = {"BLAST_DOOR_PANEL", "TARTARUS_HATCH", "ELEVATOR_CAR"}
-    RS_NO_ITEM_NAMES = {"blast_door_panel", "tartarus_hatch", "elevator_car"}
+    RS_NO_ITEM = {"BLAST_DOOR_PANEL", "BLAST_CURTAIN_PANEL", "TARTARUS_HATCH", "ELEVATOR_CAR"}
+    RS_NO_ITEM_NAMES = {"blast_door_panel", "blast_curtain_panel", "tartarus_hatch", "elevator_car"}
 
     rs = os.path.join(SRC, "com/rsaudio")
     rs_modblocks_path = os.path.join(rs, "ModBlocks.java")
@@ -753,7 +772,11 @@ def main():
             if not name.endswith(".java"):
                 continue
             src = read(os.path.join(block_dir, name))
-            match = re.search(r"class\s+(\w+)\s+extends\s+Block\b", src)
+            # ★ 也算上"变体"：防爆窗帘 / 布帘格是 BlockBlastDoor(±Panel) 的子类，
+            #   它们自己就是带注册名的方块类；只认 "extends Block" 会让它们的
+            #   blockstate / 物品模型两条守卫直接失明。
+            match = re.search(
+                r"class\s+(\w+)\s+extends\s+(?:Block|BlockBlastDoor|BlockBlastDoorPanel)\b", src)
             if match:
                 rs_block_classes.append(match.group(1))
         orphans = [c for c in rs_block_classes if ("new " + c + "(") not in modblocks]
@@ -1002,6 +1025,532 @@ def main():
     uncovered = sorted(name for name in registered_items if name not in set(item_tokens))
     check(not uncovered, "every registered item has an explicit model location",
           "icon depends on a filename coincidence: " + ", ".join(uncovered))
+
+    # 65. setRegistryName() writes the field once and throws the second time
+    # ("Attempted to set registry name with existing registry name!"), and it
+    # throws from a static field initializer - so the client dies during
+    # "Initializing game" with a stacktrace that names the constructor, not the
+    # block that caused it. The 3.8.0 build shipped exactly that: a literal
+    # setRegistryName() added to BlockBlastDoor's no-arg constructor on top of
+    # the delegated one that already set the same name, and blast_door took the
+    # whole game down before the main menu. The rule that keeps it from coming
+    # back: one call per file. A concrete class sets its literal once (this
+    # script reads that line), and a shared parent sets none - if the parent
+    # sets it from a parameter, every subclass that adds its own literal is
+    # double-setting too, which is why the check counts per file and not per
+    # inheritance chain.
+    doubled = []
+    for base, _, files in os.walk(SRC):
+        for name in files:
+            if not name.endswith(".java"):
+                continue
+            path = os.path.join(base, name)
+            calls = [line for line in read(path).splitlines()
+                     if re.match(r"\s*setRegistryName\s*\(", line)]
+            if len(calls) > 1:
+                doubled.append(os.path.relpath(path, ROOT).replace(os.sep, "/"))
+    check(not doubled, "no class sets its registry name twice (crashes at startup)",
+          "second call throws in a static initializer, game dies at 'Initializing game': "
+          + ", ".join(sorted(doubled)))
+
+    # 66. 大屏的播放定位：客户端发上来的是一个整数秒数，服务器必须先夹再存。
+    # 这条规则守的是"谁来定边界"——拖动进度条时窗口已经夹过一次，但窗口是
+    # 便利路径不是边界；一条 -5 秒或者 10 小时的报文只要漏过一处，墙面就会
+    # 停在一个永远到不了的时间上，而且看起来像画面坏了。所以 seekTo() 里
+    # 必须自己夹，且夹进 0..MAX_PROGRESS_MS。
+    screen_path = os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoScreen.java")
+    screen_text = read(screen_path)
+    seek_body = member_body(screen_text, "seekTo")
+    check("clampMs(" in seek_body and "MAX_PROGRESS_MS" in screen_text,
+          "the wall clamps a seek before it stores it",
+          "TileEntityVideoScreen.seekTo must go through clampMs(0..MAX_PROGRESS_MS): "
+          "an unclamped packet parks the wall on a time that never arrives")
+
+    # 66b. 客户端拿到的位置要按"本机这一段影片"再夹一次：服务器只知道一个
+    # 上限，真正的长度只有客户端手里那份文件知道。少了这一夹，片尾之后的
+    # 位置会一直被当成"跑偏了"而反复 seek，解码器每秒被清空好几次。
+    playback = read(os.path.join(SRC, "com/hbmzz/client/video/VideoScreenPlayback.java"))
+    check("within(player, player.filmSeconds())" in playback
+          and "durationSeconds()" in playback,
+          "the client clamps the playhead into the clip it actually has",
+          "VideoScreenPlayback must clamp the LOCAL side too, or an ended film "
+          "looks like drift and gets seeked every frame")
+
+    # 67. 强制限制返回是"设置"，不是"画面上的控件"。它可以拦 ESC，但绝不
+    # 能出现在播放界面里：一块盖住整个屏幕的窗口上多一个按钮，就等于给了
+    # 观众一个中途退场的入口，而这正是这个功能存在的理由。所以那条界面里
+    # 连 buttonList 都不该被碰。
+    takeover = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoScreen.java"))
+    # 界面本身能有鼠标处理（底部那条进度条要能拖），但不能有"点一下就退场"的
+    # 控件：既不许有按钮，也不许在处理左键的路径里调 displayGuiScreen(null)。
+    intrusive = [token for token in ("buttonList.add", "GuiButton") if token in takeover]
+    click_body = member_body(takeover, "mouseClicked")
+    check(not intrusive and "displayGuiScreen(null)" not in click_body,
+          "the takeover window offers no button that could dismiss it",
+          "GuiVideoScreen grows a control: " + ", ".join(intrusive))
+
+    # 68. 这条限制必须在"没有大屏"时才成立，而"有没有大屏"只能问方块实体。
+    # 曾经把它当成打开窗口那一刻的布尔快照存下来，结果遥控器中途接上大屏，
+    # 画面还在拦人；大屏被拆掉，画面又已经放行。所以这条规则守两件事：
+    # 服务端的判定要读连接状态，客户端要每一帧重新问，而不是记着旧答案。
+    broadcaster = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoBroadcaster.java"))
+    applies_body = member_body(broadcaster, "restrictBackApplies")
+    check("screenPos == null" in applies_body and "restrictBack" in applies_body,
+          "强制限制返回 only holds while no wall is connected",
+          "TileEntityVideoBroadcaster.restrictBackApplies must read the live link state")
+    check("hasScreen()" in takeover and "restricted()" in takeover
+          and "screenLinked()" in takeover,
+          "the takeover asks the wall again instead of caching the answer",
+          "GuiVideoScreen must re-read hasScreen() through screenLinked() and gate on restricted()")
+
+    # 69. 客户端要知道"这台播放器接没接大屏"，就得知道它在哪。报文里少一个
+    # 坐标，播放界面就只能相信打开时那一刻的结论，68 那条也就守不住了。
+    broadcast_message = read(os.path.join(SRC, "com/hbmzz/network/VideoBroadcastMessage.java"))
+    check("pos.toLong()" in broadcast_message or "this.pos.toLong()" in broadcast_message,
+          "the broadcast packet carries the player's position",
+          "VideoBroadcastMessage without pos cannot look the wall up on the client")
+
+    # 70. 播放器的两种右键各有各的活：站着是"看片"，蹲下是"改片"。
+    # 这一对写反过，后果不是打不开窗口，而是打开错的窗口——玩家想放片却看见
+    # 选择器，想改设置却开始播。所以直接按分支顺序读源码，不看注释。
+    block_body = member_body(read(os.path.join(SRC, "com/hbmzz/block/BlockVideoBroadcaster.java")),
+                             "onBlockActivated")
+    split = re.search(r"isSneaking\(\)[\s\S]*?openVideoBroadcaster\(pos\)[\s\S]*?else\s*\{[\s\S]*?"
+                      r"openVideoPlayback\(pos\)", block_body)
+    check(split is not None,
+          "sneak opens the editor and a plain click starts the film",
+          "BlockVideoBroadcaster must call openVideoBroadcaster() when sneaking and "
+          "openVideoPlayback() otherwise")
+
+    # 71. F 是播放窗口唯一的"看得见"的键。窗口盖住整个桌面，玩家没有别的地方
+    # 可以确认自己按的是什么，所以全屏切换必须真的调 Minecraft 的开关，而不是
+    # 只把某个布尔翻一下；退出时还要把进入前的显示模式还回去。
+    check("Keyboard.KEY_F" in takeover and "toggleFullscreen()" in takeover,
+          "the playback window toggles real fullscreen on F",
+          "GuiVideoScreen must handle Keyboard.KEY_F with Minecraft.toggleFullscreen()")
+    # 71 补：退出时要还回去的不只是"全屏/窗口"这个开关，还有窗口大小 —— 原来直接
+    # 调 Minecraft.toggleFullscreen()，退全屏会回到启动尺寸（854x480），玩家看到的是
+    # "按了 F 之后游戏框反而变小了"。现在由 VideoFullscreen 记账并按进来的尺寸还原
+    # （#92 那条守着实现本身）。
+    check("VideoFullscreen.restore(" in takeover and "addScheduledTask" in takeover,
+          "leaving the film restores the display mode and window size it found",
+          "GuiVideoScreen.onGuiClosed must schedule VideoFullscreen.restore() "
+          "(scheduled, not inside displayGuiScreen)")
+
+    # 72. 刷新必须说出被跳过的文件。video_screen 读的是图片帧序列，不是视频容器；
+    # 一个 .mp4 丢进目录永远不会出现在列表里，于是"按了刷新没反应"看起来像 bug。
+    # 这条守的是那句话本身：库要记账，窗口和 F7 都要把它念出来。
+    check("public static List<String> skipped()" in read(os.path.join(SRC, "com/hbmzz/video/VideoLibrary.java")),
+          "the library remembers files it could not use",
+          "VideoLibrary needs skipped() so a dropped .mp4 is named instead of ignored")
+    gui_broadcaster = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoBroadcaster.java"))
+    events = read(os.path.join(SRC, "com/hbmzz/client/ClientEvents.java"))
+    check("ignoredNote" in gui_broadcaster and "skipped()" in gui_broadcaster
+          and "skipped()" in events,
+          "refresh says why a file did not appear",
+          "both the window's 刷新 and the F7 key must report VideoLibrary.skipped()")
+
+    # 73. 没有 ffmpeg 的时候必须自己去下，而不是安静地降级。这一段丢过一次：
+    # 源码回到 3.7.1 基线时，BundledFfmpeg 只剩下"从 jar 里释放资源"，而包里根本
+    # 没有那个资源，于是每次都是 null，播放器就一直说"没有 ffmpeg"。所以这里守
+    # 两件事：下载器还在（HTTP + 分段），以及引导阶段真的会在缺 ffmpeg 时开下载页。
+    bundled = read(os.path.join(SRC, "com/rsaudio/formats/convert/BundledFfmpeg.java"))
+    check("HttpURLConnection" in bundled and "DEFAULT_PROXY" in bundled
+          and "SEGMENTS" in bundled,
+          "the ffmpeg downloader is present (HTTP + segmented)",
+          "BundledFfmpeg lost its download path and only extracts a bundled resource")
+    bootstrap = read(os.path.join(SRC, "com/rsaudio/formats/FormatsBootstrap.java"))
+    check("BundledFfmpeg.isReady" in bootstrap and "GuiFfmpegDownload" in bootstrap,
+          "startup downloads ffmpeg when none is detected",
+          "FormatsBootstrap must ask BundledFfmpeg.isReady() and open GuiFfmpegDownload when false")
+
+    # 74. 下载不能挂在主线程上。190 MB 走主线程就是白屏到下载结束，而且进度页
+    # 也没机会画。进度页因此必须自己起线程调 ensure()，主线程只读 progress()。
+    gui_download = read(os.path.join(SRC, "com/rsaudio/client/GuiFfmpegDownload.java"))
+    check("new Thread" in gui_download and "BundledFfmpeg.ensure" in gui_download
+          and "BundledFfmpeg.progress" in gui_download,
+          "the download page runs the transfer off the render thread",
+          "GuiFfmpegDownload must call ensure() on a worker thread and only read progress() while drawing")
+
+    # 75. "支持所有视频格式"落在导入器上：模组自己不解码，交给 ffmpeg 拆帧。
+    # 这条守的是那条命令真的存在 —— 少了 fps/scale 滤镜，转出来的包要么帧率
+    # 不对，要么宽度还是原片，播放端就得每帧缩一次。
+    importer = read(os.path.join(SRC, "com/hbmzz/video/VideoImportQueue.java"))
+    check("FfmpegFinder.path()" in importer and "fps=" in importer and "scale=" in importer,
+          "the importer shells out to ffmpeg for frames",
+          "VideoImportQueue must call FfmpegFinder.path() and use the fps/scale filters")
+
+    # 76. 转出来的东西必须是 VideoClip 认得的那三种文件。少一样就是"导进去了
+    # 却播不了"，而这正是最容易在重构里丢的一环：meta.json 决定帧率，audio.wav
+    # 决定有没有声音，帧文件名决定播放顺序。
+    check("meta.json" in importer and "audio.wav" in importer and "f%06d" in importer,
+          "the importer writes the package VideoClip reads",
+          "VideoImportQueue must emit meta.json + f%06d.jpg + audio.wav")
+
+    # 77. 入口在广播器窗口里，而且待导入文件要和"真不支持"分开记：mp4 不该再
+    # 被当成坏文件跳过，它只是还没被拆成帧。
+    broadcaster = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoBroadcaster.java"))
+    library = read(os.path.join(SRC, "com/hbmzz/video/VideoLibrary.java"))
+    check("new GuiVideoImport(" in broadcaster,
+          "the broadcaster window offers an import entry",
+          "GuiVideoBroadcaster must open GuiVideoImport from a button")
+    check("List<File> importable()" in library and "VideoFormats.isImportable" in library,
+          "video containers are listed as pending imports, not as junk",
+          "VideoLibrary needs importable() fed by VideoFormats.isImportable")
+
+    # 78. 站立右键开的是"大屏展示"，不是第二个播放器。玩家反映过：右键进去看见
+    # 一个带进度条的视频播放器窗口，而世界里的屏还在放、还在响。所以客户端必须先问
+    # 这台机器接没接屏：接了就把窗口做成屏的放大镜，没接（或屏不在已加载区，这边
+    # 根本没人发声）才退回本机全屏播放。
+    proxy = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
+    playback_body = member_body(proxy, "openVideoPlayback")
+    linked_block = re.search(r"if \(wall != null && mc\.world\.isBlockLoaded\(wall\)\) \{([\s\S]*?)\n        \}",
+                             playback_body)
+    linked = linked_block.group(1) if linked_block else ""
+    check("return;" in linked and "displayGuiScreen" not in linked,
+          "接了大屏以后右键播放器什么都不开：画面归那块屏，播放器不再抢窗口",
+          "ClientProxy.openVideoPlayback must return without opening a window while a wall is loaded")
+    check("new GuiVideoScreen(" in playback_body,
+          "没接屏（或屏不在本机已加载区）才退回本机播放窗口",
+          "openVideoPlayback must still open the local player when there is no wall to watch")
+    check("isBlockLoaded(wall)" in playback_body,
+          "the fallback happens when the wall is not loaded on this client",
+          "a mirror window for an unloaded chunk can only show an error")
+    # 一次"点了没反应"是玩家无法自查的故障：拿不到方块实体（刚放下 / 刚重连）
+    # 时也要开菜单。
+    check(playback_body.count("new GuiVideoBroadcaster(pos)") >= 2,
+          "a click never ends in silence when the block entity is not there yet",
+          "openVideoPlayback must fall back to the broadcaster window instead of returning")
+
+    # 79. 展示窗口不持有播放实例：它每帧向那块屏要帧，退出时只放下指针。
+    # 结构上排除"屏在放、窗口也在放"的双份音源。
+    mirror_body = member_body(takeover, "watchMirror")
+    closed_body = member_body(takeover, "onGuiClosed")
+    check("VideoScreenPlayback.active(" in mirror_body,
+          "大屏展示 borrows the wall's decoder instead of opening another one",
+          "GuiVideoScreen.watchMirror must call VideoScreenPlayback.active(wall)")
+    check("wallPlayer.close" not in takeover and "this.wallPlayer = null" in closed_body,
+          "closing 大屏展示 never closes the wall's decoder",
+          "onGuiClosed must drop the reference only; the wall still owns that player")
+
+    # 80. 一个房间里四块屏放同一部片子，曾经是四份音轨错开几毫秒一起响。
+    # 现在只有最近的那一块说话，其余继续解码、继续走时钟，只是静音。
+    wall_playback = read(os.path.join(SRC, "com/hbmzz/client/video/VideoScreenPlayback.java"))
+    active_body = member_body(wall_playback, "active")
+    check("public static void setAudible(" in wall_playback and "setMuted(te != audible)" in active_body,
+          "only one wall in the world is allowed a soundtrack",
+          "VideoScreenPlayback needs setAudible() and must push setMuted(te != audible) per frame")
+
+    # 81. 声音由 VideoAudioPolicy 每 tick 统一判，不是每个窗口各关各的（各有各的
+    # 必然漏一个）。但"开着窗口就全场静音"是错的：片子在世界里放着，去开个箱子、
+    # 看一眼机器，不该把声音一起关掉。现在只有两种情况算"别人在说话"——接管窗口
+    # 有自己的解码器，以及"只留一块屏"这条。其余（任何窗口 / 没窗口）都是最近的屏。
+    policy = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudioPolicy.java"))
+    check("GuiVideoScreen.reap(mc)" in policy and "VideoScreenPlayback.setAudible(target)" in policy
+          and "else if (screen == null)" not in policy
+          and "target = nearest(mc);" in policy,
+          "开个窗口不再把片子弄哑（只有接管窗口才独占声音）",
+          "VideoAudioPolicy must keep the nearest wall audible for any non-takeover screen")
+    check("VideoAudioPolicy.tick(" in events and "VideoAudioPolicy.reset()" in events,
+          "the audio policy is ticked once per client tick and reset with the world",
+          "ClientEvents must tick VideoAudioPolicy and reset it on world unload")
+
+    # 82. 音轨静音不能顺带把画面停住：四块屏里三块静音，三块的时钟还得走。
+    audio = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudio.java"))
+    check("setMuted" in audio and "this.paused || this.muted" in audio,
+          "muting is not pausing",
+          "VideoAudio.apply() must stop the clip when paused OR muted, and seek must respect both")
+
+    # 83. 窗口没了，音源必须跟着没。换世界、被另一个界面顶掉、某条路径忘了
+    # onGuiClosed —— 三种都只能由一句"当前界面不是我了"来兜。
+    check("public static void reap(" in takeover and "mc.currentScreen != screen" in takeover,
+          "a window that is no longer on screen loses its decoder",
+          "GuiVideoScreen.reap must abandon a screen that is not mc.currentScreen any more")
+
+    # 84. 蹲下右键必须真的到得了方块。原版只有在"没蹲下"或"手里的东西声明
+    # doesSneakBypassUse"时才把点击交给方块 —— 空手能开、拿着镐子就开不了，
+    # 这就是"有时候点了没反应"。修法只有一条：RightClickBlock 事件里 ALLOW。
+    click_handler = read(os.path.join(SRC, "com/hbmzz/common/VideoClickHandler.java"))
+    hbmzz = read(os.path.join(SRC, "com/hbmzz/HBMZZ.java"))
+    check("setUseBlock(Event.Result.ALLOW)" in click_handler
+          and "BlockVideoBroadcaster" in click_handler and "BlockVideoScreen" in click_handler,
+          "sneak-clicking reaches the block even with something in hand",
+          "VideoClickHandler must ALLOW the use of the two video blocks while sneaking")
+    check("new com.hbmzz.common.VideoClickHandler()" in hbmzz,
+          "the sneak-click fix is registered on both sides",
+          "HBMZZ.preInit must register VideoClickHandler on the common event bus")
+
+    # 85. 右键开始展示要落到服务端：屏是世界状态，客户端说了不算。
+    broadcaster_tile = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoBroadcaster.java"))
+    check("public boolean startDisplay()" in broadcaster_tile and "startDisplay()" in block_body,
+          "a plain click starts the wall from the server side",
+          "BlockVideoBroadcaster must call TileEntityVideoBroadcaster.startDisplay() off-thread-free")
+
+    # 86. 导入窗口必须永远居中。以前是写死的 (width - 360) / 2，GUI 缩放调大后可用
+    # 宽度缩到 320，left 变负数，面板左边被切在屏幕外——玩家看到的就是"歪在一边"。
+    # 现在宽度跟着视口算、左边距夹住，拉窗口时还要重排按钮。
+    import_gui = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoImport.java"))
+    check("Math.min(MAX_W, this.width - 16)" in import_gui
+          and "Math.max(4, (this.width - this.W) / 2)" in import_gui,
+          "导入窗口按视口居中，窄窗口里缩小而不是歪掉",
+          "GuiVideoImport must clamp its panel width to the viewport and centre it with a floor")
+    check("laidOutWidth" in import_gui and "private void layout()" in import_gui,
+          "拉窗口/改全屏之后导入窗口会重排，按钮不留在旧位置",
+          "GuiVideoImport.updateScreen must call layout() when the viewport size changed")
+
+    # 87. 帧率上限 120，而且读取端不能偷偷压回 60 —— 否则导出来的 120fps 包
+    # 会以半速播放，看上去像"导入时丢帧了"。
+    clip = read(os.path.join(SRC, "com/hbmzz/video/VideoClip.java"))
+    check("120" in importer.split("FPS_STEPS")[1][:80] and "Math.min(120, fps)" in clip
+          and "Math.min(120, fps)" in importer,
+          "导入与读取两端都认到 120fps",
+          "FPS_STEPS must reach 120 and both clamps must be 120, not 60")
+
+    # 88. 导入窗口"歪在一边"的真因是字段遮蔽：那个类自己有一个 width（导出宽度，
+    # 默认 480），和 GuiScreen.width（视口宽）同名，于是 layout() 和整块暗底都按
+    # 480 算 —— 1280 宽的界面上面板落在 x=60，左边还露着没盖住的地面。改名之后
+    # this.width 才是视口。这条守住"别再有人把导出宽度叫 width"。
+    check("private int videoWidth" in import_gui and "private int width" not in import_gui,
+          "导入窗口不再用 width 当导出宽度的字段名（否则会遮蔽视口宽）",
+          "GuiVideoImport must keep the export width in videoWidth, not width")
+    check("Mouse.getEventX() * this.width / this.mc.displayWidth" in import_gui,
+          "导入窗口的滚轮命中测试用的是视口宽度",
+          "handleMouseInput must map the mouse with GuiScreen.width, not the export width")
+
+    # 89. 进度条不能"点了就弹回去"。窗口画的是本机那份方块实体，服务端确认要一个
+    # 来回；这段时间里只画旧值，手柄就会自己回原位。所以跳转要先把播放头写进本地
+    # 方块实体，再把包发出去。
+    seek_gui = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoSeek.java"))
+    apply_body = member_body(seek_gui, "applySeek")
+    check("te.seekTo(clamped)" in apply_body and "sendSeekOnly(" in apply_body,
+          "拖动进度条先写本地播放头再发包，手柄不会弹回原位",
+          "GuiVideoSeek.applySeek must call te.seekTo(...) before sending the packet")
+    release_body = member_body(seek_gui, "mouseReleased")
+    click_body = member_body(seek_gui, "mouseClicked")
+    check("applySeek(msAt(mouseX))" in release_body and "applySeek(this.dragMs)" in click_body,
+          "松手那一刻的落点也会被写进去（不是只发一个包）",
+          "mouseClicked / mouseReleased must go through applySeek so the local playhead moves too")
+
+    # 90. 服务端改完播放头要把权威值直接回给发起者。区块更新也会发，但它是按
+    # "谁在看这个区块"路由的，晚一两 tick 到；那段空窗正是"弹回原位"看起来发生
+    # 的地方。回一发是最省事的收口。
+    seek_msg = read(os.path.join(SRC, "com/hbmzz/network/VideoSeekMessage.java"))
+    check("sender.connection.sendPacket(screen.getUpdatePacket())" in seek_msg,
+          "服务端把跳转后的权威播放头直接回给发起者",
+          "VideoSeekMessage.Handler must echo screen.getUpdatePacket() to the sender")
+
+    # 91. 没有本机副本时进度条不该接受拖动：没有长度就没有比例，点哪儿都只能跳到
+    # 一个猜出来的时间，手柄永远画在最左边 —— 那看上去就是"拖了又弹回去"。
+    over_body = member_body(seek_gui, "overBar")
+    check("if (!this.haveClip)" in over_body,
+          "没有本机副本时进度条不接受拖动（只能用 +/- 按钮）",
+          "GuiVideoSeek.overBar must refuse the bar when the clip length is unknown")
+
+    # 92. 全屏：方向以桌面真实状态为准，退出时回到"进来之前的窗口尺寸"。
+    # 直接调 Minecraft.toggleFullscreen() 会按它自己的字段翻面（字段与桌面不同步时
+    # 就是"按 F 反而变小"），而且退全屏会回到启动尺寸（854x480）。
+    fullscreen = read(os.path.join(SRC, "com/hbmzz/client/video/VideoFullscreen.java"))
+    check("Display.isFullscreen()" in fullscreen and "mc.toggleFullscreen()" in fullscreen
+          and "Display.setDisplayMode(new DisplayMode(windowWidth, windowHeight))" in fullscreen,
+          "全屏开关按桌面真实状态决定方向，退出来回到原窗口尺寸",
+          "VideoFullscreen must read Display.isFullscreen() and restore the captured window size")
+    check("VideoFullscreen.capture()" in takeover and "VideoFullscreen.restore(generation, client)" in takeover,
+          "播放窗口记下进来之前的显示状态，关闭时还回去",
+          "GuiVideoScreen must capture() on open and restore(generation, ...) when it closes")
+    key_body = member_body(takeover, "keyTyped")
+    check("this.toggleFullscreen()" in key_body and "mc.toggleFullscreen()" not in key_body,
+          "F 键走统一的全屏开关，不再直接翻 Minecraft 的字段",
+          "GuiVideoScreen.keyTyped must call its own toggleFullscreen() helper")
+    mouse_body = member_body(takeover, "handleMouseInput")
+    check("getEventButton() == 1" in mouse_body and "this.toggleFullscreen()" in mouse_body,
+          "窗口里右键 = 全屏开关（大屏展示时是大屏，本机播放时是播放器）",
+          "GuiVideoScreen.handleMouseInput must toggle fullscreen on the right button")
+
+    # 93. 播放窗口底部那条进度条也得能拖。以前它只是画出来的一个百分比，
+    # 点上去什么都不发生、画面照旧往前走——玩家的描述是"拖动之后又弹回原位"。
+    check("private boolean overBar(" in takeover and "player.seekTo(secondsAt(mouseX))" in takeover,
+          "本机播放窗口的进度条可以点、可以拖，松手就跳过去",
+          "GuiVideoScreen must accept a click/drag on its bottom bar and seekTo on release")
+    check("while (org.lwjgl.input.Mouse.next())" not in takeover,
+          "鼠标事件按原版的节奏一个个分派（不会把拖动事件吃掉）",
+          "GuiVideoScreen.handleMouseInput must not loop over Mouse.next(); that starves the drag")
+
+    # 94. 长片不能被悄悄截断。VideoClip 曾经把帧数硬切在 20000：4 分 23 秒的片子
+    # 按 120fps 导入是 31618 帧，切完只剩 20000 帧，于是同一部片在游戏里报 2:46，
+    # 音轨却还在放到 4:23 —— 玩家看到的就是"只剩两分钟，而且有声音没画面"。
+    # 上限必须高到任何正常导入都碰不到，它只该挡住坏包。
+    video_clip = read(os.path.join(SRC, "com/hbmzz/video/VideoClip.java"))
+    clip_limit = re.search(r"MAX_FRAMES = (\d+)", video_clip)
+    check(clip_limit is not None and int(clip_limit.group(1)) >= 100000,
+          "长片不会被帧数上限悄悄截断（120fps 的四分钟片子仍是四分钟）",
+          "VideoClip.MAX_FRAMES is a bad-pack guard, not a length limit: " + (
+              clip_limit.group(1) if clip_limit else "missing"))
+
+    # 95. 播放头跑在解码前面时必须丢帧追上去。120fps 的片子配一台每秒只解得出
+    # 四五十帧的机器，缓存里永远没有播放头要的那一帧，画面一帧都不出来，声音却
+    # 照放 —— 这就是"有声音没画面"。追帧只在落后一整个缓冲时才触发，并且限频，
+    # 否则每帧都 seek 会把缓存清空得更彻底。
+    player_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoPlayer.java"))
+    show_body = member_body(player_src, "showFrame")
+    loop_body = member_body(player_src, "decodeLoop")
+    check("this.wanted = index;" in show_body and "catchUp(" not in show_body,
+          "渲染线程只公布播放头，不由它发追帧请求（发一次就清一次缓存）",
+          "VideoPlayer.showFrame must publish `wanted` and not seek itself")
+    check("this.wanted - index > this.cacheFrames" in loop_body and "index = this.wanted;" in loop_body,
+          "解码器落后整个缓冲时自己丢帧追上播放头",
+          "VideoPlayer.decodeLoop must skip ahead when the playhead left the buffer")
+
+    # 96. 音轨按帧包自己的长度截断：帧包可能是 frames/fps 秒，源音轨却是整段视频
+    # 的长度，不截就会在画面已经放完之后继续响（同一个"有声音没画面"）。
+    import_src = read(os.path.join(SRC, "com/hbmzz/video/VideoImportQueue.java"))
+    audio_body = member_body(import_src, "runAudio")
+    check('cmd.add("-t")' in audio_body and "seconds" in audio_body,
+          "音轨截到与帧包一样长，声音不会比画面多放一截",
+          "VideoImportQueue.runAudio must bound the track with -t <pack seconds>")
+    check("frames.size() / (double) job.fps" in import_src,
+          "截断长度取自实际解出的帧数，而不是源视频时长",
+          "convert() must pass the pack's own duration to runAudio")
+
+    # 97. ffmpeg 的输出必须有人读。管道缓冲 64KB，长片 / 高帧率的告警足够填满它；
+    # 一旦填满，ffmpeg 卡在 write 上，进度条停在半路 —— 看起来像"转到一半停了"。
+    check("drainOutput(process)" in import_src and "hbmzz-ffmpeg-output" in import_src,
+          "一路读走 ffmpeg 的输出，长片转换不会卡在管道上",
+          "VideoImportQueue.start must drain the child's stdout")
+
+    # 98. 全屏的归属：接了屏归大屏，没接屏归播放器。所以"能不能按全屏"必须是一个
+    # 现算的判定，而不是打开窗口时记下来的布尔 —— 遥控器中途接上大屏，下一次按键
+    # 就该改口。接屏时右键播放器开出来的展示窗口不提供全屏入口。
+    check("private boolean canFullscreen()" in takeover and "return this.wallOwned;" in takeover
+          and "return !screenLinked() || !wallReachable();" in takeover,
+          "全屏权限按'有没有接大屏 / 这窗口是不是从大屏进来的'现算",
+          "GuiVideoScreen must gate fullscreen through canFullscreen()")
+    key_body = member_body(takeover, "keyTyped")
+    check("canFullscreen()" in key_body,
+          "接了大屏以后 F 不再改桌面模式，只提示去右键大屏",
+          "GuiVideoScreen.keyTyped must ask canFullscreen() before toggling")
+    check("canFullscreen()" in mouse_body,
+          "接了大屏以后右键播放器不会把桌面切进全屏",
+          "GuiVideoScreen.handleMouseInput must ask canFullscreen() before toggling")
+    check("public static GuiVideoScreen watch(" in takeover
+          and "public static GuiVideoScreen mirror(" not in takeover,
+          "看大屏只有一个入口（watch）：接屏以后右键播放器不再开窗口",
+          "GuiVideoScreen.mirror() must be gone; watch() is the only wall window")
+
+    # 99. 全屏要在大屏那边按：右键大屏 → 大屏定位窗口 →「全屏观看」。点一下就该是
+    # 满屏，不是先给个窗口再让玩家自己找 F。
+    check("全屏观看" in seek_gui and "openVideoFullscreen(this.pos)" in seek_gui,
+          "大屏菜单里点「全屏观看」直接进全屏",
+          "GuiVideoSeek must offer 全屏观看 and route it through openVideoFullscreen()")
+    full_body = member_body(proxy, "openVideoFullscreen")
+    check("GuiVideoScreen.watch(" in full_body and "enterFullscreen()" in full_body,
+          "「普通右键大屏」和「全屏观看」走同一条路：watch(...) + enterFullscreen()",
+          "ClientProxy.openVideoFullscreen must open GuiVideoScreen.watch and enter fullscreen")
+    check("public void enterFullscreen()" in takeover,
+          "进入全屏只有一条路（enterFullscreen），仍然走统一的显示状态记账",
+          "GuiVideoScreen must expose enterFullscreen() rather than poking Display directly")
+
+    # 100. 接上大屏以后「强制限制返回」的入口要从设置窗口里整个消失：那个开关只在
+    # 没接屏时成立，接屏后留着它只会让人以为按了有用。窗口开着时接上/拆掉大屏也要
+    # 立刻重排，不能等关窗重开。
+    config_gui = read(os.path.join(SRC, "com/hbmzz/client/GuiVideoPlayerConfig.java"))
+    rebuild_body = member_body(config_gui, "rebuildButtons")
+    check("if (!this.screenLinked)" in rebuild_body and "new GuiButton(0" in rebuild_body,
+          "接上大屏后「强制限制返回」的入口不再画出来",
+          "GuiVideoPlayerConfig.rebuildButtons must only add the lock button while no wall is linked")
+    check("rebuildButtons()" in config_gui.split("public void initGui()")[1][:400]
+          and config_gui.count("rebuildButtons()") >= 3,
+          "连上/拆掉大屏时设置窗口就地重排",
+          "GuiVideoPlayerConfig.drawScreen must rebuild when the link state flips")
+
+    # 101. 大屏的两种右键：普通右键开电视窗（屏正中一台电视，F 全屏 / 再按 F 回到
+    # 窗口），Shift + 右键才开菜单。普通右键不再直接满屏——那会把"看片"变成
+    # "整块显示器被占"，也没法在小窗里干别的。
+    screen_body = member_body(read(os.path.join(SRC, "com/hbmzz/block/BlockVideoScreen.java")),
+                              "onBlockActivated")
+    check("openVideoWatch(origin)" in screen_body and "openVideoSeek(origin)" in screen_body
+          and "openVideoScreenConfig" not in screen_body,
+          "普通右键大屏 = 开电视窗；Shift + 右键 = 唯一的菜单",
+          "BlockVideoScreen must open the television window on a plain click and the menu on sneak")
+    check(screen_body.index("openVideoSeek(origin)") < screen_body.index("openVideoWatch(origin)"),
+          "Shift + 右键走菜单那一条分支（不是反过来）",
+          "sneaking must map to openVideoSeek, plain click to openVideoWatch")
+    client_proxy = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
+    watch_body = member_body(client_proxy, "openVideoWatch")
+    check("GuiVideoScreen.watch(" in watch_body and "enterFullscreen" not in watch_body,
+          "电视窗打开时是小窗（全屏是 F 的事，不是打开的事）",
+          "ClientProxy.openVideoWatch must not switch to fullscreen on open")
+    full_body = member_body(client_proxy, "openVideoFullscreen")
+    check("enterFullscreen" in full_body,
+          "菜单里的「全屏观看」仍然是进去就满屏",
+          "ClientProxy.openVideoFullscreen must enter fullscreen")
+
+    # 102. 尺寸收进菜单，不再占第三个组合键。
+    check('"尺寸"' in seek_gui and "new GuiVideoScreenConfig(this.pos)" in seek_gui,
+          "尺寸是菜单里的一个按钮",
+          "GuiVideoSeek must offer a 尺寸 button that opens GuiVideoScreenConfig")
+
+    # 103. 倍速整个删掉。0.25x–3x 只搬时钟不搬音轨（Clip 只能按源速率放），所以非
+    # 1x 时只能把声音扣住——"能加速但没声音"是半成品，与其留着不如删干净：UI、消息、
+    # 方块实体字段、播放器的速率、音轨的 speedMuted 一起走，片子永远按自己的帧率放。
+    tile_src = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoScreen.java"))
+    config_msg = read(os.path.join(SRC, "com/hbmzz/network/VideoScreenConfigMessage.java"))
+    audio_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudio.java"))
+    for token in ("MIN_SPEED", "MAX_SPEED", "applySpeed", "formatSpeed", "setSpeedMuted",
+                  "speedMuted", "setSpeed(", "getSpeed("):
+        check(token not in tile_src and token not in config_msg and token not in player_src
+              and token not in audio_src and token not in seek_gui,
+              "倍速的「%s」已经不存在（不是一个藏起来的入口）" % token,
+              "speed feature must be gone from the tile entity, the packet, the player and the audio")
+    check('"倍速"' not in read(os.path.join(SRC, "com/hbmzz/client/GuiVideoScreenConfig.java")),
+          "配置窗口里没有倍速这一行",
+          "GuiVideoScreenConfig must not draw a 倍速 row")
+
+    # 104. 缓冲里没有播放头要的那一帧时，不能让渲染线程去清缓存：那是"卡一下、
+    # 跳一格"的来源。解码线程按 wanted 跳过一段即可，缓存里还在播放头前面的帧
+    # 仍然有用，不该一起清掉。
+    check("removeIf(key -> key < from)" in loop_body,
+          "丢帧追播放头时只清掉过期帧，不整张清空",
+          "decodeLoop must prune frames behind the playhead instead of clearing the ring")
+
+    # 105. 大屏的画面不能被房间照亮。TESR 跑在世界渲染阶段，unit 1 还挂着光照
+    # 贴图，没有自带光照坐标的四边形会乘上"上一个画过的东西的亮度"——这就是
+    # "同一部片在播放器里正常、贴到墙上发暗"的来源。两个玻璃面绘制器都必须把
+    # 光照钉在 240（满亮）并在画完后还原。
+    painter = read(os.path.join(SRC, "com/hbmzz/client/PanelPainter.java"))
+    glass_body = member_body(painter, "glass")
+    check("setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F)" in glass_body,
+          "监视器画面钉满亮（世界里的屏不随房间变暗）",
+          "PanelPainter.glass must pin the lightmap to 240/240 before drawing the picture")
+    check("lightX" in glass_body and "setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lightX, lightY)" in glass_body,
+          "画完把光照还原回去（不留副作用给下一个 TESR）",
+          "PanelPainter.glass must restore the previous lightmap coordinates")
+    panel_render = read(os.path.join(SRC, "com/hbmzz/client/PanelRender.java"))
+    pr_body = member_body(panel_render, "glass")
+    check("240.0F, 240.0F" in pr_body and "lightX" in pr_body,
+          "另一个玻璃面绘制器同样钉满亮并还原",
+          "PanelRender.glass must pin and restore the lightmap the same way")
+
+    # 106. 电视窗：小窗状态要画的是"一台电视"，不是一块漂浮的画面。外壳、边框、
+    # 底座、电源灯都在 drawTelevision 里；全屏时只画画面。比例按片子自己的宽高算，
+    # 4:3 的片子里屏幕就是 4:3。
+    tv_body = member_body(takeover, "drawTelevision")
+    check("drawTelevision(this.wallPlayer)" in takeover and "drawRect(" in tv_body,
+          "小窗状态画的是一台电视（外壳 / 边框 / 底座）",
+          "GuiVideoScreen.drawMirror must call drawTelevision while not fullscreen")
+    check("film.frameWidth()" in tv_body and "film.frameHeight()" in tv_body,
+          "电视屏幕的比例跟着片子走（4:3 的片不会套 16:9 的壳）",
+          "drawTelevision must size the screen from the frame's own aspect")
+    check("drawFilm(this.wallPlayer)" in takeover and "boolean fullscreen = this.tvFullscreen;" in takeover,
+          "全屏时才铺满整屏",
+          "GuiVideoScreen must draw the picture edge-to-edge only while its own fullscreen flag is set")
+    check("this.tvFullscreen = false;" in takeover
+          and "VideoFullscreen.active()" not in takeover.split("public void initGui()")[1][:600],
+          "一进来是电视窗，不是满屏（本来就是全屏游戏的也一样）",
+          "GuiVideoScreen.initGui must start windowed even when the desktop is already fullscreen")
+    fs = read(os.path.join(SRC, "com/hbmzz/client/video/VideoFullscreen.java"))
+    check("enterForPicture" in fs and "leaveForPicture" in fs and "weEntered" in fs,
+          "只为画面切全屏，退出只还自己动过的那次",
+          "VideoFullscreen must only change the desktop mode when it was not already fullscreen")
 
     failed = [name for ok, name, _ in results if not ok]
     print()

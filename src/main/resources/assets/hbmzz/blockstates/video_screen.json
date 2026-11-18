@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,part=false": { "model": "hbmzz:video_screen",      "y": 180 },
+    "facing=south,part=false": { "model": "hbmzz:video_screen" },
+    "facing=east,part=false":  { "model": "hbmzz:video_screen",      "y": 270 },
+    "facing=west,part=false":  { "model": "hbmzz:video_screen",      "y": 90 },
+    "facing=north,part=true":  { "model": "hbmzz:video_screen_part", "y": 180 },
+    "facing=south,part=true":  { "model": "hbmzz:video_screen_part" },
+    "facing=east,part=true":   { "model": "hbmzz:video_screen_part", "y": 270 },
+    "facing=west,part=true":   { "model": "hbmzz:video_screen_part", "y": 90 }
+  }
+}

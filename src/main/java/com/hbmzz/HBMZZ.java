@@ -39,7 +39,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.7.1";
+    public static final String VERSION = "3.8.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -52,6 +52,15 @@ public class HBMZZ {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
+        // 说清楚这一份是从哪儿加载的。"装进去没反应"里最常见的一种，是游戏读的
+        // 根本不是刚换的那个 jar（另一个实例、另一份 mods、或者根本没重启）。
+        try {
+            java.security.CodeSource source = HBMZZ.class.getProtectionDomain().getCodeSource();
+            logger.info("HBMZZ {} loaded from {}", VERSION,
+                    source == null ? "unknown source" : source.getLocation());
+        } catch (Throwable ignored) {
+            logger.info("HBMZZ {} loaded (source unavailable)", VERSION);
+        }
         HBMZZConfig.load(event.getSuggestedConfigurationFile());
         // The video shelf lives under <config>/hbmzz/videos/ and is read by both
         // sides (the server validates names, the client opens the clip). Without
@@ -66,6 +75,10 @@ public class HBMZZ {
         // The wooden-axe wiring tool. An event handler rather than an item,
         // because the tool is a plain vanilla axe - see NukeLinkHandler for why.
         MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.NukeLinkHandler());
+        // 蹲下右键这两块视频方块，即使手里拿着东西也要把点击交给方块：原版在
+        // 潜行时只把点击给空手（或声明 doesSneakBypassUse 的堆），否则直接去用
+        // 手里的物品 —— "设置窗口有时候点了没反应"就是这么来的。
+        MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.VideoClickHandler());
         // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
@@ -76,6 +89,8 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "ctrl_console"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoBroadcaster.class,
                 new ResourceLocation(MODID, "video_broadcaster"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityVideoScreen.class,
+                new ResourceLocation(MODID, "video_screen"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNuke.class,
                 new ResourceLocation(MODID, "nuke"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityNukeController.class,

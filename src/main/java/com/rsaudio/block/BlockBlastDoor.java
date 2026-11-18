@@ -67,18 +67,61 @@ public class BlockBlastDoor extends Block implements ITileEntityProvider {
 
     public static final float BLAST_RESISTANCE = 6000.0F;
 
+    /**
+     * 防爆窗帘的爆炸抗性：<b>1000</b>（用户指定，和 3.7.0 的防爆玻璃门同档）。
+     * <p>
+     * 折算是 {@code 爆炸强度 × (1-距离) > 抗性 / 5}，所以爆炸强度要超过 200 才炸得掉 ——
+     * 原版 TNT 是 4，常规炸药大多落在 60～200，只有真正的大当量弹头才拆得开。
+     */
+    public static final float CURTAIN_BLAST_RESISTANCE = 1000.0F;
+
+    /**
+     * 这一扇是不是<b>防爆窗帘</b>版：布材质、抗性 {@link #CURTAIN_BLAST_RESISTANCE}、
+     * 门板换成 {@link BlockBlastCurtainPanel}、由渲染器画成带褶皱的黑布。
+     * <p>
+     * ★ 窗帘和门共用<b>同一套</b> {@link TileBlastDoor}（连续开合、门板生长/回收、防夹、
+     * 联锁、气闸、门禁），变体只在四处分支：方块注册名、材质/音效/抗性、
+     * 门板方块、渲染。抄一份方块实体出来必然分叉，分叉之后每个踩过的坑都要修两遍。
+     */
+    private final boolean curtain;
+
     public BlockBlastDoor() {
-        super(Material.IRON);
+        this("blast_door", false);
+        // ★ 注册名在这里<b>只设一次</b>，且必须是字面量：`tools/regcheck` 的注册名 /
+        //   方块状态比对读的就是 `setRegistryName(RsAudio.MODID, "字面量")` 这一行
+        //   （它不跑 JVM、不解析变量）。删掉它不会影响游戏，只会让"每个方块都有
+        //   blockstate / 没有孤儿 blockstate"两条守卫失明。
+        // ★★★ 反过来：父类构造函数里<b>不能再设一次</b>。IForgeRegistryEntry.setRegistryName
+        //   第二次调用会直接抛 IllegalStateException（"Attempted to set registry name with
+        //   existing registry name!"），而它抛在 static 字段初始化里，表现就是启动时
+        //   整个游戏崩在 Initializing game —— 2026-11-18 现场。
         setRegistryName(RsAudio.MODID, "blast_door");
-        setUnlocalizedName(RsAudio.MODID + ".blast_door");
+    }
+
+    /**
+     * @param name    注册名（{@code blast_door} / {@code blast_curtain}）
+     * @param curtain true = 窗帘版
+     */
+    protected BlockBlastDoor(String name, boolean curtain) {
+        super(curtain ? Material.CLOTH : Material.IRON);
+        this.curtain = curtain;
+        // ★ 这里<b>只设显示名，不设注册名</b>：注册名由具体子类用字面量设一次
+        //   （regcheck 要能静态读到）。两处都设 = 启动必崩，见无参构造函数里的长注释。
+        setUnlocalizedName(RsAudio.MODID + "." + name);
+        // ★ 窗帘要进创造栏：玩家得先手上有它才能挂上去（门也是同一个道理）。
         setCreativeTab(RsAudioTab.INSTANCE);
-        setHardness(50.0F);
-        setResistance(BLAST_RESISTANCE);
-        setSoundType(SoundType.METAL);
+        setHardness(curtain ? 8.0F : 50.0F);
+        setResistance(curtain ? CURTAIN_BLAST_RESISTANCE : BLAST_RESISTANCE);
+        setSoundType(curtain ? SoundType.CLOTH : SoundType.METAL);
         setDefaultState(this.blockState.getBaseState()
                 .withProperty(FACING, EnumFacing.NORTH)
                 .withProperty(OPEN, Boolean.FALSE)
                 .withProperty(RETRACT, Boolean.FALSE));
+    }
+
+    /** 窗帘版 {@code = true}。方块实体据此决定门板用哪一块、渲染器据此换画法。 */
+    public boolean isCurtain() {
+        return curtain;
     }
 
     public static IBlockState stateFor(EnumFacing facing, boolean open, boolean retractUp) {
@@ -156,12 +199,16 @@ public class BlockBlastDoor extends Block implements ITileEntityProvider {
 
     @Override
     public boolean isFullCube(IBlockState state) {
-        return !state.getValue(OPEN);
+        // ★ 窗帘这一格在渲染上是 INVISIBLE（布只由 TESR 画成薄片），
+        //   方块本体什么都不画。回 true 的话原版会把邻块朝向这一格的那一面整片剔掉 ——
+        //   挨着的玻璃会缺一格，从缺口看进去就是"一块黑"，布周围还会压出一圈 AO 黑边。
+        return !curtain && !state.getValue(OPEN);
     }
 
     @Override
     public boolean isOpaqueCube(IBlockState state) {
-        return !state.getValue(OPEN);
+        // 同上：窗帘必须 false，否则遮光 + AO 黑边。
+        return !curtain && !state.getValue(OPEN);
     }
 
     /**
@@ -202,12 +249,24 @@ public class BlockBlastDoor extends Block implements ITileEntityProvider {
 
     @Override
     public TileEntity createTileEntity(World world, IBlockState state) {
-        return new TileBlastDoor();
+        return newTile();
     }
 
     @Override
     public TileEntity createNewTileEntity(World worldIn, int meta) {
-        return new TileBlastDoor();
+        return newTile();
+    }
+
+    /**
+     * 建方块实体时把"我是哪一种"写进去。
+     * <p>
+     * ★ 顺序很要紧：这个标记是<b>新建方块实体时</b>写进去的，之后
+     * {@code readFromNBT} 会用存档里的值覆盖它 —— 所以老存档里的防核门不会被误认成窗帘。
+     */
+    private TileEntity newTile() {
+        TileBlastDoor tile = new TileBlastDoor();
+        tile.setCurtain(curtain);
+        return tile;
     }
 
     public static TileBlastDoor getTile(World world, BlockPos pos) {

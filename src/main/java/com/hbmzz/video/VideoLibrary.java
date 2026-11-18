@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * The video shelf: {@code <config>/hbmzz/videos/}.
@@ -49,8 +48,8 @@ import java.util.regex.Pattern;
  */
 public final class VideoLibrary {
 
-    /** Legal clip name: starts alphanumeric, then letters, digits, {@code _ . -}. */
-    private static final Pattern NAME = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]{0,63}");
+    /** 名字的长度上限。报文里是一个 UTF-8 字符串，太长没必要。 */
+    private static final int MAX_NAME = 64;
 
     private static final String README = String.join("\n",
             "HBMZZ 视频广播器 — 视频存放目录",
@@ -65,6 +64,13 @@ public final class VideoLibrary {
             "",
             "  2) <名字>/        同样的内容，只是不打包（适合手工做几帧的短片）",
             "",
+            "直接丢进来的 .mp4 / .mkv / .mov / .avi / .webm / .flv / .ts / .wmv / .rmvb 等",
+            "不会直接出现在列表里 —— 播放端读的是图片帧序列（png / jpg），不是视频容器。",
+            "把文件丢进这个目录，然后在游戏里蹲下右键播放器 →「导入视频」→ 转换，",
+            "会就地拆帧并打包成一个 <名字>.zip，之后按 F7 就能选到。转换用 ffmpeg，",
+            "首次启动会自动下载一份；也可以继续用命令行：",
+            "  python tools/video/pack.py 输入.mp4 报警",
+            "",
             "meta.json 可以省略：缺省 12 fps，帧数按目录里实际有多少张图算。",
             "支持 png / jpg。分辨率超过 config 里的 videoMaxWidth×videoMaxHeight 会被等比缩小。",
             "",
@@ -76,6 +82,23 @@ public final class VideoLibrary {
 
     private static File root;
     private static List<String> cache = Collections.emptyList();
+    /**
+     * Files that are in the folder and are not playable.
+     *
+     * <p>Kept because ignoring them silently is what makes "刷新" look broken:
+     * a dropped {@code .mp4} never shows up, so the player presses refresh
+     * again, sees the same two clips and concludes the button does nothing. The
+     * list exists to be said out loud, not to be played.</p>
+     */
+    private static List<String> skipped = Collections.emptyList();
+    /**
+     * 目录里是视频容器、等着导入的文件。
+     *
+     * <p>和 {@link #skipped} 分开：后者是"这个文件永远播不了"，前者是"这个文件
+     * 现在播不了，但转一下就能播"。两者混在一起会让玩家以为 mp4 是坏文件，
+     * 而实际上它只是还没被拆成帧。</p>
+     */
+    private static List<File> importable = Collections.emptyList();
     private static long scannedAt;
 
     private VideoLibrary() {
@@ -105,14 +128,90 @@ public final class VideoLibrary {
         return root;
     }
 
+    /**
+     * Forgets the one-second listing cache.
+     *
+     * <p>Called by the refresh key ({@code F7}) and by the window's 刷新 button:
+     * dropping a new zip into the folder while the game is running should show
+     * up on the next click, not on the next restart. One second is a long time
+     * when the player is staring at the list.</p>
+     */
+    public static void rescan() {
+        synchronized (VideoLibrary.class) {
+            cache = Collections.emptyList();
+            skipped = Collections.emptyList();
+            importable = Collections.emptyList();
+            scannedAt = 0L;
+        }
+    }
+
+    /**
+     * Opens {@code config/hbmzz/videos/} in the operating system's file browser.
+     *
+     * <p>Deliberately best-effort: {@link java.awt.Desktop} is unavailable on a
+     * headless JVM and silently unsupported on some Linux desktops, and a video
+     * folder that refuses to open must not throw inside a GUI click. The caller
+     * prints the path either way, so the player always knows where to go.</p>
+     *
+     * @return true when a file browser was asked to open the folder
+     */
+    public static boolean openFolder() {
+        if (root == null) {
+            return false;
+        }
+        if (!root.isDirectory() && !root.mkdirs()) {
+            return false;
+        }
+        try {
+            if (!java.awt.Desktop.isDesktopSupported()) {
+                return false;
+            }
+            java.awt.Desktop desktop = java.awt.Desktop.getDesktop();
+            if (desktop == null || !desktop.isSupported(java.awt.Desktop.Action.OPEN)) {
+                return false;
+            }
+            desktop.open(root);
+            return true;
+        } catch (Throwable t) {
+            org.apache.logging.log4j.LogManager.getLogger("hbmzz-video")
+                    .warn("could not open {}: {}", root, t.toString());
+            return false;
+        }
+    }
+
+    /** Absolute path of the folder, for the "here is where it lives" message. */
+    public static String folderPath() {
+        return root == null ? "" : root.getAbsolutePath();
+    }
+
+    /**
+     * 这个名字能不能当包名。
+     *
+     * <p><b>白名单的意思是"只能是这些字符"，不是"只能是 ASCII"。</b>名字会跟着
+     * 报文走到客户端，在那里被拼成 {@code <名字>.zip}，所以分隔符、冒号、控制
+     * 字符一律不许出现 —— 没有 {@code /} 就没有目录穿越。除此之外放行任何语言
+     * 的字母与数字：一个中文片名转出来的包叫 {@code 测试片段} 比叫
+     * {@code video} 有用得多，而文件名本来就该是它自己的名字。</p>
+     */
     public static boolean isValidName(String name) {
-        if (name == null || name.isEmpty() || name.length() > 64) {
+        if (name == null || name.isEmpty() || name.length() > MAX_NAME) {
             return false;
         }
-        if (name.contains("..") || name.contains("/") || name.contains("\\")) {
+        char first = name.charAt(0);
+        if (!Character.isLetterOrDigit(first)) {
             return false;
         }
-        return NAME.matcher(name).matches();
+        if (name.charAt(name.length() - 1) == '.') {
+            return false;
+        }
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.') {
+                continue;
+            }
+            return false;
+        }
+        return true;
     }
 
     /** Clip names, sorted. Rescanned at most once a second. */
@@ -126,6 +225,8 @@ public final class VideoLibrary {
         }
         scannedAt = now;
         List<String> found = new ArrayList<>();
+        List<String> ignored = new ArrayList<>();
+        List<File> videos = new ArrayList<>();
         File[] files = root.listFiles();
         if (files != null) {
             for (File f : files) {
@@ -134,6 +235,12 @@ public final class VideoLibrary {
                     name = f.getName();
                 } else if (f.getName().toLowerCase(Locale.ROOT).endsWith(".zip")) {
                     name = f.getName().substring(0, f.getName().length() - 4);
+                } else if (worthReporting(f)) {
+                    if (VideoFormats.isImportable(f)) {
+                        videos.add(f);
+                    } else {
+                        ignored.add(f.getName());
+                    }
                 }
                 if (name != null && isValidName(name) && !found.contains(name)) {
                     found.add(name);
@@ -141,8 +248,49 @@ public final class VideoLibrary {
             }
         }
         Collections.sort(found);
+        java.util.Collections.sort(ignored);
+        videos.sort(java.util.Comparator.comparing(File::getName));
         cache = found;
+        skipped = ignored;
+        importable = videos;
         return found;
+    }
+
+    /**
+     * Regular, visible, non-README files that are not a playable clip.
+     *
+     * <p>README.txt is ours and a dotfile is the operating system's; neither is
+     * worth a line of complaint. Everything else is a file the player put there
+     * expecting it to play, so it gets named.</p>
+     */
+    private static boolean worthReporting(File f) {
+        if (!f.isFile()) {
+            return false;
+        }
+        String name = f.getName();
+        if (name.startsWith(".") || name.equalsIgnoreCase("README.txt")) {
+            return false;
+        }
+        return true;
+    }
+
+    /** Names of files in the folder that are not playable clips, sorted. */
+    public static List<String> skipped() {
+        // names() is what fills this list; calling it keeps the two in step
+        // without a second scan on every frame.
+        names();
+        return skipped;
+    }
+
+    /**
+     * 视频目录里等着导入的容器文件（mp4 / mkv / mov / …），按文件名排序。
+     *
+     * <p>只列文件，不递归、也不列 .zip —— 已经能播的东西不该出现在"待导入"
+     * 里。真正的转换在 {@link VideoImportQueue}。</p>
+     */
+    public static List<File> importable() {
+        names();
+        return importable;
     }
 
     public static boolean exists(String name) {

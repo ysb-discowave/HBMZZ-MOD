@@ -44,9 +44,11 @@ import net.minecraft.world.World;
  * the {@link #POWERED} state drives says the only thing worth reading at a
  * glance: is this thing being driven right now.</p>
  *
- * <p>Right-click opens the configuration window. The block's own state is
- * server-authoritative like every other machine here - the window is a remote
- * control for a tile entity, not a place where the settings live.</p>
+ * <p>Right-click is two gestures: standing starts the display (the wall, if one
+ * is connected; otherwise the client's own full-screen view), sneaking opens the
+ * configuration window. The block's own state is server-authoritative like every
+ * other machine here - the window is a remote control for a tile entity, not a
+ * place where the settings live.</p>
  */
 public class BlockVideoBroadcaster extends BlockHorizontal implements ITileEntityProvider {
 
@@ -98,14 +100,37 @@ public class BlockVideoBroadcaster extends BlockHorizontal implements ITileEntit
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        // The remote is declined first: Item.onItemUse only runs after the block
+        // says no, so a block that claims every click makes the remote dead - and
+        // pointing the remote at a player is the first half of connecting a wall.
+        // 蹲下不算"对准"：那个手势是"我要改设置"，拿着遥控器也一样。
+        if (!player.isSneaking()
+                && player.getHeldItem(hand).getItem() instanceof com.hbmzz.item.ItemVideoRemote) {
+            return false;
+        }
         if (world.isRemote) {
-            HBMZZ.proxy.openVideoBroadcaster(pos);
+            // 蹲下 = 编辑这台机器（片源、目标、文件夹、播放器设置）；站着 = 大屏展示。
+            // 站着的这一下**不再**开一个全屏播放窗口：接了屏就把画面放到屏上，
+            // 客户端进"展示模式"看的是那块屏自己的解码器，全程只有一份播放实例。
+            if (player.isSneaking()) {
+                HBMZZ.proxy.openVideoBroadcaster(pos);
+            } else {
+                HBMZZ.proxy.openVideoPlayback(pos);
+            }
             return true;
         }
         // Push the current settings down before the window opens, so a client
         // that walked up while the block was edited elsewhere does not edit a
         // stale copy.
         world.notifyBlockUpdate(pos, state, state, 3);
+        if (!player.isSneaking()) {
+            // 服务端这一下是"开始展示"：接了屏就让那块屏播起来。客户端已经在
+            // 等它了（展示窗口每帧问屏要帧），拉杆一变化仍以拉杆为准。
+            TileEntity te = world.getTileEntity(pos);
+            if (te instanceof TileEntityVideoBroadcaster) {
+                ((TileEntityVideoBroadcaster) te).startDisplay();
+            }
+        }
         return true;
     }
 }

@@ -37,6 +37,18 @@ import java.util.List;
 
 public class ClientProxy extends CommonProxy {
 
+    /**
+     * 刷新视频目录的键。
+     *
+     * <p>F7: nothing in vanilla uses it, and nothing in this jar does either. The
+     * obvious alternative, F3+T, is taken twice over - it reloads the resource
+     * packs, so pressing it to pick up a dropped zip also re-bakes every model in
+     * the game, and this mod's own model check runs on that path.</p>
+     */
+    public static final net.minecraft.client.settings.KeyBinding KEY_REFRESH_VIDEOS =
+            new net.minecraft.client.settings.KeyBinding("key.hbmzz.video_refresh",
+                    org.lwjgl.input.Keyboard.KEY_F7, "key.categories.hbmzz");
+
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         // 多格式音频（ogg 之外的 mp3 / flac / wav / m4a …），从 wzh 的 rsaudiofm 插件并进来。
@@ -52,7 +64,12 @@ public class ClientProxy extends CommonProxy {
         // The zd_tx orbit camera. Purely client-side presentation: the server
         // only says "watch this block", and this decides where the eye goes.
         ClientCinematic.init();
+        ClientRegistry.registerKeyBinding(KEY_REFRESH_VIDEOS);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
+        // 视频大屏：世界里那块正在放片子的屏幕。走 TESR 而不是方块模型，因为
+        // 画面每帧都在变，而方块模型是资源加载时烘焙一次的（理由见 RenderVideoScreen）。
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.tile.TileEntityVideoScreen.class, new RenderVideoScreen());
         // The two nuclear-system panels: one cell each, same housing hardware as
         // the DFC monitor, different canvas.
         ClientRegistry.bindTileEntitySpecialRenderer(
@@ -111,6 +128,8 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("control_panel"));
         list.add(loc("ctrl_console"));
         list.add(loc("video_broadcaster"));
+        list.add(loc("video_screen"));
+        list.add(loc("video_remote"));
         list.add(loc("nuke"));
         list.add(loc("nuke_controller"));
         list.add(loc("nuke_monitor"));
@@ -150,6 +169,8 @@ public class ClientProxy extends CommonProxy {
         list.add(Item.getItemFromBlock(ModContent.BLOCK_CTRL_PANEL));
         list.add(ModContent.ITEM_BLOCK_CTRL_CONSOLE);
         list.add(ModContent.ITEM_BLOCK_VIDEO_BROADCASTER);
+        list.add(ModContent.ITEM_BLOCK_VIDEO_SCREEN);
+        list.add(ModContent.ITEM_VIDEO_REMOTE);
         list.add(ModContent.ITEM_BLOCK_NUKE);
         list.add(ModContent.ITEM_BLOCK_NUKE_CONTROLLER);
         list.add(ModContent.ITEM_BLOCK_NUKE_MONITOR);
@@ -178,8 +199,8 @@ public class ClientProxy extends CommonProxy {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  ammo_9mm  556  12ga
             0, 1, 2,
-            //  control_panel  console  video  nuke  controller  nuke_monitor  code  alert  tablet
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            //  control_panel  console  video  screen  remote  nuke  controller  nuke_monitor  code  alert  tablet
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  dfc_blast_sensor
             0,
             //  and_gate  or_gate  xor_gate  not_gate
@@ -214,6 +235,99 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void openVideoBroadcaster(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoBroadcaster(pos));
+    }
+
+    /**
+     * 站立右键：大屏展示。
+     *
+     * <p>接了屏，就进"展示模式"看那块屏——画面是屏自己的解码器给的，声音也是那
+     * 一路，所以这里不会再多出一个播放实例来。没接屏（或者屏不在已加载区）才退回
+     * 本机全屏播放，那条路上只有它自己一份声音。</p>
+     *
+     * <p>拿不到方块实体时开菜单而不是什么都不做：方块实体是随方块更新同步下来
+     * 的，刚放下 / 刚重连的那一瞬间可能还没有，而"右键没反应"是玩家无法自查的
+     * 故障。</p>
+     */
+    @Override
+    public void openVideoPlayback(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null) {
+            return;
+        }
+        net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(pos);
+        if (!(te instanceof com.hbmzz.tile.TileEntityVideoBroadcaster)) {
+            mc.displayGuiScreen(new GuiVideoBroadcaster(pos));
+            return;
+        }
+        com.hbmzz.tile.TileEntityVideoBroadcaster playerBlock =
+                (com.hbmzz.tile.TileEntityVideoBroadcaster) te;
+        if (playerBlock.getVideo().isEmpty()) {
+            mc.displayGuiScreen(new GuiVideoBroadcaster(pos));
+            return;
+        }
+        BlockPos wall = playerBlock.getScreenPos();
+        if (wall != null && mc.world.isBlockLoaded(wall)) {
+            // 接了大屏：画面归那块屏。播放器这一下不再开窗口 —— 以前它开的是
+            // "展示"窗口（一块只读的放大镜），右键落在里面还会切全屏，于是同一
+            // 个手势既能看片又能改桌面模式。现在看片只有一条路：右键那块屏。
+            // 这里保持"什么都不发生"，是这条规则的实现，不是漏了返回值。
+            return;
+        }
+        // 接了屏但屏不在本机已加载区（人跑远了 / 屏在另一个维度）：这边没有那块
+        // 屏在发声，本机全屏播放不会和谁重叠，是唯一能让玩家看到画面的路。
+        mc.displayGuiScreen(new GuiVideoScreen(pos, playerBlock.getVideo(),
+                playerBlock.getVolume(), false));
+    }
+
+    @Override
+    public void openVideoScreenConfig(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoScreenConfig(pos));
+    }
+
+    @Override
+    public void openVideoSeek(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoSeek(pos));
+    }
+
+    /**
+     * 普通右键大屏：屏中间开一台电视机。
+     *
+     * <p>窗口本身是 {@link GuiVideoScreen#watch} 那个"从大屏进来的"展示窗口，
+     * 只是不再一进来就切全屏：小窗状态就是一台摆在屏幕正中的电视（外壳、边框、
+     * 底座都在 {@code GuiVideoScreen} 里画），F 再切全屏、再按 F 回到这台电视，
+     * 关窗回到看片之前的桌面状态。</p>
+     */
+    @Override
+    public void openVideoWatch(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null) {
+            return;
+        }
+        mc.displayGuiScreen(GuiVideoScreen.watch(broadcasterOf(mc, pos), pos));
+    }
+
+    /** 菜单里的「全屏观看」：同一个电视窗口，进来就已经满屏。 */
+    @Override
+    public void openVideoFullscreen(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null) {
+            return;
+        }
+        GuiVideoScreen window = GuiVideoScreen.watch(broadcasterOf(mc, pos), pos);
+        mc.displayGuiScreen(window);
+        window.enterFullscreen();
+    }
+
+    /** The player block a wall answers to, or null when the wall is on its own. */
+    private static BlockPos broadcasterOf(Minecraft mc, BlockPos wall) {
+        net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(wall);
+        return te instanceof com.hbmzz.tile.TileEntityVideoScreen
+                ? ((com.hbmzz.tile.TileEntityVideoScreen) te).getPlayerPos() : null;
+    }
+
+    @Override
+    public void openVideoPlayerConfig(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiVideoPlayerConfig(pos));
     }
 
     @Override

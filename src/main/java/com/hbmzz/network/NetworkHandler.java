@@ -87,6 +87,19 @@ public final class NetworkHandler {
         // themselves are placed on the client so they can be coloured and aimed.
         INSTANCE.registerMessage(DfcFxMessage.Handler.class, DfcFxMessage.class,
                 23, Side.CLIENT);
+        // Video wall: size / speed from its window, volume / exit lock from the
+        // player's window, and "this remote found that wall" from the item.
+        INSTANCE.registerMessage(VideoScreenConfigMessage.Handler.class, VideoScreenConfigMessage.class,
+                24, Side.SERVER);
+        INSTANCE.registerMessage(VideoPlayerConfigMessage.Handler.class, VideoPlayerConfigMessage.class,
+                25, Side.SERVER);
+        INSTANCE.registerMessage(VideoLinkMessage.Handler.class, VideoLinkMessage.class,
+                26, Side.SERVER);
+        // Wall timeline: seek, pause, rewind. Up only - the resulting position goes
+        // back out through the block's own update tag, so one code path serves the
+        // player who asked and everybody watching.
+        INSTANCE.registerMessage(VideoSeekMessage.Handler.class, VideoSeekMessage.class,
+                27, Side.SERVER);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

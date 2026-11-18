@@ -96,6 +96,9 @@ public class ClientEvents {
     public void onWorldUnload(net.minecraftforge.event.world.WorldEvent.Unload event) {
         if (event.getWorld() != null && event.getWorld().isRemote) {
             RenderDFCMonitor.clearCaches();
+            RenderVideoScreen.clearCaches();
+            // 音源先断：换世界那一刻界面可能被直接扔掉，onGuiClosed 不一定跑。
+            com.hbmzz.client.video.VideoAudioPolicy.reset();
             RenderFallenScreen.clearCaches();
             RenderNukeMonitor.clearCaches();
             RenderAlertDisplay.clearCaches();
@@ -112,7 +115,33 @@ public class ClientEvents {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
+        // 世界里的视频大屏：把已经失效的屏幕的播放引用还回去，否则一块被拆掉/卸载的
+        // 屏幕会一直占着一路解码，直到退出世界才释放。
+        com.hbmzz.client.video.VideoScreenPlayback.tick();
+        // 谁在发声：设置窗口打开时全场静音，全屏接管时只留它自己，世界里只留最近
+        // 的那一块屏。放在 tick 而不是渲染里，是因为看不见的屏也必须闭嘴。
+        com.hbmzz.client.video.VideoAudioPolicy.tick(mc);
         EntityPlayer player = mc.player;
+        // F7: pick up a zip dropped into config/hbmzz/videos while the game is
+        // running, without a restart and without F3+T's resource reload.
+        while (ClientProxy.KEY_REFRESH_VIDEOS.isPressed()) {
+            com.hbmzz.video.VideoLibrary.rescan();
+            int count = com.hbmzz.video.VideoLibrary.names().size();
+            if (player != null) {
+                // Say when something was skipped: a .mp4 dropped in the folder
+                // can never appear in the list, and "刷新了但没变化" is what that
+                // looks like from the outside.
+                int waiting = com.hbmzz.video.VideoLibrary.importable().size();
+                int ignored = com.hbmzz.video.VideoLibrary.skipped().size();
+                String note = waiting == 0 ? ""
+                        : "；" + waiting + " 个视频待导入（蹲下右键播放器 →「导入视频」）";
+                if (ignored > 0) {
+                    note += "；跳过 " + ignored + " 个不支持的文件（需打包成 zip）";
+                }
+                player.sendStatusMessage(new net.minecraft.util.text.TextComponentString(
+                        "视频目录已刷新：" + count + " 个（F7）" + note), true);
+            }
+        }
         if (player == null) {
             // Leaving a world drops the server side state; forget ours as well so
             // the next press is sent again instead of staying latched.

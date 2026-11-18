@@ -127,6 +127,13 @@ public class BlastDoorRenderer extends TileEntitySpecialRenderer<TileBlastDoor> 
         GlStateManager.pushMatrix();
         GlStateManager.translate(x, y, z);
 
+        // ---------- ★ 窗帘：画布（褶皱 + 罗马杆 + 挂环 + 小铭牌），没有警报灯 ----------
+        if (te.isCurtain()) {
+            renderCurtain(fx, fz, rx, rz, slide, x0, x1, z0, z1, te.getWidth(), te.getHeight());
+            GlStateManager.popMatrix();
+            return;
+        }
+
         // ---------- ① 门体（必画）：沿收进方向连续平移的装甲板 ----------
         renderBody(te, fx, fz, rx, rz, slide, x0, x1, z0, z1);
 
@@ -277,6 +284,142 @@ public class BlastDoorRenderer extends TileEntitySpecialRenderer<TileBlastDoor> 
         //   漏掉还原会让后面画的（警报灯、别的方块实体）跟着变暗或穿模
         GlStateManager.enableCull();
         GlStateManager.enableLighting();
+    }
+
+    /**
+     * 画<b>防爆窗帘</b>：一整片沿收进方向连续平移的黑布 + 顶部罗马杆 + 挂环 + 小铭牌。
+     *
+     * <h3>为什么和门共用同一个 TESR / 同一条动画</h3>
+     * 窗帘和门用的是<b>同一个</b>方块实体（见 {@code TileBlastDoor#isCurtain()}），
+     * 布的位置完全由 {@code slide}（= 开合进度换算出来的格数）决定 ——
+     * 看到的布和走上去的碰撞永远是同一个量，不会出现"布已经收上去了、人还撞在空气上"。
+     *
+     * <h3>褶皱怎么来的</h3>
+     * 沿门宽按 {@code 0.25} 格切竖条，每条交替往门外 / 门内偏 {@code 0.032} 格 ——
+     * 一排竖条就是手风琴式的起伏。没有褶皱的平布糊在门洞里就是一块黑板，
+     * 一眼会被认成布门（3.7.0 的验收就是这么写的）。
+     * 每条只画<b>正反两片</b>，成本是 {@code 宽度×4} 个四边形，7 格宽也只有 56 个。
+     *
+     * <h3>杆和环为什么不跟着布走</h3>
+     * 罗马杆固定在门楣上（{@code y = height}），布从杆上垂下来 ——
+     * 布收上去是"卷到杆上"，杆不动才像窗帘。
+     */
+    private void renderCurtain(int fx, int fz, int rx, int rz, float slide,
+                               double x0, double x1, double z0, double z1, int widthIn, int heightIn) {
+        int w = Math.max(1, widthIn);
+        int h = Math.max(1, heightIn);
+
+        // 正面在朝向那一轴上的坐标（和 renderBody 同一套：朝北 z0、朝南 z1、朝西 x0、朝东 x1）
+        double front = (fx > 0 || fz > 0) ? 1.0D : 0.0D;
+        double px = x0 + fx * front;
+        double pz = z0 + fz * front;
+        double py = slide;
+
+        Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+        TextureAtlasSprite cloth = sprite("rsaudio:blocks/access_cloth");
+        TextureAtlasSprite frame = sprite("rsaudio:blocks/access_frame");
+        TextureAtlasSprite badge = sprite("rsaudio:blocks/access_badge");
+
+        GlStateManager.disableLighting();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableCull();
+        GlStateManager.disableBlend();
+        GlStateManager.depthMask(true);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
+
+        // ---------- 布面：竖条 + 交替起伏 ----------
+        double step = 0.25D;
+        double amp = 0.032D;
+        double thick = 0.12D;
+        int strips = (int) Math.ceil(w / step);
+        for (int i = 0; i < strips; i++) {
+            double s0 = i * step;
+            double s1 = Math.min((double) w, s0 + step);
+            if (s1 - s0 < 1e-4D) {
+                continue;
+            }
+            double off = (i % 2 == 0) ? amp : -amp;
+            double ax = px + rx * s0 + fx * off;
+            double az = pz + rz * s0 + fz * off;
+            double bx = px + rx * s1 + fx * off;
+            double bz = pz + rz * s1 + fz * off;
+            // 外面那片
+            quadUv(buf, ax, py, az, bx, py, bz, bx, py + h, bz, ax, py + h, az, cloth, 0.25F, (float) h);
+            // 里面那片（往门内退一个板厚）—— 从门内看也是布
+            quadUv(buf, bx - fx * thick, py, bz - fz * thick,
+                    ax - fx * thick, py, az - fz * thick,
+                    ax - fx * thick, py + h, az - fz * thick,
+                    bx - fx * thick, py + h, bz - fz * thick, cloth, 0.25F, (float) h);
+        }
+
+        // ---------- 小铭牌：布面正中的那块小标识 ----------
+        double bx0 = px + rx * (w / 2.0D) + fx * (amp + 0.004D);
+        double bz0 = pz + rz * (w / 2.0D) + fz * (amp + 0.004D);
+        double by0 = py + h / 2.0D;
+        double half = 0.14D;
+        quadUv(buf,
+                bx0 - rx * half, by0 - half, bz0 - rz * half,
+                bx0 + rx * half, by0 - half, bz0 + rz * half,
+                bx0 + rx * half, by0 + half, bz0 + rz * half,
+                bx0 - rx * half, by0 + half, bz0 - rz * half,
+                badge, 1.0F, 1.0F);
+
+        // ---------- 罗马杆：固定在门楣上，布从杆上垂下 ----------
+        double ry = h;                   // ★ 不跟 slide 走
+        double rr = 0.05D;               // 杆半径
+        double out = amp + 0.02D;        // 稍微凸出门外
+        double rodX0 = px + fx * out - rx * 0.02D;
+        double rodZ0 = pz + fz * out - rz * 0.02D;
+        double rodX1 = px + fx * out + rx * (w + 0.04D);
+        double rodZ1 = pz + fz * out + rz * (w + 0.04D);
+        // 杆的正面 + 顶面（两片交叉，够看）
+        quadUv(buf, rodX0, ry - rr, rodZ0, rodX1, ry - rr, rodZ1,
+                rodX1, ry + rr, rodZ1, rodX0, ry + rr, rodZ0, frame, 1.0F, 1.0F);
+        quadUv(buf, rodX0, ry + rr, rodZ0, rodX1, ry + rr, rodZ1,
+                rodX1, ry + rr + 0.02D, rodZ1, rodX0, ry + rr + 0.02D, rodZ0, frame, 1.0F, 1.0F);
+
+        // ---------- 挂环：每半格一个，套在杆上 ----------
+        for (double s = 0.5D; s < w; s += 0.5D) {
+            double cx = px + rx * s - fx * 0.045D;
+            double cz = pz + rz * s - fz * 0.045D;
+            double cy = ry;
+            quadUv(buf, cx - rx * 0.03D, cy - 0.10D, cz - rz * 0.03D,
+                    cx + rx * 0.03D, cy - 0.10D, cz + rz * 0.03D,
+                    cx + rx * 0.03D, cy + 0.08D, cz + rz * 0.03D,
+                    cx - rx * 0.03D, cy + 0.08D, cz - rz * 0.03D, frame, 1.0F, 1.0F);
+        }
+
+        tess.draw();
+
+        // ★ 和门体一样：TESR 共用一个 GL 上下文，用完必须还回去
+        GlStateManager.enableCull();
+        GlStateManager.enableLighting();
+    }
+
+    /**
+     * 一片带贴图的四边形（顶点顺序沿用本项目 {@code sheet()} 的约定）。
+     *
+     * @param uScale 只取贴图宽度的一部分（竖条用 0.25，避免整张图被压进一条 0.25 格的布里）
+     * @param vScale 竖直方向重复次数 —— 布有 {@code height} 格高，就平铺 {@code height} 张
+     */
+    private static void quadUv(BufferBuilder buf,
+                               double ax, double ay, double az,
+                               double bx, double by, double bz,
+                               double cx, double cy, double cz,
+                               double dx, double dy, double dz,
+                               TextureAtlasSprite sp, float uScale, float vScale) {
+        float u0 = sp.getMinU();
+        float u1 = u0 + (sp.getMaxU() - u0) * Math.max(1e-4F, Math.min(1.0F, uScale));
+        float v0 = sp.getMinV();
+        float v1 = v0 + (sp.getMaxV() - v0) * Math.max(1e-4F, Math.min(8.0F, vScale));
+        buf.pos(ax, ay, az).tex(u0, v1).endVertex();
+        buf.pos(bx, by, bz).tex(u1, v1).endVertex();
+        buf.pos(cx, cy, cz).tex(u1, v0).endVertex();
+        buf.pos(dx, dy, dz).tex(u0, v0).endVertex();
     }
 
     /**

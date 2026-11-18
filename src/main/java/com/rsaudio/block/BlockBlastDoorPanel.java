@@ -58,13 +58,30 @@ public class BlockBlastDoorPanel extends Block {
     public static final PropertyBool RETRACT = PropertyBool.create("retract");
 
     public BlockBlastDoorPanel() {
-        super(Material.IRON);
+        this("blast_door_panel", Material.IRON, SoundType.METAL, 50.0F, BlockBlastDoor.BLAST_RESISTANCE);
+        // ★ 字面量留给 tools/regcheck（理由同 BlockBlastDoor 构造函数里那段）。
+        //   注册名只在这一处设 —— 父类构造函数再设一次会抛
+        //   "Attempted to set registry name with existing registry name!"，启动即崩。
         setRegistryName(RsAudio.MODID, "blast_door_panel");
-        setUnlocalizedName(RsAudio.MODID + ".blast_door_panel");
+    }
+
+    /**
+     * 变体用：窗帘板把材质/音效/抗性换成布料那一套，注册名换成 {@code blast_curtain_panel}。
+     * <p>
+     * ★ 属性（{@code OPEN} / {@code RETRACT}）是<b>静态</b>的、父子共用 ——
+     * 所以方块实体只要换"写哪一块方块"，状态结构完全不变（见
+     * {@code TileBlastDoor#panelState()}）。
+     *
+     * @param hardness 硬度（窗帘比装甲板软得多，用户能用手撕下来才合理）
+     */
+    protected BlockBlastDoorPanel(String name, Material material, SoundType sound, float hardness, float resistance) {
+        super(material);
+        // ★ 只设显示名：注册名由具体类用字面量设一次（理由见无参构造函数）。
+        setUnlocalizedName(RsAudio.MODID + "." + name);
         // ★ 不加进创造模式物品栏：门板只能由控制器生成
-        setHardness(50.0F);
-        setResistance(BlockBlastDoor.BLAST_RESISTANCE);
-        setSoundType(SoundType.METAL);
+        setHardness(hardness);
+        setResistance(resistance);
+        setSoundType(sound);
         setDefaultState(this.blockState.getBaseState()
                 .withProperty(OPEN, Boolean.FALSE)
                 .withProperty(RETRACT, Boolean.FALSE));

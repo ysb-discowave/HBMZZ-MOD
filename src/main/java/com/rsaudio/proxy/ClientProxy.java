@@ -64,6 +64,9 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new ClientNoticeRenderer());
         // ★ 监控画面的离屏渲染：挂在 RenderWorldLastEvent 上"世界画完、界面没画"的那一刻
         com.rsaudio.client.CameraFeedRenderer.register();
+        // ★ 纪念挂画的画面：和监控画面同一条路（RenderWorldLastEvent 自己遍历方块实体画）。
+        //   不用 TESR —— 理由见 HuangPosterWorldRenderer 的类注释（实测 TESR 的 render 一次没被调过）。
+        com.rsaudio.client.HuangPosterWorldRenderer.register();
         // 模型 / 贴图的注册入口。和方块、物品那边同一条纪律：显式挂总线，
         // 不依赖 @Mod.EventBusSubscriber 的注解扫描（理由见 ModBlocks 的类注释）。
         // 只在这里注册 = 天然只有客户端会挂，不需要再写 Side.CLIENT 守卫。
@@ -361,6 +364,8 @@ public class ClientProxy extends CommonProxy {
                 // 监控摄像头的"名册"（按频道分组）。每 10 刻才真的重扫一次，
                 // 所以放在这儿每 tick 调是免费的
                 com.rsaudio.client.ClientMonitorCache.tick();
+                // 纪念挂画那首歌：放完 / 方块被拆掉都要收尾。没在播时第一行就 return，不用担开销
+                com.rsaudio.client.HuangChantController.tick();
             } catch (Throwable t) {
                 RsAudio.warn("弹窗/语音每 tick 逻辑异常: " + t);
             }

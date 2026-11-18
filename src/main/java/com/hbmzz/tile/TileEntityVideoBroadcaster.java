@@ -64,6 +64,26 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
     private String selector = DEFAULT_SELECTOR;
     private String status = "等待红石信号";
 
+    /** Playback level, 0..200 percent. Owned by this block, not by the wall. */
+    private int volume = 100;
+    /**
+     * 强制限制返回: 没接大屏时，全屏播放结束前 ESC 不生效。
+     *
+     * <p>默认开启。它只在<b>没有</b>检测到大屏时成立——接上大屏以后，谁能
+     * 退出由大屏和拉杆决定，全屏那条路不该再拦人。所以这里存的是"玩家的
+     * 意愿"，是否生效要再问一句 {@link #restrictBackApplies()}。</p>
+     */
+    private boolean restrictBack = !HBMZZConfig.videoAllowEsc;
+    /**
+     * The wall this player drives, if any.
+     *
+     * <p>Kept even while the wall's chunk is unloaded: "the screen is over there"
+     * and "the screen is loaded right now" are different questions, and only the
+     * first one may decide whether the lever talks to a wall or to everybody's
+     * full screen.</p>
+     */
+    private BlockPos screenPos;
+
     /** False until the first tick has adopted the current signal without firing. */
     private boolean primed;
     private boolean lastPowered;
@@ -81,6 +101,52 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
 
     public String getStatus() {
         return this.status;
+    }
+
+    public int getVolume() {
+        return this.volume;
+    }
+
+    public boolean isRestrictBack() {
+        return this.restrictBack;
+    }
+
+    /**
+     * 这条限制此刻是否成立：玩家开了它，而且没有检测到大屏。
+     *
+     * <p>连接状态是唯一的事实来源，客户端每次要判断时都回来查一次，所以遥控器
+     * 中途接上大屏、或者大屏被拆掉，下一次按键就已经是新结论，不需要谁去通知
+     * 谁。拆掉大屏时 {@code loadedScreen()} 会顺手清空连接，于是限制自动恢复。</p>
+     */
+    public boolean restrictBackApplies() {
+        return this.restrictBack && this.screenPos == null;
+    }
+
+    public BlockPos getScreenPos() {
+        return this.screenPos;
+    }
+
+    /** True when a wall has been connected, loaded or not. */
+    public boolean hasScreen() {
+        return this.screenPos != null;
+    }
+
+    /** Volume and 强制限制返回, from the player's own settings window. */
+    public void applyPlayback(int volume, boolean restrictBack) {
+        this.volume = Math.max(0, Math.min(200, volume));
+        this.restrictBack = restrictBack;
+        markDirty();
+        TileEntityVideoScreen screen = loadedScreen();
+        if (screen != null) {
+            screen.setVolume(this.volume);
+        }
+        sync();
+    }
+
+    public void setScreenPos(BlockPos pos) {
+        this.screenPos = pos == null ? null : pos.toImmutable();
+        markDirty();
+        sync();
     }
 
     /**
@@ -101,6 +167,13 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         this.selector = nextSelector;
         this.status = "已保存，等待红石信号";
         markDirty();
+        // A wall shows what its player holds, so the wall is told about a new
+        // clip here rather than polling for it.
+        TileEntityVideoScreen screen = loadedScreen();
+        if (screen != null) {
+            screen.setVideo(this.video);
+            screen.setVolume(this.volume);
+        }
         sync();
         return true;
     }
@@ -126,6 +199,10 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
             this.primed = true;
             this.lastPowered = powered;
             applyPoweredState(powered);
+            // Adopting the current signal must not fire anything (a lever left
+            // down is not an edge), but a connected wall still has to agree with
+            // the lever it is wired to.
+            driveScreen(powered);
             return;
         }
         if (powered == this.lastPowered) {
@@ -133,9 +210,108 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         }
         this.lastPowered = powered;
         applyPoweredState(powered);
+        if (driveScreen(powered)) {
+            // A wall is connected: the lever is a play / stop switch for it, and
+            // that is all it is. In particular a mis-click must never turn into a
+            // full-screen takeover for everyone in range.
+            return;
+        }
         if (powered) {
             fire();
         }
+    }
+
+    /**
+     * 大屏展示：站着右键播放器时，把片子放到接上的那块屏上并开播。
+     *
+     * <p>这不再是"给玩家弹一个窗口"——观众看的是世界里的那块屏，客户端开的
+     * 展示窗口只是把它放大，解码器和音源都还是屏自己那一路，所以一次右键只会有
+     * 一份播放实例。</p>
+     *
+     * <p>拉杆仍然是权威：下一次信号变化时 {@link #driveScreen(boolean)} 会把屏
+     * 重新对齐到红石状态。这里做的是"手动开播"，和按下拉杆是同一个结果，只是
+     * 不需要跑一趟红石。</p>
+     *
+     * @return true when a loaded wall took the request
+     */
+    public boolean startDisplay() {
+        if (this.video.isEmpty()) {
+            setStatus("未设置视频文件");
+            return false;
+        }
+        if (this.screenPos == null) {
+            setStatus("未接大屏");
+            return false;
+        }
+        TileEntityVideoScreen screen = loadedScreen();
+        if (screen == null) {
+            setStatus("大屏不在已加载区域，无法开始播放");
+            return false;
+        }
+        if (!this.video.equals(screen.getVideo())) {
+            screen.setVideo(this.video);
+        }
+        screen.setVolume(this.volume);
+        // 已经在播就不重播：右键是"展示给我看"，不是"从头再来"。
+        screen.setPlaying(true);
+        setStatus("大屏展示中：" + this.video);
+        return true;
+    }
+
+    /**
+     * Tells the connected wall to play or stop.
+     *
+     * @return true when this block is wired to a wall, i.e. the full-screen path
+     *         is not the lever's business any more
+     */
+    private boolean driveScreen(boolean powered) {
+        if (this.screenPos == null) {
+            return false;
+        }
+        TileEntityVideoScreen screen = loadedScreen();
+        if (screen == null) {
+            setStatus(powered ? "大屏不在已加载区域，无法开始播放" : "大屏不在已加载区域");
+            return true;
+        }
+        screen.setVideo(this.video);
+        screen.setVolume(this.volume);
+        screen.setPlaying(powered);
+        if (!powered) {
+            setStatus("大屏已停止");
+        } else if (this.video.isEmpty()) {
+            setStatus("大屏已接通，但还没有设置视频");
+        } else {
+            setStatus("大屏播放中：" + this.video);
+        }
+        return true;
+    }
+
+    /** The connected wall, or null when it is gone or its chunk is not loaded. */
+    private TileEntityVideoScreen loadedScreen() {
+        if (this.screenPos == null || this.world == null) {
+            return null;
+        }
+        if (!this.world.isBlockLoaded(this.screenPos)) {
+            return null;
+        }
+        TileEntity te = this.world.getTileEntity(this.screenPos);
+        if (!(te instanceof TileEntityVideoScreen)) {
+            // The wall was broken; forget the link so the lever goes back to its
+            // original full-screen behaviour instead of never doing anything.
+            this.screenPos = null;
+            markDirty();
+            sync();
+            return null;
+        }
+        TileEntityVideoScreen screen = (TileEntityVideoScreen) te;
+        if (screen.getPlayerPos() != null && !this.pos.equals(screen.getPlayerPos())) {
+            // Re-bound to another player since; this block is not its owner.
+            this.screenPos = null;
+            markDirty();
+            sync();
+            return null;
+        }
+        return screen;
     }
 
     private void fire() {
@@ -148,7 +324,8 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
             return;
         }
         this.cooldown = Math.max(1, HBMZZConfig.videoCooldownTicks);
-        setStatus(VideoBroadcast.fire(this.world, this.pos, this.video, this.selector));
+        setStatus(VideoBroadcast.fire(this.world, this.pos, this.video, this.selector,
+                this.volume, this.restrictBack));
     }
 
     /** Lights the lamp on the block face; purely cosmetic, never gameplay. */
@@ -170,6 +347,11 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         super.writeToNBT(compound);
         compound.setString("video", this.video);
         compound.setString("selector", this.selector);
+        compound.setInteger("volume", this.volume);
+        compound.setBoolean("restrictBack", this.restrictBack);
+        if (this.screenPos != null) {
+            compound.setLong("screen", this.screenPos.toLong());
+        }
         return compound;
     }
 
@@ -178,6 +360,13 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         super.readFromNBT(compound);
         this.video = compound.getString("video");
         this.selector = compound.hasKey("selector") ? compound.getString("selector") : DEFAULT_SELECTOR;
+        this.volume = compound.hasKey("volume")
+                ? Math.max(0, Math.min(200, compound.getInteger("volume"))) : 100;
+        // 旧存档里这一位叫 forceExit，读得到就用它，读不到才回默认值。
+        this.restrictBack = compound.hasKey("restrictBack") ? compound.getBoolean("restrictBack")
+                : compound.hasKey("forceExit") ? compound.getBoolean("forceExit")
+                : !HBMZZConfig.videoAllowEsc;
+        this.screenPos = compound.hasKey("screen") ? BlockPos.fromLong(compound.getLong("screen")) : null;
         // Coming back from disk is not a redstone edge.
         this.primed = false;
         this.lastPowered = false;
@@ -203,6 +392,9 @@ public class TileEntityVideoBroadcaster extends TileEntity implements ITickable 
         if (tag.hasKey("status")) {
             this.status = tag.getString("status");
         }
+        this.volume = tag.hasKey("volume") ? tag.getInteger("volume") : 100;
+        this.restrictBack = tag.hasKey("restrictBack") ? tag.getBoolean("restrictBack") : true;
+        this.screenPos = tag.hasKey("screen") ? BlockPos.fromLong(tag.getLong("screen")) : null;
     }
 
     private void sync() {

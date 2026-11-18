@@ -156,6 +156,15 @@ public class TileBlastDoor extends TileEntity implements ITickable {
     /** 联锁扫描的节流计数 */
     private int scanCooldown = 0;
 
+    /**
+     * 这一扇是不是<b>防爆窗帘</b>（布面 + 铭牌，由 {@code BlastDoorRenderer} 画成带褶皱的布）。
+     * <p>
+     * 只有这一个标记在变体之间不同：连续开合、门板生长/回收、防夹、联锁、气闸、门禁
+     * <b>全都不分支</b>，所以窗帘和门的行为天然一致，也不会各修一遍。
+     * ★ 由 {@code BlockBlastDoor#createTileEntity} 在<b>新建</b>时写入，之后存档里的值说了算。
+     */
+    private boolean curtain = false;
+
     private String status = "";
 
     /** 门上的旋转警报灯：是否启用（建造后默认开） */
@@ -167,6 +176,37 @@ public class TileBlastDoor extends TileEntity implements ITickable {
     private final AccessCore access = new AccessCore();
 
     // ---------------------------------------------------------------- 参数
+
+    /** 窗帘版 {@code = true}：门板用 {@link com.rsaudio.block.BlockBlastCurtainPanel}，渲染成布。 */
+    public boolean isCurtain() {
+        return curtain;
+    }
+
+    /** 只由 {@code BlockBlastDoor#createTileEntity} 调用（新建方块实体时写一次）。 */
+    public void setCurtain(boolean value) {
+        this.curtain = value;
+        if (value) {
+            // ★ 窗帘默认向上收：罗马杆装在门楣上，布往杆上卷才像窗帘
+            //   （向下收会变成"从地板里升上来一块布"）。玩家仍可在尺寸界面里改。
+            this.retractUp = true;
+        }
+    }
+
+    /**
+     * 这一格门板该写成哪一块方块。
+     * <p>
+     * ★ 窗帘和门共用同一套 {@code OPEN}/{@code RETRACT} 属性（
+     * {@link com.rsaudio.block.BlockBlastDoorPanel} 里那两个静态属性），
+     * 所以这里只换方块本体，状态结构不变。
+     */
+    private net.minecraft.block.state.IBlockState panelState() {
+        net.minecraft.block.Block panel = curtain
+                ? com.rsaudio.ModBlocks.BLAST_CURTAIN_PANEL
+                : com.rsaudio.ModBlocks.BLAST_DOOR_PANEL;
+        return panel.getDefaultState()
+                .withProperty(com.rsaudio.block.BlockBlastDoorPanel.OPEN, Boolean.FALSE)
+                .withProperty(com.rsaudio.block.BlockBlastDoorPanel.RETRACT, retractUp);
+    }
 
     public int getWidth() {
         return width;
@@ -734,7 +774,7 @@ public class TileBlastDoor extends TileEntity implements ITickable {
                 if (cell.equals(pos) || !world.isBlockLoaded(cell)) {
                     continue;
                 }
-                world.setBlockState(cell, BlockBlastDoorPanel.stateFor(false, retractUp), 3);
+                world.setBlockState(cell, panelState(), 3);
             }
         }
         built = true;
@@ -1179,7 +1219,7 @@ public class TileBlastDoor extends TileEntity implements ITickable {
                         skippedForEntity = true;
                         continue;
                     }
-                    world.setBlockState(cell, BlockBlastDoorPanel.stateFor(false, retractUp), 3);
+                    world.setBlockState(cell, panelState(), 3);
                 } else if (isPanel) {
                     // 慢慢消失：直接变空气。门板本来就是 INVISIBLE 渲染类型，
                     // 画面由 BlastDoorRenderer 画 —— 这里只管物理，和动画互不干扰。
@@ -1443,6 +1483,8 @@ public class TileBlastDoor extends TileEntity implements ITickable {
         this.alarmLights = !compound.hasKey("AlarmLights") || compound.getBoolean("AlarmLights");
         this.alarmColor = Math.max(0, Math.min(BlockAlarmLight.COLOR_COUNT - 1,
                 compound.hasKey("AlarmColor") ? compound.getInteger("AlarmColor") : 0));
+        // ★ 存档里的"是不是窗帘"优先于新建时写进去的那个值：老存档的防核门不会被误认成窗帘
+        this.curtain = compound.getBoolean("Curtain");
         // ★ 读不到就 reset 回默认；长度不对也要整份丢弃（见 AccessCore.loadState）
         access.loadState(compound.hasKey("Access") ? compound.getIntArray("Access") : null);
         // ★★ 从存档里读回来的"气闸封"一律丢弃。
@@ -1476,6 +1518,7 @@ public class TileBlastDoor extends TileEntity implements ITickable {
         compound.setFloat("OpenAmount", openAmount);
         compound.setBoolean("AlarmLights", alarmLights);
         compound.setInteger("AlarmColor", alarmColor);
+        compound.setBoolean("Curtain", curtain);
         compound.setIntArray("Access", access.saveState());
         return compound;
     }
@@ -1494,6 +1537,7 @@ public class TileBlastDoor extends TileEntity implements ITickable {
         tag.setString("Status", status == null ? "" : status);
         tag.setBoolean("AlarmLights", alarmLights);
         tag.setInteger("AlarmColor", alarmColor);
+        tag.setBoolean("Curtain", curtain);
         tag.setIntArray("Access", access.saveState());
         return tag;
     }
@@ -1519,6 +1563,7 @@ public class TileBlastDoor extends TileEntity implements ITickable {
         this.alarmLights = !tag.hasKey("AlarmLights") || tag.getBoolean("AlarmLights");
         this.alarmColor = Math.max(0, Math.min(BlockAlarmLight.COLOR_COUNT - 1,
                 tag.hasKey("AlarmColor") ? tag.getInteger("AlarmColor") : 0));
+        this.curtain = tag.getBoolean("Curtain");
         access.loadState(tag.hasKey("Access") ? tag.getIntArray("Access") : null);
         // ★ 联锁状态是"邻居当前状态"的投影，只有在服务端扫过之后才算数。
         //   客户端拿到的那份 0/1 是服务端当时的快照，不该被当成权威，重扫时会自己纠正。

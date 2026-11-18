@@ -22,6 +22,7 @@ import com.hbmzz.dfc.ConsoleRig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
@@ -104,6 +105,23 @@ public final class PanelPainter {
      * <p>The u axis runs backwards on purpose. The observer stands outside the
      * face looking along +z, so their right hand is local -x: image column 0 has
      * to land on their left, which means u=0 pairs with the x1 corners.</p>
+     *
+     * <h3>Why the lightmap is pinned here</h3>
+     * <p>A screen is a lamp, not a panel lit by the room: nothing on it should get
+     * darker because the room is dim. But a TESR runs inside the world pass,
+     * where unit 1 is still carrying the lightmap and the fixed pipeline samples
+     * it with whatever coordinate is currently set. A quad that has no lightmap
+     * of its own therefore inherits "the light of the last block or entity drawn"
+     * - and the picture is multiplied by it. That is the whole of the
+     * "same clip is fine in the player, dim on the wall" report: the GUI disables
+     * unit 1 ({@code disableLightmap}) and is unaffected, while the world quad is
+     * dimmed by the room, with the game's brightness setting riding on top.</p>
+     *
+     * <p>Pinned to 240 (Minecraft's full-bright, in 1/256 of the lightmap) for the
+     * length of the quad and put back afterwards, exactly as the CECP controls do
+     * for their lit parts. The alternative - writing lightmap coordinates into the
+     * vertex format - behaves the same in vanilla but needs a different format per
+     * draw; the pinned coordinate is what the rest of this mod already uses.</p>
      */
     public static void glass(float[][] corners, int textureId, float alpha) {
         if (corners == null || corners.length < 4 || textureId == 0 || alpha <= 0.001F) {
@@ -111,6 +129,11 @@ public final class PanelPainter {
         }
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();
+
+        // Saved, not assumed: the value belongs to whoever draws next.
+        float lightX = OpenGlHelper.lastBrightnessX;
+        float lightY = OpenGlHelper.lastBrightnessY;
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
 
         GlStateManager.enableTexture2D();
         GlStateManager.disableLighting();
@@ -134,6 +157,7 @@ public final class PanelPainter {
         }
         tessellator.draw();
 
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lightX, lightY);
         restoreAtlas();
         GlStateManager.disableBlend();
         GlStateManager.enableLighting();

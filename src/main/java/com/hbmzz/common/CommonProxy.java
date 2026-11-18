@@ -50,6 +50,43 @@ public class CommonProxy {
     }
 
     /**
+     * Opens the wall's size / speed window. Client only, like every other window
+     * here: the server has no pixels, it just owns the numbers.
+     */
+    public void openVideoScreenConfig(BlockPos pos) {
+    }
+
+    /** Opens the wall's playhead window: seek, pause, rewind. */
+    public void openVideoSeek(BlockPos pos) {
+    }
+
+    /**
+     * Opens the wall's television window: the picture in a set-shaped window in
+     * the middle of the screen. This is the plain right-click on a wall; F in
+     * that window goes fullscreen and F again comes back to the set.
+     */
+    public void openVideoWatch(BlockPos pos) {
+    }
+
+    /** Same window, already switched to fullscreen (the menu's 「全屏观看」). */
+    public void openVideoFullscreen(BlockPos pos) {
+    }
+
+    /** Opens the player's volume / exit-lock window. */
+    public void openVideoPlayerConfig(BlockPos pos) {
+    }
+
+    /**
+     * Opens the playback window straight from the block's plain right-click.
+     *
+     * <p>Client-only: the server has no window to open, and the packet path used
+     * by a redstone broadcast is a different one on purpose - that one is a
+     * takeover, this one is the player choosing to watch.</p>
+     */
+    public void openVideoPlayback(BlockPos pos) {
+    }
+
+    /**
      * Opens the command window of one terminal control.
      *
      * <p>{@code kind} says which panel the control lives on - this mod's own

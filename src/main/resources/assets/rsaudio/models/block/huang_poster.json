@@ -1,0 +1,43 @@
+{
+  "textures": {
+    "particle": "rsaudio:blocks/poster_frame",
+    "frame": "rsaudio:blocks/poster_frame",
+    "back": "rsaudio:blocks/poster_frame",
+    "blank": "rsaudio:blocks/poster_frame"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        14
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#blank"
+        },
+        "south": {
+          "texture": "#back",
+          "cullface": "south"
+        },
+        "up": {
+          "texture": "#frame"
+        },
+        "down": {
+          "texture": "#frame"
+        },
+        "west": {
+          "texture": "#frame"
+        },
+        "east": {
+          "texture": "#frame"
+        }
+      }
+    }
+  ]
+}

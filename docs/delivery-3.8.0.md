@@ -11,10 +11,10 @@
 | --- | --- |
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
-| 当前提交 | `b8f80c0`（批次 #12：右键=大屏展示 + 单音源仲裁） |
-| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,756,935 字节） |
-| 模组 SHA-256 | `6aab79cd23d94139…`（`build/libs` 与部署目录两处一致） |
-| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,853,807 字节，sha256 `cde1e1e2…`） |
+| 当前提交 | `409cff3`（批次 #13：导入窗口居中 + 帧率 120） |
+| 游戏侧模组 | `hbmzz-3.8.0.jar`（23,757,328 字节） |
+| 模组 SHA-256 | `b9f32bbd8c03fdb2…`（`build/libs` 与部署目录两处一致） |
+| 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,854,752 字节，sha256 `14c8beaa…`） |
 | 源码仓库 | `C:\Users\37594\WorkBuddy\Claw\HBMZZ-MOD`（分支 master） |
 | 部署位置 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\mods\hbmzz-3.8.0.jar` |
 | 旧版归档 | `E:\pcl2\.minecraft\versions\DFC+RBMK 1.0.0\backupsmod\hbmzz-old-jars\` |
@@ -250,6 +250,26 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
 - 兜底：`GuiVideoScreen.reap()` 每 tick 检查"当前界面还是不是我"，换世界、被别的界面顶掉、
   某条路径漏了 `onGuiClosed`——三种情况都会把解码器关掉，不会留下一个没有窗口的声音。
 
+### 13. 导入窗口居中与帧率 120（本批新增）
+
+**一、"斜着、往旁边"的真因**：`GuiVideoImport` 的面板宽度是写死的 `W = 360`，位置按 `(width - 360) / 2` 算。
+GUI 缩放大的一档下可用宽度只有 320，`left` 直接变负数——面板左边 40 px 被切在视口外，右边顶到边上，
+看上去整块板子歪在右边。不是绘制的问题，是"面板比屏幕宽"这件事从来没被处理。
+
+- 现在 `W = max(220, min(360, width - 16))`，`left = max(4, (width - W) / 2)`，`top` 同样夹住；
+  窄窗口里面板变小，而不是被切掉。
+- 按钮不再写死 x 坐标，按 `(面板宽 - 24 - 2*gap) / 3` 分三列，第三列吃掉余量；下面那条 ffmpeg 按钮横跨整幅。
+- `updateScreen()` 比对上次排版的视口尺寸，变了就重排——拉窗口、改全屏、切 GUI 缩放都走这条路，
+  以前只有 `initGui()` 会重排，按钮会留在旧位置上。
+
+**二、帧率上限 30 → 120**：
+
+- `VideoImportQueue.FPS_STEPS` = `6, 8, 10, 12, 15, 24, 30, 48, 60, 90, 120`；`submit()` 的钳位放到 120。
+- `VideoClip` 读 `meta.json` 时原来钳在 60，这次一起放到 120 —— 不然 120fps 的包会被当 60fps 播，
+  播放速度刚好一半，看起来像"导入时丢帧"。
+- 代价写在界面上：帧数 = 时长 × 帧率，120fps 是 30fps 的四倍帧数、四倍体积。默认仍是 12fps，
+  没动，因为广播器那块屏看不出 60 和 120 的区别，占的是磁盘。
+
 ## 三、验证记录
 
 | 项目 | 结果 |
@@ -265,6 +285,7 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
 | cecpcheck | 8/8 |
 | gatecheck / dfccheck / reasimcheck | 全 PASS |
 | `python tools/checkall.py --fast` | 7/7 全 PASS（含站点数据一致性） |
+| 本批新增的静态检查（#86–#87） | 导入面板按视口取宽并夹住左边距、拉窗口后重排、导入与读取两端帧率上限都是 120。两条都做过反向验证：把左边距的 `max(4, …)` 去掉、把 `VideoClip` 的钳位改回 60，对应项当场变红 |
 | 本批新增的静态检查（#78–#85） | 站立右键先开 mirror 再考虑本机播放、屏不在本区才退回、拿不到方块实体也不空点击、展示窗口借屏的解码器且不关它、世界只留一块屏发声、任何窗口都静音、策略每 tick 跑且随世界重置、静音≠暂停、reap 兜住没有窗口的解码器、蹲下右键 ALLOW 且两端注册、startDisplay 由服务端发起。#78 / #80 / #84 做过反向验证：把 mirror 分支掏空、把 `setMuted(te != audible)` 删掉、把 `setUseBlock(ALLOW)` 注释掉，对应三条立刻变红 |
 | 部署校验 | 目标目录 jar（23,756,935 字节）与构建产物 sha256 一致：`6aab79cd…` |
 | 音频仲裁（实跑，非静态） | 探针用 ffmpeg 生成的 3 秒 44.1k 真 WAV 走 `VideoAudio`：起播 `isRunning()=true`；`setMuted(true)` 后真停、位置冻结（150 ms 内 0 µs）；`setMuted(false)` 从原位置续上（110748 → 310748 µs）；静音状态下 `seek(2.0)` 不会把它重新放起来。RESULT PASS |
@@ -304,6 +325,10 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
   （或右键大屏用定位窗口暂停）。这是"右键 = 展示"这个手势的代价，写在这里而不是留给玩家自己发现。
 - **大屏展示与音源仲裁的观感没有进游戏实测**：mirror 窗口借的是屏的解码器，多屏同房间只留最近一块发声，
   这些结论来自代码与 96 条静态检查 + 混音器层的实跑，画面观感、窗口切换那一瞬间的听感仍需进游戏确认。
+- **120fps 只解决"能放"，不解决"值得放"**：帧数按时长×帧率线性增长，一部 24 分钟 120fps 的片子
+  是 30fps 的四倍文件体积和四倍解码压力；广播器同时解码上限是 4 路，档位挑高之后更容易撞到这条线。
+- **导入窗口的居中只在代码层面验证过**：算出来的左边距在 320 / 427 / 960 三种视口宽度下都是正的且居中，
+  但没进游戏逐档拉动窗口看过；如果某个 GUI 缩放下仍显歪，先量一下当时的 `width` 值。
 - **同一块屏同时被窗口与视角看到时只有一路解码**（本来就是同一个 `VideoScreenPlayback` 实体），
   但"同时解码上限 4 路"仍然算这块屏一份；一屋子超过 4 块屏时，超出的屏让出窗口也无法显示。
 - 播放界面按 F 切换的是**系统全屏**（整块显示器），不是"隐藏底部进度条"；退出播放会还原进入前的显示模式。
@@ -340,6 +365,7 @@ if (!player.isSneaking() || bypass || event.getUseBlock() == ALLOW)
 | 2026-11-18 #11 | `0b0d835` | **视频格式全支持**：新增 `VideoFormats`（容器白名单）与 `VideoImportQueue`（ffmpeg 拆帧 + 音轨 + 打包，后台队列、进度、取消）；广播器窗口加「导入视频…」；待导入与真不支持分开记；包名放开到中文；regcheck 83 条、videocheck 28 条 | `94fd3bd7…` |
 
 | 2026-11-18 #12 | `b8f80c0` | **右键=大屏展示 + 单音源**：站立右键接了屏就进 mirror 展示窗口（借屏的解码器，无第二份播放实例），服务端同一次点击里让屏开播；没屏才回本机全屏播放。蹲下右键的真因是原版 `isSneaking` 判据——手里拿着东西时方块根本不被调用，`VideoClickHandler` 对这两块回 ALLOW。`VideoAudioPolicy` 每 tick 仲裁音源：设置窗口全静音、接管只留自己、世界只留最近的屏；静音不暂停，恢复时音轨 seek 回画面时间；`GuiVideoScreen.reap` 兜底关掉没有窗口的解码器。regcheck 96 条 | `6aab79cd…` |
+| 2026-11-18 #13 | `409cff3` | **导入窗口居中 + 帧率 120**：面板宽度改为 `min(360, 视口-16)`、左边距夹住，拉窗口/改全屏时重排按钮（原来写死 360 宽，GUI 缩放调大后 left 为负，左边被切在屏幕外）；`FPS_STEPS` 增到 48/60/90/120，`submit` 与 `VideoClip` 两端钳位都放到 120，避免 120fps 包按半速播。regcheck 99 条 | `b9f32bbd…` |
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。
 > 批次 #4 / #5 的自制配乐与口播已随 #6 撤回，产物仍在 `backupsmod\hbmzz-old-videos\`。

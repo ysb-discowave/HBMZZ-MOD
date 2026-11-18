@@ -31,25 +31,37 @@ py -3.12 tools/video/promo/make_promo.py --only-fixed
 
 ---
 
-## 接入正式 BGM（下一步就做这个）
+## 接入正式 BGM（已做完：主题曲 2026-11-18 上线）
 
-现在成片的音轨是**占位**：正文 8–244 s 静音，244 s 起接片尾自带音乐。流结构与最终版完全一致，换音乐不动画面。
+主题曲（`主题曲.mp4` 抽音轨）已合成进正片：244.019 s 与「片头 8 s + 正文 236 s」严丝合缝，
+曲子的段落动态逐段对齐分镜（1:56 终端段低谷 / 3:16 起核事故高峰 / 3:52 收束），
+所以走**全覆盖模式**——BGM 从视频 0 s 铺到 244 s，片头不再垫静音；244 s 起接片尾自带音乐，
+两端各 0.6 s 淡变。BPM 实测 ~140 但总长按秒对齐，故保持 244 s 时间轴不重渲。
+
+最终复现命令：
 
 ```bash
 py -3.12 tools/video/promo/make_promo.py \
-    --bgm "path/to/bgm.wav" \
-    --bpm 128 \
-    --offset 0.0 \
-    --duck-credits 0.6
+    --bgm tools/video/promo/out/_bgm_norm.wav \
+    --bgm-limit 5.5 \
+    --credits-gain 2.2 --credits-limit 3.8 \
+    --duck-credits 0.6 --preset slow
 ```
 
 | 参数 | 作用 |
 |---|---|
 | `--bgm` | 音乐文件。任意格式，ffmpeg 会转 48 kHz 立体声 AAC |
 | `--bpm` | 音乐的 BPM。**关键**：段落时长都是整数拍，改 BPM 会按 `beats` 重算每段帧数，然后提示你重渲染。**不是拉伸画面**，所以卡点是真的卡点 |
-| `--offset` | BGM 第一拍相对正文起点（8.000 s）的偏移，秒。用来把重音对到关键帧 |
+| `--offset` | BGM 取用的起始秒（全覆盖模式下 = 从曲子第几秒开始取；0 = 曲头对视频头） |
+| `--bgm-gain` | BGM 线性增益 dB |
+| `--bgm-limit` | BGM 编码前真峰天花板 dB（>0 启用限幅器）。**必开**：ffmpeg 原生 AAC 对重砖墙母带会振铃 +2~3 dB 真峰，纯降增益会把响度压垮——主题曲实测天花板 −5.5 dB 才能编出干净的 −1.8 dBTP |
+| `--credits-gain` | 片尾自带音乐增益 dB（主题曲与片尾曲拉平响度用 +2.2） |
+| `--credits-limit` | 片尾编码前真峰天花板 dB（片尾曲实测 −3.8 够） |
 | `--duck-credits` | 正文末尾淡出 / 片尾音乐淡入的时长 |
 | `--same-track` | 若正文 BGM 与片尾曲是同一首，接成连续一条，不做交叉淡化 |
+
+实测结果：正片 −15.4 LUFS / −1.5 dBTP，片尾 −15.5 LUFS / −2.2 dBTP（接缝差 0.1 LU），无削波。
+`alimiter` 必须 `level=disabled`——它默认的自动增益补偿会把限掉的峰值原样抬回去，等于白限。
 
 `out/CUE.md` 里有全部段边界与 16 个建议重音点的时码，对着音乐核一遍即可。
 
@@ -105,7 +117,7 @@ py -3.12 tools/video/promo/verify.py
 ```
 
 检查：画布 960×540、24 fps、yuv420p、h264、总帧数与时长、音轨 48 kHz 立体声、
-片头与片尾对原素材的保真度（PSNR）、正文静音区间，并把所有段边界帧抽到 `out/verify/` 供人看。
+片头与片尾对原素材的保真度（PSNR）、正文音轨（有 BGM 查音乐存在，无 BGM 查静音），并把所有段边界帧抽到 `out/verify/` 供人看。
 
 ---
 
@@ -129,7 +141,7 @@ py -3.12 tools/video/promo/verify.py
 
 1. **没有游戏内实录**。仓库里没有任何游戏内录像，所以画面是"贴图 + 程序绘制的 HUD"，不是真的在跑的方块。S04 的"读数一模一样"是渲染参数相同，不是真的采样两次。缓解靠文案（「这些数字不是贴图」）。
 2. **片尾占 44%**。193.8 秒是固定素材，含完整署名与授权链，这一版按所有者要求保留完整。
-3. **`--bpm` 未实测过真实音乐**。BGM 到位前，拍网格按 120 BPM 假设。
+3. **拍网格按 120 BPM 假设，主题曲按秒对齐**。主题曲实测 ~140 BPM，但其总长与段落动态是按本片 244 s 时间轴写的，所以保持原时间轴不重渲；若将来换一首按拍写的曲子，改 `--bpm` 重渲即可。
 4. 段渲染器用 Pillow 逐帧绘制，**做不了真 3D**（没有高光/反射）。S03 的机箱是等距投影的平面拼合，靠明暗面和细线营造实体感。
 
 ---
@@ -140,6 +152,6 @@ py -3.12 tools/video/promo/verify.py
 
 - 本体：**GPL-3.0-only**
 - 附属包（addon）：**PolyForm Shield License 1.0.0** —— 可再分发、不得 sublicense、不得与 GPL 混声明
-- 片尾音乐 `The ending of melting` 已在片尾素材内；正文 BGM 由所有者提供
+- 片尾音乐 `The ending of melting` 已在片尾素材内；正文 BGM 主题曲由所有者提供（2026-11-18 合成上线，官网 OST 同步发布，正片内归一版本 −15.4 LUFS、OST 保持原电平 −16.5 LUFS）
 
 字体：中文用系统 `msyhbd.ttc`（微软雅黑 Bold），等宽用 `tools/video/intro/fonts/DejaVuSansMono-Bold.ttf`（随仓库附带，Bitstream Vera / DejaVu 许可，允许自由分发）。

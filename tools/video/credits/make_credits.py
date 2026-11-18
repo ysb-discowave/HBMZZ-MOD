@@ -53,7 +53,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 NAMES = os.path.join(HERE, "names.json")
 OUT_DIR = os.path.join(HERE, "out")
-AUDIO = os.path.join(OUT_DIR, "credits.wav")   # 新配乐，缺失时自动合成
+AUDIO = os.path.join(OUT_DIR, "credits-vo.wav")   # 配乐 + 英文口播，缺失时自动生成
 BUILD_DIR = os.path.join(HERE, ".build")
 AUDIO_TOOL = os.path.join(ROOT, "tools", "audio")
 MP4 = os.path.join(OUT_DIR, "hbmzz-credits.mp4")
@@ -169,6 +169,8 @@ def ensure_audio() -> str:
     """配乐由 tools/audio/ost_synth.py 合成，不做任何采样；没有就现算一份。"""
     if os.path.isfile(AUDIO) and os.path.getsize(AUDIO) > 1024:
         return AUDIO
+    if os.path.basename(AUDIO) == "credits-vo.wav":
+        die("缺 credits-vo.wav：先跑 python tools/audio/voice_over.py --song credits")
     sys.path.insert(0, AUDIO_TOOL)
     try:
         import ost_synth

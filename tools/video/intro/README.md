@@ -24,8 +24,10 @@ py -3.12 tools/video/intro/make_intro.py
 python tools/video/intro/package_intro.py
 ```
 
-zip 现在默认带一版新配乐：`out/intro.wav`（8.000 s，由 `tools/audio/ost_synth.py`
-合成，不采样任何现成音频），同时另存 `out/hbmzz-intro-voiced.mp4` 方便离线看。
+zip 现在默认带成品音轨 `out/intro-vo.wav`：`tools/audio/ost_synth.py` 合成的 8.000 s 配乐，
+再叠一层英文口播（`tools/audio/voice_over.py`，四句：Don't blink / Break / Hold / Locked，
+分别落在 0.00 / 2.25 / 4.00 / 6.45）。纯音乐版留在 `out/intro.wav`，另存带音成片
+`out/hbmzz-intro-voiced.mp4` 方便离线看。
 配乐的三个动作点是从 mp4 逐帧量出来的：2.25 s 散开、4.00 s 合拢、6.50 s 咬合，
 8.000 s 正好落到静默。要出 SPEC 里的静音版，加 `--silent`。
 

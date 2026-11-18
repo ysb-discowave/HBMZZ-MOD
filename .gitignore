@@ -15,6 +15,7 @@ dist3/
 # 视频生成产物（mp4 / 播放器 zip / 抽帧）：成片走 Release 资产，不进仓库
 tools/video/*/out/
 tools/video/*/.build/
+tools/audio/.voice-cache/
 
 # 本机部署目标（tools/deploy.py 读，别人的机器路径不同，不进仓库）
 deploy.local.json

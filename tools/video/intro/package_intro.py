@@ -44,7 +44,7 @@ WIDTH = 960                    # 与片尾及播放器 videoMaxWidth 一致，�
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 DEFAULT_MP4 = os.path.join(HERE, "out", "hbmzz-intro.mp4")
-DEFAULT_AUDIO = os.path.join(HERE, "out", "intro.wav")
+DEFAULT_AUDIO = os.path.join(HERE, "out", "intro-vo.wav")   # 带英文口播的成品
 DEFAULT_OUT = os.path.join(HERE, "out", "hbmzz-intro.zip")
 VOICED_MP4 = os.path.join(HERE, "out", "hbmzz-intro-voiced.mp4")
 AUDIO_TOOL = os.path.join(ROOT, "tools", "audio")
@@ -115,6 +115,8 @@ def ensure_audio(path: str) -> str:
     """片头配乐由 tools/audio/ost_synth.py 合成，缺失时现算，不引用任何现成音频。"""
     if os.path.isfile(path) and os.path.getsize(path) > 1024:
         return path
+    if os.path.basename(path) == "intro-vo.wav":
+        raise SystemExit("缺 intro-vo.wav：先跑 python tools/audio/voice_over.py --song intro")
     sys.path.insert(0, AUDIO_TOOL)
     try:
         import ost_synth
@@ -186,7 +188,7 @@ def main() -> int:
     parser.add_argument("--out", default=DEFAULT_OUT,
                         help="输出 zip 路径，默认 tools/video/intro/out/hbmzz-intro.zip")
     parser.add_argument("--audio", default=DEFAULT_AUDIO,
-                        help="配乐 wav，默认 tools/video/intro/out/intro.wav（缺失时自动合成）")
+                        help="配乐 wav，默认 tools/video/intro/out/intro-vo.wav（缺失时自动合成纯音乐版）")
     parser.add_argument("--silent", action="store_true",
                         help="出静音版（SPEC 的旧交付形态），不带 audio.wav")
     args = parser.parse_args()

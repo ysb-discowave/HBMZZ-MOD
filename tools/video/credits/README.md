@@ -4,11 +4,15 @@ HBMZZ 的片尾滚动字幕。配乐是这一版新写的，由 `tools/audio/ost
 不读取 `docs/assets/audio/` 下的任何 mp3，也不按它们的旋律、调性或段落做对齐——
 时间只跟画面走（2326 帧 / 12 fps / 193.833 s）。
 
-输出三样东西：
+输出四样东西：
 
-- `out/credits.wav` — 配乐本体，44.1k / 16bit / 立体声
-- `out/hbmzz-credits.mp4` — 配了新乐的成片，用来单独观看或存档
+- `out/credits.wav` — 纯音乐版（不含人声），留作对比与回退
+- `out/credits-vo.wav` — 成品：配乐 + 英文口播，44.1k / 16bit / 立体声
+- `out/hbmzz-credits.mp4` — 配了成品的成片，用来单独观看或存档
 - `out/hbmzz-credits.zip` — 视频广播器能直接播的包（放客户端 `config/hbmzz/videos/`）
+
+口播由 `tools/audio/voice_over.py` 生成（edge-tts 的 en-US-GuyNeural），位置锁在
+0:00 / 0:32.7 / 1:16.4 / 2:43.6 / 3:06 五处，名字滚动的主体段落一律不说话。
 
 ## 换昵称
 

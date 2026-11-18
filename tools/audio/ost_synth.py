@@ -240,6 +240,17 @@ def master(mono: np.ndarray, seconds_total: float, peak: float = 0.92) -> np.nda
     return mono * (peak / top)
 
 
+def write_mono_wav(path: str, data: np.ndarray) -> None:
+    """给中间步骤用：单声道 16bit。"""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    pcm = np.clip(np.asarray(data, dtype=np.float64), -1.0, 1.0)
+    with wave.open(path, "wb") as handle:
+        handle.setnchannels(1)
+        handle.setsampwidth(2)
+        handle.setframerate(SR)
+        handle.writeframes((pcm * 32767.0).astype("<i2").tobytes())
+
+
 def write_wav(path: str, data: np.ndarray) -> None:
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     pcm = np.clip(data, -1.0, 1.0)

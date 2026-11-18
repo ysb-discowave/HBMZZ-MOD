@@ -61,12 +61,14 @@ public class CommonProxy {
     }
 
     /**
-     * Opens the wall's picture fullscreen in one step.
-     *
-     * <p>This is the plain right-click on a wall. The window it opens is the same
-     * one the old menu's 「全屏观看」 button opened - the difference is that the
-     * click no longer stops at a menu first.</p>
+     * Opens the wall's television window: the picture in a set-shaped window in
+     * the middle of the screen. This is the plain right-click on a wall; F in
+     * that window goes fullscreen and F again comes back to the set.
      */
+    public void openVideoWatch(BlockPos pos) {
+    }
+
+    /** Same window, already switched to fullscreen (the menu's 「全屏观看」). */
     public void openVideoFullscreen(BlockPos pos) {
     }
 

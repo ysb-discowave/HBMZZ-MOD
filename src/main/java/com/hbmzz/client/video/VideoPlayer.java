@@ -118,8 +118,6 @@ public final class VideoPlayer implements Closeable {
     private double baseSeconds;
     private boolean started;
     private volatile boolean paused;
-    /** Playback rate, 1.0 = the clip's own frame rate. Set by the wall screen. */
-    private float speed = 1.0F;
     private int uploaded = -1;
 
     private VideoPlayer(VideoClip clip) {
@@ -275,8 +273,6 @@ public final class VideoPlayer implements Closeable {
                 // Same for a decoder that was opened while somebody else owns the
                 // speakers - a settings window, or another wall.
                 this.audio.setMuted(this.muted);
-                // And for one opened at a rate the track cannot follow.
-                this.audio.setSpeedMuted(Math.abs(this.speed - 1.0F) >= 1.0e-3F);
             } catch (IOException ignored) {
             }
         }
@@ -309,53 +305,6 @@ public final class VideoPlayer implements Closeable {
 
     public boolean muted() {
         return this.muted;
-    }
-
-    /**
-     * Sets the playback rate.
-     *
-     * <p>Only the clock is scaled, never the decoder: frames are still listed in
-     * clip order and the ring buffer is unchanged. At 0.25x the playhead simply
-     * advances a quarter as fast, at 3x three times as fast - which is the whole
-     * feature, and is why it cannot desynchronise the audio relative to the
-     * picture at the moment playback starts.</p>
-     */
-    public void setSpeed(float speed) {
-        float next = Math.max(0.25F, Math.min(3.0F, speed));
-        if (Math.abs(next - this.speed) < 1.0e-4F) {
-            return;
-        }
-        // Re-anchor at the current position before changing rate: a wall switched
-        // from 1x to 3x would otherwise jump two thirds of the film backwards,
-        // because the base is film time and only the elapsed part is scaled.
-        this.baseSeconds = filmSeconds();
-        this.startNanos = System.nanoTime();
-        this.speed = next;
-        this.alignAudioToSpeed();
-    }
-
-    /**
-     * Keeps the soundtrack honest across a rate change.
-     *
-     * <p>The track cannot change speed - {@code Clip} plays at the rate the file
-     * was written at - so at any rate other than 1x it is held instead of being
-     * left running behind the picture. Coming back to 1x it is repositioned to
-     * where the film actually is (not where it was when the rate changed) and
-     * then released, so the music lands on the frame it belongs to.</p>
-     */
-    private void alignAudioToSpeed() {
-        VideoAudio audio = this.audio;
-        if (audio == null) {
-            return;
-        }
-        if (Math.abs(this.speed - 1.0F) < 1.0e-3F) {
-            // While still held: seek() must not sneak a play() in from the old
-            // position. Hold, move, release.
-            audio.seek(filmSeconds());
-            audio.setSpeedMuted(false);
-        } else {
-            audio.setSpeedMuted(true);
-        }
     }
 
     /**
@@ -420,16 +369,12 @@ public final class VideoPlayer implements Closeable {
         return this.paused;
     }
 
-    public float speed() {
-        return this.speed;
-    }
-
-    /** Clip time reached so far: the anchor plus wall-clock time at this rate. */
+    /** Clip time reached so far: the anchor plus wall-clock time since it. */
     public double filmSeconds() {
         if (!this.started || this.paused) {
             return this.baseSeconds;
         }
-        return this.baseSeconds + elapsedSeconds() * this.speed;
+        return this.baseSeconds + elapsedSeconds();
     }
 
     public boolean started() {

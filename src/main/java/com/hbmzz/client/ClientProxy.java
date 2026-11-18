@@ -290,27 +290,39 @@ public class ClientProxy extends CommonProxy {
     }
 
     /**
-     * 普通右键大屏：开到满屏，一次点击到位。
+     * 普通右键大屏：屏中间开一台电视机。
      *
      * <p>窗口本身是 {@link GuiVideoScreen#watch} 那个"从大屏进来的"展示窗口，
-     * 也就是旧菜单里「全屏观看」按出来的同一个；这里只是把"先开菜单、再点按钮"
-     * 两步并成一步。打开顺序和那个按钮一致：先换窗口，再切显示模式——窗口在
-     * {@code initGui} 里记下"看片之前的桌面状态"，关窗时才能原样还回去。</p>
+     * 只是不再一进来就切全屏：小窗状态就是一台摆在屏幕正中的电视（外壳、边框、
+     * 底座都在 {@code GuiVideoScreen} 里画），F 再切全屏、再按 F 回到这台电视，
+     * 关窗回到看片之前的桌面状态。</p>
      */
+    @Override
+    public void openVideoWatch(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.world == null) {
+            return;
+        }
+        mc.displayGuiScreen(GuiVideoScreen.watch(broadcasterOf(mc, pos), pos));
+    }
+
+    /** 菜单里的「全屏观看」：同一个电视窗口，进来就已经满屏。 */
     @Override
     public void openVideoFullscreen(BlockPos pos) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.world == null) {
             return;
         }
-        BlockPos broadcaster = null;
-        net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(pos);
-        if (te instanceof com.hbmzz.tile.TileEntityVideoScreen) {
-            broadcaster = ((com.hbmzz.tile.TileEntityVideoScreen) te).getPlayerPos();
-        }
-        GuiVideoScreen window = GuiVideoScreen.watch(broadcaster, pos);
+        GuiVideoScreen window = GuiVideoScreen.watch(broadcasterOf(mc, pos), pos);
         mc.displayGuiScreen(window);
         window.enterFullscreen();
+    }
+
+    /** The player block a wall answers to, or null when the wall is on its own. */
+    private static BlockPos broadcasterOf(Minecraft mc, BlockPos wall) {
+        net.minecraft.tileentity.TileEntity te = mc.world.getTileEntity(wall);
+        return te instanceof com.hbmzz.tile.TileEntityVideoScreen
+                ? ((com.hbmzz.tile.TileEntityVideoScreen) te).getPlayerPos() : null;
     }
 
     @Override

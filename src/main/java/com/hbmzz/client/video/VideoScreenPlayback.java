@@ -126,7 +126,6 @@ public final class VideoScreenPlayback {
                 // would open a zip 60 times a second.
                 return null;
             }
-            player.setSpeed(te.getSpeed());
             // Before start(): the decode thread then begins at the frame the wall
             // is on, instead of decoding the whole film up to it.
             player.seekTo(within(player, target));
@@ -136,7 +135,6 @@ public final class VideoScreenPlayback {
             CLIPS.put(te, te.getVideo());
             REFUSED.remove(te);
         }
-        player.setSpeed(te.getSpeed());
         // The wall owns the playhead; the decoder owns the pixels. Every frame,
         // the clock is nudged towards the published position and the pause state
         // is copied across, so a seek made by anyone anywhere lands here too.

@@ -1241,13 +1241,16 @@ def main():
           "only one wall in the world is allowed a soundtrack",
           "VideoScreenPlayback needs setAudible() and must push setMuted(te != audible) per frame")
 
-    # 81. 设置窗口一开，全场静音。这条是用户报的那个 bug 的正解：声音是
-    # VideoAudioPolicy 每 tick 统一判的，不是每个窗口各关各的（各有各的必然漏一个）。
+    # 81. 声音由 VideoAudioPolicy 每 tick 统一判，不是每个窗口各关各的（各有各的
+    # 必然漏一个）。但"开着窗口就全场静音"是错的：片子在世界里放着，去开个箱子、
+    # 看一眼机器，不该把声音一起关掉。现在只有两种情况算"别人在说话"——接管窗口
+    # 有自己的解码器，以及"只留一块屏"这条。其余（任何窗口 / 没窗口）都是最近的屏。
     policy = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudioPolicy.java"))
     check("GuiVideoScreen.reap(mc)" in policy and "VideoScreenPlayback.setAudible(target)" in policy
-          and "else if (screen == null)" in policy,
-          "an open window silences every video source",
-          "VideoAudioPolicy must mute everything unless no window is open (or the window mirrors a wall)")
+          and "else if (screen == null)" not in policy
+          and "target = nearest(mc);" in policy,
+          "开个窗口不再把片子弄哑（只有接管窗口才独占声音）",
+          "VideoAudioPolicy must keep the nearest wall audible for any non-takeover screen")
     check("VideoAudioPolicy.tick(" in events and "VideoAudioPolicy.reset()" in events,
           "the audio policy is ticked once per client tick and reset with the world",
           "ClientEvents must tick VideoAudioPolicy and reset it on world unload")
@@ -1459,39 +1462,48 @@ def main():
           "连上/拆掉大屏时设置窗口就地重排",
           "GuiVideoPlayerConfig.drawScreen must rebuild when the link state flips")
 
-    # 101. 大屏的两种右键：普通右键直接满屏，Shift + 右键才开菜单。以前普通右键
-    # 开的是"播放定位"窗口，而全屏还要在窗口里再点一次；那一次多余点击同时是误触
-    # 快进的入口 —— 菜单里每一处都是"动播放位置"的东西。
+    # 101. 大屏的两种右键：普通右键开电视窗（屏正中一台电视，F 全屏 / 再按 F 回到
+    # 窗口），Shift + 右键才开菜单。普通右键不再直接满屏——那会把"看片"变成
+    # "整块显示器被占"，也没法在小窗里干别的。
     screen_body = member_body(read(os.path.join(SRC, "com/hbmzz/block/BlockVideoScreen.java")),
                               "onBlockActivated")
-    check("openVideoFullscreen(origin)" in screen_body and "openVideoSeek(origin)" in screen_body
+    check("openVideoWatch(origin)" in screen_body and "openVideoSeek(origin)" in screen_body
           and "openVideoScreenConfig" not in screen_body,
-          "普通右键大屏 = 直接全屏；Shift + 右键 = 唯一的菜单",
-          "BlockVideoScreen must open fullscreen on a plain click and the menu on sneak")
-    check(screen_body.index("openVideoSeek(origin)") < screen_body.index("openVideoFullscreen(origin)"),
+          "普通右键大屏 = 开电视窗；Shift + 右键 = 唯一的菜单",
+          "BlockVideoScreen must open the television window on a plain click and the menu on sneak")
+    check(screen_body.index("openVideoSeek(origin)") < screen_body.index("openVideoWatch(origin)"),
           "Shift + 右键走菜单那一条分支（不是反过来）",
-          "sneaking must map to openVideoSeek, plain click to openVideoFullscreen")
+          "sneaking must map to openVideoSeek, plain click to openVideoWatch")
+    client_proxy = read(os.path.join(SRC, "com/hbmzz/client/ClientProxy.java"))
+    watch_body = member_body(client_proxy, "openVideoWatch")
+    check("GuiVideoScreen.watch(" in watch_body and "enterFullscreen" not in watch_body,
+          "电视窗打开时是小窗（全屏是 F 的事，不是打开的事）",
+          "ClientProxy.openVideoWatch must not switch to fullscreen on open")
+    full_body = member_body(client_proxy, "openVideoFullscreen")
+    check("enterFullscreen" in full_body,
+          "菜单里的「全屏观看」仍然是进去就满屏",
+          "ClientProxy.openVideoFullscreen must enter fullscreen")
 
-    # 102. 尺寸 / 倍速收进菜单，不再占第三个组合键。
-    check("尺寸/倍速" in seek_gui and "new GuiVideoScreenConfig(this.pos)" in seek_gui,
-          "尺寸 / 倍速是菜单里的一个按钮",
-          "GuiVideoSeek must offer a 尺寸/倍速 button that opens GuiVideoScreenConfig")
+    # 102. 尺寸收进菜单，不再占第三个组合键。
+    check('"尺寸"' in seek_gui and "new GuiVideoScreenConfig(this.pos)" in seek_gui,
+          "尺寸是菜单里的一个按钮",
+          "GuiVideoSeek must offer a 尺寸 button that opens GuiVideoScreenConfig")
 
-    # 103. 倍速时音轨必须扣住。Clip 只会按源速率播放，2x 的画面配 1x 的声音，几分钟
-    # 下来声音就落在画面后面——玩家看到的是"倍速一调，音画就不同步"。
-    speed_body = member_body(player_src, "setSpeed")
-    align_body = member_body(player_src, "alignAudioToSpeed")
+    # 103. 倍速整个删掉。0.25x–3x 只搬时钟不搬音轨（Clip 只能按源速率放），所以非
+    # 1x 时只能把声音扣住——"能加速但没声音"是半成品，与其留着不如删干净：UI、消息、
+    # 方块实体字段、播放器的速率、音轨的 speedMuted 一起走，片子永远按自己的帧率放。
+    tile_src = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityVideoScreen.java"))
+    config_msg = read(os.path.join(SRC, "com/hbmzz/network/VideoScreenConfigMessage.java"))
     audio_src = read(os.path.join(SRC, "com/hbmzz/client/video/VideoAudio.java"))
-    check(re.search(r"^        this\.alignAudioToSpeed\(\);", speed_body, re.M) is not None,
-          "改速率时顺手把音轨对齐（不是只搬时钟）",
-          "VideoPlayer.setSpeed must call alignAudioToSpeed() as a statement, not in a comment")
-    check("setSpeedMuted(true)" in align_body and "setSpeedMuted(false)" in align_body
-          and "audio.seek(filmSeconds())" in align_body,
-          "非 1x 扣住音轨，回 1x 先对齐再放开",
-          "alignAudioToSpeed must hold the track off 1x and re-seek on the way back")
-    check("speedMuted" in audio_src and "this.paused || this.muted || this.speedMuted" in audio_src,
-          "音轨自己知道「速率扣住」和「别出声」是两件事",
-          "VideoAudio.apply must stop on paused, muted or speedMuted")
+    for token in ("MIN_SPEED", "MAX_SPEED", "applySpeed", "formatSpeed", "setSpeedMuted",
+                  "speedMuted", "setSpeed(", "getSpeed("):
+        check(token not in tile_src and token not in config_msg and token not in player_src
+              and token not in audio_src and token not in seek_gui,
+              "倍速的「%s」已经不存在（不是一个藏起来的入口）" % token,
+              "speed feature must be gone from the tile entity, the packet, the player and the audio")
+    check('"倍速"' not in read(os.path.join(SRC, "com/hbmzz/client/GuiVideoScreenConfig.java")),
+          "配置窗口里没有倍速这一行",
+          "GuiVideoScreenConfig must not draw a 倍速 row")
 
     # 104. 缓冲里没有播放头要的那一帧时，不能让渲染线程去清缓存：那是"卡一下、
     # 跳一格"的来源。解码线程按 wanted 跳过一段即可，缓存里还在播放头前面的帧
@@ -1517,6 +1529,28 @@ def main():
     check("240.0F, 240.0F" in pr_body and "lightX" in pr_body,
           "另一个玻璃面绘制器同样钉满亮并还原",
           "PanelRender.glass must pin and restore the lightmap the same way")
+
+    # 106. 电视窗：小窗状态要画的是"一台电视"，不是一块漂浮的画面。外壳、边框、
+    # 底座、电源灯都在 drawTelevision 里；全屏时只画画面。比例按片子自己的宽高算，
+    # 4:3 的片子里屏幕就是 4:3。
+    tv_body = member_body(takeover, "drawTelevision")
+    check("drawTelevision(this.wallPlayer)" in takeover and "drawRect(" in tv_body,
+          "小窗状态画的是一台电视（外壳 / 边框 / 底座）",
+          "GuiVideoScreen.drawMirror must call drawTelevision while not fullscreen")
+    check("film.frameWidth()" in tv_body and "film.frameHeight()" in tv_body,
+          "电视屏幕的比例跟着片子走（4:3 的片不会套 16:9 的壳）",
+          "drawTelevision must size the screen from the frame's own aspect")
+    check("drawFilm(this.wallPlayer)" in takeover and "boolean fullscreen = this.tvFullscreen;" in takeover,
+          "全屏时才铺满整屏",
+          "GuiVideoScreen must draw the picture edge-to-edge only while its own fullscreen flag is set")
+    check("this.tvFullscreen = false;" in takeover
+          and "VideoFullscreen.active()" not in takeover.split("public void initGui()")[1][:600],
+          "一进来是电视窗，不是满屏（本来就是全屏游戏的也一样）",
+          "GuiVideoScreen.initGui must start windowed even when the desktop is already fullscreen")
+    fs = read(os.path.join(SRC, "com/hbmzz/client/video/VideoFullscreen.java"))
+    check("enterForPicture" in fs and "leaveForPicture" in fs and "weEntered" in fs,
+          "只为画面切全屏，退出只还自己动过的那次",
+          "VideoFullscreen must only change the desktop mode when it was not already fullscreen")
 
     failed = [name for ok, name, _ in results if not ok]
     print()

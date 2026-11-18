@@ -57,8 +57,47 @@ public final class VideoFullscreen {
      * 迟到的还原就不会把新窗口记下的状态当成自己的。</p>
      */
     private static int generation;
+    /**
+     * 这个窗口自己把桌面切成全屏的，才由它切回去。
+     *
+     * <p>很多人本来就是全屏玩游戏（{@code Display.isFullscreen()} 为真）。那时
+     * 按 F 只是"让画面铺满这个窗口"，桌面模式一点没变；再按 F 也不该把全屏的
+     * 游戏切成窗口——那是"退出全屏"，不是"退出画面全屏"。</p>
+     */
+    private static boolean weEntered;
 
     private VideoFullscreen() {
+    }
+
+    /**
+     * 画面要铺满：桌面本来不是全屏才切，本来是全屏就什么都不做。
+     *
+     * <p>区别只在"谁动过桌面"。记下来，退的时候才好决定要不要还回去。</p>
+     */
+    public static void enterForPicture(Minecraft mc) {
+        if (mc == null || active()) {
+            return;
+        }
+        capture();
+        try {
+            enter(mc);
+            weEntered = true;
+        } catch (Throwable refused) {
+            weEntered = false;
+        }
+    }
+
+    /** 画面回到电视窗：只有自己切过全屏时，才把桌面还回原来的窗口。 */
+    public static void leaveForPicture(Minecraft mc) {
+        if (mc == null || !weEntered) {
+            return;
+        }
+        weEntered = false;
+        try {
+            leave(mc);
+        } catch (Throwable refused) {
+            // 驱动拒绝切换时画面留在原处，比把人扔回一个 854x480 的小框好。
+        }
     }
 
     /** 桌面此刻是不是真的全屏（问 LWJGL，不问 Minecraft 自己的字段）。 */
@@ -152,6 +191,7 @@ public final class VideoFullscreen {
         int width = windowWidth;
         int height = windowHeight;
         captured = false;
+        weEntered = false;
         windowWidth = -1;
         windowHeight = -1;
         if (mc == null) {

@@ -39,17 +39,26 @@ import net.minecraft.tileentity.TileEntity;
  *
  * <h3>The rule</h3>
  * <ul>
- *   <li><b>A settings window is open</b> - nobody speaks. The player is reading
- *       numbers, not watching a film.</li>
  *   <li><b>The full-screen takeover is open</b> - only it speaks; every wall is
  *       muted. It has its own decoder precisely because it may be showing a film
  *       no wall is showing.</li>
- *   <li><b>大屏展示 (the window that mirrors a wall)</b> - that wall speaks, and
- *       only that wall. The window is a magnifying glass, not a second
+ *   <li><b>大屏展示 (the television window that mirrors a wall)</b> - that wall
+ *       speaks, and only that wall. The window is a magnifying glass, not a second
  *       player.</li>
- *   <li><b>No window</b> - the nearest playing wall within earshot speaks. Not
- *       all of them: four screens in one room are one film, not four.</li>
+ *   <li><b>Any other window, or no window at all</b> - the nearest playing wall
+ *       within earshot speaks. Not all of them: four screens in one room are one
+ *       film, not four.</li>
  * </ul>
+ *
+ * <p><b>A window is not a mute button.</b> This used to silence every wall as
+ * soon as any screen was open - a chest, a machine, the playhead menu - so the
+ * film a player had been watching went quiet the moment they reached for
+ * something. That was the wrong reading of "somebody is looking at a window":
+ * the film is in the room, not in the window, and walking away from a screen to
+ * open a crate should not take the soundtrack with it. Only two situations are
+ * genuinely "somebody else is speaking": the takeover window, which has its own
+ * decoder, and a wall whose film belongs to another screen's soundtrack (handled
+ * by picking exactly one wall).</p>
  *
  * <p>Muting never pauses anything. The picture and the wall's clock keep running
  * for everybody; only the track is held, and unmuting puts it back on the film
@@ -82,18 +91,18 @@ public final class VideoAudioPolicy {
         GuiVideoScreen.reap(mc);
 
         GuiScreen screen = mc.currentScreen;
-        TileEntityVideoScreen target = null;
+        TileEntityVideoScreen target;
         if (screen instanceof GuiVideoScreen) {
             GuiVideoScreen film = (GuiVideoScreen) screen;
-            if (film.mirrors()) {
-                target = film.mirroredWall();
-            }
-            // A takeover speaks for itself; the walls stay silent (target stays null).
-        } else if (screen == null) {
+            // A takeover speaks for itself; the walls stay silent.
+            // The television window is a magnifying glass: its wall speaks.
+            target = film.mirrors() ? film.mirroredWall() : null;
+        } else {
+            // Everything else - a chest, a machine, the settings window, the
+            // playhead menu, the pause menu, or plain walking around - leaves the
+            // film audible. Opening something is not "turn the film off".
             target = nearest(mc);
         }
-        // Anything else - settings, the import window, the wall's playhead window,
-        // the pause menu - is a window somebody is reading. Silence.
         VideoScreenPlayback.setAudible(target);
     }
 

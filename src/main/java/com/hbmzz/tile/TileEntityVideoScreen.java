@@ -29,11 +29,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 /**
- * One wall's worth of state: how big it is, how fast it plays, which clip, and
- * whether the lever upstream is currently on.
+ * One wall's worth of state: how big it is, which clip, and whether the lever
+ * upstream is currently on.
  *
  * <p>Server-authoritative like every other machine here. The client is told the
- * shape of the picture ({@code cols}, {@code rows}, {@code speed}, {@code video})
+ * shape of the picture ({@code cols}, {@code rows}, {@code video})
  * and the play state, and does its own decoding - the frames never travel. A
  * client that has no copy of the clip simply shows nothing; the broadcaster's
  * window is where the "this client does not have that file" sentence lives.</p>
@@ -48,10 +48,6 @@ public class TileEntityVideoScreen extends TileEntity {
     /** Both axes are capped at this many blocks. */
     public static final int MAX_SIZE = 32;
 
-    /** Playback speed range. */
-    public static final float MIN_SPEED = 0.25F;
-    public static final float MAX_SPEED = 3.0F;
-
     /**
      * Longest playhead the server will accept, in milliseconds.
      *
@@ -65,7 +61,6 @@ public class TileEntityVideoScreen extends TileEntity {
 
     private int cols = 1;
     private int rows = 1;
-    private float speed = 1.0F;
     private String video = "";
     private boolean playing;
     /**
@@ -95,10 +90,6 @@ public class TileEntityVideoScreen extends TileEntity {
 
     public int getRows() {
         return this.rows;
-    }
-
-    public float getSpeed() {
-        return this.speed;
     }
 
     public String getVideo() {
@@ -132,7 +123,7 @@ public class TileEntityVideoScreen extends TileEntity {
         if (ticks <= 0L) {
             return this.progressMs;
         }
-        long advanced = Math.round(ticks * 50.0D * this.speed);
+        long advanced = ticks * 50L;
         return clampMs(this.progressMs + advanced);
     }
 
@@ -229,24 +220,6 @@ public class TileEntityVideoScreen extends TileEntity {
         sync();
     }
 
-    public void applySpeed(float speed) {
-        float next = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
-        // Quarter steps only, so two clients showing the same window cannot
-        // disagree about the value by a float's worth of rounding.
-        next = Math.round(next * 4.0F) / 4.0F;
-        if (Math.abs(next - this.speed) < 1.0e-4F) {
-            return;
-        }
-        // Fold the film time played so far into the anchor first: the position is
-        // base + elapsed x speed, so changing speed without re-anchoring jumps the
-        // playhead by the difference.
-        this.progressMs = positionMs();
-        this.anchorTick = worldTicks();
-        this.speed = next;
-        markDirty();
-        sync();
-    }
-
     public void setVideo(String video) {
         String next = video == null ? "" : video.trim();
         if (next.equals(this.video)) {
@@ -324,7 +297,6 @@ public class TileEntityVideoScreen extends TileEntity {
         super.writeToNBT(compound);
         compound.setInteger("cols", this.cols);
         compound.setInteger("rows", this.rows);
-        compound.setFloat("speed", this.speed);
         compound.setString("video", this.video);
         compound.setBoolean("playing", this.playing);
         compound.setInteger("volume", this.volume);
@@ -342,8 +314,6 @@ public class TileEntityVideoScreen extends TileEntity {
         super.readFromNBT(compound);
         this.cols = clamp(compound.hasKey("cols") ? compound.getInteger("cols") : 1);
         this.rows = clamp(compound.hasKey("rows") ? compound.getInteger("rows") : 1);
-        this.speed = compound.hasKey("speed")
-                ? Math.max(MIN_SPEED, Math.min(MAX_SPEED, compound.getFloat("speed"))) : 1.0F;
         this.video = compound.getString("video");
         // A wall does not resume by itself after a reload: the lever is the only
         // thing that starts it, and the broadcaster re-asserts the state on its
@@ -374,7 +344,6 @@ public class TileEntityVideoScreen extends TileEntity {
         NBTTagCompound tag = packet.getNbtCompound();
         this.cols = clamp(tag.getInteger("cols"));
         this.rows = clamp(tag.getInteger("rows"));
-        this.speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, tag.getFloat("speed")));
         this.video = tag.getString("video");
         this.playing = tag.getBoolean("playing");
         // The anchor travels with the position: a client that joined late can

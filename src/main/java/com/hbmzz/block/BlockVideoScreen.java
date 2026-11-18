@@ -62,14 +62,15 @@ import java.util.List;
  * a screen ends up mirrored on west/east facings and upside down on the others.</p>
  *
  * <h3>Size and playhead</h3>
- * <p>Size, speed and the playhead all live in the menu behind <b>shift +
- * right-click</b>, separately in width and height, up to
+ * <p>Size and the playhead all live in the menu behind <b>shift + right-click</b>,
+ * separately in width and height, up to
  * {@link TileEntityVideoScreen#MAX_SIZE} square. Growing places the new cells,
  * shrinking removes only cells this block owns.</p>
  *
- * <p>A plain right-click does exactly one thing: shows the wall fullscreen. The
- * playhead moves are requests to the server either way, so the wall's clock is
- * the same for every player looking at it.</p>
+ * <p>A plain right-click opens the television window: a set-shaped window in the
+ * middle of the screen with the wall's picture in it, F for fullscreen and F
+ * again back to the window. The playhead moves are requests to the server either
+ * way, so the wall's clock is the same for every player looking at it.</p>
  */
 public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProvider {
 
@@ -167,13 +168,13 @@ public class BlockVideoScreen extends BlockHorizontal implements ITileEntityProv
         }
         if (world.isRemote) {
             if (player.isSneaking()) {
-                // Shift + 右键：整块菜单。定位、回开头、尺寸/倍速、全屏观看都在
+                // Shift + 右键：整块菜单。定位、回开头、尺寸、全屏观看都在
                 // 这里面，谁也不会在片子正放着的时候被一个误触改变播放位置。
                 HBMZZ.proxy.openVideoSeek(origin);
             } else {
-                // 普通右键：直接铺满显示器。看片是这一下最常想做的事，而它原本
-                // 要先开一个菜单再点一次"全屏观看"—— 中间那次点击没有任何用处。
-                HBMZZ.proxy.openVideoFullscreen(origin);
+                // 普通右键：开电视机窗口（屏中间一台电视，F 全屏 / 再按 F 回到
+                // 窗口）。看片是这一下最常想做的事，所以一下就到画面，不再经过菜单。
+                HBMZZ.proxy.openVideoWatch(origin);
             }
             return true;
         }

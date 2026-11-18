@@ -36,10 +36,10 @@ import java.io.IOException;
  * monitor with it.
  *
  * <p>Opened by <b>shift + right-click</b>, and it is the only menu a wall has.
- * A plain right-click goes straight to fullscreen, so the gesture people make
- * with an audience waiting is one click and cannot move the playhead by
- * accident; everything that changes something lives behind the modifier.
- * 尺寸 / 倍速 used to be its own gesture (sneak + right-click); it is a button
+ * A plain right-click opens the television window (F for fullscreen), so the
+ * gesture people make with an audience waiting is one click and cannot move the
+ * playhead by accident; everything that changes something lives behind the
+ * modifier. 尺寸 used to be its own gesture (sneak + right-click); it is a button
  * here now, because two different modifier gestures on the same block is one
  * gesture too many to remember.</p>
  *
@@ -157,10 +157,10 @@ public class GuiVideoSeek extends GuiScreen {
         int quarter = (wide - 3 * GAP) / 4;
         this.restartButton = new GuiButton(5, x0, y + 24, quarter, 20, "回开头");
         this.buttonList.add(this.restartButton);
-        // 尺寸 / 倍速原本是"蹲下右键大屏"的独立手势，现在收进这张菜单：右键一次
-        // 是看片，Shift + 右键一次是这张菜单，而菜单里什么都能改——不再有第三个
+        // 尺寸原本是"蹲下右键大屏"的独立手势，现在收进这张菜单：右键一次是
+        // 电视窗，Shift + 右键一次是这张菜单，而菜单里什么都能改——不再有第三个
         // 组合键要靠猜。
-        this.buttonList.add(new GuiButton(6, x0 + quarter + GAP, y + 24, quarter, 20, "尺寸/倍速"));
+        this.buttonList.add(new GuiButton(6, x0 + quarter + GAP, y + 24, quarter, 20, "尺寸"));
         // 全屏的入口在这里，而不是"右键播放器"：接了大屏以后画面属于这块屏，
         // 那么"把这块屏铺满显示器"也该从这块屏按出来。
         this.buttonList.add(new GuiButton(7, x0 + 2 * (quarter + GAP), y + 24, quarter, 20, "全屏观看"));
@@ -354,7 +354,7 @@ public class GuiVideoSeek extends GuiScreen {
                 this.dragging = false;
                 return;
             case 6:
-                // 尺寸 / 倍速：以前是"蹲下右键大屏"的独立手势，现在就在这张菜单里。
+                // 尺寸：以前是"蹲下右键大屏"的独立手势，现在就在这张菜单里。
                 this.mc.displayGuiScreen(new GuiVideoScreenConfig(this.pos));
                 return;
             case 7:

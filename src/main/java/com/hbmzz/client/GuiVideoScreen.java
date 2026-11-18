@@ -130,8 +130,14 @@ public class GuiVideoScreen extends GuiScreen {
      */
     private boolean screenLinked;
 
-    /** 上一次全屏切换的方向，用来在提示行里说清"已经全屏/已经回到窗口"。 */
-    private boolean lastFullscreen;
+    /**
+     * 这个窗口现在是不是"画面铺满"。
+     *
+     * <p>不看桌面:很多人本来就全屏玩游戏，桌面全屏时"铺满"只是把电视外壳收掉、
+     * 画面顶满游戏窗口。这个字段由 F / 右键 / 菜单按钮自己记账，所以"按 F 再按 F"
+     * 一定回到电视窗，不会把人从全屏游戏里踢成窗口模式。</p>
+     */
+    private boolean tvFullscreen;
     /** 打开这个窗口时记下的桌面状态代次，关窗还原时用它认领。 */
     private int displayGeneration;
 
@@ -171,16 +177,19 @@ public class GuiVideoScreen extends GuiScreen {
     }
 
     /**
-     * 大屏全屏: the wall's own picture, on the whole window.
+     * 大屏电视窗: the wall's own picture, in a set-shaped window in the middle of
+     * the screen.
      *
      * <p>No player block of its own, no progress bar, no second soundtrack. The
-     * window is a magnifying glass over a screen that is already running.</p>
+     * window is a magnifying glass over a screen that is already running - it
+     * cannot disagree with the wall, and it cannot play the music twice.</p>
      *
-     * <p>Opened by a plain right-click on the wall - and by the 「全屏观看」 button
-     * in the shift + right-click menu, which is the same thing with an extra
-     * click. It is the only window that owns the fullscreen toggle while a wall is
-     * connected: the picture is the wall's, so the monitor is the wall's too.
-     * Right click / F work here.</p>
+     * <p>Opened by a plain right-click on the wall. It starts as a television, not
+     * as fullscreen: F (or a right-click in the window) fills the monitor, F again
+     * puts the set back, ESC leaves. The menu's 「全屏观看」 is the same window with
+     * that first F already pressed. It is the only window that owns the fullscreen
+     * toggle while a wall is connected: the picture is the wall's, so the monitor
+     * is the wall's too.</p>
      */
     public static GuiVideoScreen watch(BlockPos broadcaster, BlockPos wall) {
         return new GuiVideoScreen(broadcaster, wall, true);
@@ -288,7 +297,8 @@ public class GuiVideoScreen extends GuiScreen {
         // 打开时是普通游戏窗口（小框）：这里不主动改显示模式，只记下"看片之前
         // 桌面是什么样"，退出时原样还回去。全屏是玩家按 F / 右键才发生的事。
         this.displayGeneration = com.hbmzz.client.video.VideoFullscreen.capture();
-        this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
+        // 一进来永远是电视窗（哪怕是全屏游戏）：F 才是"铺满"那一下。
+        this.tvFullscreen = false;
         if (this.mirror) {
             // initGui also runs on resize. Nothing to open: the decoder belongs to
             // the wall, and updateScreen picks it up again after the resize.
@@ -510,12 +520,14 @@ public class GuiVideoScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        drawRect(0, 0, this.width, this.height, 0xFF000000);
-
+        // 大屏窗口自己决定背景：小窗状态要把世界留着（不然一台电视浮在纯黑上，
+        // 看着不像"摆在房间里"），全屏才是满屏黑边。
         if (this.mirror) {
             drawMirror();
             return;
         }
+        drawRect(0, 0, this.width, this.height, 0xFF000000);
+
         if (this.player != null && this.player.started() && this.player.textureId() > 0) {
             drawFilm(this.player);
         }
@@ -540,7 +552,7 @@ public class GuiVideoScreen extends GuiScreen {
             // 接了大屏：这个窗口不提供全屏，入口在那块屏上。
             return "全屏请右键大屏";
         }
-        return this.lastFullscreen ? "已全屏 · F / 右键 还原" : "F / 右键 全屏";
+        return this.tvFullscreen ? "已全屏 · F / 右键 还原" : "F / 右键 全屏";
     }
 
     /**
@@ -564,8 +576,18 @@ public class GuiVideoScreen extends GuiScreen {
                 this.wallPlayer = film;
             }
         }
-        if (this.wallPlayer != null && this.wallPlayer.textureId() > 0) {
-            drawFilm(this.wallPlayer);
+        boolean fullscreen = this.tvFullscreen;
+        if (fullscreen) {
+            drawRect(0, 0, this.width, this.height, 0xFF000000);
+            if (this.wallPlayer != null && this.wallPlayer.textureId() > 0) {
+                drawFilm(this.wallPlayer);
+            }
+        } else {
+            // 世界压暗但不盖掉：这台电视是摆在房间里的，不是浮在虚空上的。
+            drawRect(0, 0, this.width, this.height, 0xB4000000);
+            if (this.wallPlayer != null && this.wallPlayer.textureId() > 0) {
+                drawTelevision(this.wallPlayer);
+            }
         }
         if (this.error != null) {
             drawError();
@@ -573,11 +595,68 @@ public class GuiVideoScreen extends GuiScreen {
             drawCentre(this.notice.isEmpty() ? "正在准备画面…" : this.notice, DIM);
         }
         if (this.hintTicks > 0) {
-            String hint = "大屏展示 · " + fullscreenHint() + " · ESC 退出";
+            String hint = (fullscreen ? "全屏 · " : "电视窗 · ")
+                    + fullscreenHint() + " · ESC 退出";
             this.fontRenderer.drawStringWithShadow(hint,
                     (this.width - this.fontRenderer.getStringWidth(hint)) / 2,
                     this.height - 18, AMBER);
         }
+    }
+
+    /**
+     * 一台电视：外壳、边框、屏幕内圈、底座、电源灯，画面在屏幕位置上。
+     *
+     * <p>比例永远按片子自己的宽高算，所以 4:3 的片子里屏幕就是 4:3 的，不会
+     * 被拉成 16:9 再补黑边——外壳是给画面做的，不是给画布做的。屏幕位置先按
+     * 视口留出底座和提示行的余量，再夹一个最小尺寸：窗口再小也还是台能看的
+     * 电视，而不是一条边框。</p>
+     */
+    private void drawTelevision(VideoPlayer film) {
+        int fw = Math.max(1, film.frameWidth());
+        int fh = Math.max(1, film.frameHeight());
+
+        int maxW = Math.max(120, Math.min(this.width - 56, 640));
+        int maxH = Math.max(70, this.height - 132);
+        double scale = Math.min((double) maxW / fw, (double) maxH / fh);
+        int pw = Math.max(48, (int) Math.round(fw * scale));
+        int ph = Math.max(27, (int) Math.round(fh * scale));
+
+        int cx = this.width / 2;
+        int cy = (this.height - 24) / 2;
+        int px = cx - pw / 2;
+        int py = cy - ph / 2;
+
+        int bezel = Math.max(7, Math.min(16, (int) Math.round(pw * 0.026D)));
+        int shell = bezel + 4;
+        int standNeck = Math.max(10, ph / 9);
+        int standH = 6;
+
+        // 外壳与底座先画，画面最后压上去：顺序错了边框就会盖住画面边缘。
+        int bottom = py + ph + shell;
+        int neckW = Math.max(16, pw / 7);
+        drawRect(cx - neckW / 2, bottom, cx + neckW / 2, bottom + standNeck, 0xFF10141A);
+        drawRect(cx - neckW / 2, bottom, cx - neckW / 2 + 2, bottom + standNeck, 0xFF1D232B);
+        int baseW = Math.max(72, pw / 2);
+        int baseTop = bottom + standNeck;
+        drawRect(cx - baseW / 2, baseTop, cx + baseW / 2, baseTop + standH, 0xFF11151B);
+        drawRect(cx - baseW / 2, baseTop, cx + baseW / 2, baseTop + 1, 0xFF2A323C);
+
+        drawRect(px - shell, py - shell, px + pw + shell, py + ph + shell, 0xFF101419);
+        drawRect(px - shell, py - shell, px + pw + shell, py - shell + 2, 0xFF2E3742);
+        drawRect(px - shell, py + ph + shell - 2, px + pw + shell, py + ph + shell, 0xFF080A0D);
+        drawRect(px - shell, py - shell, px - shell + 2, py + ph + shell, 0xFF1A2028);
+        drawRect(px + pw + shell - 2, py - shell, px + pw + shell, py + ph + shell, 0xFF1A2028);
+
+        drawRect(px - bezel, py - bezel, px + pw + bezel, py + ph + bezel, 0xFF262E38);
+        drawRect(px - bezel, py - bezel, px + pw + bezel, py - bezel + 1, 0xFF3A4551);
+        drawRect(px - shell, py + ph + shell - 9, px + pw + shell, py + ph + shell - 2, 0xFF1B222A);
+
+        drawRect(px - 2, py - 2, px + pw + 2, py + ph + 2, 0xFF05070A);
+        drawQuad(px, py, pw, ph, film.textureId());
+
+        int ledX = px + pw + bezel - 9;
+        int ledY = py + ph + bezel - 7;
+        drawRect(ledX, ledY, ledX + 3, ledY + 3, film.paused() ? 0xFFF5A524 : 0xFF43D9A3);
     }
 
     /** One centred line, used by the mirror window's waiting states. */
@@ -778,8 +857,12 @@ public class GuiVideoScreen extends GuiScreen {
 
     /** F / 右键共用的一条路，顺带在提示行里说一句现在是什么状态。 */
     private void toggleFullscreen() {
-        com.hbmzz.client.video.VideoFullscreen.toggle(this.mc);
-        this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
+        this.tvFullscreen = !this.tvFullscreen;
+        if (this.tvFullscreen) {
+            com.hbmzz.client.video.VideoFullscreen.enterForPicture(this.mc);
+        } else {
+            com.hbmzz.client.video.VideoFullscreen.leaveForPicture(this.mc);
+        }
         this.hintTicks = 60;
     }
 
@@ -794,10 +877,8 @@ public class GuiVideoScreen extends GuiScreen {
         if (this.mc == null || !canFullscreen()) {
             return;
         }
-        if (!com.hbmzz.client.video.VideoFullscreen.active()) {
-            com.hbmzz.client.video.VideoFullscreen.toggle(this.mc);
-        }
-        this.lastFullscreen = com.hbmzz.client.video.VideoFullscreen.active();
+        this.tvFullscreen = true;
+        com.hbmzz.client.video.VideoFullscreen.enterForPicture(this.mc);
         this.hintTicks = 60;
     }
 }

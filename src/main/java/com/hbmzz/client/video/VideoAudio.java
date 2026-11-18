@@ -49,20 +49,6 @@ public final class VideoAudio implements Closeable {
      * freeze the picture of every wall in the room whenever a window opened.</p>
      */
     private boolean muted;
-    /**
-     * Held because the picture is not running at its own rate.
-     *
-     * <p>倍速只搬时钟，不搬音轨：{@code Clip} 只会用源速率播放，所以 2x 的画面
-     * 配着的仍是 1x 的声音，几分钟下来声音就落在画面后面几秒。这不是"能调"的
-     * 参数——JRE 的 {@code Clip} 没有变速播放，硬要走采样率重采样又是另一条
-     * 音频链。所以非 1x 时把音轨整个扣住，回到 1x 再对齐一次：宁可没声音，也
-     * 不要一段越拖越歪的声音。</p>
-     *
-     * <p>和 {@link #muted} 分开记，因为主人不同：那个是"这一路该不该由我出声"
-     * （{@code VideoAudioPolicy} 决定），这个是"这一路自己走不了那么快"。</p>
-     */
-    private boolean speedMuted;
-
     private VideoAudio() {
     }
 
@@ -136,7 +122,7 @@ public final class VideoAudio implements Closeable {
         try {
             this.clip.stop();
             this.clip.setMicrosecondPosition(microsOf(this.clip, seconds));
-            if (!this.paused && !this.muted && !this.speedMuted) {
+            if (!this.paused && !this.muted) {
                 this.clip.start();
             }
         } catch (Throwable ignored) {
@@ -172,32 +158,13 @@ public final class VideoAudio implements Closeable {
         return this.muted;
     }
 
-    /**
-     * Holds or releases the track because of the playback rate.
-     *
-     * <p>Called by {@code VideoPlayer.setSpeed}. Releasing it does not start the
-     * track by itself: the caller realigns the position first, so a film that ran
-     * at 1.5x for a minute does not resume from a minute ago.</p>
-     */
-    public void setSpeedMuted(boolean speedMuted) {
-        if (this.speedMuted == speedMuted) {
-            return;
-        }
-        this.speedMuted = speedMuted;
-        apply();
-    }
-
-    public boolean speedMuted() {
-        return this.speedMuted;
-    }
-
     /** One place that decides whether the clip should currently be running. */
     private void apply() {
         if (this.clip == null) {
             return;
         }
         try {
-            if (this.paused || this.muted || this.speedMuted) {
+            if (this.paused || this.muted) {
                 this.clip.stop();
             } else {
                 this.clip.start();

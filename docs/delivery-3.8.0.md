@@ -11,7 +11,7 @@
 | --- | --- |
 | 版本 | 3.8.0（build.gradle / mcmod.info / HBMZZ.VERSION 三处一致） |
 | 代码基线 | 3.7.1 = upstream master 快照，提交 `26195b1`（2026-11-17） |
-| 当前提交 | 批次 #14：进度条可定位 + 右键/F 全屏 + 导入窗口真居中 |
+| 当前提交 | `c848533`（批次 #14：进度条可定位 + 右键/F 全屏 + 导入窗口真居中） |
 | 游戏侧模组 | `hbmzz-3.8.0.jar`（23,760,473 字节） |
 | 模组 SHA-256 | `bf98854e10478170…`（`build/libs` 与部署目录两处一致） |
 | 源码包 | `hbmzz-3.8.0-sources.jar`（build/libs，8,860,840 字节） |
@@ -423,7 +423,7 @@ GUI 缩放大的一档下可用宽度只有 320，`left` 直接变负数——�
 
 | 2026-11-18 #12 | `b8f80c0` | **右键=大屏展示 + 单音源**：站立右键接了屏就进 mirror 展示窗口（借屏的解码器，无第二份播放实例），服务端同一次点击里让屏开播；没屏才回本机全屏播放。蹲下右键的真因是原版 `isSneaking` 判据——手里拿着东西时方块根本不被调用，`VideoClickHandler` 对这两块回 ALLOW。`VideoAudioPolicy` 每 tick 仲裁音源：设置窗口全静音、接管只留自己、世界只留最近的屏；静音不暂停，恢复时音轨 seek 回画面时间；`GuiVideoScreen.reap` 兜底关掉没有窗口的解码器。regcheck 96 条 | `6aab79cd…` |
 | 2026-11-18 #13 | `409cff3` | **导入窗口居中 + 帧率 120**：面板宽度改为 `min(360, 视口-16)`、左边距夹住，拉窗口/改全屏时重排按钮（原来写死 360 宽，GUI 缩放调大后 left 为负，左边被切在屏幕外）；`FPS_STEPS` 增到 48/60/90/120，`submit` 与 `VideoClip` 两端钳位都放到 120，避免 120fps 包按半速播。regcheck 99 条 | `b9f32bbd…` |
-| 2026-11-18 #14 | 本批 | **进度条可定位 + 右键/F 全屏 + 导入窗口真居中**：`GuiVideoSeek` 先写本地播放头再发包、服务端回发权威值、没有本机副本时不允许拖；播放窗口底部进度条可拖（松手 `seekTo`，音轨一起走）；新增 `VideoFullscreen`——全屏方向按 `Display.isFullscreen()` 判、退出来回到原窗口尺寸，F 与右键共用，打开时默认还是普通游戏窗口；`GuiVideoImport` 的 `width` 字段改名 `videoWidth`，面板不再按 480 居中。regcheck 111 条 | `bf98854e…` |
+| 2026-11-18 #14 | `c848533` | **进度条可定位 + 右键/F 全屏 + 导入窗口真居中**：`GuiVideoSeek` 先写本地播放头再发包、服务端回发权威值、没有本机副本时不允许拖；播放窗口底部进度条可拖（松手 `seekTo`，音轨一起走）；新增 `VideoFullscreen`——全屏方向按 `Display.isFullscreen()` 判、退出来回到原窗口尺寸，F 与右键共用，打开时默认还是普通游戏窗口；`GuiVideoImport` 的 `width` 字段改名 `videoWidth`，面板不再按 480 居中。regcheck 111 条 | `bf98854e…` |
 > 说明：批次 #1 的功能与批次 #2 的 jar 内容一致，差别只在三处版本戳。批次 #1 当时误升到 3.9.0，
 > 已按指示回退，3.9.0 的 jar 保留在 `backupsmod\hbmzz-old-jars\hbmzz-3.9.0.jar.bak`。
 > 批次 #4 / #5 的自制配乐与口播已随 #6 撤回，产物仍在 `backupsmod\hbmzz-old-videos\`。

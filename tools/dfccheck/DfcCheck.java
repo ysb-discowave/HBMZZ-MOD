@@ -16,8 +16,11 @@
  * See NOTICE.md for third-party provenance.
  */
 
+import com.hbmzz.dfc.DfcShutdownArms;
 import com.hbmzz.dfc.DfcShutdownPlan;
 import com.hbmzz.dfc.DfcShutdownPlan.Phase;
+
+import java.util.function.Supplier;
 
 /**
  * Steps the auto-shutdown plan through every edge it has, with no world.
@@ -52,6 +55,12 @@ public final class DfcCheck {
         retractIsCommitted();
         fallbackWhenTheCoreCannotCount();
         shortWindowFollowsTheCountdown();
+        twoMonitorsShareOneCore();
+        sameTickSecondMonitorIsANoop();
+        abortSticksUntilRearmed();
+        rebindDropsTheOldCore();
+        writeStreakResetsOnSuccess();
+        stopAttemptClaimsOnce();
 
         System.out.println();
         System.out.println("dfccheck: " + passed + " passed, " + failed + " failed");
@@ -179,6 +188,103 @@ public final class DfcCheck {
         check("a late arm uses the remaining time", plan.phase() == Phase.RETRACT
                 && plan.window() > 520 && plan.window() < 600);
         check("a late arm still starts at 50 C", Math.abs(plan.targetTemperature() - 50.0D) < 1.0E-6D);
+    }
+
+    // ------------------------------------------------------- arm / session ownership
+
+    private static Supplier<DfcShutdownPlan> factory() {
+        return new Supplier<DfcShutdownPlan>() {
+            @Override
+            public DfcShutdownPlan get() {
+                return plan();
+            }
+        };
+    }
+
+    private static void twoMonitorsShareOneCore() {
+        DfcShutdownArms.clear();
+        DfcShutdownPlan first = DfcShutdownArms.begin("m1", "core", 1L, factory());
+        check("first monitor gets a plan", first != null);
+        first.tick(true, 300.0D);
+        check("shared plan entered AURA", first.phase() == Phase.AURA && first.age() == 0);
+
+        DfcShutdownPlan second = DfcShutdownArms.begin("m2", "core", 2L, factory());
+        check("second monitor gets the same plan", second == first);
+        second.tick(true, 300.0D);
+        check("same plan keeps advancing", first.age() == 1);
+
+        DfcShutdownArms.release("m1");
+        check("releasing one monitor keeps the session",
+                DfcShutdownArms.sessionCount() == 1 && DfcShutdownArms.armed("m2", "core"));
+        DfcShutdownPlan survivor = DfcShutdownArms.begin("m2", "core", 3L, factory());
+        check("survivor gets the same plan", survivor == first);
+        survivor.tick(true, 300.0D);
+        check("survivor continues without restarting",
+                survivor.age() == 2 && survivor.phase() == Phase.AURA);
+
+        DfcShutdownArms.release("m2");
+        check("last release deletes the session", DfcShutdownArms.sessionCount() == 0);
+        DfcShutdownArms.clear();
+    }
+
+    private static void sameTickSecondMonitorIsANoop() {
+        DfcShutdownArms.clear();
+        DfcShutdownPlan first = DfcShutdownArms.begin("m1", "core", 7L, factory());
+        DfcShutdownPlan second = DfcShutdownArms.begin("m2", "core", 7L, factory());
+        check("second monitor on the same tick is a no-op", first != null && second == null);
+        check("both monitors are still armed",
+                DfcShutdownArms.armed("m1", "core") && DfcShutdownArms.armed("m2", "core"));
+        DfcShutdownArms.clear();
+    }
+
+    private static void abortSticksUntilRearmed() {
+        DfcShutdownArms.clear();
+        DfcShutdownPlan plan = DfcShutdownArms.begin("m1", "core", 1L, factory());
+        plan.tick(true, 300.0D);
+        DfcShutdownArms.abort("m1");
+        check("aborted monitor cannot advance",
+                DfcShutdownArms.begin("m1", "core", 2L, factory()) == null
+                        && DfcShutdownArms.aborted("m1"));
+        check("aborted core reports IDLE", "IDLE".equals(DfcShutdownArms.phase("core"))
+                && !DfcShutdownArms.active("core"));
+
+        DfcShutdownArms.release("m1");
+        DfcShutdownPlan fresh = DfcShutdownArms.begin("m1", "core", 3L, factory());
+        check("re-arming after release starts fresh",
+                fresh != null && fresh != plan && fresh.phase() == Phase.IDLE);
+        DfcShutdownArms.clear();
+    }
+
+    private static void rebindDropsTheOldCore() {
+        DfcShutdownArms.clear();
+        DfcShutdownPlan old = DfcShutdownArms.begin("m1", "A", 1L, factory());
+        old.tick(true, 300.0D);
+        DfcShutdownPlan next = DfcShutdownArms.begin("m1", "B", 2L, factory());
+        check("rebind gives a fresh plan", next != null && next != old && next.phase() == Phase.IDLE);
+        check("old core session is dropped",
+                DfcShutdownArms.sessionCount() == 1
+                        && "IDLE".equals(DfcShutdownArms.phase("A"))
+                        && DfcShutdownArms.armed("m1", "B"));
+        DfcShutdownArms.clear();
+    }
+
+    private static void writeStreakResetsOnSuccess() {
+        DfcShutdownArms.clear();
+        DfcShutdownArms.begin("m1", "core", 1L, factory());
+        DfcShutdownArms.noteWrite("m1", false);
+        DfcShutdownArms.noteWrite("m1", false);
+        check("a successful write clears the streak",
+                DfcShutdownArms.noteWrite("m1", true) == 0
+                        && DfcShutdownArms.noteWrite("m1", false) == 1);
+        DfcShutdownArms.clear();
+    }
+
+    private static void stopAttemptClaimsOnce() {
+        DfcShutdownArms.clear();
+        DfcShutdownArms.begin("m1", "core", 1L, factory());
+        check("stop attempt claims only once",
+                DfcShutdownArms.claimStopAttempt("m1") && !DfcShutdownArms.claimStopAttempt("m1"));
+        DfcShutdownArms.clear();
     }
 
     private static DfcShutdownPlan plan() {

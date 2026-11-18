@@ -182,7 +182,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             // The switch follows the binding. Both directions: a new core
             // starts disarmed, and unbinding disarms whatever was running.
             if (this.world != null && !this.world.isRemote && this.autoShutdown) {
-                DfcAutoShutdown.release(this.world, this.corePos);
+                DfcAutoShutdown.release(this.world, this.pos);
             }
             this.autoShutdown = false;
             this.autoShutdownStale = 0;
@@ -204,7 +204,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         this.autoShutdown = on;
         this.autoShutdownStale = 0;
         if (!on && this.world != null && !this.world.isRemote) {
-            DfcAutoShutdown.release(this.world, this.corePos);
+            DfcAutoShutdown.release(this.world, this.pos);
         }
         markDirty();
         sync();
@@ -614,7 +614,11 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             return;
         }
         this.autoShutdownStale = 0;
-        DfcAutoShutdown.tick(this.world, this.pos, this.corePos);
+        // A failed temperature write disarms the switch instead of leaving a
+        // screen that claims a cooldown which never lands.
+        if (!DfcAutoShutdown.tick(this.world, this.pos, this.corePos)) {
+            setAutoShutdown(false);
+        }
     }
 
     /**
@@ -941,7 +945,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     @Override
     public void invalidate() {
         if (this.world != null && !this.world.isRemote) {
-            DfcAutoShutdown.release(this.world, this.corePos);
+            DfcAutoShutdown.release(this.world, this.pos);
         }
         super.invalidate();
     }

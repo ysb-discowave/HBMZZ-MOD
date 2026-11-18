@@ -1552,6 +1552,26 @@ def main():
           "只为画面切全屏，退出只还自己动过的那次",
           "VideoFullscreen must only change the desktop mode when it was not already fullscreen")
 
+    # 107. 自动停机的归属：arm 属于监控器，plan 属于核心。原来会话按核心索引，
+    # 两台监控器看同一核心时关掉一台就把另一台的降温从头重启；把规则钉死，
+    # 免得以后有人"顺手简化"回去。
+    arms_src = read(os.path.join(SRC, "com/hbmzz/dfc/DfcShutdownArms.java"))
+    auto_src = read(os.path.join(SRC, "com/hbmzz/dfc/DfcAutoShutdown.java"))
+    monitor = read(os.path.join(SRC, "com/hbmzz/tile/TileEntityDFCMonitor.java"))
+    check("Map<String, String> ARMS" in arms_src and "Map<String, Session> SESSIONS" in arms_src,
+          "自动停机把监控器归属和核心的共享计划分开存",
+          "DfcShutdownArms must keep arm ownership separate from the core's shared plan")
+    check("DfcAutoShutdown.release(this.world, this.pos)" in monitor
+          and "DfcAutoShutdown.release(this.world, this.corePos)" not in monitor,
+          "关监控器只释放自己的 arm，不按核心删掉别人的会话",
+          "the monitor must release by its own position, never by the core position")
+    check("DfcShutdownArms.abort(" in auto_src and "return false;" in auto_src,
+          "写不进温度时中止会话并让监控器自己关掉开关",
+          "a failed temperature write must abort the session and disarm the monitor")
+    check("DfcShutdownArms.java" in read(os.path.join(ROOT, "tools/checkall.py")),
+          "会话归属规则在离线回归里被编译检查",
+          "checkall must compile DfcShutdownArms so the ownership rules stay tested")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

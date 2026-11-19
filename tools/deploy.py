@@ -141,7 +141,7 @@ def installed_jars(mods):
     ★★★ 不能只判 ``startswith("hbmzz-")``：``hbmzz-addon-0.1.0.jar`` 是别人做的
     附加包，前缀撞上了，但它是<b>另一个模组</b>。2026-11-18 现场就是这么把它当旧版
     归档走的，整合包里凭空少一个模组。判据必须是「hbmzz- + 数字版本」：
-    我们的产物一律叫 ``hbmzz-3.8.0.jar``，附加包是 ``hbmzz-addon-...``。
+    我们的产物一律叫 ``hbmzz-3.9.0.jar``，附加包是 ``hbmzz-addon-...``。
     """
     return sorted(
         os.path.join(mods, name)

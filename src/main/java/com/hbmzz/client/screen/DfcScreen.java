@@ -891,20 +891,22 @@ public final class DfcScreen {
         text("DFC \u5806\u82af", 6, 31, DIM, ScreenFonts.cjk(8));
         textRight(d.coreType == null ? "--" : d.coreType, 130, 31, AMBER, ScreenFonts.mono(7));
 
-        // 自动停堆状态：停堆 / 自动停堆 / 强制抑制。非停堆时整条高亮，绝不会出现
-        // "停顿 / 暂停"等表述。所有显示面共用 DFCSnapshot 这一个数据源。
-        if (d.stopState != DFCSnapshot.STOP_STATE_STOPPED) {
-            int stopColor = d.stopState == DFCSnapshot.STOP_STATE_SUPPRESS ? 0xFFFF5038 : 0xFFFFB454;
-            rect(6, 38, BASE_W - 12, 14, 0xFF2A0D08);
-            textCenter("\u25a0 " + d.stopStateLabel() + " \u25a0", 48,
-                    stopColor, ScreenFonts.cjkBold(9));
-        }
-
         // ---- left: the twin ring gauge ----
         // Pushed down from y=94 to y=104 so the auto-stop banner above gets
         // breathing room instead of colliding with the top of the ring.
         int cx = 72;
         int cy = 104;
+
+        // 自动停堆状态：停堆 / 自动停堆 / 强制抑制。非停堆时整条高亮，绝不会出现
+        // "停顿 / 暂停"等表述。所有显示面共用 DFCSnapshot 这一个数据源。
+        // 文字对齐温度表盘中心 cx，正好落在温度读数正上方。
+        if (d.stopState != DFCSnapshot.STOP_STATE_STOPPED) {
+            int stopColor = d.stopState == DFCSnapshot.STOP_STATE_SUPPRESS ? 0xFFFF5038 : 0xFFFFB454;
+            rect(6, 38, BASE_W - 12, 14, 0xFF2A0D08);
+            textCenterAt("\u25a0 " + d.stopStateLabel() + " \u25a0", cx, 48,
+                    stopColor, ScreenFonts.cjkBold(9));
+        }
+
         int rOut = 44;
         int rIn = 30;
 

@@ -258,6 +258,21 @@ window.HBMZZ_DATA = {
   ],
   "timeline": [
     {
+      "version": "4.0.0",
+      "title": "多区块 DFC 反应堆：五个方块拼一台堆，稳定器就是那个温度系数旋钮",
+      "items": [
+        "<strong>一台堆不再是一块方块：</strong>新增 <code>reactor_core</code>（堆芯，权威格）加四类部件——<code>reactor_emitter</code>（燃料，越多额定功率与废热越大）、<code>reactor_absorber</code>（冷却，越多冷却回路越满）、<code>reactor_stabiliser</code>（稳定器，越多温度负反馈越强）、<code>reactor_control_rod</code>（控制棒，深度 = 它收到的红石强度）。堆芯每 tick 扫一圈 26 邻居，把「每种部件有几块、每根棒插多深」折进规格与输入——物理判定本身一个字没改，全部落在既有的 <code>ReactorMachine</code> / <code>ReactorRules</code> 上。",
+        "<strong>温度系数就是稳定器：</strong>堆温越高、链式反应越该自己顶回去，那条 <code>1 − heat × feedback</code> 的负反馈（多普勒式）一直活在 <code>ReactorRules.targetFlux</code> 里。现在 <code>ReactorCoreMath</code> 把稳定器数量乘进 <code>feedback</code>（每块 +25%）——堆芯周围多摆两块稳定器，热失控前那根自动踩下去的刹车就重一截。燃料与冷却同理：<code>heatPerFlux ×(1+0.25e)</code>、<code>ratedOutput ×(1+0.5e)</code>、<code>coolPerFlow ×(1+0.4a)</code>，全部钳在 0..16 块有效上限内，三百块稳定器也造不出无穷规格。",
+        "<strong>控制棒：不摆就是全开，这是有意的。</strong>每根棒的红石强度就是插入深度（15 档），多根棒取平均再按根数做饱和衰减——十根全插满也不会比五根插满更「插」。一根都没有时堆芯全功率运行：控制棒是裸堆与急停之间唯一的东西，它的缺席应该被看见，不该藏在某个默认半插的假设后面。",
+        "<strong>冷却按八块算满：</strong>八块吸收体 = 冷却回路 100% 打开，再放没有意义；一块都没有，阀门就是关着的。堆芯 NBT 里只存 <code>ReactorState</code>（相位、通量、热量、功率）与面板写入的 <code>panelRod</code> 覆写值，其余一切——部件数、棒深、红石开停——都是当 tick 从世界重算的，读档不漂移。",
+        "<strong>机器控制面板直接能开堆：</strong>堆芯实现了 <code>IControllable</code>，进事件三条——<code>reactor_start</code>（升沿起堆，面板侧锁存）、<code>reactor_scram</code>（立即急停）、<code>reactor_set_rod</code>（level 0..100，覆写红石棒深）；出事件 <code>reactor_status</code> 带 flux / heat / power / phase；查询数据八项：phase / flux / heat / power / rod / coolant / rated / scramming。面板写 <code>reactor_set_rod</code> 优先于红石，拆掉面板信号红石接着接管，两条路不抢。",
+        "<strong>红石口位分面：</strong>背面红石上升沿 = 启动，右侧持续 2 tick = 急停，正面弱充能 = 功率档位 0..15（按额定功率折算），侧面一律 0——和门那批的规矩一样，输出只走一面，侧面通电就是「输出喂输入」的自锁。",
+        "<strong>紫黑免疫：</strong>五个新方块没有一个带新贴图——堆芯直接借 <code>control_panel</code> 的模型，四个部件是 <code>cube_all</code> 指到既有合法纹理。没重建资源包的整合包里，它们不可能以缺失模型的样子出现。",
+        "<strong>验证：</strong>regcheck <b>150/150</b>（ClientProxy 三张模型表 36/36/36 对齐，五个方块、五个物品、五个配方全在册）；<code>ReactorCoreMath</code> 留在纯函数包 <code>com.hbmzz.reactor</code> 里，<code>tools/reactorcheck</code> 可以不放任何方块就证明「稳定器买到了足够负反馈，控棒失效仍能急停」这条安全性质。",
+        "<strong>版本号说明：</strong>这是一整台新机器加四个可放置方块加一套控制面板接口，量级够主版本号——从 3.8.0 直接跳 <b>4.0.0</b>。<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 三处同步。"
+      ]
+    },
+    {
       "version": "3.8.0",
       "title": "视频上墙：一面 32×32 的大屏，和屏正中的一台电视",
       "items": [
@@ -662,17 +677,17 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "3.8.0",
-    "gradleVersion": "3.8.0",
+    "version": "4.0.0",
+    "gradleVersion": "4.0.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 576,
-      "javaLines": 135814,
-      "resourceFiles": 627,
+      "javaFiles": 591,
+      "javaLines": 138229,
+      "resourceFiles": 648,
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-18"
+    "generatedAt": "2026-11-20"
   }
 };

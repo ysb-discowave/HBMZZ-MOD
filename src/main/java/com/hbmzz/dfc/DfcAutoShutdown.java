@@ -190,6 +190,7 @@ public final class DfcAutoShutdown {
         DfcAutoStopPlan plan = AUTO_STOPS.get(coreKey);
         if (plan == null) {
             plan = new DfcAutoStopPlan(
+                    HBMZZConfig.dfcAutoStopTempC,
                     HBMZZConfig.dfcAutoStopStepC,
                     HBMZZConfig.dfcAutoStopRampTicks,
                     HBMZZConfig.dfcAutoStopSuppressFxTicks);

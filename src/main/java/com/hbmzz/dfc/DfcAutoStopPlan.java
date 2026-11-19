@@ -59,6 +59,7 @@ public final class DfcAutoStopPlan {
         }
     }
 
+    private final double thresholdC;
     private final double stepC;
     private final int maxAutoTicks;
     private final int suppressFxTicks;
@@ -82,6 +83,15 @@ public final class DfcAutoStopPlan {
      *                        结束时一次性写 0
      */
     public DfcAutoStopPlan(double stepC, int maxAutoTicks, int suppressFxTicks) {
+        this(HOT_THRESHOLD_C, stepC, maxAutoTicks, suppressFxTicks);
+    }
+
+    /**
+     * @param thresholdC      触发自动停堆的温度阈值（摄氏度），来自配置项
+     *                        {@code dfcAutoStopTempC}；默认构造仍用 5000。
+     */
+    public DfcAutoStopPlan(double thresholdC, double stepC, int maxAutoTicks, int suppressFxTicks) {
+        this.thresholdC = Math.max(1.0D, thresholdC);
         this.stepC = Math.max(1.0D, stepC);
         this.maxAutoTicks = Math.max(1, maxAutoTicks);
         this.suppressFxTicks = Math.max(1, suppressFxTicks);
@@ -161,7 +171,7 @@ public final class DfcAutoStopPlan {
         this.enteredSuppress = false;
         this.zeroWrittenThisTick = false;
         this.lastTemperature = temperature;
-        boolean hotEnough = temperature > HOT_THRESHOLD_C;
+        boolean hotEnough = temperature > this.thresholdC;
 
         switch (this.state) {
             case STOPPED:
@@ -180,7 +190,7 @@ public final class DfcAutoStopPlan {
                 }
                 // 逐步降温阶段结束：若仍高于阈值，进入强制抑制；否则停堆。
                 if (this.age >= this.maxAutoTicks) {
-                    if (temperature > HOT_THRESHOLD_C) {
+                    if (temperature > this.thresholdC) {
                         enter(State.FORCE_SUPPRESS);
                         this.enteredSuppress = true;
                     } else {

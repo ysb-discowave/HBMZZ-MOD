@@ -79,15 +79,20 @@ public final class DFCReader {
         }
 
         s.coreFound = true;
-        s.hasCore = asBool(invoke(core, "isDFCHasCore"), true);
-        s.temperature = asDouble(invoke(core, "getDFCTemperature"), fieldDouble(core, "heat", 0.0D));
-        s.meltingPoint = asDouble(invoke(core, "getDFCMeltingPoint"), 2250.0D);
+        // NTM 1.12.2 (CE + Cursed addon) exposes no getDFC* accessors. The real
+        // TileEntityCore has: int heat (this tick's temperature), int field
+        // (the collapse countdown / threshold), boolean meltdownTick. Keeping
+        // the getDFC* calls first lets a future fork that adds them win; the
+        // field fallbacks are what actually run on this modpack.
+        s.hasCore = asBool(invoke(core, "isDFCHasCore"), hasCoreReal(core));
+        s.temperature = temperature(core);
+        s.meltingPoint = collapseThreshold(core);
         s.stabilization = asDouble(invoke(core, "getDFCStabilization"), 0.0D);
         s.containedEnergy = asDouble(invoke(core, "getDFCContainedEnergy"), 0.0D);
         s.expellingEnergy = asDouble(invoke(core, "getDFCExpellingEnergy"), 0.0D);
         s.potentialGain = asDouble(invoke(core, "getDFCPotentialGain"), 0.0D);
-        s.collapsing = asDouble(invoke(core, "getDFCCollapsing"), 0.0D) > 0.0D;
-        s.explosionIn = asDouble(invoke(core, "getDFCExplosionIn"), -1.0D);
+        s.collapsing = collapsing(core);
+        s.explosionIn = explosionIn(core);
 
         readTanks(core, s);
         readCoreType(core, s);
@@ -158,22 +163,66 @@ public final class DFCReader {
     /**
      * Seconds until this core detonates, or -1 when it is not counting down.
      *
-     * <p>Exposed for the cinematic camera, which starts orbiting at five
-     * seconds. The monitor already reads this number for its countdown; the
-     * only difference is who is asking.</p>
+     * <p>On this modpack the collapse countdown is the {@code field} int on
+     * TileEntityCore: it is set to the threshold when melting starts and ticks
+     * down by one each second. A future fork exposing getDFCExplosionIn still
+     * takes priority.</p>
      */
     public static double explosionIn(TileEntity core) {
-        return asDouble(invoke(core, "getDFCExplosionIn"), -1.0D);
+        double addon = asDouble(invoke(core, "getDFCExplosionIn"), -1.0D);
+        if (addon >= 0.0D) {
+            return addon;
+        }
+        int field = fieldInt(core, "field", 0);
+        // field > 0 only means a countdown is running. A core that is merely
+        // hot (heat rising toward the threshold) has field == 0 and is not yet
+        // detonating, so report -1 rather than a bogus 0-seconds-to-boom.
+        return field > 0 ? (double) field : -1.0D;
     }
 
-    /** True while the core is in its terminal collapse. */
+    /**
+     * True while the core is destroying blocks / in terminal collapse.
+     *
+     * <p>TileEntityCore enters meltdown when {@code heat > 0 && heat >= field}.
+     * {@code meltdownTick} is raised the tick the blast actually fires. Both are
+     * the real signals on CE + Cursed; the old getDFCCollapsing name did not
+     * exist and left this permanently false, so auto stop never triggered.</p>
+     */
     public static boolean collapsing(TileEntity core) {
-        return asDouble(invoke(core, "getDFCCollapsing"), 0.0D) > 0.0D;
+        double addon = asDouble(invoke(core, "getDFCCollapsing"), -1.0D);
+        if (addon >= 0.0D) {
+            return addon > 0.0D;
+        }
+        if (boolField(core, "meltdownTick", false)) {
+            return true;
+        }
+        int heat = fieldInt(core, "heat", 0);
+        int field = fieldInt(core, "field", 0);
+        return heat > 0 && heat >= field;
     }
 
     /** Temperature only, without paying for tanks, components and catalysts. */
     public static double temperature(TileEntity core) {
-        return asDouble(invoke(core, "getDFCTemperature"), fieldDouble(core, "heat", 0.0D));
+        double addon = asDouble(invoke(core, "getDFCTemperature"), Double.NaN);
+        if (!Double.isNaN(addon)) {
+            return addon;
+        }
+        return (double) fieldInt(core, "heat", 0);
+    }
+
+    /** The real collapse threshold: the field int when a countdown is set. */
+    private static double collapseThreshold(TileEntity core) {
+        double addon = asDouble(invoke(core, "getDFCMeltingPoint"), -1.0D);
+        if (addon > 0.0D) {
+            return addon;
+        }
+        return (double) fieldInt(core, "field", 0);
+    }
+
+    /** Whether the core actually holds a core item, from the real hasCore(). */
+    private static boolean hasCoreReal(TileEntity core) {
+        Object r = invoke(core, "hasCore");
+        return r instanceof Boolean ? (Boolean) r : false;
     }
 
     /**
@@ -236,6 +285,19 @@ public final class DFCReader {
             return true;
         }
         boolean wrote = false;
+        // Real TileEntityCore fields: cancel the countdown, drop the heat that
+        // feeds the meltdown, and clear the blast flag.
+        wrote |= writeNumber(core, findField(core.getClass(), "field"), 0.0D);
+        wrote |= writeNumber(core, findField(core.getClass(), "heat"), 0.0D);
+        wrote |= writeNumber(core, findField(core.getClass(), "prevHeat"), 0.0D);
+        Field meltdown = findField(core.getClass(), "meltdownTick");
+        if (meltdown != null) {
+            try {
+                meltdown.setBoolean(core, false);
+                wrote = true;
+            } catch (Throwable ignored) {
+            }
+        }
         for (String name : new String[]{"dfcCollapsing", "collapsing"}) {
             wrote |= writeNumber(core, findField(core.getClass(), name), 0.0D);
         }
@@ -541,6 +603,16 @@ public final class DFCReader {
     private static double fieldDouble(Object target, String name, double fallback) {
         Object value = field(target, name);
         return value instanceof Number ? ((Number) value).doubleValue() : fallback;
+    }
+
+    private static int fieldInt(Object target, String name, int fallback) {
+        Object value = field(target, name);
+        return value instanceof Number ? ((Number) value).intValue() : fallback;
+    }
+
+    private static boolean boolField(Object target, String name, boolean fallback) {
+        Object value = field(target, name);
+        return value instanceof Boolean ? (Boolean) value : fallback;
     }
 
     private static double asDouble(Object value, double fallback) {

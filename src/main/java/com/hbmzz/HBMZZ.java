@@ -109,6 +109,11 @@ public class HBMZZ {
         // mapping before the block is ever placed or the game dies on place.
         GameRegistry.registerTileEntity(com.hbmzz.reactor.tile.TileEntityReactor.class,
                 new ResourceLocation(MODID, "reactor"));
+        // Multi-block reactor core: scans its neighbours for the component
+        // blocks and is the one that persists ReactorState. The four components
+        // are plain blocks with no tile entity, so they need no registration.
+        GameRegistry.registerTileEntity(com.hbmzz.reactor.tile.TileEntityReactorCore.class,
+                new ResourceLocation(MODID, "reactor_core"));
         // The Tartarus gate. Only the corner cell has one; the other eight are
         // filler, so the door has exactly one copy of "am I open".
         GameRegistry.registerTileEntity(com.hbmzz.gate.TileEntityTartarusGate.class,

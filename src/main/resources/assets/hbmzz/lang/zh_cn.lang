@@ -121,3 +121,12 @@ tile.hbmzz.reactor.name=HBMZZ 反应堆堆芯
 hbmzz.reactor.tip1=背面：控制棒（0 全抽出 / 15 全插入）。左侧：冷却剂阀门。
 hbmzz.reactor.tip2=右侧：脉冲启动，持续供电紧急停堆（SCRAM）。正面：功率输出。
 hbmzz.reactor.tip3=右键读取通量、热量与当前输出功率。
+
+tile.hbmzz.reactor_core.name=反应堆堆芯（多区块）
+tile.hbmzz.reactor_emitter.name=反应堆发射器
+tile.hbmzz.reactor_absorber.name=反应堆吸收器
+tile.hbmzz.reactor_stabiliser.name=反应堆稳定器
+tile.hbmzz.reactor_control_rod.name=反应堆控制棒
+hbmzz.reactor_core.tip1=围绕堆芯放置。发射器增加燃料，吸收器增加冷却。
+hbmzz.reactor_core.tip2=稳定器增加温度系数；控制棒由红石深度调节。
+hbmzz.reactor_core.tip3=正面：功率输出。可由机器控制台驱动。

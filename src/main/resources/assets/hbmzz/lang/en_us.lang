@@ -120,3 +120,12 @@ tile.hbmzz.reactor.name=HBMZZ Reactor Core
 hbmzz.reactor.tip1=Back: control rods (0=out, 15=in). Left: coolant valve.
 hbmzz.reactor.tip2=Right: pulse to start, hold to SCRAM. Front: power out.
 hbmzz.reactor.tip3=Right-click to read flux, heat and delivered power.
+
+tile.hbmzz.reactor_core.name=Reactor Core (Multi-block)
+tile.hbmzz.reactor_emitter.name=Reactor Emitter
+tile.hbmzz.reactor_absorber.name=Reactor Absorber
+tile.hbmzz.reactor_stabiliser.name=Reactor Stabiliser
+tile.hbmzz.reactor_control_rod.name=Reactor Control Rod
+hbmzz.reactor_core.tip1=Place around the core. Emitters add fuel, absorbers add cooling.
+hbmzz.reactor_core.tip2=Stabilisers add temperature feedback; rods are throttled by redstone.
+hbmzz.reactor_core.tip3=Front face: power out. Drive it with a machine control panel.

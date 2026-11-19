@@ -151,6 +151,15 @@ public class ClientProxy extends CommonProxy {
         // HBMZZ 反应堆：复用控制面板模型，但必须有自己的显式位置，
         // 否则物品栏图标只能靠注册名撞文件名（改名那天就变紫黑）。
         list.add(loc("reactor"));
+        // Multi-block reactor rig: the core borrows the control panel's model,
+        // and the four components each have their own cube model. All five must
+        // be here, in the same order as the items and metas tables, or regcheck
+        // will report them as purple-and-black cubes in hand.
+        list.add(loc("reactor_core"));
+        list.add(loc("reactor_emitter"));
+        list.add(loc("reactor_absorber"));
+        list.add(loc("reactor_stabiliser"));
+        list.add(loc("reactor_control_rod"));
         return list;
     }
 
@@ -187,6 +196,11 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_NOT_GATE);
         list.add(ModContent.ITEM_BLOCK_TARTARUS_GATE);
         list.add(ModContent.ITEM_BLOCK_REACTOR);
+        list.add(ModContent.ITEM_BLOCK_REACTOR_CORE);
+        list.add(ModContent.ITEM_BLOCK_REACTOR_EMITTER);
+        list.add(ModContent.ITEM_BLOCK_REACTOR_ABSORBER);
+        list.add(ModContent.ITEM_BLOCK_REACTOR_STABILISER);
+        list.add(ModContent.ITEM_BLOCK_REACTOR_CONTROL_ROD);
         return list;
     }
 
@@ -212,7 +226,9 @@ public class ClientProxy extends CommonProxy {
             //  tartarus_gate
             0,
             //  reactor
-            0
+            0,
+            //  reactor_core  emitter  absorber  stabiliser  control_rod
+            0, 0, 0, 0, 0
     };
 
     public static List<Integer> metas() {

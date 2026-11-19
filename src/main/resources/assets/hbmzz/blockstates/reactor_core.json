@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "hbmzz:reactor_core", "y": 180 },
+    "facing=south": { "model": "hbmzz:reactor_core" },
+    "facing=east":  { "model": "hbmzz:reactor_core", "y": 270 },
+    "facing=west":  { "model": "hbmzz:reactor_core", "y": 90 }
+  }
+}

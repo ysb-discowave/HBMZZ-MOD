@@ -102,6 +102,27 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
     public static final Item ITEM_BLOCK_REACTOR = new ItemBlock(BLOCK_REACTOR);
 
+    // ---- multi-block reactor rig ------------------------------------------
+    /** The authoritative core of the multi-block reactor. */
+    public static final Block BLOCK_REACTOR_CORE = new com.hbmzz.reactor.block.BlockReactorCore();
+    /** Emitter: more fuel -> higher rated output and more waste heat. */
+    public static final Block BLOCK_REACTOR_EMITTER =
+            new com.hbmzz.reactor.block.BlockReactorComponent(com.hbmzz.reactor.block.BlockReactorComponent.ComponentType.EMITTER);
+    /** Absorber: more cooling surface -> a fuller coolant loop carries more. */
+    public static final Block BLOCK_REACTOR_ABSORBER =
+            new com.hbmzz.reactor.block.BlockReactorComponent(com.hbmzz.reactor.block.BlockReactorComponent.ComponentType.ABSORBER);
+    /** Stabiliser: more temperature feedback -> the coefficient that stops a runaway. */
+    public static final Block BLOCK_REACTOR_STABILISER =
+            new com.hbmzz.reactor.block.BlockReactorComponent(com.hbmzz.reactor.block.BlockReactorComponent.ComponentType.STABILISER);
+    /** Control rod: its redstone depth is the throttle. */
+    public static final Block BLOCK_REACTOR_CONTROL_ROD =
+            new com.hbmzz.reactor.block.BlockReactorComponent(com.hbmzz.reactor.block.BlockReactorComponent.ComponentType.CONTROL_ROD);
+    public static final Item ITEM_BLOCK_REACTOR_CORE = new ItemBlock(BLOCK_REACTOR_CORE);
+    public static final Item ITEM_BLOCK_REACTOR_EMITTER = new ItemBlock(BLOCK_REACTOR_EMITTER);
+    public static final Item ITEM_BLOCK_REACTOR_ABSORBER = new ItemBlock(BLOCK_REACTOR_ABSORBER);
+    public static final Item ITEM_BLOCK_REACTOR_STABILISER = new ItemBlock(BLOCK_REACTOR_STABILISER);
+    public static final Item ITEM_BLOCK_REACTOR_CONTROL_ROD = new ItemBlock(BLOCK_REACTOR_CONTROL_ROD);
+
     /* 四种红石门。拆成四个方块而不是一块可切换的门，理由在 GateType 的类注释里：
        1.12.2 的 meta 只有 4 位，朝向 4 × 亮灭 2 已经用掉 8 个组合，再塞 8 种运算
        就得牺牲朝向或亮灭。 */
@@ -156,6 +177,11 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_ALERT_DISPLAY);
         event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
         event.getRegistry().register(BLOCK_REACTOR);
+        event.getRegistry().register(BLOCK_REACTOR_CORE);
+        event.getRegistry().register(BLOCK_REACTOR_EMITTER);
+        event.getRegistry().register(BLOCK_REACTOR_ABSORBER);
+        event.getRegistry().register(BLOCK_REACTOR_STABILISER);
+        event.getRegistry().register(BLOCK_REACTOR_CONTROL_ROD);
         event.getRegistry().register(BLOCK_AND_GATE);
         event.getRegistry().register(BLOCK_OR_GATE);
         event.getRegistry().register(BLOCK_XOR_GATE);
@@ -192,6 +218,16 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
         ITEM_BLOCK_REACTOR.setRegistryName(BLOCK_REACTOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_REACTOR);
+        ITEM_BLOCK_REACTOR_CORE.setRegistryName(BLOCK_REACTOR_CORE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_REACTOR_CORE);
+        ITEM_BLOCK_REACTOR_EMITTER.setRegistryName(BLOCK_REACTOR_EMITTER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_REACTOR_EMITTER);
+        ITEM_BLOCK_REACTOR_ABSORBER.setRegistryName(BLOCK_REACTOR_ABSORBER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_REACTOR_ABSORBER);
+        ITEM_BLOCK_REACTOR_STABILISER.setRegistryName(BLOCK_REACTOR_STABILISER.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_REACTOR_STABILISER);
+        ITEM_BLOCK_REACTOR_CONTROL_ROD.setRegistryName(BLOCK_REACTOR_CONTROL_ROD.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_REACTOR_CONTROL_ROD);
         ITEM_BLOCK_AND_GATE.setRegistryName(BLOCK_AND_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_AND_GATE);
         ITEM_BLOCK_OR_GATE.setRegistryName(BLOCK_OR_GATE.getRegistryName());
@@ -426,6 +462,71 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'Q', Items.QUARTZ
         ).setRegistryName(HBMZZ.MODID, "and_gate"));
+
+        // ---- multi-block reactor rig ----
+        // The core: the single block that does the physics. Expensive on purpose -
+        // it borrows the control panel's look and the reactor's job, so it asks for
+        // both a comparator (the brain) and a bed of redstone (the wiring).
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "reactor_core"),
+                new ItemStack(BLOCK_REACTOR_CORE),
+                "ICI",
+                "RIR",
+                "ICI",
+                'I', Items.IRON_INGOT,
+                'C', Items.COMPARATOR,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "reactor_core"));
+
+        // Emitter: a fuel source. Iron frame with a redstone heart - the thing that
+        // makes the chain reaction happen. Third row distinct from the core.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "reactor_emitter"),
+                new ItemStack(BLOCK_REACTOR_EMITTER),
+                "III",
+                "IRI",
+                "RRR",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "reactor_emitter"));
+
+        // Absorber: a cooling loop. Iron frame, glass heart, one redstone to say it
+        // is wired to the loop. Same outer frame as the emitter, different middle.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "reactor_absorber"),
+                new ItemStack(BLOCK_REACTOR_ABSORBER),
+                "III",
+                "IGI",
+                "IRI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "reactor_absorber"));
+
+        // Stabiliser: the temperature-feedback hardware. Iron frame, a quartz sensor
+        // at the heart (stability, not power), glass on the outside.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "reactor_stabiliser"),
+                new ItemStack(BLOCK_REACTOR_STABILISER),
+                "GGG",
+                "GQG",
+                "III",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'Q', Items.QUARTZ
+        ).setRegistryName(HBMZZ.MODID, "reactor_stabiliser"));
+
+        // Control rod: the throttle. A tungsten-like iron rod (redstone block) inside
+        // an iron channel. The depth the player drives it to is the redstone beside it.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "reactor_control_rod"),
+                new ItemStack(BLOCK_REACTOR_CONTROL_ROD),
+                "IRI",
+                "IRI",
+                "IRI",
+                'I', Items.IRON_INGOT,
+                'R', Item.getItemFromBlock(Blocks.REDSTONE_BLOCK)
+        ).setRegistryName(HBMZZ.MODID, "reactor_control_rod"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "or_gate"),

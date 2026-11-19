@@ -88,6 +88,37 @@ public class DFCSnapshot {
     /** Ticks left in the current intrusion state, for the on-screen countdown. */
     public int hackTicksLeft;
 
+    // ---- auto stop display state --------------------------------------------
+    // 0 = 停堆, 1 = 自动停堆, 2 = 强制抑制. Never "停顿 / 暂停".
+    public static final int STOP_STATE_STOPPED = 0;
+    public static final int STOP_STATE_AUTO = 1;
+    public static final int STOP_STATE_SUPPRESS = 2;
+
+    /** Temperature-driven auto-stop state, shown on every display surface. */
+    public int stopState = STOP_STATE_STOPPED;
+
+    /** Maps a Chinese label from DfcAutoStopPlan to the wire value. */
+    public static int stopStateOf(String label) {
+        if ("自动停堆".equals(label)) {
+            return STOP_STATE_AUTO;
+        }
+        if ("强制抑制".equals(label)) {
+            return STOP_STATE_SUPPRESS;
+        }
+        return STOP_STATE_STOPPED;
+    }
+
+    /** The unified label; the only three words ever shown to the player. */
+    public String stopStateLabel() {
+        if (this.stopState == STOP_STATE_AUTO) {
+            return "自动停堆";
+        }
+        if (this.stopState == STOP_STATE_SUPPRESS) {
+            return "强制抑制";
+        }
+        return "停堆";
+    }
+
     public void write(ByteBuf buf) {
         buf.writeInt(panelW);
         buf.writeInt(panelH);
@@ -125,6 +156,7 @@ public class DFCSnapshot {
         buf.writeInt(predictedSeconds);
         buf.writeByte(hackState);
         buf.writeInt(hackTicksLeft);
+        buf.writeByte(stopState);
     }
 
     public static DFCSnapshot read(ByteBuf buf) {
@@ -165,6 +197,7 @@ public class DFCSnapshot {
         s.predictedSeconds = buf.readInt();
         s.hackState = buf.readByte();
         s.hackTicksLeft = buf.readInt();
+        s.stopState = buf.readByte();
         return s;
     }
 }

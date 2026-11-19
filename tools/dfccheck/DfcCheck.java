@@ -16,6 +16,8 @@
  * See NOTICE.md for third-party provenance.
  */
 
+import com.hbmzz.dfc.DfcAutoStopPlan;
+import com.hbmzz.dfc.DfcAutoStopPlan.State;
 import com.hbmzz.dfc.DfcShutdownArms;
 import com.hbmzz.dfc.DfcShutdownPlan;
 import com.hbmzz.dfc.DfcShutdownPlan.Phase;
@@ -61,6 +63,7 @@ public final class DfcCheck {
         rebindDropsTheOldCore();
         writeStreakResetsOnSuccess();
         stopAttemptClaimsOnce();
+        autoStopTerminologyAndFlow();
 
         System.out.println();
         System.out.println("dfccheck: " + passed + " passed, " + failed + " failed");
@@ -285,6 +288,66 @@ public final class DfcCheck {
         check("stop attempt claims only once",
                 DfcShutdownArms.claimStopAttempt("m1") && !DfcShutdownArms.claimStopAttempt("m1"));
         DfcShutdownArms.clear();
+    }
+
+    /** 温度驱动的自动停堆 / 强制抑制：术语、触发、特效后瞬时归零。 */
+    private static void autoStopTerminologyAndFlow() {
+        DfcAutoStopPlan p = new DfcAutoStopPlan(250, 3, 5);
+
+        // 5000C 恰好不触发（严格大于），正常显示"停堆"
+        p.tick(5000.0D, true);
+        check("auto stop: 5000C does not trigger", p.state() == State.STOPPED);
+        check("auto stop: 停堆 label", "停堆".equals(p.displayState()));
+
+        // 超过阈值且正在破坏 -> 立即自动停堆
+        p.tick(5100.0D, true);
+        check("auto stop: hot+destroying enters immediately", p.state() == State.AUTO_STOP);
+        check("auto stop: 自动停堆 label", "自动停堆".equals(p.displayState()));
+        check("auto stop: entered flag for music", p.enteredAutoStop());
+        check("auto stop: no pause/hold label",
+                !"停顿".equals(p.displayState()) && !"暂停".equals(p.displayState()));
+
+        // 热但没破坏 -> 不触发
+        DfcAutoStopPlan idle = new DfcAutoStopPlan(250, 3, 5);
+        idle.tick(9000.0D, false);
+        check("auto stop: hot but not destroying stays stopped", idle.state() == State.STOPPED);
+
+        // 逐步降温：每 tick 一个步长
+        Double cooled = p.desiredTemperature();
+        check("auto stop: cools one step per tick",
+                cooled != null && Math.abs(cooled - (5100.0D - 250.0D)) < 1.0E-6D);
+
+        // 降温后仍高于阈值 -> 强制抑制
+        DfcAutoStopPlan s = new DfcAutoStopPlan(10, 3, 5);
+        s.tick(9000.0D, true);
+        s.tick(9000.0D, true);
+        s.tick(9000.0D, true);
+        s.tick(9000.0D, true);
+        check("suppress: still hot after ramp enters", s.state() == State.FORCE_SUPPRESS);
+        check("suppress: 强制抑制 label", "强制抑制".equals(s.displayState()));
+
+        // 特效期间不降温（不是持续降温）
+        boolean noCoolDuringFx = true;
+        for (int i = 0; i < 4; i++) {
+            s.tick(9000.0D, true);
+            if (s.desiredTemperature() != null) {
+                noCoolDuringFx = false;
+            }
+        }
+        check("suppress: effect plays without gradual cooling", noCoolDuringFx && s.emittingSuppressFx());
+
+        // 特效结束那一 tick 立即归零（不是无过程的直接归零）
+        s.tick(9000.0D, true);
+        Double zero = s.desiredTemperature();
+        check("suppress: instant zero when effect ends",
+                zero != null && zero == 0.0D && s.zeroWrittenThisTick());
+
+        // 降回阈值以下 -> 停堆，不进抑制
+        DfcAutoStopPlan safe = new DfcAutoStopPlan(3000, 3, 5);
+        safe.tick(9000.0D, true);
+        safe.tick(4000.0D, false);
+        check("auto stop: cooled below threshold stops, no suppression",
+                safe.state() == State.STOPPED);
     }
 
     private static DfcShutdownPlan plan() {

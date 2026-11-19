@@ -1572,6 +1572,39 @@ def main():
           "会话归属规则在离线回归里被编译检查",
           "checkall must compile DfcShutdownArms so the ownership rules stay tested")
 
+    # 108. 温度驱动的自动停堆 / 强制抑制。术语只用停堆 / 自动停堆 / 强制抑制，
+    # 强制抑制必须是"特效过程结束后温度立即归零"，既不是持续降温也不是无过程归零。
+    plan_src = read(os.path.join(SRC, "com/hbmzz/dfc/DfcAutoStopPlan.java"))
+    auto_src2 = auto_src  # already read above
+    conf_src = read(os.path.join(SRC, "com/hbmzz/HBMZZConfig.java"))
+    snap_src = read(os.path.join(SRC, "com/hbmzz/dfc/DFCSnapshot.java"))
+    zh_lang = read(os.path.join(ROOT, "src/main/resources/assets/hbmzz/lang/zh_cn.lang"))
+    check("HOT_THRESHOLD_C = 5000.0D" in plan_src
+          and "dfcAutoStopTempC" in conf_src,
+          "自动停堆阈值固定 5000℃ 且可配置",
+          "auto stop must trigger above 5000 C, configurable")
+    check('STOPPED("停堆")' in plan_src and 'AUTO_STOP("自动停堆")' in plan_src
+          and 'FORCE_SUPPRESS("强制抑制")' in plan_src
+          and "\u505c\u987f" not in plan_src and "\u6682\u505c" not in plan_src,
+          "状态文案只用停堆 / 自动停堆 / 强制抑制，不含停顿暂停",
+          "only the three approved labels, never pause/hold")
+    check("emittingSuppressFx()" in plan_src and "zeroWrittenThisTick" in plan_src
+          and "return null;" in plan_src and "return 0.0D;" in plan_src,
+          "强制抑制先播特效、特效期间不降温、结束时立即归零",
+          "forced suppression plays an effect, does not cool during it, then snaps to 0")
+    check("RemoteAudio.playAt" in auto_src2 and "dfcAutoStopMusic" in conf_src
+          and 'dfcAutoStopMusic = cfg.getString("autoStopMusic"' in conf_src,
+          "自动停堆经 rsa 音频通道播放 passion 且文件名可配置",
+          "auto stop plays the configured track (passion) via rsa audio")
+    check("stopState" in snap_src and "stopStateLabel" in snap_src
+          and "DFCSnapshot.stopStateOf" in read(os.path.join(SRC, "com/hbmzz/tile/TileEntityDFCMonitor.java")),
+          "停堆状态进入快照，所有显示区共用一个数据源",
+          "auto stop state rides the snapshot so every display surface agrees")
+    check("\u81ea\u52a8\u505c\u5806" in zh_lang and "\u81ea\u52a8\u505c\u673a" not in zh_lang
+          and "\u5f3a\u5236\u6291\u5236" in zh_lang,
+          "中文文案已统一为自动停堆 / 强制抑制，移除自动停机旧表述",
+          "zh lang uses the unified terminology, old 自动停机 wording removed")
+
     failed = [name for ok, name, _ in results if not ok]
     print()
     if failed:

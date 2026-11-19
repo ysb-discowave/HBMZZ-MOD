@@ -22,6 +22,7 @@ import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.network.DfcFxMessage;
 import com.hbmzz.network.NetworkHandler;
+import com.rsaudio.util.RemoteAudio;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.SoundCategory;
@@ -29,6 +30,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -60,6 +63,14 @@ import java.util.function.Supplier;
  */
 public final class DfcAutoShutdown {
 
+    /**
+     * 温度驱动流程 {@link DfcAutoStopPlan} 按核心保存。它和倒计时流程
+     * ({@link DfcShutdownPlan}) 刻意分开：前者看"温度 > 5000℃ 且正在破坏建筑"，
+     * 后者看爆炸倒计时。两套流程互不打断，表同一个核心时只让温度流程写温度。
+     */
+    private static final Map<String, DfcAutoStopPlan> AUTO_STOPS =
+            new HashMap<String, DfcAutoStopPlan>();
+
     private DfcAutoShutdown() {
     }
 
@@ -87,6 +98,14 @@ public final class DfcAutoShutdown {
 
         String monitorKey = key(world, monitorPos);
         String coreKey = key(world, corePos);
+
+        // Temperature-driven auto stop. A core hotter than the threshold that is
+        // destroying blocks enters auto stop immediately - never a pause/hold. This
+        // takes priority over the countdown flow: while it runs, it is the only
+        // writer of the core temperature.
+        if (driveAutoStop(world, core, corePos, coreKey, now)) {
+            return true;
+        }
         DfcShutdownPlan plan = DfcShutdownArms.begin(monitorKey, coreKey, now, newPlan());
         if (DfcShutdownArms.aborted(monitorKey)) {
             return false;
@@ -120,7 +139,21 @@ public final class DfcAutoShutdown {
         if (world == null || world.isRemote || monitorPos == null) {
             return;
         }
+        // Binding changes / switch-off are handled by the monitor's own reset;
+        // auto-stop plans are dropped wholesale on server stop via clearAll().
         DfcShutdownArms.release(key(world, monitorPos));
+    }
+
+    /**
+     * 统一显示文案：停堆 / 自动停堆 / 强制抑制。给监控屏状态区调用。
+     * 不返回任何"停顿 / 暂停"之类的表述。
+     */
+    public static String stopStateLabel(World world, BlockPos corePos) {
+        if (world == null || corePos == null) {
+            return DfcAutoStopPlan.State.STOPPED.label();
+        }
+        DfcAutoStopPlan plan = AUTO_STOPS.get(key(world, corePos));
+        return plan == null ? DfcAutoStopPlan.State.STOPPED.label() : plan.displayState();
     }
 
     /** True while a core is being actively cooled or shown. For the screen label. */
@@ -142,6 +175,114 @@ public final class DfcAutoShutdown {
     /** Drops every arm and session. Called when the server stops. */
     public static void clearAll() {
         DfcShutdownArms.clear();
+        AUTO_STOPS.clear();
+    }
+
+    // ------------------------------------------------- temperature-driven auto stop
+
+    /**
+     * Drives one core's {@link DfcAutoStopPlan}. Returns true when this flow owns
+     * the core this tick (i.e. it is active, or it just finished), so the caller
+     * skips the countdown flow for this tick.
+     */
+    private static boolean driveAutoStop(World world, TileEntity core, BlockPos corePos,
+                                         String coreKey, long now) {
+        DfcAutoStopPlan plan = AUTO_STOPS.get(coreKey);
+        if (plan == null) {
+            plan = new DfcAutoStopPlan(
+                    HBMZZConfig.dfcAutoStopStepC,
+                    HBMZZConfig.dfcAutoStopRampTicks,
+                    HBMZZConfig.dfcAutoStopSuppressFxTicks);
+            AUTO_STOPS.put(coreKey, plan);
+        }
+
+        boolean wasActive = plan.active();
+        double temperature = DFCReader.temperature(core);
+        boolean destroying = DFCReader.collapsing(core);
+        plan.tick(temperature, destroying);
+
+        if (plan.enteredAutoStop()) {
+            onAutoStopEnter(world, corePos);
+        }
+        if (plan.enteredSuppress()) {
+            onSuppressEnter(world, corePos);
+        }
+        if (plan.emittingSuppressFx()) {
+            suppressFx(world, corePos, plan, now);
+        }
+
+        Double target = plan.desiredTemperature();
+        if (target != null) {
+            DFCReader.writeTemperature(core, target);
+            if (plan.zeroWrittenThisTick()) {
+                onSuppressComplete(world, core, corePos);
+            }
+        }
+
+        // Keep the entry after it finishes for one tick so a finished core does
+        // not immediately fall through to the countdown flow in the same tick.
+        return wasActive || plan.active();
+    }
+
+    /** Moment automatic stop engages: play the configured music and one implosion. */
+    private static void onAutoStopEnter(World world, BlockPos corePos) {
+        playAutoStopMusic(world, corePos);
+        double cx = corePos.getX() + 0.5D;
+        double cy = corePos.getY() + 3.0D;
+        double cz = corePos.getZ() + 0.5D;
+        fx(world, DfcFxMessage.IMPLODE, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 0.0F);
+        sound(world, corePos, SoundEvents.ENTITY_GENERIC_EXPLODE, 0.55F, 0.55F);
+        HBMZZ.logger.info("DFC auto stop: engaged at " + corePos
+                + " (hotter than " + HBMZZConfig.dfcAutoStopTempC + " C while destroying)");
+    }
+
+    /** Moment forced suppression starts: a distinct, unmistakable effect. */
+    private static void onSuppressEnter(World world, BlockPos corePos) {
+        double cx = corePos.getX() + 0.5D;
+        double cy = corePos.getY() + 3.0D;
+        double cz = corePos.getZ() + 0.5D;
+        fx(world, DfcFxMessage.SUPPRESS, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 0.0F);
+        sound(world, corePos, SoundEvents.ENTITY_ENDERDRAGON_GROWL, 0.4F, 0.5F);
+        HBMZZ.logger.info("DFC auto stop: forced suppression at " + corePos
+                + " - temperature still above threshold after gradual cooldown");
+    }
+
+    /** The visible effect process during forced suppression, until it snaps to 0. */
+    private static void suppressFx(World world, BlockPos corePos, DfcAutoStopPlan plan, long now) {
+        double cx = corePos.getX() + 0.5D;
+        double cy = corePos.getY() + 3.0D;
+        double cz = corePos.getZ() + 0.5D;
+        float progress = (float) plan.age() / (float) Math.max(1, plan.suppressFxTicks());
+        // Two rings a tick, tightening inward: a deliberate process, not a flash.
+        if (now % 2L == 0L) {
+            float radius = HBMZZConfig.dfcShutdownFxRange * (1.0F - progress) + 0.8F;
+            fx(world, DfcFxMessage.SUPPRESS, cx, cy, cz, radius, progress);
+        }
+    }
+
+    /** The effect has played and temperature was just written to 0. */
+    private static void onSuppressComplete(World world, TileEntity core, BlockPos corePos) {
+        double cx = corePos.getX() + 0.5D;
+        double cy = corePos.getY() + 3.0D;
+        double cz = corePos.getZ() + 0.5D;
+        fx(world, DfcFxMessage.IMPLODE, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 1.0F);
+        DFCReader.clearCollapse(core);
+        HBMZZ.logger.info("DFC auto stop: forced suppression finished at " + corePos
+                + " - temperature set to 0");
+    }
+
+    /** Plays the configured track via rsa's server->client audio route. */
+    private static void playAutoStopMusic(World world, BlockPos corePos) {
+        String name = HBMZZConfig.dfcAutoStopMusic;
+        if (name == null || name.isEmpty()) {
+            return;
+        }
+        try {
+            RemoteAudio.playAt(world, corePos, HBMZZConfig.dfcShutdownWatchRange, 0, name, false);
+        } catch (Throwable t) {
+            // A missing rsaudio installation must never take the shutdown down.
+            HBMZZ.logger.warn("DFC auto stop: could not play music '" + name + "': " + t);
+        }
     }
 
     // ------------------------------------------------------------------ phases

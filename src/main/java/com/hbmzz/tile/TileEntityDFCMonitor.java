@@ -433,6 +433,9 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             return new DFCSnapshot();
         }
         DFCSnapshot snapshot = DFCReader.read(world, this.pos, corePos, meterPos, panelW, panelH);
+        // 统一状态文案来自温度驱动的自动停堆流程：停堆 / 自动停堆 / 强制抑制。
+        snapshot.stopState = DFCSnapshot.stopStateOf(
+                DfcAutoShutdown.stopStateLabel(world, corePos));
         if (cameraEnabled && cameraPos != null) {
             TileEntity te = world.getTileEntity(cameraPos);
             if (te instanceof TileEntityMonitorCamera) {

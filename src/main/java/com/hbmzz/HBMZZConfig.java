@@ -163,6 +163,18 @@ public final class HBMZZConfig {
     /** Players within this distance receive the effect packets, in blocks. */
     public static int dfcShutdownWatchRange = 64;
 
+    // ---- DFC auto stop / forced suppression (temperature-driven) ----
+    /** Temperature (C) above which a destroying DFC immediately enters auto stop. */
+    public static double dfcAutoStopTempC = 5000.0D;
+    /** Degrees cooled per tick during the auto-stop ramp. */
+    public static double dfcAutoStopStepC = 250.0D;
+    /** Max ticks of the gradual ramp before the temperature is re-checked. */
+    public static int dfcAutoStopRampTicks = 100;
+    /** Ticks the forced-suppression effect plays before temperature instantly drops to 0. */
+    public static int dfcAutoStopSuppressFxTicks = 60;
+    /** Audio library file name (no extension) played when auto stop engages. */
+    public static String dfcAutoStopMusic = "passion";
+
     // ---- zd_tx cinematic ----
     /**
      * Degrees per tick the camera travels around the target. 0.72 is a full
@@ -325,6 +337,16 @@ public final class HBMZZConfig {
                     "Radius of the effect cloud around the core, in blocks.");
             dfcShutdownWatchRange = cfg.getInt("watchRange", "dfcShutdown", 64, 16, 256,
                     "Players within this distance receive the effect packets, in blocks.");
+            dfcAutoStopTempC = cfg.getFloat("autoStopTempC", "dfcShutdown", 5000.0F, 100.0F, 100000.0F,
+                    "A DFC that is destroying blocks and hotter than this enters automatic stop immediately (never a pause/hold state).");
+            dfcAutoStopStepC = cfg.getFloat("autoStopStepC", "dfcShutdown", 250.0F, 1.0F, 10000.0F,
+                    "Degrees per tick removed during the auto-stop gradual cooldown.");
+            dfcAutoStopRampTicks = cfg.getInt("autoStopRampTicks", "dfcShutdown", 100, 1, 24000,
+                    "Maximum ticks of gradual cooldown before re-checking the temperature; if still too hot, forced suppression runs.");
+            dfcAutoStopSuppressFxTicks = cfg.getInt("autoStopSuppressFxTicks", "dfcShutdown", 60, 1, 1200,
+                    "Ticks the forced-suppression effect plays; when it ends, temperature drops to 0 instantly (not a gradual cool, not an instant zero with no effect).");
+            dfcAutoStopMusic = cfg.getString("autoStopMusic", "dfcShutdown", "passion",
+                    "Audio library file name (without .ogg) played when automatic stop engages.");
             tstxSpeed = (float) cfg.getFloat("speed", "dfcTstx", 4.0F, 0.0F, 12.0F,
                     "Degrees per tick the camera orbits a DFC that has just entered collapse, while the DFC-TSTX gamerule is on. 4.0 sweeps about two thirds of a circle in the three seconds the shot lasts.");
             tstxRadius = cfg.getInt("radius", "dfcTstx", 16, 6, 40,

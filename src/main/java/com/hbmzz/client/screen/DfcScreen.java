@@ -891,6 +891,15 @@ public final class DfcScreen {
         text("DFC \u5806\u82af", 6, 31, DIM, ScreenFonts.cjk(8));
         textRight(d.coreType == null ? "--" : d.coreType, 130, 31, AMBER, ScreenFonts.mono(7));
 
+        // 自动停堆状态：停堆 / 自动停堆 / 强制抑制。非停堆时整条高亮，绝不会出现
+        // "停顿 / 暂停"等表述。所有显示面共用 DFCSnapshot 这一个数据源。
+        if (d.stopState != DFCSnapshot.STOP_STATE_STOPPED) {
+            int stopColor = d.stopState == DFCSnapshot.STOP_STATE_SUPPRESS ? 0xFFFF5038 : 0xFFFFB454;
+            rect(6, 36, BASE_W - 12, 13, 0xFF2A0D08);
+            textCenter("\u25a0 " + d.stopStateLabel() + " \u25a0", 38,
+                    stopColor, ScreenFonts.cjkBold(9));
+        }
+
         // ---- left: the twin ring gauge ----
         int cx = 72;
         int cy = 94;

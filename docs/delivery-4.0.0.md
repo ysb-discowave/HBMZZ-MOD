@@ -4,6 +4,29 @@
 > 基准版本：4.0.0（Forge 1.12.2，ForgeGradle 2.3.4，Java 8）
 > 本次主题：**Aegis 遥测终端（DFC 监控屏从零重写）** + 首次真实编译验证
 
+## 发布公告（同步 QQ 群「HBM-ZZ开发群」）
+
+【HBMZZ 4.0.0 刚发布】Aegis 遥测终端 + 首次全量编译通过
+
+任务：DFC 监控屏从零重写 + 交付部署
+状态：已完成，jar 已装入游戏 mods
+
+主要结果
+- Aegis 遥测终端（神盾）：独立包 `com.hbmzz.aegis`，17 个新类，不复用旧监控屏一行代码，界面与配色全新设计
+- 新增 `aegis_terminal` 主屏 + `aegis_cell` 边框，三页界面：概览（温度/稳定/能量/趋势）、组件（部件/燃料罐）、诊断（催化剂/功率/信号）；右键切页，潜行右键重置绑定
+- 首次真实 `gradle build` 全量编译通过（JDK 8u512 + Gradle 4.10.3），BUILD SUCCESSFUL，Aegis 全部类已编入 jar
+- 交付四件套一次做全：部署 mods、交付文档 `delivery-4.0.0.md`、发布页 changelog + 站点数据、群公告
+
+关键变更
+- 修复 24 个编译错误：Aegis 参数顺序/类型/import 4 组，4.0.0 原有代码 1.12.2 不兼容 API 4 组
+- 网络消息 ID 29/30/31，独立配置 `hbmzz-aegis.cfg`，客户端走反射桥（专用服务端不崩）
+- 打 v4.0.0 tag，站点版本已同步 4.0.0
+
+注意
+- 编译告警均为历史遗留（老 mapping / ForgeGradle），不影响构建
+- 尚未推 GitHub（本地与远端历史分叉，待定）
+- regcheck 150/150 全过
+
 ## 一、交付状态
 
 已完成并部署。jar 已装入游戏 `mods` 目录，MD5 与构建产物一致。

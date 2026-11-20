@@ -104,3 +104,10 @@ Aegis 新代码（4 组）：
 - 本次为代码实现 + 首次编译验证 + 部署，未打 tag、未推 GitHub。
 - 电表功率读取（诊断页 POWER METER）为可选扩展，当前核心监控功能完整，绑定入口预留。
 - `HBMZZ-CORE` 仓库 GitHub 与本地均不存在；项目集群实际为 `HBMZZ-MOD` 与 `HBMZZ-MOD-addon`。
+
+## 六、热修：Aegis 终端朝向（同日追加）
+
+- **现象**：手持终端有贴图，放置到世界里却像「空气」——方块本体是 `EnumBlockRenderType.INVISIBLE`，画面完全由 TESR 绘制。
+- **根因**：`AegisRenderer` 把屏幕四边形画在局部 **+Z** 面，却沿用了旧版「把局部 -Z 对齐 FACING」的角度映射（`yawOf`）。结果画面朝向反了 180°，埋进墙体背面，正面什么都看不见。
+- **修复**：`yaw()` 改为 +Z 面映射——南 0° / 东 90° / 北 180° / 西 270°（+Z 绕 Y 轴旋转到对应朝向）。
+- **验证**：`gradle build` 再次 BUILD SUCCESSFUL，新 jar 已重新部署进游戏 `mods`，MD5 `852b0040…cea2` 一致；部署前旧包备份为 `backup-mods/hbmzz-4.0.0.jar.pre-yawfix`。

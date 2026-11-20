@@ -108,7 +108,7 @@
             <li><strong>验证：</strong>regcheck <b>150/150</b>（ClientProxy 三张模型表 36/36/36 对齐，五个方块、五个物品、五个配方全在册）；<code>ReactorCoreMath</code> 留在纯函数包 <code>com.hbmzz.reactor</code> 里，<code>tools/reactorcheck</code> 可以不放任何方块就证明「稳定器买到了足够负反馈，控棒失效仍能急停」这条安全性质。</li>
             <li><strong>版本号说明：</strong>这是一整台新机器加四个可放置方块加一套控制面板接口，量级够主版本号——从 3.8.0 直接跳 <b>4.0.0</b>。<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 三处同步。</li>
             <li><strong>新增 Aegis 遥测终端（神盾）：</strong>DFC 监控屏<strong>从零重写</strong>，独立包 <code>com.hbmzz.aegis</code>，不复用旧 <code>dfc_monitor</code> 任何代码。新增 <code>aegis_terminal</code>（主屏）与 <code>aegis_cell</code>（填充边框）两个方块，右键切页、潜行右键重置绑定，核心半径内自动扫描。<strong>三页界面：</strong>概览（温度 / 稳定 / 能量 / 趋势曲线）、组件（部件计数 / 双燃料罐）、诊断（催化剂磨损 / 功率 / 信号完整性）；含开机扫描动画，断流 5 秒切「NO SIGNAL」不残留旧数值。配色与布局全新设计，独立配置 <code>config/hbmzz-aegis.cfg</code>，网络消息占 ID 29/30/31。</li>
-            <li><strong>首次真实编译通过：</strong>本版完成 <code>gradle build</code> 全量编译（Temurin JDK 8u512 + Gradle 4.10.3），<b>BUILD SUCCESSFUL</b>，Aegis 全部类已编入 jar；同时修复 4.0.0 原有代码里 4 处 1.12.2 不兼容的 API 用法（<code>Locale.ROOT</code> 静态导入、<code>BlockRotation</code>、<code>getDrops</code> 缺 import、控制棒红石读取 API）。jar 已部署进游戏 <code>mods</code>。</li>
+            <li><strong>首次真实编译通过：</strong>本版完成 <code>gradle build</code> 全量编译（Temurin JDK 8u512 + Gradle 4.10.3），<b>BUILD SUCCESSFUL</b>，Aegis 全部类已编入 jar；同时修复 4.0.0 原有代码里 4 处 1.12.2 不兼容的 API 用法（<code>Locale.ROOT</code> 静态导入、<code>BlockRotation</code>、<code>getDrops</code> 缺 import、控制棒红石读取 API）。jar 已部署进游戏 <code>mods</code>。 <strong>热修：</strong>修复遥测终端放置后「像空气」的问题——画面朝向映射反了 180°（屏幕画在局部 +Z 面却用了 -Z 的角度），已改正并重新出包部署。</li>
           </ul>
         </div>
 

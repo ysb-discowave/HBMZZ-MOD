@@ -162,18 +162,26 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         buf.pos(x0, y1, z).endVertex();
     }
 
+    /**
+     * Yaw that turns this renderer's local +Z (the side the screen quad is
+     * drawn on) toward {@code facing}. The screen is emitted at local +Z, so
+     * the mapping is the +Z variant — the inverse of the old -Z convention.
+     * Getting this wrong buries the picture in the wall behind the block and
+     * leaves the player staring at an INVISIBLE (air-looking) block.
+     */
     private static float yaw(EnumFacing facing) {
         if (facing == null) {
             return 0.0F;
         }
         switch (facing) {
             case SOUTH:
-                return 180.0F;
+                return 0.0F;   // +Z already faces south
             case EAST:
-                return 270.0F;
-            case WEST:
-                return 90.0F;
+                return 90.0F;  // +Z rotated +90 -> +X
             case NORTH:
+                return 180.0F; // +Z rotated 180 -> -Z
+            case WEST:
+                return 270.0F; // +Z rotated 270 -> -X
             default:
                 return 0.0F;
         }

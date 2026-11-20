@@ -50,6 +50,14 @@ public class CommonProxy {
     }
 
     /**
+     * Opens the code broadcaster's custom-state window. Client only; a dedicated
+     * server never needs to know the window exists, it just carries the settings
+     * packet.
+     */
+    public void openCodeBroadcaster(BlockPos pos) {
+    }
+
+    /**
      * Opens the wall's size / speed window. Client only, like every other window
      * here: the server has no pixels, it just owns the numbers.
      */

@@ -39,7 +39,7 @@ public class HBMZZ {
 
     public static final String MODID = "hbmzz";
     public static final String NAME = "HBMZZ";
-    public static final String VERSION = "3.9.0";
+    public static final String VERSION = "4.0.0";
 
     @Mod.Instance(MODID)
     public static HBMZZ instance;
@@ -103,8 +103,23 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "redstone_gate"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlertDisplay.class,
                 new ResourceLocation(MODID, "alert_display"));
+        // The two cosmetic alert lamps. They hold no state beyond their facing,
+        // but a placed block still needs a TE mapping or the game dies on place.
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityStatusLamp.class,
+                new ResourceLocation(MODID, "status_lamp"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlarmBeacon.class,
+                new ResourceLocation(MODID, "alarm_beacon"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcBlastSensor.class,
                 new ResourceLocation(MODID, "dfc_blast_sensor"));
+        // HBMZZ reactor core: persists ReactorState through NBT, so it needs a
+        // mapping before the block is ever placed or the game dies on place.
+        GameRegistry.registerTileEntity(com.hbmzz.reactor.tile.TileEntityReactor.class,
+                new ResourceLocation(MODID, "reactor"));
+        // Multi-block reactor core: scans its neighbours for the component
+        // blocks and is the one that persists ReactorState. The four components
+        // are plain blocks with no tile entity, so they need no registration.
+        GameRegistry.registerTileEntity(com.hbmzz.reactor.tile.TileEntityReactorCore.class,
+                new ResourceLocation(MODID, "reactor_core"));
         // The Tartarus gate. Only the corner cell has one; the other eight are
         // filler, so the door has exactly one copy of "am I open".
         GameRegistry.registerTileEntity(com.hbmzz.gate.TileEntityTartarusGate.class,

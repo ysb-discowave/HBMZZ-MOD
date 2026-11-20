@@ -182,7 +182,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             // The switch follows the binding. Both directions: a new core
             // starts disarmed, and unbinding disarms whatever was running.
             if (this.world != null && !this.world.isRemote && this.autoShutdown) {
-                DfcAutoShutdown.release(this.world, this.pos);
+                DfcAutoShutdown.release(this.world, this.corePos);
             }
             this.autoShutdown = false;
             this.autoShutdownStale = 0;
@@ -204,7 +204,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         this.autoShutdown = on;
         this.autoShutdownStale = 0;
         if (!on && this.world != null && !this.world.isRemote) {
-            DfcAutoShutdown.release(this.world, this.pos);
+            DfcAutoShutdown.release(this.world, this.corePos);
         }
         markDirty();
         sync();
@@ -433,9 +433,6 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             return new DFCSnapshot();
         }
         DFCSnapshot snapshot = DFCReader.read(world, this.pos, corePos, meterPos, panelW, panelH);
-        // 统一状态文案来自温度驱动的自动停堆流程：停堆 / 自动停堆 / 强制抑制。
-        snapshot.stopState = DFCSnapshot.stopStateOf(
-                DfcAutoShutdown.stopStateLabel(world, corePos));
         if (cameraEnabled && cameraPos != null) {
             TileEntity te = world.getTileEntity(cameraPos);
             if (te instanceof TileEntityMonitorCamera) {
@@ -617,11 +614,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             return;
         }
         this.autoShutdownStale = 0;
-        // A failed temperature write disarms the switch instead of leaving a
-        // screen that claims a cooldown which never lands.
-        if (!DfcAutoShutdown.tick(this.world, this.pos, this.corePos)) {
-            setAutoShutdown(false);
-        }
+        DfcAutoShutdown.tick(this.world, this.pos, this.corePos);
     }
 
     /**
@@ -948,7 +941,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     @Override
     public void invalidate() {
         if (this.world != null && !this.world.isRemote) {
-            DfcAutoShutdown.release(this.world, this.pos);
+            DfcAutoShutdown.release(this.world, this.corePos);
         }
         super.invalidate();
     }

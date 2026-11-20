@@ -127,23 +127,6 @@ public final class ClientDfcFx {
                 }
                 break;
 
-            case DfcFxMessage.SUPPRESS:
-                // Forced suppression: a dense shell that tightens toward the core.
-                // This is the explicit effect that plays before temperature is
-                // snapped to 0 - the process, not just the result.
-                int count = 28 + (int) (progress * 20.0F);
-                for (int i = 0; i < count; i++) {
-                    double theta = rand.nextDouble() * Math.PI * 2.0D;
-                    double phi = Math.acos(2.0D * rand.nextDouble() - 1.0D);
-                    double px = x + Math.sin(phi) * Math.cos(theta) * r;
-                    double py = y + Math.cos(phi) * r * 0.7D;
-                    double pz = z + Math.sin(phi) * Math.sin(theta) * r;
-                    BlueParticle p = particle(world, px, py, pz, 0.62F, 0.90F, 1.0F);
-                    aimInward(p, x, y, z, px, py, pz, 0.16D + progress * 0.1D);
-                    mc.effectRenderer.addEffect(p);
-                }
-                break;
-
             case DfcFxMessage.IMPLODE:
             default:
                 for (int i = 0; i < 40; i++) {

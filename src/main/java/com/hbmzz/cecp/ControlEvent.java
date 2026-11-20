@@ -174,5 +174,12 @@ public class ControlEvent {
 				.setVar("isWeaklyPowered", false)
 				.setVar("isStronglyPowered", false));
 		register(new ControlEvent("initialize"));
+		// Multi-block reactor core: the three in-events the panel drives it with,
+		// plus the out-event it pushes back. reactor_set_rod takes a 0..100 depth;
+		// a value of -1 (or clearing "state") falls back to the redstone rods.
+		register(new ControlEvent("reactor_start"));
+		register(new ControlEvent("reactor_scram"));
+		register(new ControlEvent("reactor_set_rod").setVar("level", 0));
+		register(new ControlEvent("reactor_status").setVar("flux", 0).setVar("heat", 0).setVar("power", 0).setVar("phase", "offline"));
 	}
 }

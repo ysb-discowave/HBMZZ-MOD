@@ -82,6 +82,8 @@ tile.hbmzz.nuke_controller.name=Nuke Signal Controller
 tile.hbmzz.nuke_monitor.name=Nuke Monitor
 tile.hbmzz.code_broadcaster.name=Code Broadcaster
 tile.hbmzz.alert_display.name=Accident Display
+tile.hbmzz.status_lamp.name=Status Lamp
+tile.hbmzz.alarm_beacon.name=Code Alarm Beacon
 hbmzz.nuke.desc=One per world. A redstone signal detonates it.
 hbmzz.nuke.desc2=Sneak-right-click with an axe to record it, then sneak-right-click a controller or a monitor.
 hbmzz.nuke.desc3=Sneak-right-click a counting device to abort it.
@@ -111,7 +113,21 @@ tile.hbmzz.tartarus_gate.name=Tartarus Gate
 tile.hbmzz.tartarus_gate_part.name=Tartarus Gate Frame
 hbmzz.msg.gate_blocked=Cannot place: the cell at %1$s is in the way. The gate needs a clear 26x26.
 hbmzz.msg.gate_powered=Redstone is holding it; the manual switch is locked
-hbmzz.msg.autoshutdown_on=DFC auto stop: armed (above 5000 C while destroying, enters auto stop immediately; forced suppression if still hot after gradual cooldown)
-hbmzz.msg.autoshutdown_off=DFC auto stop: off
-hbmzz.msg.autoshutdown_unbound=This monitor has no DFC bound yet - bind one before arming auto stop
-hbmzz.msg.autoshutdown_nocore=The bound position has no DFC; auto stop stays off
+hbmzz.msg.autoshutdown_on=DFC auto shutdown: armed (cools during collapse, retracts in the last minute)
+hbmzz.msg.autoshutdown_off=DFC auto shutdown: off
+hbmzz.msg.autoshutdown_unbound=This monitor has no DFC bound yet - bind one before arming the shutdown
+hbmzz.msg.autoshutdown_nocore=The bound position has no DFC; the shutdown stays off
+
+tile.hbmzz.reactor.name=HBMZZ Reactor Core
+hbmzz.reactor.tip1=Back: control rods (0=out, 15=in). Left: coolant valve.
+hbmzz.reactor.tip2=Right: pulse to start, hold to SCRAM. Front: power out.
+hbmzz.reactor.tip3=Right-click to read flux, heat and delivered power.
+
+tile.hbmzz.reactor_core.name=Reactor Core (Multi-block)
+tile.hbmzz.reactor_emitter.name=Reactor Emitter
+tile.hbmzz.reactor_absorber.name=Reactor Absorber
+tile.hbmzz.reactor_stabiliser.name=Reactor Stabiliser
+tile.hbmzz.reactor_control_rod.name=Reactor Control Rod
+hbmzz.reactor_core.tip1=Place around the core. Emitters add fuel, absorbers add cooling.
+hbmzz.reactor_core.tip2=Stabilisers add temperature feedback; rods are throttled by redstone.
+hbmzz.reactor_core.tip3=Front face: power out. Drive it with a machine control panel.

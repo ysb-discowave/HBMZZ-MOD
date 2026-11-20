@@ -22,7 +22,6 @@ import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.network.DfcFxMessage;
 import com.hbmzz.network.NetworkHandler;
-import com.rsaudio.util.RemoteAudio;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.SoundCategory;
@@ -32,7 +31,6 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * Runs the automatic shutdown: the server half of the show and the only part
@@ -42,118 +40,103 @@ import java.util.function.Supplier;
  * <ul>
  *   <li>{@link DfcShutdownPlan} decides <em>when</em> each phase happens. It has
  *       no idea a world exists.</li>
- *   <li>{@link DfcShutdownArms} decides <em>which monitor owns which core</em>.
- *       A core keeps a single shared plan while several monitors arm it, and
- *       releasing one monitor leaves the others alone.</li>
  *   <li>This class applies the decision: it writes the temperature, broadcasts
- *       the packets, plays the sounds, and asks the monitor to disarm when the
- *       write stops landing.</li>
+ *       the packets, plays the sounds, and gives up when the monitor stops
+ *       asking.</li>
+ *   <li>The monitor owns the <em>arm</em> switch. Every tick an armed monitor
+ *       calls {@link #tick}; when it is switched off, unbound or broken it
+ *       calls {@link #release}. A monitor that unloads simply stops calling,
+ *       and the session expires on its own.</li>
  * </ul>
  *
  * <h3>Why the tick comes from the monitor</h3>
- * <p>A world-level watcher would keep cooling a core after the player unbound
- * the screen, which is exactly what "the switch follows the binding" forbids.
- * Driving from the monitor makes the authority the same object that owns the
- * button.</p>
+ * <p>The obvious alternative - a world-level watcher - would keep cooling a
+ * core after the player unbound the screen, which is exactly the behaviour the
+ * "the switch follows the binding" requirement forbids. Driving from the
+ * monitor makes the authority the same object that owns the button.</p>
  *
  * <h3>Multiple monitors, one core</h3>
- * <p>The shared plan is advanced once per tick no matter how many monitors
- * call in. Rendering a second screen or turning a second one off never resets
- * or doubles the ramp.</p>
+ * <p>Two armed screens watching the same core would otherwise run two plans,
+ * doubling the ramp and firing two implosions. A session remembers the tick it
+ * was last advanced on, and the second caller in the same tick is a no-op.</p>
  */
 public final class DfcAutoShutdown {
 
-    /**
-     * 温度驱动流程 {@link DfcAutoStopPlan} 按核心保存。它和倒计时流程
-     * ({@link DfcShutdownPlan}) 刻意分开：前者看"温度 > 5000℃ 且正在破坏建筑"，
-     * 后者看爆炸倒计时。两套流程互不打断，表同一个核心时只让温度流程写温度。
-     */
-    private static final Map<String, DfcAutoStopPlan> AUTO_STOPS =
-            new HashMap<String, DfcAutoStopPlan>();
+    /** How long a session survives without being ticked (chunk unloaded). */
+    private static final int GRACE_TICKS = 200;
+
+    private static final Map<String, Session> SESSIONS = new HashMap<String, Session>();
 
     private DfcAutoShutdown() {
     }
 
     /**
      * Advances the procedure for one armed monitor. Called every server tick.
-     *
-     * @return {@code false} when the temperature write has failed for good and
-     *         the calling monitor should switch itself off; {@code true} otherwise.
      */
-    public static boolean tick(World world, BlockPos monitorPos, BlockPos corePos) {
-        if (world == null || world.isRemote || monitorPos == null || corePos == null
-                || !HBMZZConfig.dfcShutdownEnabled) {
-            return true;
+    public static void tick(World world, BlockPos monitorPos, BlockPos corePos) {
+        if (world == null || world.isRemote || corePos == null || !HBMZZConfig.dfcShutdownEnabled) {
+            return;
         }
         long now = world.getTotalWorldTime();
-        // getTileEntity loads the chunk; the monitor has already declined to
-        // call us here for exactly that reason. Keep the guard for safety.
+        String key = key(world, corePos);
+        Session session = SESSIONS.get(key);
         if (!world.isBlockLoaded(corePos)) {
-            return true;
+            // Not loaded is not the same as gone. The session keeps its plan and
+            // pauses; only a loaded-but-empty position counts as "the core is
+            // gone", otherwise walking away would silently disarm the screen.
+            if (session != null && now - session.lastSeen > GRACE_TICKS) {
+                SESSIONS.remove(key);
+            }
+            return;
         }
         TileEntity core = world.getTileEntity(corePos);
+
         if (core == null) {
-            return true;
+            // The core's chunk is not loaded (or the core is gone). Pause
+            // rather than reset: a one-second chunk hiccup must not restart a
+            // sixty-second ramp, but a core that never comes back must not
+            // leave an entry behind forever.
+            if (session != null && now - session.lastSeen > GRACE_TICKS) {
+                SESSIONS.remove(key);
+            }
+            return;
         }
 
-        String monitorKey = key(world, monitorPos);
-        String coreKey = key(world, corePos);
+        if (session == null) {
+            session = new Session(world.provider.getDimension(), corePos);
+            SESSIONS.put(key, session);
+        }
+        session.lastSeen = now;
 
-        // Temperature-driven auto stop. A core hotter than the threshold that is
-        // destroying blocks enters auto stop immediately - never a pause/hold. This
-        // takes priority over the countdown flow: while it runs, it is the only
-        // writer of the core temperature.
-        if (driveAutoStop(world, core, corePos, coreKey, now)) {
-            return true;
+        if (session.lastTick == now) {
+            // A second monitor on the same core; the first one already ticked.
+            return;
         }
-        DfcShutdownPlan plan = DfcShutdownArms.begin(monitorKey, coreKey, now, newPlan());
-        if (DfcShutdownArms.aborted(monitorKey)) {
-            return false;
-        }
-        if (plan == null) {
-            // Either a second monitor already advanced this shared core this
-            // tick, or the session is finished with a failed write.
-            return true;
-        }
+        session.lastTick = now;
 
         boolean collapsing = DFCReader.collapsing(core);
         double explosionIn = DFCReader.explosionIn(core);
-        DfcShutdownPlan.Phase before = plan.phase();
-        plan.tick(collapsing, explosionIn);
-        DfcShutdownPlan.Phase after = plan.phase();
+        DfcShutdownPlan.Phase before = session.plan.phase();
+        session.plan.tick(collapsing, explosionIn);
+        DfcShutdownPlan.Phase after = session.plan.phase();
 
         if (after != before) {
-            onPhase(world, core, plan, monitorKey, before, after);
+            onPhase(world, core, session, before, after);
         }
 
-        if (!applyTemperature(world, core, plan, monitorKey)) {
-            DfcShutdownArms.abort(monitorKey);
-            return false;
-        }
-        emit(world, corePos, plan, now);
-        return true;
+        applyTemperature(world, core, session);
+        emit(world, corePos, session, now);
     }
 
-    /** Stops the procedure held by one monitor. Safe to call when nothing is running. */
-    public static void release(World world, BlockPos monitorPos) {
-        if (world == null || world.isRemote || monitorPos == null) {
+    /** Stops the procedure for a core. Safe to call when nothing is running. */
+    public static void release(World world, BlockPos corePos) {
+        if (world == null || world.isRemote || corePos == null) {
             return;
         }
-        // Binding changes / switch-off are handled by the monitor's own reset;
-        // auto-stop plans are dropped wholesale on server stop via clearAll().
-        DfcShutdownArms.release(key(world, monitorPos));
-    }
-
-    /**
-     * 统一显示文案：停堆 / 自动停堆 / 强制抑制。给监控屏状态区调用。
-     * 不返回任何"停顿 / 暂停"之类的表述。
-     */
-    public static String stopStateLabel(World world, BlockPos corePos) {
-        if (world == null || corePos == null) {
-            return DfcAutoStopPlan.State.STOPPED.label();
+        Session session = SESSIONS.remove(key(world, corePos));
+        if (session != null) {
+            session.plan.release();
         }
-        DfcAutoStopPlan plan = AUTO_STOPS.get(key(world, corePos));
-        return plan == null ? DfcAutoStopPlan.State.STOPPED.label() : plan.displayState();
     }
 
     /** True while a core is being actively cooled or shown. For the screen label. */
@@ -161,7 +144,8 @@ public final class DfcAutoShutdown {
         if (world == null || corePos == null) {
             return false;
         }
-        return DfcShutdownArms.active(key(world, corePos));
+        Session session = SESSIONS.get(key(world, corePos));
+        return session != null && session.plan.active();
     }
 
     /** Current phase name, for diagnostics and the monitor's status line. */
@@ -169,127 +153,18 @@ public final class DfcAutoShutdown {
         if (world == null || corePos == null) {
             return "IDLE";
         }
-        return DfcShutdownArms.phase(key(world, corePos));
+        Session session = SESSIONS.get(key(world, corePos));
+        return session == null ? "IDLE" : session.plan.phase().name();
     }
 
-    /** Drops every arm and session. Called when the server stops. */
+    /** Drops every session. Called when the server stops. */
     public static void clearAll() {
-        DfcShutdownArms.clear();
-        AUTO_STOPS.clear();
-    }
-
-    // ------------------------------------------------- temperature-driven auto stop
-
-    /**
-     * Drives one core's {@link DfcAutoStopPlan}. Returns true when this flow owns
-     * the core this tick (i.e. it is active, or it just finished), so the caller
-     * skips the countdown flow for this tick.
-     */
-    private static boolean driveAutoStop(World world, TileEntity core, BlockPos corePos,
-                                         String coreKey, long now) {
-        DfcAutoStopPlan plan = AUTO_STOPS.get(coreKey);
-        if (plan == null) {
-            plan = new DfcAutoStopPlan(
-                    HBMZZConfig.dfcAutoStopTempC,
-                    HBMZZConfig.dfcAutoStopStepC,
-                    HBMZZConfig.dfcAutoStopRampTicks,
-                    HBMZZConfig.dfcAutoStopSuppressFxTicks);
-            AUTO_STOPS.put(coreKey, plan);
-        }
-
-        boolean wasActive = plan.active();
-        double temperature = DFCReader.temperature(core);
-        boolean destroying = DFCReader.collapsing(core);
-        plan.tick(temperature, destroying);
-
-        if (plan.enteredAutoStop()) {
-            onAutoStopEnter(world, corePos);
-        }
-        if (plan.enteredSuppress()) {
-            onSuppressEnter(world, corePos);
-        }
-        if (plan.emittingSuppressFx()) {
-            suppressFx(world, corePos, plan, now);
-        }
-
-        Double target = plan.desiredTemperature();
-        if (target != null) {
-            DFCReader.writeTemperature(core, target);
-            if (plan.zeroWrittenThisTick()) {
-                onSuppressComplete(world, core, corePos);
-            }
-        }
-
-        // Keep the entry after it finishes for one tick so a finished core does
-        // not immediately fall through to the countdown flow in the same tick.
-        return wasActive || plan.active();
-    }
-
-    /** Moment automatic stop engages: play the configured music and one implosion. */
-    private static void onAutoStopEnter(World world, BlockPos corePos) {
-        playAutoStopMusic(world, corePos);
-        double cx = corePos.getX() + 0.5D;
-        double cy = corePos.getY() + 3.0D;
-        double cz = corePos.getZ() + 0.5D;
-        fx(world, DfcFxMessage.IMPLODE, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 0.0F);
-        sound(world, corePos, SoundEvents.ENTITY_GENERIC_EXPLODE, 0.55F, 0.55F);
-        HBMZZ.logger.info("DFC auto stop: engaged at " + corePos
-                + " (hotter than " + HBMZZConfig.dfcAutoStopTempC + " C while destroying)");
-    }
-
-    /** Moment forced suppression starts: a distinct, unmistakable effect. */
-    private static void onSuppressEnter(World world, BlockPos corePos) {
-        double cx = corePos.getX() + 0.5D;
-        double cy = corePos.getY() + 3.0D;
-        double cz = corePos.getZ() + 0.5D;
-        fx(world, DfcFxMessage.SUPPRESS, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 0.0F);
-        sound(world, corePos, SoundEvents.ENTITY_ENDERDRAGON_GROWL, 0.4F, 0.5F);
-        HBMZZ.logger.info("DFC auto stop: forced suppression at " + corePos
-                + " - temperature still above threshold after gradual cooldown");
-    }
-
-    /** The visible effect process during forced suppression, until it snaps to 0. */
-    private static void suppressFx(World world, BlockPos corePos, DfcAutoStopPlan plan, long now) {
-        double cx = corePos.getX() + 0.5D;
-        double cy = corePos.getY() + 3.0D;
-        double cz = corePos.getZ() + 0.5D;
-        float progress = (float) plan.age() / (float) Math.max(1, plan.suppressFxTicks());
-        // Two rings a tick, tightening inward: a deliberate process, not a flash.
-        if (now % 2L == 0L) {
-            float radius = HBMZZConfig.dfcShutdownFxRange * (1.0F - progress) + 0.8F;
-            fx(world, DfcFxMessage.SUPPRESS, cx, cy, cz, radius, progress);
-        }
-    }
-
-    /** The effect has played and temperature was just written to 0. */
-    private static void onSuppressComplete(World world, TileEntity core, BlockPos corePos) {
-        double cx = corePos.getX() + 0.5D;
-        double cy = corePos.getY() + 3.0D;
-        double cz = corePos.getZ() + 0.5D;
-        fx(world, DfcFxMessage.IMPLODE, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 1.0F);
-        DFCReader.clearCollapse(core);
-        HBMZZ.logger.info("DFC auto stop: forced suppression finished at " + corePos
-                + " - temperature set to 0");
-    }
-
-    /** Plays the configured track via rsa's server->client audio route. */
-    private static void playAutoStopMusic(World world, BlockPos corePos) {
-        String name = HBMZZConfig.dfcAutoStopMusic;
-        if (name == null || name.isEmpty()) {
-            return;
-        }
-        try {
-            RemoteAudio.playAt(world, corePos, HBMZZConfig.dfcShutdownWatchRange, 0, name, false);
-        } catch (Throwable t) {
-            // A missing rsaudio installation must never take the shutdown down.
-            HBMZZ.logger.warn("DFC auto stop: could not play music '" + name + "': " + t);
-        }
+        SESSIONS.clear();
     }
 
     // ------------------------------------------------------------------ phases
 
-    private static void onPhase(World world, TileEntity core, DfcShutdownPlan plan,
-                                String monitorKey,
+    private static void onPhase(World world, TileEntity core, Session session,
                                 DfcShutdownPlan.Phase before, DfcShutdownPlan.Phase after) {
         BlockPos pos = core.getPos();
         double cx = pos.getX() + 0.5D;
@@ -308,13 +183,14 @@ public final class DfcAutoShutdown {
                 fx(world, DfcFxMessage.IMPLODE, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange, 0.0F);
                 sound(world, pos, SoundEvents.ENTITY_GENERIC_EXPLODE, 0.55F, 0.55F);
                 HBMZZ.logger.info("DFC auto shutdown: retraction started at " + pos
-                        + " with " + plan.window() + " ticks of ramp");
+                        + " with " + session.plan.window() + " ticks of ramp");
                 break;
 
             case HOLD:
                 fx(world, DfcFxMessage.IMPLODE, cx, cy, cz, HBMZZConfig.dfcShutdownFxRange * 0.6F, 1.0F);
                 sound(world, pos, SoundEvents.BLOCK_ANVIL_PLACE, 0.5F, 0.45F);
-                if (HBMZZConfig.dfcShutdownForceStop && DfcShutdownArms.claimStopAttempt(monitorKey)) {
+                if (HBMZZConfig.dfcShutdownForceStop && !session.stopAttempted) {
+                    session.stopAttempted = true;
                     if (DFCReader.clearCollapse(core)) {
                         HBMZZ.logger.info("DFC auto shutdown: cleared the collapse at " + pos);
                     } else {
@@ -338,30 +214,36 @@ public final class DfcAutoShutdown {
     }
 
     /**
-     * Writes the plan's temperature.
+     * Writes the plan's temperature, and aborts the procedure if the write
+     * stops landing.
      *
-     * @return false after three consecutive failed writes, so the caller can
-     *         abort instead of showing a cooldown that never lands.
+     * <p>An unreachable core is not something to keep pretending about: if the
+     * temperature cannot be written for a few ticks the effects stop too. The
+     * alternative is a minute of convincing blue particles around a core that
+     * is not cooling at all.</p>
      */
-    private static boolean applyTemperature(World world, TileEntity core,
-                                            DfcShutdownPlan plan, String monitorKey) {
-        double target = plan.targetTemperature();
+    private static void applyTemperature(World world, TileEntity core, Session session) {
+        double target = session.plan.targetTemperature();
         if (Double.isNaN(target)) {
-            DfcShutdownArms.noteWrite(monitorKey, true);
-            return true;
+            session.writeFailures = 0;
+            return;
         }
-        boolean written = DFCReader.writeTemperature(core, target);
-        int failures = DfcShutdownArms.noteWrite(monitorKey, written);
-        if (written || failures < 3) {
-            return true;
+        if (DFCReader.writeTemperature(core, target)) {
+            session.writeFailures = 0;
+            return;
         }
-        HBMZZ.logger.warn("DFC auto shutdown: cannot write the temperature of the core at "
-                + core.getPos() + "; releasing so the display cannot claim a cooldown");
-        return false;
+        if (++session.writeFailures >= 3) {
+            if (!session.reportedWriteFailure) {
+                session.reportedWriteFailure = true;
+                HBMZZ.logger.warn("DFC auto shutdown: cannot write the temperature of the core at "
+                        + core.getPos() + "; releasing so the display cannot claim a cooldown");
+            }
+            session.plan.release();
+        }
     }
 
-    private static void emit(World world, BlockPos corePos, DfcShutdownPlan plan, long now) {
-        DfcShutdownPlan.Phase phase = plan.phase();
+    private static void emit(World world, BlockPos corePos, Session session, long now) {
+        DfcShutdownPlan.Phase phase = session.plan.phase();
         double cx = corePos.getX() + 0.5D;
         double cy = corePos.getY() + 3.0D;
         double cz = corePos.getZ() + 0.5D;
@@ -380,8 +262,8 @@ public final class DfcAutoShutdown {
 
             case RETRACT:
                 {
-                    int window = Math.max(1, plan.window());
-                    float progress = Math.min(1.0F, (float) plan.age() / (float) window);
+                    int window = Math.max(1, session.plan.window());
+                    float progress = Math.min(1.0F, (float) session.plan.age() / (float) window);
                     // Every other tick, so the ring reads as a continuous pull
                     // instead of twelve separate puffs.
                     if (now % 2L == 0L) {
@@ -399,19 +281,6 @@ public final class DfcAutoShutdown {
     }
 
     // ---------------------------------------------------------------- plumbing
-
-    private static Supplier<DfcShutdownPlan> newPlan() {
-        return new Supplier<DfcShutdownPlan>() {
-            @Override
-            public DfcShutdownPlan get() {
-                return new DfcShutdownPlan(
-                        HBMZZConfig.dfcShutdownRetractSeconds * 20,
-                        HBMZZConfig.dfcShutdownHoldSeconds * 20,
-                        HBMZZConfig.dfcShutdownFallbackTicks,
-                        200);
-            }
-        };
-    }
 
     private static void fx(World world, byte mode, double x, double y, double z,
                            float radius, float progress) {
@@ -438,5 +307,22 @@ public final class DfcAutoShutdown {
 
     private static String key(World world, BlockPos pos) {
         return world.provider.getDimension() + ":" + pos.toLong();
+    }
+
+    private static final class Session {
+        final DfcShutdownPlan plan;
+        long lastSeen;
+        long lastTick = Long.MIN_VALUE;
+        int writeFailures;
+        boolean stopAttempted;
+        boolean reportedWriteFailure;
+
+        Session(int dimension, BlockPos core) {
+            this.plan = new DfcShutdownPlan(
+                    HBMZZConfig.dfcShutdownRetractSeconds * 20,
+                    HBMZZConfig.dfcShutdownHoldSeconds * 20,
+                    HBMZZConfig.dfcShutdownFallbackTicks,
+                    200);
+        }
     }
 }

@@ -49,8 +49,6 @@ public class DfcFxMessage implements IMessage {
     public static final byte RING = 2;
     /** Everything at once, pulled into the core. Fired when the retraction starts. */
     public static final byte IMPLODE = 3;
-    /** Forced suppression: a deliberate tightening effect before the instant drop to 0. */
-    public static final byte SUPPRESS = 4;
 
     private byte mode;
     private double x;

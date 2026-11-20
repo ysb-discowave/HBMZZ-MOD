@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "hbmzz:control_panel", "y": 180 },
+    "facing=south": { "model": "hbmzz:control_panel" },
+    "facing=east":  { "model": "hbmzz:control_panel", "y": 270 },
+    "facing=west":  { "model": "hbmzz:control_panel", "y": 90 }
+  }
+}

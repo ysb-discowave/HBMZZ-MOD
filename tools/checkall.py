@@ -12,7 +12,7 @@
 检查分两档，因为它们的成本差两个数量级：
 
   快速档  几秒，不读构建产物。改完一行代码就能跑，CI 每次 PR 也跑这一档。
-          regcheck（注册/配方/模型表，160 条）+ 内置 OST 资源 + 站点 HTML 审计
+          regcheck（注册/配方/模型表，125 条）+ 内置 OST 资源 + 站点 HTML 审计
           + 站点数据一致性。
 
   构建档  需要先 `gradle build`，因为它们编译并运行真正的实现类。
@@ -284,8 +284,6 @@ def check_dfc():
     os.makedirs(out, exist_ok=True)
     ok, text = run([javac, "-encoding", "UTF-8", "-d", out,
                     os.path.join("src", "main", "java", "com", "hbmzz", "dfc", "DfcShutdownPlan.java"),
-                    os.path.join("src", "main", "java", "com", "hbmzz", "dfc", "DfcShutdownArms.java"),
-                    os.path.join("src", "main", "java", "com", "hbmzz", "dfc", "DfcAutoStopPlan.java"),
                     os.path.join("tools", "dfccheck", "DfcCheck.java")])
     if not ok:
         return False, text
@@ -296,7 +294,7 @@ FAST = [
     ("许可与协作文件（LICENSE / NOTICE / AUTHORIZATION / CONTRIBUTING）", check_files),
     ("statecheck（blockstate 键序 / 状态数与 meta 上限）", check_statecheck),
     ("事件注解（@SubscribeEvent 的参数必须是 Event 子类）", check_events),
-    ("regcheck（注册 / 配方 / 模型表 160 条）", check_regcheck),
+    ("regcheck（注册 / 配方 / 模型表 150 条）", check_regcheck),
     ("内置 OST（jar 资源 / Ogg 格式 / 落地名不撞车）", check_builtin_music),
     ("站点 HTML 审计", check_site_audit),
     ("站点数据一致性", check_site_data),

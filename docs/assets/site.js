@@ -122,12 +122,16 @@
      TRACKS 是曲目的唯一真相：换歌、加歌只改这张表，右栏曲名、时长、曲目面板、
      OST 页面上的行都由它渲染——两处各写一份迟早会对不上。 */
   var TRACKS = [
+    { id: "main-theme", title: "主题曲", secs: 244.0,
+      src: "assets/audio/main-theme.mp3" },
     { id: "how-to-survive", title: "How to survive?", secs: 195.6,
       src: "assets/audio/how-to-survive.mp3" },
     { id: "when-will-it-end", title: "When will it end?", secs: 317.9,
       src: "assets/audio/when-will-it-end.mp3" },
     { id: "the-ending-of-melting", title: "The ending of melting", secs: 193.8,
-      src: "assets/audio/the-ending-of-melting.mp3" }
+      src: "assets/audio/the-ending-of-melting.mp3" },
+    { id: "clsys", title: "clsys", secs: 245.8,
+      src: "assets/audio/clsys.mp3" }
   ];
 
   var OST = {

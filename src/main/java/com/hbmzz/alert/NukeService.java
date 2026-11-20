@@ -163,6 +163,62 @@ public final class NukeService {
         announce(world, code, detail, actor);
     }
 
+    /**
+     * Raises a custom code: a level plus its own label, colour and bilingual text.
+     *
+     * <p>Same three-together contract as {@link #raise(World, AlertCode, String,
+     * String, String)} - the record changes, every screen is told, every player
+     * is told - the only difference is that the label and colour are the caller's
+     * rather than one of the eight standard codes. The chat line keeps the
+     * standard bracket so a custom broadcast is still recognisable as a facility
+     * broadcast at a glance.</p>
+     */
+    public static void raiseCustom(World world, int level, String label, int rgb,
+                                   String zhTitle, String enTitle, String zhDetail, String enDetail,
+                                   String source, String actor, String detail) {
+        if (world == null || world.isRemote) {
+            return;
+        }
+        FacilityState state = FacilityState.get(world);
+        if (state != null) {
+            state.raise(world, level, label, rgb, zhTitle, enTitle, zhDetail, enDetail,
+                    true, source, actor);
+            AlertSync.push(world, state);
+        }
+        announce(world, level, label, zhTitle, zhDetail, actor);
+    }
+
+    /**
+     * Chat line for a custom code.
+     *
+     * <p>A custom label has no {@link TextFormatting} of its own, so the label is
+     * shown in neutral grey and the colour the operator chose is signalled by
+     * the level's standard word, not by the label. The body uses the caller's
+     * Chinese title and detail, which is what the player actually read.</p>
+     */
+    public static void announce(World world, int level, String label, String zhTitle,
+                                String detail, String actor) {
+        MinecraftServer server = world == null ? null : world.getMinecraftServer();
+        if (server == null) {
+            return;
+        }
+        String shown = (label == null || label.isEmpty()) ? AlertCode.byId(level & 0x0F).label() : label;
+        ITextComponent line = new TextComponentString("")
+                .appendSibling(styled("[设施广播] ", TextFormatting.DARK_GRAY))
+                .appendSibling(styled(shown + " ", TextFormatting.GRAY));
+        String body = zhTitle == null || zhTitle.isEmpty() ? "" : zhTitle;
+        if (detail != null && !detail.isEmpty()) {
+            body = body.isEmpty() ? detail : body + " - " + detail;
+        }
+        if (!body.isEmpty()) {
+            line.appendSibling(styled(body, TextFormatting.GRAY));
+        }
+        if (actor != null && !actor.isEmpty()) {
+            line.appendSibling(styled("  [" + actor + "]", TextFormatting.DARK_GRAY));
+        }
+        server.getPlayerList().sendMessage(line);
+    }
+
     /** Chat line to everyone on the server, in every dimension. */
     public static void announce(World world, AlertCode code, String detail, String actor) {
         MinecraftServer server = world == null ? null : world.getMinecraftServer();

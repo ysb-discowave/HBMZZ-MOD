@@ -80,7 +80,11 @@ public class RenderAlertDisplay extends TileEntitySpecialRenderer<TileEntityAler
                     ClientAlertState.source(), ClientAlertState.actor(),
                     ClientAlertState.historyCodes(), ClientAlertState.historyTicks(),
                     ClientAlertState.historySources(), ClientAlertState.historyCount(),
-                    ClientAlertState.live());
+                    ClientAlertState.live(),
+                    ClientAlertState.isCustom(), ClientAlertState.customLabel(),
+                    ClientAlertState.customRgb(), ClientAlertState.customZhTitle(),
+                    ClientAlertState.customEnTitle(), ClientAlertState.customZhDetail(),
+                    ClientAlertState.customEnDetail());
             texture.upload(canvas);
 
             int cols = BlockConsolePanel.PANEL_COLS;

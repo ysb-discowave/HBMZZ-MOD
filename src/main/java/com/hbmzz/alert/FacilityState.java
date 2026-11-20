@@ -82,6 +82,19 @@ public final class FacilityState extends WorldSavedData {
     private String actor = "";
     private final List<Entry> history = new ArrayList<Entry>();
 
+    // ---- custom code -----------------------------------------------------
+    // A code that is not one of the eight standard ones. The level still rides in
+    // {@code code} (0..7); what makes it "custom" is everything else below, and
+    // the flag that says so. When the flag is off every one of these is ignored,
+    // which is also what keeps an old save (no custom fields) reading back clean.
+    private boolean isCustom;
+    private String customLabel = "";
+    private int customRgb;
+    private String customZhTitle = "";
+    private String customEnTitle = "";
+    private String customZhDetail = "";
+    private String customEnDetail = "";
+
     // ---- last detonation, so a monitor whose device is gone can still say what happened
 
     private boolean hasBlast;
@@ -152,6 +165,35 @@ public final class FacilityState extends WorldSavedData {
         return this.actor;
     }
 
+    /** True when the current code is a custom one rather than a standard eight. */
+    public boolean isCustom() {
+        return this.isCustom;
+    }
+
+    public String customLabel() {
+        return this.customLabel;
+    }
+
+    public int customRgb() {
+        return this.customRgb;
+    }
+
+    public String customZhTitle() {
+        return this.customZhTitle;
+    }
+
+    public String customEnTitle() {
+        return this.customEnTitle;
+    }
+
+    public String customZhDetail() {
+        return this.customZhDetail;
+    }
+
+    public String customEnDetail() {
+        return this.customEnDetail;
+    }
+
     public List<Entry> history() {
         return Collections.unmodifiableList(this.history);
     }
@@ -200,12 +242,37 @@ public final class FacilityState extends WorldSavedData {
         if (next == null) {
             return false;
         }
+        return raise(world, next.id(), next.label(), next.rgb(), next.zhTitle(), next.enTitle(),
+                next.zhDetail(), next.enDetail(), false, source, actor);
+    }
+
+    /**
+     * Raises an arbitrary code: a level (0..7) plus its own label, colour and
+     * bilingual text. Standard codes go through {@link #raise(World, AlertCode,
+     * String, String)}, which calls this with {@code custom=false} so the record
+     * always means exactly what it says.
+     *
+     * @return true when the level actually changed
+     */
+    public boolean raise(World world, int level, String label, int rgb,
+                         String zhTitle, String enTitle, String zhDetail, String enDetail,
+                         boolean custom, String source, String actor) {
+        int id = level & 0x0F;
         long now = world == null ? 0L : world.getTotalWorldTime();
-        boolean changed = next.id() != this.code;
-        this.code = next.id();
+        boolean changed = id != this.code;
+        this.code = id;
         this.since = now;
         this.source = trim(source, 48);
         this.actor = trim(actor, 32);
+        this.isCustom = custom;
+        if (custom) {
+            this.customLabel = trim(label == null ? "" : label, 24);
+            this.customRgb = rgb & 0xFFFFFF;
+            this.customZhTitle = trim(zhTitle, 32);
+            this.customEnTitle = trim(enTitle, 48);
+            this.customZhDetail = trim(zhDetail, 80);
+            this.customEnDetail = trim(enDetail, 96);
+        }
         push(new Entry(this.code, now, this.source));
         markDirty();
         return changed;
@@ -256,6 +323,13 @@ public final class FacilityState extends WorldSavedData {
             NBTTagCompound entry = list.getCompoundTagAt(i);
             this.history.add(new Entry(entry.getByte("c"), entry.getLong("t"), entry.getString("s")));
         }
+        this.isCustom = nbt.getBoolean("isCustom");
+        this.customLabel = nbt.getString("customLabel");
+        this.customRgb = nbt.getInteger("customRgb");
+        this.customZhTitle = nbt.getString("customZhTitle");
+        this.customEnTitle = nbt.getString("customEnTitle");
+        this.customZhDetail = nbt.getString("customZhDetail");
+        this.customEnDetail = nbt.getString("customEnDetail");
         this.hasBlast = nbt.getBoolean("hasBlast");
         this.blastTick = nbt.getLong("blastTick");
         this.blastX = nbt.getInteger("blastX");
@@ -280,6 +354,13 @@ public final class FacilityState extends WorldSavedData {
             list.appendTag(tag);
         }
         nbt.setTag("history", list);
+        nbt.setBoolean("isCustom", this.isCustom);
+        nbt.setString("customLabel", this.customLabel);
+        nbt.setInteger("customRgb", this.customRgb);
+        nbt.setString("customZhTitle", this.customZhTitle);
+        nbt.setString("customEnTitle", this.customEnTitle);
+        nbt.setString("customZhDetail", this.customZhDetail);
+        nbt.setString("customEnDetail", this.customEnDetail);
         nbt.setBoolean("hasBlast", this.hasBlast);
         nbt.setLong("blastTick", this.blastTick);
         nbt.setInteger("blastX", this.blastX);

@@ -38,6 +38,13 @@ public final class ClientAlertState {
     private static long nowTick;
     private static String source = "";
     private static String actor = "";
+    private static boolean isCustom;
+    private static String customLabel = "";
+    private static int customRgb;
+    private static String customZhTitle = "";
+    private static String customEnTitle = "";
+    private static String customZhDetail = "";
+    private static String customEnDetail = "";
     private static final int[] histCodes = new int[MAX];
     private static final long[] histTicks = new long[MAX];
     private static final String[] histSources = new String[MAX];
@@ -56,6 +63,15 @@ public final class ClientAlertState {
         nowTick = message.nowTick();
         source = message.source();
         actor = message.actor();
+        isCustom = message.isCustom();
+        if (isCustom) {
+            customLabel = message.customLabel();
+            customRgb = message.customRgb();
+            customZhTitle = message.customZhTitle();
+            customEnTitle = message.customEnTitle();
+            customZhDetail = message.customZhDetail();
+            customEnDetail = message.customEnDetail();
+        }
         int count = Math.min(MAX, message.historySize());
         for (int i = 0; i < count; i++) {
             histCodes[i] = message.historyCode(i);
@@ -73,8 +89,43 @@ public final class ClientAlertState {
         nowTick = 0L;
         source = "";
         actor = "";
+        isCustom = false;
         histCount = 0;
         receivedAt = 0L;
+    }
+
+    public static boolean isCustom() {
+        return isCustom;
+    }
+
+    public static String customLabel() {
+        return customLabel;
+    }
+
+    /** Packed 0xRRGGBB; valid only when {@link #isCustom()} is true. */
+    public static int customRgb() {
+        return customRgb;
+    }
+
+    /** Opaque ARGB for the custom colour, valid only when {@link #isCustom()}. */
+    public static int customArgb() {
+        return 0xFF000000 | (customRgb & 0xFFFFFF);
+    }
+
+    public static String customZhTitle() {
+        return customZhTitle;
+    }
+
+    public static String customEnTitle() {
+        return customEnTitle;
+    }
+
+    public static String customZhDetail() {
+        return customZhDetail;
+    }
+
+    public static String customEnDetail() {
+        return customEnDetail;
     }
 
     /**

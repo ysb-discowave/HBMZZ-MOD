@@ -76,6 +76,14 @@ public class ClientProxy extends CommonProxy {
                 com.hbmzz.tile.TileEntityNukeMonitor.class, new RenderNukeMonitor());
         ClientRegistry.bindTileEntitySpecialRenderer(
                 com.hbmzz.tile.TileEntityAlertDisplay.class, new RenderAlertDisplay());
+        // The two alert lamps draw their own geometry: a static coloured lens for
+        // the status lamp, and a spinning beacon that only turns above the safe
+        // code level. Both are pure presentation, driven by the synced alert
+        // state, so they belong on the client and read nothing from the block.
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.tile.TileEntityStatusLamp.class, new RenderStatusLamp());
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.tile.TileEntityAlarmBeacon.class, new RenderAlarmBeacon());
         ClientRegistry.bindTileEntitySpecialRenderer(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,
                 new com.hbmzz.cecp.client.RenderCtrlConsole());
         // The panel that was knocked off its mount: an entity, because blocks
@@ -160,6 +168,11 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("reactor_absorber"));
         list.add(loc("reactor_stabiliser"));
         list.add(loc("reactor_control_rod"));
+        // The two alert lamps: a status lamp and a rotating beacon. Both need an
+        // explicit model slot, or the inventory icon falls back to the registry
+        // name and goes purple-and-black the day someone renames the block.
+        list.add(loc("status_lamp"));
+        list.add(loc("alarm_beacon"));
         return list;
     }
 
@@ -201,6 +214,8 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_REACTOR_ABSORBER);
         list.add(ModContent.ITEM_BLOCK_REACTOR_STABILISER);
         list.add(ModContent.ITEM_BLOCK_REACTOR_CONTROL_ROD);
+        list.add(ModContent.ITEM_BLOCK_STATUS_LAMP);
+        list.add(ModContent.ITEM_BLOCK_ALARM_BEACON);
         return list;
     }
 
@@ -228,7 +243,9 @@ public class ClientProxy extends CommonProxy {
             //  reactor
             0,
             //  reactor_core  emitter  absorber  stabiliser  control_rod
-            0, 0, 0, 0, 0
+            0, 0, 0, 0, 0,
+            //  status_lamp  alarm_beacon
+            0, 0
     };
 
     public static List<Integer> metas() {
@@ -257,6 +274,11 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void openVideoBroadcaster(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiVideoBroadcaster(pos));
+    }
+
+    @Override
+    public void openCodeBroadcaster(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiCodeBroadcaster(pos));
     }
 
     /**

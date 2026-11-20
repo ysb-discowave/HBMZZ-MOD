@@ -52,6 +52,14 @@ public class AlertSyncMessage implements IMessage {
     private String actor = "";
     private long nowTick;
 
+    private boolean isCustom;
+    private String customLabel = "";
+    private int customRgb;
+    private String customZhTitle = "";
+    private String customEnTitle = "";
+    private String customZhDetail = "";
+    private String customEnDetail = "";
+
     private boolean hasBlast;
     private long blastTick;
     private int blastX;
@@ -78,6 +86,15 @@ public class AlertSyncMessage implements IMessage {
         this.blastY = state.blastY();
         this.blastZ = state.blastZ();
         this.blastYield = state.blastYield();
+        this.isCustom = state.isCustom();
+        if (this.isCustom) {
+            this.customLabel = state.customLabel();
+            this.customRgb = state.customRgb();
+            this.customZhTitle = state.customZhTitle();
+            this.customEnTitle = state.customEnTitle();
+            this.customZhDetail = state.customZhDetail();
+            this.customEnDetail = state.customEnDetail();
+        }
         for (FacilityState.Entry entry : state.history()) {
             if (this.historySource.size() >= MAX_HISTORY) {
                 break;
@@ -132,6 +149,34 @@ public class AlertSyncMessage implements IMessage {
         return this.blastYield;
     }
 
+    public boolean isCustom() {
+        return this.isCustom;
+    }
+
+    public String customLabel() {
+        return this.customLabel;
+    }
+
+    public int customRgb() {
+        return this.customRgb;
+    }
+
+    public String customZhTitle() {
+        return this.customZhTitle;
+    }
+
+    public String customEnTitle() {
+        return this.customEnTitle;
+    }
+
+    public String customZhDetail() {
+        return this.customZhDetail;
+    }
+
+    public String customEnDetail() {
+        return this.customEnDetail;
+    }
+
     public int historySize() {
         return this.historySource.size();
     }
@@ -161,6 +206,15 @@ public class AlertSyncMessage implements IMessage {
         this.blastY = buf.readInt();
         this.blastZ = buf.readInt();
         this.blastYield = buf.readInt();
+        this.isCustom = buf.readBoolean();
+        if (this.isCustom) {
+            this.customLabel = ByteBufUtils.readUTF8String(buf);
+            this.customRgb = buf.readInt();
+            this.customZhTitle = ByteBufUtils.readUTF8String(buf);
+            this.customEnTitle = ByteBufUtils.readUTF8String(buf);
+            this.customZhDetail = ByteBufUtils.readUTF8String(buf);
+            this.customEnDetail = ByteBufUtils.readUTF8String(buf);
+        }
         int count = buf.readUnsignedByte();
         for (int i = 0; i < count; i++) {
             this.historyCode.add((int) buf.readByte());
@@ -182,6 +236,15 @@ public class AlertSyncMessage implements IMessage {
         buf.writeInt(this.blastY);
         buf.writeInt(this.blastZ);
         buf.writeInt(this.blastYield);
+        buf.writeBoolean(this.isCustom);
+        if (this.isCustom) {
+            ByteBufUtils.writeUTF8String(buf, clip(this.customLabel, 24));
+            buf.writeInt(this.customRgb);
+            ByteBufUtils.writeUTF8String(buf, clip(this.customZhTitle, 32));
+            ByteBufUtils.writeUTF8String(buf, clip(this.customEnTitle, 48));
+            ByteBufUtils.writeUTF8String(buf, clip(this.customZhDetail, 80));
+            ByteBufUtils.writeUTF8String(buf, clip(this.customEnDetail, 96));
+        }
         int count = Math.min(this.historySource.size(), MAX_HISTORY);
         buf.writeByte(count);
         for (int i = 0; i < count; i++) {

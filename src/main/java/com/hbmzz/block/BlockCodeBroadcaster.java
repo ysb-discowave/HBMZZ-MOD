@@ -101,9 +101,16 @@ public class BlockCodeBroadcaster extends BlockHorizontal implements ITileEntity
             return true;
         }
         TileEntityCodeBroadcaster broadcaster = (TileEntityCodeBroadcaster) te;
-        // Sneaking walks back down the ladder. Without it, an operator who
-        // overshoots by one has to click seven more times.
-        com.hbmzz.alert.AlertCode code = broadcaster.step(!player.isSneaking());
+        // Sneaking opens the custom-state window instead of stepping: the ladder
+        // is for the eight standard codes, and the window is where a code that is
+        // not one of them gets a name, a colour and words of its own.
+        if (player.isSneaking()) {
+            HBMZZ.proxy.openCodeBroadcaster(pos);
+            return true;
+        }
+        // A plain right-click walks up the ladder. An operator who overshoots
+        // by one can step back down inside the custom-state window.
+        com.hbmzz.alert.AlertCode code = broadcaster.step(true);
         player.sendMessage(new TextComponentTranslation("hbmzz.msg.code_set",
                 code.label(), code.zhTitle()));
         return true;

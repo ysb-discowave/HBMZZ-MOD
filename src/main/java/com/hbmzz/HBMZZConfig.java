@@ -99,6 +99,13 @@ public final class HBMZZConfig {
     public static int alertRefreshTicks = 20;
     /** Facility-wide klaxon on a code broadcast. Client-side sound, server-side trigger. */
     public static boolean alertKlaxon = true;
+    /**
+     * The safe level for the rotating alarm beacon: it lights and spins only when
+     * the active code is strictly above this level. Default 2 (ORANGE) means the
+     * beacon wakes at RED or worse. Lower it to fire the beacon earlier, raise it
+     * to only the catastrophic codes.
+     */
+    public static int alertSafeLevel = 2;
 
     // ---- DFC blast sensor ----
     /** Master switch for the sensor block; off means it never sees a blast. */
@@ -293,6 +300,8 @@ public final class HBMZZConfig {
                     "Ticks between catch-up pushes from an accident display to nearby players.");
             alertKlaxon = cfg.getBoolean("klaxon", "alert", true,
                     "Play a facility-wide sound when a code is broadcast.");
+            alertSafeLevel = cfg.getInt("safeLevel", "alert", 2, 0, 7,
+                    "The level at which the rotating alarm beacon wakes: it lights and spins only when the active code is strictly above this level. 2 (ORANGE) wakes the beacon at RED or worse; 0 makes every code a warning.");
             dfcSensorEnabled = cfg.getBoolean("enabled", "dfcSensor", true,
                     "The DFC blast sensor block. Off means it never sees a blast and never emits.");
             dfcSensorRange = cfg.getInt("range", "dfcSensor", 512, 0, 4096,

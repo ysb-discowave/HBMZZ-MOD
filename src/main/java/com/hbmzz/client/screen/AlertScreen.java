@@ -74,12 +74,41 @@ public final class AlertScreen extends OffscreenPanel {
     public void render(long nowMs, int codeId, long sinceTick, long nowTick, String source, String actor,
                        int[] histCodes, long[] histTicks, String[] histSources, int histCount,
                        boolean live) {
+        render(nowMs, codeId, sinceTick, nowTick, source, actor, histCodes, histTicks, histSources,
+                histCount, live, false, "", 0, "", "", "", "");
+    }
+
+    /**
+     * Paints one frame, optionally with a custom payload.
+     *
+     * <p>A custom code still carries a level in {@code codeId}; what changes is
+     * everything a level would otherwise supply - the word, the colour, the
+     * bilingual text. When {@code isCustom} is set the caller's own label, colour
+     * and words replace the standard ones; otherwise this is exactly the
+     * standard panel. The alarm blink follows the level, not the label, so a
+     * quiet custom GREEN stays quiet and a custom RED still blinks.</p>
+     */
+    public void render(long nowMs, int codeId, long sinceTick, long nowTick, String source, String actor,
+                       int[] histCodes, long[] histTicks, String[] histSources, int histCount,
+                       boolean live, boolean isCustom, String customLabel, int customRgb,
+                       String customZhTitle, String customEnTitle, String customZhDetail,
+                       String customEnDetail) {
         AlertCode code = AlertCode.byId(codeId);
+        String label = (isCustom && customLabel != null && !customLabel.isEmpty())
+                ? customLabel : code.label();
+        int argb = isCustom ? (0xFF000000 | (customRgb & 0xFFFFFF)) : code.argb();
+        String zhTitle = isCustom ? safe(customZhTitle) : code.zhTitle();
+        String enTitle = isCustom ? safe(customEnTitle) : code.enTitle();
+        String zhDetail = isCustom ? safe(customZhDetail) : code.zhDetail();
+        String enDetail = isCustom ? safe(customEnDetail) : code.enDetail();
+        int severity = codeId;
+        boolean alarm = codeId >= AlertCode.RED.id();
+
         Graphics2D g = this.g;
         g.setBackground(new Color(0, 0, 0, 0));
         g.clearRect(0, 0, this.width, this.height);
 
-        boolean blink = code.isAlarm() && (nowMs / 500L) % 2L == 0L;
+        boolean blink = alarm && (nowMs / 500L) % 2L == 0L;
 
         // --- background -----------------------------------------------------
         rect(0, 0, this.width, this.height, MonitorPalette.BG);
@@ -87,7 +116,7 @@ public final class AlertScreen extends OffscreenPanel {
 
         // A wash of the active colour down the left edge: readable in peripheral
         // vision without competing with the code word itself.
-        rect(0, 0, 4, this.height, MonitorPalette.alpha(code.argb(), 0.85F));
+        rect(0, 0, 4, this.height, MonitorPalette.alpha(argb, 0.85F));
         if (blink) {
             rect(0, 0, 4, this.height, MonitorPalette.alpha(0xFFFFFFFF, 0.55F));
         }
@@ -101,39 +130,39 @@ public final class AlertScreen extends OffscreenPanel {
         // --- the code -------------------------------------------------------
         rect(8, CARD_TOP, this.width - 16, CARD_H, MonitorPalette.CARD);
         frame(8, CARD_TOP, this.width - 16, CARD_H,
-                blink ? MonitorPalette.alpha(code.argb(), 0.95F) : MonitorPalette.CARD_EDGE, 1.0F);
-        rect(8, CARD_TOP, 5, CARD_H, MonitorPalette.alpha(code.argb(), blink ? 1.0F : 0.8F));
+                blink ? MonitorPalette.alpha(argb, 0.95F) : MonitorPalette.CARD_EDGE, 1.0F);
+        rect(8, CARD_TOP, 5, CARD_H, MonitorPalette.alpha(argb, blink ? 1.0F : 0.8F));
 
-        int labelSize = code.label().length() >= 5 ? 38 : 46;
-        int labelWidth = measure(code.label(), labelSize, true);
-        text(code.label(), 22, CARD_TOP + 46, labelSize,
-                blink ? MonitorPalette.alpha(code.argb(), 1.0F) : code.argb(), true);
+        int labelSize = label.length() >= 5 ? 38 : 46;
+        int labelWidth = measure(label, labelSize, true);
+        text(label, 22, CARD_TOP + 46, labelSize,
+                blink ? MonitorPalette.alpha(argb, 1.0F) : argb, true);
         int textX = 22 + labelWidth + 9;
         int avail = this.width - 14 - textX;
-        textFit(code.zhTitle(), textX, CARD_TOP + 26, new int[]{13, 11, 9}, MonitorPalette.TEXT,
+        textFit(zhTitle, textX, CARD_TOP + 26, new int[]{13, 11, 9}, MonitorPalette.TEXT,
                 true, avail);
-        textFit(code.enTitle(), textX, CARD_TOP + 41, new int[]{10, 8}, MonitorPalette.MUTED,
+        textFit(enTitle, textX, CARD_TOP + 41, new int[]{10, 8}, MonitorPalette.MUTED,
                 false, avail);
-        textRight("级别 " + code.severity() + "/" + (AlertCode.count() - 1),
+        textRight("级别 " + severity + "/" + (AlertCode.count() - 1),
                 this.width - 14, CARD_TOP + 13, 9, MonitorPalette.MUTED, false);
         textRight(live ? "LIVE" : "NO LINK", this.width - 14, CARD_TOP + 68, 9,
                 live ? MonitorPalette.GREEN : MonitorPalette.RED, true);
 
         // --- meaning --------------------------------------------------------
         int y = DETAIL_Y;
-        List<String> zh = wrap(code.zhDetail(), 11, false, this.width - 24);
+        List<String> zh = wrap(zhDetail, 11, false, this.width - 24);
         for (int i = 0; i < zh.size() && i < 2; i++) {
             text(zh.get(i), 12, y + i * 14, 11, MonitorPalette.TEXT, false);
         }
         int enTop = y + Math.min(2, zh.size()) * 14;
-        List<String> en = wrap(code.enDetail(), 9, false, this.width - 24);
+        List<String> en = wrap(enDetail, 9, false, this.width - 24);
         if (!en.isEmpty()) {
             text(en.get(0), 12, enTop, 9, MonitorPalette.MUTED, false);
         }
 
         // --- age and origin -------------------------------------------------
         long age = Math.max(0L, nowTick - sinceTick);
-        text(clock(age), 12, AGE_Y, 13, code.argb(), true);
+        text(clock(age), 12, AGE_Y, 13, argb, true);
         String who = source == null || source.isEmpty() ? "-" : source;
         if (actor != null && !actor.isEmpty()) {
             who = who + " / " + actor;
@@ -174,5 +203,9 @@ public final class AlertScreen extends OffscreenPanel {
     private static String trim(String value, int limit) {
         String text = value == null ? "" : value;
         return text.length() <= limit ? text : text.substring(0, Math.max(0, limit - 1)) + "…";
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
     }
 }

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "hbmzz:alarm_beacon"
+    },
+    "facing=north": {
+      "model": "hbmzz:alarm_beacon",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "hbmzz:alarm_beacon",
+      "y": 270
+    },
+    "facing=west": {
+      "model": "hbmzz:alarm_beacon",
+      "y": 90
+    }
+  }
+}

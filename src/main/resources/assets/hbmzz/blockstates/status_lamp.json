@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "hbmzz:status_lamp"
+    },
+    "facing=north": {
+      "model": "hbmzz:status_lamp",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "hbmzz:status_lamp",
+      "y": 270
+    },
+    "facing=west": {
+      "model": "hbmzz:status_lamp",
+      "y": 90
+    }
+  }
+}

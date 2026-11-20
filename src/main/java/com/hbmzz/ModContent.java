@@ -94,6 +94,20 @@ public final class ModContent {
      * textures - no new art, so it can never arrive purple-and-black.
      */
     public static final Block BLOCK_REACTOR = new com.hbmzz.reactor.block.BlockReactor();
+    /**
+     * The status indicator lamp: a fixed disc on the block face that shows the
+     * colour of the active facility code. Purely cosmetic - the colour is a
+     * client-side rendering decision driven by the synced alert state, so the
+     * tile entity only needs to remember it exists.
+     */
+    public static final Block BLOCK_STATUS_LAMP = new com.hbmzz.block.BlockStatusLamp();
+    /**
+     * The rotating code alarm beacon: a spinning coloured light that wakes the
+     * moment the active code climbs above the configured safe level. Same
+     * client-side rendering story as the status lamp - the block itself holds no
+     * state beyond its facing.
+     */
+    public static final Block BLOCK_ALARM_BEACON = new com.hbmzz.block.BlockAlarmBeacon();
     public static final Item ITEM_BLOCK_NUKE = new com.hbmzz.item.ItemBlockNuke(BLOCK_NUKE);
     public static final Item ITEM_BLOCK_NUKE_CONTROLLER = new ItemBlock(BLOCK_NUKE_CONTROLLER);
     public static final Item ITEM_BLOCK_NUKE_MONITOR = new ItemBlock(BLOCK_NUKE_MONITOR);
@@ -101,6 +115,8 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
     public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
     public static final Item ITEM_BLOCK_REACTOR = new ItemBlock(BLOCK_REACTOR);
+    public static final Item ITEM_BLOCK_STATUS_LAMP = new ItemBlock(BLOCK_STATUS_LAMP);
+    public static final Item ITEM_BLOCK_ALARM_BEACON = new ItemBlock(BLOCK_ALARM_BEACON);
 
     // ---- multi-block reactor rig ------------------------------------------
     /** The authoritative core of the multi-block reactor. */
@@ -177,6 +193,8 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_ALERT_DISPLAY);
         event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
         event.getRegistry().register(BLOCK_REACTOR);
+        event.getRegistry().register(BLOCK_STATUS_LAMP);
+        event.getRegistry().register(BLOCK_ALARM_BEACON);
         event.getRegistry().register(BLOCK_REACTOR_CORE);
         event.getRegistry().register(BLOCK_REACTOR_EMITTER);
         event.getRegistry().register(BLOCK_REACTOR_ABSORBER);
@@ -218,6 +236,10 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
         ITEM_BLOCK_REACTOR.setRegistryName(BLOCK_REACTOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_REACTOR);
+        ITEM_BLOCK_STATUS_LAMP.setRegistryName(BLOCK_STATUS_LAMP.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_STATUS_LAMP);
+        ITEM_BLOCK_ALARM_BEACON.setRegistryName(BLOCK_ALARM_BEACON.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_ALARM_BEACON);
         ITEM_BLOCK_REACTOR_CORE.setRegistryName(BLOCK_REACTOR_CORE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_REACTOR_CORE);
         ITEM_BLOCK_REACTOR_EMITTER.setRegistryName(BLOCK_REACTOR_EMITTER.getRegistryName());
@@ -436,6 +458,36 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'E', Items.ENDER_PEARL
         ).setRegistryName(HBMZZ.MODID, "alert_display"));
+
+        // Status lamp: an iron bezel with a glass lens, and one redstone to say it
+        // is wired into the alert bus. The lens is the whole point - a colour you
+        // read across the hall.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "status_lamp"),
+                new ItemStack(BLOCK_STATUS_LAMP),
+                " R ",
+                "IGI",
+                "III",
+                'R', Items.REDSTONE,
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE)
+        ).setRegistryName(HBMZZ.MODID, "status_lamp"));
+
+        // Alarm beacon: the same bezel and lens, but the heart is a quartz lens
+        // (optics, not power) and the bottom row is a redstone channel. Deliberately
+        // a different grid from the status lamp, so the two recipes never shadow
+        // each other under regcheck #61.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "alarm_beacon"),
+                new ItemStack(BLOCK_ALARM_BEACON),
+                " Q ",
+                "IGI",
+                "RIR",
+                'Q', Items.QUARTZ,
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "alarm_beacon"));
 
         // 石英是这里唯一"准"的东西：传感器要的是稳定，不是威力。
         event.getRegistry().register(new ShapedOreRecipe(

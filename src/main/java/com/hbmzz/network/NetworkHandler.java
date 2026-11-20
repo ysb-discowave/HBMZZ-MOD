@@ -100,6 +100,10 @@ public final class NetworkHandler {
         // player who asked and everybody watching.
         INSTANCE.registerMessage(VideoSeekMessage.Handler.class, VideoSeekMessage.class,
                 27, Side.SERVER);
+        // Facility code broadcaster: its custom-state settings (level, label,
+        // colour, text) up only; the broadcast itself goes out on the alert feed.
+        INSTANCE.registerMessage(CustomCodeConfigMessage.Handler.class, CustomCodeConfigMessage.class,
+                28, Side.SERVER);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

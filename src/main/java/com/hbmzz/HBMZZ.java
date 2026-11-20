@@ -103,6 +103,12 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "redstone_gate"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlertDisplay.class,
                 new ResourceLocation(MODID, "alert_display"));
+        // The two cosmetic alert lamps. They hold no state beyond their facing,
+        // but a placed block still needs a TE mapping or the game dies on place.
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityStatusLamp.class,
+                new ResourceLocation(MODID, "status_lamp"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityAlarmBeacon.class,
+                new ResourceLocation(MODID, "alarm_beacon"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcBlastSensor.class,
                 new ResourceLocation(MODID, "dfc_blast_sensor"));
         // HBMZZ reactor core: persists ReactorState through NBT, so it needs a

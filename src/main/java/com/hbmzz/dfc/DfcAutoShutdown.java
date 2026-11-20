@@ -72,8 +72,12 @@ public final class DfcAutoShutdown {
 
     /**
      * Advances the procedure for one armed monitor. Called every server tick.
+     *
+     * @param enhancedFx whether the monitor's enhanced-explosion-effects
+     *     switch is on; when so the collapse streams the bigger particle shells
+     *     instead of the quiet aura.
      */
-    public static void tick(World world, BlockPos monitorPos, BlockPos corePos) {
+    public static void tick(World world, BlockPos monitorPos, BlockPos corePos, boolean enhancedFx) {
         if (world == null || world.isRemote || corePos == null || !HBMZZConfig.dfcShutdownEnabled) {
             return;
         }
@@ -106,6 +110,10 @@ public final class DfcAutoShutdown {
             session = new Session(world.provider.getDimension(), corePos);
             SESSIONS.put(key, session);
         }
+        // A rebind clears the switch on the monitor, but two monitors can share
+        // a core while one is quiet and one is loud; follow the most recent
+        // caller so the visible effect matches the screen the player just set.
+        session.enhancedFx = enhancedFx;
         session.lastSeen = now;
 
         if (session.lastTick == now) {
@@ -251,8 +259,13 @@ public final class DfcAutoShutdown {
 
         switch (phase) {
             case AURA:
+                // Quiet binding: the gentle aura. Loud binding: the white-hot
+                // core, blue shell and amber plasma of ENHANCED_COLLAPSE - the
+                // "massive effects while collapsing" the monitor switch asks for.
                 if (now % Math.max(1, HBMZZConfig.dfcShutdownAuraTicks) == 0L) {
-                    fx(world, DfcFxMessage.AURA, cx, cy, cz, range, 0.0F);
+                    byte mode = session.enhancedFx ? DfcFxMessage.ENHANCED_COLLAPSE
+                            : DfcFxMessage.AURA;
+                    fx(world, mode, cx, cy, cz, range, 0.0F);
                 }
                 if (now % Math.max(10, HBMZZConfig.dfcShutdownBurstTicks) == 0L) {
                     fx(world, DfcFxMessage.BURST, cx, cy, cz, range, 0.0F);
@@ -271,6 +284,13 @@ public final class DfcAutoShutdown {
                         // cloud down to almost nothing, which is what "收回" is.
                         float radius = range * (1.0F - progress) + 0.6F;
                         fx(world, DfcFxMessage.RING, cx, cy, cz, radius, progress);
+                        // Loud binding: layer the white/blue/amber collapse
+                        // shells over the shrinking ring so the retraction reads
+                        // as a violent implosion, not a quiet pull.
+                        if (session.enhancedFx) {
+                            fx(world, DfcFxMessage.ENHANCED_COLLAPSE, cx, cy, cz,
+                                    radius, progress);
+                        }
                     }
                 }
                 break;
@@ -316,6 +336,8 @@ public final class DfcAutoShutdown {
         int writeFailures;
         boolean stopAttempted;
         boolean reportedWriteFailure;
+        /** Most recent value of the monitor's enhanced-FX switch for this core. */
+        boolean enhancedFx;
 
         Session(int dimension, BlockPos core) {
             this.plan = new DfcShutdownPlan(

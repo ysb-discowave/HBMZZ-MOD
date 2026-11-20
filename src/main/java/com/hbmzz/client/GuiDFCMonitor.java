@@ -132,13 +132,14 @@ public class GuiDFCMonitor extends GuiScreen {
         boolean powered = te.isPowered();
         int cols = te.getScreenCols();
         int rows = te.getScreenRows();
+        boolean enhancedFx = te.isEnhancedFx();
         DFCSnapshot data = te.getClientData();
         boolean linked = data != null && data.coreFound;
 
         this.canvas.resize(this.winW, this.winH);
         this.canvas.setTilt(te.getTilt());
         this.canvas.render(page, powered, cols, rows, linked, coreLabel(te),
-                mouseX - this.left, mouseY - this.top, this.dragging);
+                mouseX - this.left, mouseY - this.top, this.dragging, enhancedFx);
         this.canvas.upload();
         drawTexture(this.left, this.top, this.winW, this.winH, this.canvas.textureId());
 
@@ -267,6 +268,15 @@ public class GuiDFCMonitor extends GuiScreen {
                     te.setPowered(on);
                     NetworkHandler.sendToServer(new DFCPageMessage(this.pos,
                             DFCPageMessage.ACTION_POWER, on ? 1 : 0));
+                    this.canvas.markDirty();
+                }
+                return;
+            case TerminalCanvas.HIT_ENHANCED_FX:
+                if (te != null) {
+                    boolean on = !te.isEnhancedFx();
+                    te.setEnhancedFx(on);
+                    NetworkHandler.sendToServer(new DFCPageMessage(this.pos,
+                            DFCPageMessage.ACTION_ENHANCED_FX, on ? 1 : 0));
                     this.canvas.markDirty();
                 }
                 return;

@@ -64,6 +64,10 @@ public class ClientProxy extends CommonProxy {
         // The zd_tx orbit camera. Purely client-side presentation: the server
         // only says "watch this block", and this decides where the eye goes.
         ClientCinematic.init();
+        // DFC explosion "totem" show: logo billboard, golden spiral, screen
+        // flash and sound. Driven by the TOTEM_EXPLODE mode of DfcFxMessage;
+        // the handler is event-bus based, so it only costs a tick when live.
+        ClientTotemFx.init();
         ClientRegistry.registerKeyBinding(KEY_REFRESH_VIDEOS);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
         // 视频大屏：世界里那块正在放片子的屏幕。走 TESR 而不是方块模型，因为

@@ -91,6 +91,8 @@ public final class TerminalCanvas {
     public static final int HIT_PAGE_CUSTOM = 13;
     /** Opens the panel studio window. */
     public static final int HIT_STUDIO = 14;
+    /** Toggles the enhanced explosion-effects switch. */
+    public static final int HIT_ENHANCED_FX = 15;
 
     /** One clickable rectangle. Rebuilt every frame, so it can never go stale. */
     public static final class Hotspot {
@@ -147,6 +149,7 @@ public final class TerminalCanvas {
     private boolean lastPower;
     private boolean lastLinked;
     private boolean lastResizing;
+    private boolean lastEnhancedFx;
     private boolean drawnOnce;
 
     // =================================================================== surface
@@ -301,13 +304,14 @@ public final class TerminalCanvas {
      * @param mouseX    cursor position, in the same GUI pixels as the layout
      */
     public void render(int page, boolean powerOn, int cols, int rows, boolean linked,
-                       String coreLabel, int mouseX, int mouseY, boolean resizing) {
+                       String coreLabel, int mouseX, int mouseY, boolean resizing,
+                       boolean enhancedFx) {
         boolean idle = this.drawnOnce
                 && !this.dirty
                 && mouseX == this.lastMouseX && mouseY == this.lastMouseY
                 && page == this.lastPage && cols == this.lastCols && rows == this.lastRows
                 && powerOn == this.lastPower && linked == this.lastLinked
-                && resizing == this.lastResizing;
+                && resizing == this.lastResizing && enhancedFx == this.lastEnhancedFx;
         if (idle) {
             return;
         }
@@ -320,6 +324,7 @@ public final class TerminalCanvas {
         this.lastPower = powerOn;
         this.lastLinked = linked;
         this.lastResizing = resizing;
+        this.lastEnhancedFx = enhancedFx;
 
         this.hotspots.clear();
         this.g.setColor(new Color(BG, true));
@@ -335,7 +340,8 @@ public final class TerminalCanvas {
         int columnX = pad;
         int contentY = headerH + pad;
         int contentH = barY - 8 - contentY;
-        drawControls(columnX, contentY, columnW, contentH, page, powerOn, mouseX, mouseY);
+        drawControls(columnX, contentY, columnW, contentH, page, powerOn, mouseX, mouseY,
+                enhancedFx);
 
         this.previewX = columnX + columnW + pad;
         this.previewY = contentY;
@@ -397,10 +403,20 @@ public final class TerminalCanvas {
     }
 
     private void drawControls(int x, int y0, int w, int h, int page, boolean powerOn,
-                              int mouseX, int mouseY) {
+                              int mouseX, int mouseY, boolean enhancedFx) {
         int y = y0;
         button(x, y, w, 24, powerOn ? "\u5df2\u5f00\u673a" : "\u5df2\u5173\u673a", HIT_POWER,
                 powerOn, mouseX, mouseY);
+        y += 28;
+
+        // Enhanced explosion effects: a full-width toggle that mirrors the power
+        // switch. When the binding has a core it raises the totem flourish on a
+        // real detonation and thickens the collapse storm; when it is unbound
+        // there is no core to act on, so the switch is drawn dim and inert.
+        button(x, y, w, 24,
+                enhancedFx ? "\u589e\u5f3a\u7279\u6548 \u00b7 \u5f00"
+                           : "\u589e\u5f3a\u7279\u6548 \u00b7 \u5173",
+                HIT_ENHANCED_FX, enhancedFx, mouseX, mouseY);
         y += 28;
 
         text("\u89c6\u56fe", x, y + 8, DIM, ScreenFonts.cjk(8));

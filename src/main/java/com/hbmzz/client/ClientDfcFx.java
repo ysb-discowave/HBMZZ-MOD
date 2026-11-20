@@ -128,7 +128,6 @@ public final class ClientDfcFx {
                 break;
 
             case DfcFxMessage.IMPLODE:
-            default:
                 for (int i = 0; i < 40; i++) {
                     double theta = rand.nextDouble() * Math.PI * 2.0D;
                     double phi = Math.acos(2.0D * rand.nextDouble() - 1.0D);
@@ -139,6 +138,62 @@ public final class ClientDfcFx {
                     aimInward(p, x, y, z, px, py, pz, 0.20D);
                     mc.effectRenderer.addEffect(p);
                 }
+                break;
+
+            case DfcFxMessage.ENHANCED_COLLAPSE:
+                // The "better explosion" toggle: when the monitor's enhanced FX
+                // is on, the collapse carries far more, and more varied,
+                // particles than the base show. Three interleaved layers:
+                //   1. a dense white-hot core (the reaction itself),
+                //   2. a blue energy shell that converges on the core,
+                //   3. amber "plasma" that spirals outwards and up.
+                // The extra cost is only meaningful to a player who stands in
+                // the cell, which is exactly the audience the toggle is for.
+                // White-hot core.
+                for (int i = 0; i < 18; i++) {
+                    double angle = rand.nextDouble() * Math.PI * 2.0D;
+                    double rr = rand.nextDouble() * r * 0.4D;
+                    double px = x + Math.cos(angle) * rr;
+                    double pz = z + Math.sin(angle) * rr;
+                    double py = y - 1.0D + rand.nextDouble() * 3.0D;
+                    mc.effectRenderer.addEffect(
+                            particle(world, px, py, pz, 0.95F, 0.98F, 1.0F)
+                                    .aim((rand.nextDouble() - 0.5D) * 0.05D,
+                                            0.02D + rand.nextDouble() * 0.03D,
+                                            (rand.nextDouble() - 0.5D) * 0.05D));
+                }
+                // Blue converging shell.
+                for (int i = 0; i < 34; i++) {
+                    double theta = rand.nextDouble() * Math.PI * 2.0D;
+                    double phi = Math.acos(2.0D * rand.nextDouble() - 1.0D);
+                    double px = x + Math.sin(phi) * Math.cos(theta) * r;
+                    double py = y + Math.cos(phi) * r * 0.7D;
+                    double pz = z + Math.sin(phi) * Math.sin(theta) * r;
+                    BlueParticle p = particle(world, px, py, pz, 0.30F, 0.65F, 1.0F);
+                    aimInward(p, x, y, z, px, py, pz, 0.16D + rand.nextDouble() * 0.10D);
+                    mc.effectRenderer.addEffect(p);
+                }
+                // Amber plasma spiralling out.
+                for (int i = 0; i < 24; i++) {
+                    double angle = rand.nextDouble() * Math.PI * 2.0D;
+                    double rr = rand.nextDouble() * r;
+                    double px = x + Math.cos(angle) * rr;
+                    double pz = z + Math.sin(angle) * rr;
+                    double py = y - 2.0D + rand.nextDouble() * 5.0D;
+                    mc.effectRenderer.addEffect(
+                            particle(world, px, py, pz, 1.0F, 0.72F, 0.15F)
+                                    .aim(Math.cos(angle) * 0.10D,
+                                            0.05D + rand.nextDouble() * 0.06D,
+                                            Math.sin(angle) * 0.10D));
+                }
+                break;
+
+            case DfcFxMessage.TOTEM_EXPLODE:
+            default:
+                // The undying-totem show. The particles, the logo billboard,
+                // the screen flash and the sound all live in ClientTotemFx; this
+                // is only the trigger.
+                ClientTotemFx.fire(x, y, z, r);
                 break;
         }
     }
@@ -170,14 +225,39 @@ public final class ClientDfcFx {
      * vanilla spawn call - takes no velocity at all, which is why the suction
      * rings would not converge.</p>
      */
-    private static final class BlueParticle extends ParticleRedstone {
+    public static final class BlueParticle extends ParticleRedstone {
 
         BlueParticle(World world, double x, double y, double z,
                      float red, float green, float blue) {
+            // 1.12.2 signature: (world, x, y, z, scale, red, green, blue). The
+            // scale multiplies the particle's own size roll.
             super(world, x, y, z, 1.1F, red, green, blue);
         }
 
-        BlueParticle aim(double vx, double vy, double vz) {
+        public BlueParticle aim(double vx, double vy, double vz) {
+            this.motionX = vx;
+            this.motionY = vy;
+            this.motionZ = vz;
+            return this;
+        }
+    }
+
+    /**
+     * A redstone particle for the totem effect.
+     *
+     * <p>Same shape as {@link BlueParticle} - the only reason for a second
+     * class is the scale: the totem's particles are a touch bigger so the
+     * golden spiral reads at a distance. The tint is passed per spawn, which
+     * is what lets the swirl run from gold to white-hot at its core.</p>
+     */
+    public static final class TotemParticle extends ParticleRedstone {
+
+        TotemParticle(World world, double x, double y, double z,
+                      float red, float green, float blue) {
+            super(world, x, y, z, 1.4F, red, green, blue);
+        }
+
+        public TotemParticle aim(double vx, double vy, double vz) {
             this.motionX = vx;
             this.motionY = vy;
             this.motionZ = vz;

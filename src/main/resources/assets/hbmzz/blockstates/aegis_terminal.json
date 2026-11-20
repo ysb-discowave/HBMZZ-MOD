@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "hbmzz:aegis_terminal" },
+    "facing=south": { "model": "hbmzz:aegis_terminal", "y": 180 },
+    "facing=west":  { "model": "hbmzz:aegis_terminal", "y": 270 },
+    "facing=east":  { "model": "hbmzz:aegis_terminal", "y": 90 }
+  }
+}

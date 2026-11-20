@@ -131,3 +131,9 @@ tile.hbmzz.reactor_control_rod.name=Reactor Control Rod
 hbmzz.reactor_core.tip1=Place around the core. Emitters add fuel, absorbers add cooling.
 hbmzz.reactor_core.tip2=Stabilisers add temperature feedback; rods are throttled by redstone.
 hbmzz.reactor_core.tip3=Front face: power out. Drive it with a machine control panel.
+
+# Aegis telemetry terminal
+tile.hbmzz.aegis_terminal.name=Aegis DFC Terminal
+tile.hbmzz.aegis_cell.name=Aegis Terminal Frame
+aegis.help.page=Right-click: next page
+aegis.help.unbind=Sneak + right-click: reset core link

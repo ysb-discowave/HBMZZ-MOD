@@ -1,0 +1,8 @@
+{
+  "parent": "block/orientable",
+  "textures": {
+    "top": "hbmzz:blocks/dfc_monitor_top",
+    "front": "hbmzz:blocks/dfc_monitor_front",
+    "side": "hbmzz:blocks/dfc_monitor_side"
+  }
+}

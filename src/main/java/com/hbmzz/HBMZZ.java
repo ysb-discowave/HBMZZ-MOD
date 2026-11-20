@@ -62,6 +62,8 @@ public class HBMZZ {
             logger.info("HBMZZ {} loaded (source unavailable)", VERSION);
         }
         HBMZZConfig.load(event.getSuggestedConfigurationFile());
+        // Aegis terminal keeps its own config file next to the main one.
+        com.hbmzz.aegis.AegisConfig.load(event.getSuggestedConfigurationFile());
         // The video shelf lives under <config>/hbmzz/videos/ and is read by both
         // sides (the server validates names, the client opens the clip). Without
         // this call VideoLibrary.root stays null, so the broadcaster GUI lists no
@@ -83,6 +85,8 @@ public class HBMZZ {
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
         GameRegistry.registerTileEntity(TileEntityDFCMonitor.class, new ResourceLocation(MODID, "dfc_monitor"));
+        GameRegistry.registerTileEntity(com.hbmzz.aegis.TileAegisTerminal.class,
+                new ResourceLocation(MODID, "aegis_terminal"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityCtrlPanel.class,
                 new ResourceLocation(MODID, "control_panel"));
         GameRegistry.registerTileEntity(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,

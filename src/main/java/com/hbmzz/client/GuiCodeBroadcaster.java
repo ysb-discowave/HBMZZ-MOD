@@ -29,7 +29,7 @@ import net.minecraft.util.math.BlockPos;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
-import java.util.Locale.ROOT;
+import java.util.Locale;
 
 /**
  * 代码广播器自定义状态窗口.
@@ -162,7 +162,7 @@ public class GuiCodeBroadcaster extends GuiScreen {
         this.buttonList.add(this.levelUpButton = new GuiButton(2, this.left + 148, this.top + 20,
                 22, 18, "+"));
         this.buttonList.add(this.colorButton = new GuiButton(3, this.left + 180, this.top + 20,
-                128, 18, "颜色 " + Integer.toHexString(color()).toUpperCase(ROOT)));
+                128, 18, "颜色 " + Integer.toHexString(color()).toUpperCase(Locale.ROOT)));
         this.buttonList.add(this.saveButton = new GuiButton(4, this.left + 12, this.top + H - 24,
                 96, 18, "保存"));
         this.buttonList.add(this.closeButton = new GuiButton(5, this.left + W - 108, this.top + H - 24,
@@ -302,7 +302,7 @@ public class GuiCodeBroadcaster extends GuiScreen {
                 break;
             case 3:
                 this.colorIndex = (this.colorIndex + 1) % PALETTE.length;
-                this.colorButton.displayString = "颜色 " + Integer.toHexString(color()).toUpperCase(ROOT);
+                this.colorButton.displayString = "颜色 " + Integer.toHexString(color()).toUpperCase(Locale.ROOT);
                 break;
             case 4:
                 send();

@@ -132,3 +132,9 @@ tile.hbmzz.reactor_control_rod.name=反应堆控制棒
 hbmzz.reactor_core.tip1=围绕堆芯放置。发射器增加燃料，吸收器增加冷却。
 hbmzz.reactor_core.tip2=稳定器增加温度系数；控制棒由红石深度调节。
 hbmzz.reactor_core.tip3=正面：功率输出。可由机器控制台驱动。
+
+# Aegis 遥测终端
+tile.hbmzz.aegis_terminal.name=神盾 DFC 终端
+tile.hbmzz.aegis_cell.name=神盾终端边框
+aegis.help.page=右键:切换页面
+aegis.help.unbind=潜行+右键:重置核心链接

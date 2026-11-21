@@ -72,15 +72,24 @@ public final class AegisCanvas {
         AegisDraw d = new AegisDraw(img, LOGICAL_W, LOGICAL_H);
         d.graphics().scale(SS, SS);
         try {
-            // base plate
-            d.rect(0, 0, LOGICAL_W, LOGICAL_H, AegisPalette.CANVAS);
+            // Animated backdrop: a deep gradient with a slow-drifting grid and
+            // a bright scan band that sweeps down the panel like a CRT beam.
+            d.gradient(0, 0, LOGICAL_W, LOGICAL_H, AegisPalette.BG_TOP, AegisPalette.BG_BOTTOM);
+            int drift = (int) (nowMs / 90L) % 24;
+            d.grid(0, 30, LOGICAL_W, LOGICAL_H - 30, 24, drift, AegisPalette.GRID);
+            int bandY = (int) ((nowMs / 22L) % (LOGICAL_H + 60L)) - 30;
+            d.gradient(0, bandY, LOGICAL_W, 18, 0x00000000, AegisPalette.SCAN);
+            d.gradient(0, bandY + 18, LOGICAL_W, 18, AegisPalette.SCAN, 0x00000000);
+
             d.rect(0, 0, LOGICAL_W, 30, AegisPalette.CANVAS_ALT);
             d.line(0, 30, LOGICAL_W, 30, AegisPalette.FRAME, 1.5F);
+            d.gradient(0, 28, LOGICAL_W, 2, AegisPalette.CYAN_DARK, 0x00FFFFFF);
 
+            boolean danger = false;
             if (!powered) {
-                drawStandby(d);
+                drawStandby(d, nowMs);
             } else if (nowMs - bootAt < 1100L) {
-                drawBoot(d, nowMs - bootAt);
+                drawBoot(d, nowMs - bootAt, nowMs);
             } else if (frame.worldTick == 0L || nowMs - lastFrameAt(frame) > 5000L) {
                 drawNoSignal(d, frame, nowMs);
             } else {
@@ -93,9 +102,19 @@ public final class AegisCanvas {
                     drawDiagnostics(frame, d, nowMs);
                 }
                 drawPageRail(frame, d, nowMs);
+                danger = frame.collapsing || frame.forecastKind == 1 || frame.tamperState >= 2;
             }
 
-            d.frame(1, 1, LOGICAL_W - 2, LOGICAL_H - 2, AegisPalette.FRAME, 2.0F);
+            // HUD frame with corner brackets; pulses red when the core is in
+            // a dangerous state so it reads at a glance from across the room.
+            int edge = AegisPalette.FRAME;
+            if (danger) {
+                float pulse = 0.5F + 0.5F * (float) Math.sin(nowMs / 130.0D);
+                edge = AegisPalette.mix(AegisPalette.RED, AegisPalette.FRAME, 1.0F - pulse);
+            }
+            d.frame(1, 1, LOGICAL_W - 2, LOGICAL_H - 2, edge, 2.0F);
+            d.corners(1, 1, LOGICAL_W - 2, LOGICAL_H - 2, 12,
+                    danger ? AegisPalette.RED : AegisPalette.CYAN, 2.0F);
             d.scanlines(0x08FFFFFF, 4);
         } finally {
             d.dispose();
@@ -121,9 +140,9 @@ public final class AegisCanvas {
     // --------------------------------------------------------------- chrome
 
     private void drawHeader(AegisTelemetry frame, AegisDraw d, long nowMs) {
-        d.rect(0, 0, 6, 30, AegisPalette.CYAN_DARK);
-        d.text("神盾", 14, 21, 17, AegisPalette.CYAN, true);
-        d.text("// 聚变遥测", 74, 21, 10, AegisPalette.TEXT_DIM, false);
+        d.gradient(0, 0, 6, 30, AegisPalette.HOLO, AegisPalette.CYAN_DARK);
+        d.glowText("神盾", 14, 21, 17, AegisPalette.HOLO, true);
+        d.text("// 聚变遥测", 76, 21, 10, AegisPalette.TEXT_DIM, false);
 
         String tag = com.hbmzz.aegis.AegisConfig.showDiagnostics ? "监控" : "精简";
         d.textRight(tag, LOGICAL_W - 12, 21, 9, AegisPalette.TEXT_FAINT, false);
@@ -134,7 +153,9 @@ public final class AegisCanvas {
         } else if (!frame.loaded) {
             dot = AegisPalette.AMBER;
         }
-        d.circle(LOGICAL_W - 92, 15, 3, dot, true);
+        int blink = (int) (nowMs / 380L) % 2 == 0 ? AegisPalette.HOLO : dot;
+        d.radialGlow(LOGICAL_W - 92, 15, 9, blink);
+        d.circle(LOGICAL_W - 92, 15, 3, blink, true);
         d.textRight("刻" + frame.worldTick, LOGICAL_W - 104, 20, 9, AegisPalette.TEXT_DIM, false);
     }
 
@@ -148,16 +169,21 @@ public final class AegisCanvas {
             if (i == 2 && !com.hbmzz.aegis.AegisConfig.showDiagnostics) {
                 break;
             }
-            int colour = i == this.shownPage ? AegisPalette.CYAN : AegisPalette.TEXT_FAINT;
-            d.text(labels[i], x, y + 12, 10, colour, i == this.shownPage);
+            int colour = i == this.shownPage ? AegisPalette.HOLO : AegisPalette.TEXT_FAINT;
             if (i == this.shownPage) {
-                d.rect(x, y + 15, Math.min(96, d.measure(labels[i], 10, true)), 2, AegisPalette.CYAN);
+                d.glowText(labels[i], x, y + 12, 10, colour, true);
+                d.gradient(x, y + 15, Math.min(96, d.measure(labels[i], 10, true)), 2,
+                        AegisPalette.CYAN_DARK, AegisPalette.HOLO);
+            } else {
+                d.text(labels[i], x, y + 12, 10, colour, false);
             }
             x += 118;
         }
         if (frame.collapsing || frame.forecastKind == 1) {
-            int blink = (int) (nowMs / 300L) % 2 == 0 ? AegisPalette.RED : AegisPalette.TEXT_FAINT;
-            d.textRight("!! 紧急停堆", LOGICAL_W - 12, y + 12, 10, blink, true);
+            float pulse = (nowMs / 300L) % 2L == 0L ? 1.0F : 0.35F;
+            int blink = AegisPalette.mix(AegisPalette.TEXT_FAINT, AegisPalette.RED, pulse);
+            d.glowText("!! 紧急停堆", LOGICAL_W - 12 - d.measure("!! 紧急停堆", 10, true),
+                    y + 12, 10, blink, true);
         }
     }
 
@@ -169,14 +195,15 @@ public final class AegisCanvas {
         double fraction = f.heatFraction();
         int heatColour = AegisPalette.heat(fraction);
         String degrees = String.format(Locale.ROOT, "%,.0f", f.heatC);
-        d.text(degrees, 14, 108, 46, heatColour, true);
+        d.radialGlow(78, 88, 74, (heatColour & 0xFFFFFF) | 0x3C000000);
+        d.glowText(degrees, 14, 108, 46, heatColour, true);
         int degW = d.measure(degrees, 46, true);
-        d.text("\u00b0C", 20 + degW, 94, 18, AegisPalette.TEXT_DIM, false);
+        d.text("\u00b0C", 20 + degW, 94, 18, AegisPalette.HOLO, false);
 
         float slope = f.heatSlope;
         String trend = slope > 0.05F ? "\u25b2 " + String.format(Locale.ROOT, "%.2f", slope)
                 : slope < -0.05F ? "\u25bc " + String.format(Locale.ROOT, "%.2f", Math.abs(slope))
-                : "\u25ac 稳定";
+                : "\u2248 \u7a33\u5b9a";
         int trendColour = slope > 0.05F ? AegisPalette.RED : slope < -0.05F ? AegisPalette.GREEN : AegisPalette.TEXT_DIM;
         d.text(trend, 16, 126, 11, trendColour, false);
         d.text("熔点 " + String.format(Locale.ROOT, "%,.0f", f.meltC) + " \u00b0C",
@@ -202,7 +229,7 @@ public final class AegisCanvas {
                 f.loaded ? AegisPalette.GREEN : AegisPalette.AMBER, false);
 
         d.text("能量", rx, 124, 9, AegisPalette.TEXT_DIM, false);
-        d.text(formatEnergy(f.coreEnergy), rx, 142, 13, AegisPalette.CYAN, true);
+        d.glowText(formatEnergy(f.coreEnergy), rx, 142, 13, AegisPalette.HOLO, true);
         d.text("输出 " + formatEnergy(f.exhaustEnergy), rx, 158, 9, AegisPalette.TEXT_DIM, false);
         d.text("增益 " + formatEnergy(f.gainEnergy), rx + 84, 158, 9,
                 f.gainEnergy >= 0.0D ? AegisPalette.GREEN : AegisPalette.RED, false);
@@ -214,7 +241,8 @@ public final class AegisCanvas {
         for (int i = 0; i < f.trendHeat.length; i++) {
             normalised[i] = (float) Math.max(0.0D, Math.min(1.0D, f.trendHeat[i] / span));
         }
-        d.spark(normalised, f.trendCount, rx + 2, 188, 158, 30, AegisPalette.CYAN);
+        d.areaSpark(normalised, f.trendCount, rx + 2, 188, 158, 30,
+                AegisPalette.HOLO, 0x3039D6E8, 0x0039D6E8);
 
         if (f.collapsing || f.forecastKind == 1) {
             drawCountdownBanner(d, f, nowMs);
@@ -234,24 +262,24 @@ public final class AegisCanvas {
         };
         int cols = 4;
         int cw = 88;
-        int ch = 44;
-        int gap = 6;
+        int ch = 40;
+        int gap = 5;
         for (int i = 0; i < cells.length; i++) {
             int col = i % cols;
             int row = i / cols;
             int x = 14 + col * (cw + gap);
-            int y = 62 + row * (ch + gap);
+            int y = 58 + row * (ch + gap);
             d.rect(x, y, cw, ch, AegisPalette.CANVAS_ALT);
             d.frame(x, y, cw, ch, AegisPalette.FRAME_SOFT, 1.0F);
             d.text(cells[i][0], x + 6, y + 14, 8, AegisPalette.TEXT_DIM, false);
             boolean zero = "0".equals(cells[i][1]);
-            d.text(cells[i][1], x + 6, y + 35, 18, zero ? AegisPalette.TEXT_FAINT : AegisPalette.CYAN, true);
+            d.text(cells[i][1], x + 6, y + 32, 17, zero ? AegisPalette.TEXT_FAINT : AegisPalette.CYAN, true);
         }
 
-        int by = 164;
+        int by = 150;
         d.text("流体罐", 14, by, 10, AegisPalette.TEXT_DIM, true);
         drawTank(d, 14, by + 8, 176, "冷却剂", f.coolantTag, f.coolantFill, f.coolantCap, AegisPalette.CYAN);
-        drawTank(d, 14, by + 52, 176, "慢化剂", f.moderatorTag, f.moderatorFill, f.moderatorCap, AegisPalette.VIOLET);
+        drawTank(d, 14, by + 44, 176, "慢化剂", f.moderatorTag, f.moderatorFill, f.moderatorCap, AegisPalette.VIOLET);
     }
 
     private void drawDiagnostics(AegisTelemetry f, AegisDraw d, long nowMs) {
@@ -313,39 +341,61 @@ public final class AegisCanvas {
     }
 
     private void drawCountdownBanner(AegisDraw d, AegisTelemetry f, long nowMs) {
-        int y = 216;
+        // Sits above the page rail (which starts at LOGICAL_H-20-4 = 232), so
+        // keep the bottom edge < 230 or the rail paints over the text.
+        int y = 202;
+        int h = 26;
         boolean bright = (nowMs / 250L) % 2L == 0L;
-        d.rect(8, y, LOGICAL_W - 16, 26, bright ? 0xFF5A1414 : 0xFF3A0E0E);
-        d.frame(8, y, LOGICAL_W - 16, 26, AegisPalette.RED, 1.5F);
+        d.rect(8, y, LOGICAL_W - 16, h, bright ? 0xFF5A1414 : 0xFF3A0E0E);
+        d.frame(8, y, LOGICAL_W - 16, h, AegisPalette.RED, 1.5F);
         String text = f.collapsing ? "堆芯坍缩 / 立即撤离"
                 : String.format(Locale.ROOT, "爆炸倒计时 %02d:%02d",
                         Math.max(0, f.forecastSeconds / 60), Math.max(0, f.forecastSeconds % 60));
-        d.textCenter(text, LOGICAL_W / 2, y + 18, 13, AegisPalette.RED, true);
+        d.textCenter(text, LOGICAL_W / 2, y + 17, 12, AegisPalette.RED, true);
     }
 
     // --------------------------------------------------------------- states
 
-    private void drawStandby(AegisDraw d) {
-        d.textCenter("待机", LOGICAL_W / 2, LOGICAL_H / 2, 26, AegisPalette.TEXT_FAINT, true);
-        d.textCenter("神盾终端离线", LOGICAL_W / 2, LOGICAL_H / 2 + 20, 10,
+    private void drawStandby(AegisDraw d, long nowMs) {
+        float pulse = 0.55F + 0.45F * (float) Math.sin(nowMs / 500.0D);
+        int dim = AegisPalette.mix(AegisPalette.TEXT_FAINT, AegisPalette.CYAN_DARK, pulse);
+        d.glowText("待机", LOGICAL_W / 2 - d.measure("待机", 26, true) / 2,
+                LOGICAL_H / 2, 26, dim, true);
+        d.textCenter("神盾终端离线 · 右键开启电源", LOGICAL_W / 2, LOGICAL_H / 2 + 22, 10,
                 AegisPalette.TEXT_FAINT, false);
     }
 
-    private void drawBoot(AegisDraw d, long elapsed) {
-        d.textCenter("神盾", LOGICAL_W / 2, 96, 34, AegisPalette.CYAN, true);
+    private void drawBoot(AegisDraw d, long elapsed, long nowMs) {
+        d.radialGlow(LOGICAL_W / 2, 100, 70, AegisPalette.CYAN_DARK);
+        // Spinning arc ring around the logo.
+        double spin = (nowMs / 8L) % 360L;
+        d.arc(LOGICAL_W / 2, 96, 44, spin, spin + 90.0D, AegisPalette.HOLO, 2.5F);
+        d.arc(LOGICAL_W / 2, 96, 44, spin + 180.0D, spin + 270.0D, AegisPalette.CYAN_DARK, 2.5F);
+        d.glowText("神盾", LOGICAL_W / 2 - d.measure("神盾", 34, true) / 2, 96,
+                34, AegisPalette.HOLO, true);
         d.textCenter("聚变遥测终端", LOGICAL_W / 2, 116, 11, AegisPalette.TEXT_DIM, false);
         int barW = 220;
         int x = (LOGICAL_W - barW) / 2;
         double progress = Math.min(1.0D, elapsed / 1000.0D);
-        d.bar(x, 140, barW, 10, progress, AegisPalette.CYAN, -1.0D, 0);
-        d.textCenter("初始化中", LOGICAL_W / 2, 170, 9, AegisPalette.TEXT_FAINT, false);
+        d.gradient(x, 140, (int) (barW * progress), 10, AegisPalette.CYAN_DARK, AegisPalette.HOLO);
+        d.frame(x, 140, barW, 10, AegisPalette.FRAME, 1.0F);
+        d.textCenter("初始化中 " + (int) (progress * 100.0D) + "%", LOGICAL_W / 2, 170, 9,
+                AegisPalette.TEXT_FAINT, false);
     }
 
     private void drawNoSignal(AegisDraw d, AegisTelemetry f, long nowMs) {
-        d.textCenter("无信号", LOGICAL_W / 2, 112, 30, AegisPalette.AMBER, true);
-        d.textCenter("等待遥测数据", LOGICAL_W / 2, 136, 10, AegisPalette.TEXT_DIM, false);
+        float pulse = 0.5F + 0.5F * (float) Math.sin(nowMs / 260.0D);
+        d.glowText("无信号", LOGICAL_W / 2 - d.measure("无信号", 30, true) / 2,
+                112, 30, AegisPalette.mix(AegisPalette.AMBER, AegisPalette.RED, pulse), true);
+        d.textCenter("等待遥测数据 · 检查核心连接", LOGICAL_W / 2, 136, 10,
+                AegisPalette.TEXT_DIM, false);
         int sweep = (int) ((nowMs / 12L) % (LOGICAL_W + 40)) - 20;
-        d.line(sweep, 150, sweep + 30, 150, AegisPalette.CYAN_DARK, 2.0F);
+        d.gradient(sweep - 20, 146, 40, 4, 0x00FFFFFF, AegisPalette.CYAN_DARK);
+        d.line(sweep, 150, sweep + 30, 150, AegisPalette.HOLO, 2.0F);
+        for (int i = 0; i < 3; i++) {
+            d.dashedLine(20, 160 + i * 14, LOGICAL_W - 20, 160 + i * 14,
+                    AegisPalette.FRAME_SOFT, 1.0F, 8.0F, 12.0F);
+        }
     }
 
     // --------------------------------------------------------------- format

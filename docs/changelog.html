@@ -96,6 +96,21 @@
             <span class="tl-ver">v4.0.0</span>
             <span class="tag tag--amber">最新</span>
           </div>
+          <h3>全息视觉升级 + 黑屏致命 bug 修复</h3>
+          <ul>
+            <li><strong>修复永久黑屏回归：</strong>上次节流修复把纹理上传时间戳初始化为 <code>Long.MIN_VALUE</code>，<code>now - Long.MIN_VALUE</code> 溢出成负数，节流判断恒为「太快」，纹理永不上传——屏幕只剩边框、不显示任何内容。改用 0 + 首帧标记，保证首帧与 GL context 恢复后的上传不被拦截。</li>
+            <li><strong>全息化监控屏：</strong>深空渐变背景 + 漂移网格 + CRT 扫描光带；神盾标题辉光、呼吸状态灯；温度大字径向光晕、能量辉光、温度曲线改填充面积图；开机旋转双圆弧动画；危险时整框红色脉冲 + 四角角标。3D 屏幕外圈增加加色辉光边框，常态青 / 高温琥珀 / 报警红，远处一眼可辨状态。</li>
+            <li><strong>右键菜单视觉升级：</strong>标题流动高光条 + 呼吸灯、窗口四角 HUD 角标、连接状态呼吸灯、堆芯温度分段渐变可视化条（青→红 + 熔点刻度）。</li>
+            <li><strong>布局 bug 修复：</strong>报警横幅此前被页码栏盖住一半，已上移完整显示；部件页慢化剂罐进度条此前压到页码栏，已重排完整可见；「稳定」的方块字符改用「≈ 稳定」。</li>
+            <li><strong>验证：</strong>JDK 8 <code>gradle build</code> BUILD SUCCESSFUL；离屏渲染导出六张预览逐张目视核对，中文与全部特效正常；新 jar 已部署游戏 <code>mods</code>（MD5 <code>f693d6a6…3610</code>）。未推 GitHub。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v4.0.0</span>
+            <span class="tag">菜单 / 热修</span>
+          </div>
           <h3>Aegis 右键菜单重做 + 自主排查热修</h3>
           <ul>
             <li><strong>右键配置菜单重做：</strong>从五个灰按钮改为自绘中文界面，青/琥珀配色与屏幕统一；一屏显示连接状态、绑定坐标、堆芯温度（按熔点着色）、稳定度、能量、页面与电源。五个按钮带悬停高亮，操作后底部显示一次性回执；快捷键 <code>1-4</code> 动作、<code>Q/E</code> 翻页、<code>P</code> 电源、<code>Esc</code> 关闭。打开时服务端推送权威状态，停留期间每 4 秒补拉一帧，不再停在旧数据。</li>
@@ -716,7 +731,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=13c276b596"></script>
+<script src="assets/data.js?v=0b79f47bcc"></script>
 <script src="assets/site.js?v=3a90f5f5a2"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

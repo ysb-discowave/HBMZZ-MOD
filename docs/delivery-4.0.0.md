@@ -139,3 +139,16 @@ Aegis 新代码（4 组）：
 - **操作回执 + 快捷键**：每次动作在窗口底部显示一次性中文回执（如「已请求绑定最近核心」）；`1-4` 对应四个动作、`Q/E` 前后翻页、`P` 电源、`Esc` 关闭。
 - **数据不再陈旧**：打开瞬间发 `AegisRequestPacket` 拉一帧，窗口停留期间每 4 秒补拉；方块服务端 `onBlockActivated` 增加 `notifyBlockUpdate`，打开前把权威的页面 / 电源 / 绑定状态推给客户端。
 - **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL；jar 已部署游戏 `mods`，MD5 `57aace7b7cd53f43ebbcab1bf392f474`，`GuiAegisTerminal.class` 与内部类 `Btn` 均已确认编入；旧包备份 `hbmzz-4.0.0.jar.pre-menu`。
+
+## 十、全息视觉升级 + 黑屏致命 bug 修复（2026-11-21 追加）
+
+用户要求「尽量炫酷 + 有 bug 就修」。本轮先做全代码复审找到一处致命 bug，再做纯视觉层升级（不改 API / 存档格式 / 网络协议 / 数据语义）。
+
+1. **致命 bug：屏幕永久黑屏（上次 4 秒节流修复引入的回归）**：`AegisTexture.lastUploadMs` 初始化为 `Long.MIN_VALUE`，节流判断 `now - lastUploadMs < 16ms` 中 `now - Long.MIN_VALUE` 发生 long 溢出变成负数（实测 `-9223370241632531226`），判断恒为「太快」，每次 `upload()` 都直接 return——纹理永不上传、`glId` 永远为 0、屏幕只剩边框不显示任何内容。改为初始 0 + `everUploaded` 首帧标记，配合 `invalidate()` 清标记，保证首帧与 GL context 恢复后的首次上传绝不被节流。已用独立 Java 程序复现验证溢出值并确认修复。
+2. **绘图原语库扩充**（`AegisDraw`）：新增垂直线性渐变 `gradient`、径向光晕 `radialGlow`、辉光文字 `glowText`、面积曲线 `areaSpark`、虚线 `dashedLine`、四角 HUD 角标 `corners`、滚动网格 `grid`、圆弧 `arc`；`AegisPalette` 增加全息青 / 品红 / 扫描光 / 深空渐变等色值。
+3. **监控屏三页全面炫酷化**（`AegisCanvas`）：动态背景（深空渐变 + 缓慢漂移网格 + CRT 扫描光带上下扫过）；标题「神盾」辉光 + 呼吸状态灯；总览页温度大字带径向光晕、能量数值辉光、温度曲线改为填充面积图；开机动画改为旋转双圆弧 + 百分比进度；待机 / 无信号态改为脉冲呼吸 + 扫屏虚线；危险状态（坍缩 / 倒计时 / 篡改）时整框红色脉冲 + 四角角标变红。
+4. **3D 渲染器发光边框**（`AegisRenderer`）：屏幕外圈加一圈加色混合（additive blend）辉光边框，按状态变色——常态青色、高温琥珀、坍缩 / 篡改红色，远处也能一眼看出堆芯状态。
+5. **右键菜单视觉升级**（`GuiAegisTerminal`）：标题栏加流动高光条 + 呼吸指示灯，窗口四角 HUD 角标，连接状态呼吸灯，堆芯温度分段渐变可视化条（青→红 + 熔点刻度）。
+6. **布局 bug 修复**（预览渲染实测发现）：报警横幅原 y=216~242 被页码栏（起始 y=232）盖住一半，上移到 y=202~228 完整可见；部件页慢化剂罐进度条 / 百分比原压到页码栏，压缩组件格高度并上移流体罐后两罐完整可见；趋势「稳定」的 U+25AC 方块符号在部分字体渲染成□，改用「≈ 稳定」。
+- **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL；用离屏 AWT 渲染器导出总览 / 部件 / 诊断 / 待机 / 无信号 / 报警六张 PNG 逐张目视核对，中文与全部特效正常、无元素越界；新 jar 已部署游戏 `mods`，MD5 `f693d6a68ea2e0802b5e3458f578b3610`；旧包备份 `hbmzz-4.0.0.jar.pre-fx`（MD5 `57aace7b…f474`）。
+- **未推 GitHub**：遵守约定，除非用户本人发出代理名 `XingZuo-Cloud Bot`，否则不推送。

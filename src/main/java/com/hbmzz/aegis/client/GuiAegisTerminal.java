@@ -138,12 +138,25 @@ public final class GuiAegisTerminal extends GuiScreen {
         drawRect(l, t + H - 1, l + W, t + H, BTN_EDGE);
         drawRect(l, t, l + 1, t + H, BTN_EDGE);
         drawRect(l + W - 1, t, l + W, t + H, BTN_EDGE);
+        // 四角 HUD 角标
+        int ck = 10;
+        drawRect(l, t, l + ck, t + 2, CYAN); drawRect(l, t, l + 2, t + ck, CYAN);
+        drawRect(l + W - ck, t, l + W, t + 2, CYAN); drawRect(l + W - 2, t, l + W, t + ck, CYAN);
+        drawRect(l, t + H - 2, l + ck, t + H, CYAN); drawRect(l, t + H - ck, l + 2, t + H, CYAN);
+        drawRect(l + W - ck, t + H - 2, l + W, t + H, CYAN); drawRect(l + W - 2, t + H - ck, l + W, t + H, CYAN);
 
         // 标题栏
         drawRect(l + 1, t + 1, l + W - 1, t + 24, 0xFF0E161C);
         drawRect(l + 1, t + 24, l + W - 1, t + 25, LINE);
-        drawRect(l + 12, t + 7, l + 15, t + 18, CYAN);
+        long nowMs = System.currentTimeMillis();
+        float pulse = 0.5F + 0.5F * (float) Math.sin(nowMs / 320.0D);
+        int lamp = mix(0xFF1A3A44, CYAN, pulse);
+        drawRect(l + 12, t + 7, l + 15, t + 18, lamp);
         this.fontRenderer.drawStringWithShadow("神盾 DFC 遥测终端 · 设置", l + 22, t + 8, CYAN);
+        // 标题栏右侧流动的高光条
+        int hl = l + W - 16 - (int) ((nowMs / 18L) % 90L);
+        drawRect(Math.max(l + W - 106, hl), t + 11, Math.min(l + W - 16, hl + 26), t + 13,
+                0x4443E0D8);
 
         TileAegisTerminal te = tile();
         if (te == null) {
@@ -159,6 +172,9 @@ public final class GuiAegisTerminal extends GuiScreen {
         BlockPos core = te.getBoundCore();
         boolean linked = core != null;
         this.fontRenderer.drawStringWithShadow("核心连接", l + 12, t + 36, DIM);
+        int linkLamp = linked ? GREEN : AMBER;
+        float linkPulse = 0.55F + 0.45F * (float) Math.sin(nowMs / 300.0D);
+        drawRect(l + 84, t + 37, l + 88, t + 41, mix(linkLamp, 0xFF000000, 1.0F - linkPulse));
         this.fontRenderer.drawStringWithShadow(linked ? "已绑定" : "自动扫描",
                 l + 92, t + 36, linked ? GREEN : AMBER);
         String where = linked
@@ -178,6 +194,18 @@ public final class GuiAegisTerminal extends GuiScreen {
         this.fontRenderer.drawStringWithShadow("稳定", l + 200, t + 68, DIM);
         this.fontRenderer.drawStringWithShadow(stab, l + 240, t + 68, CYAN);
         this.fontRenderer.drawStringWithShadow("能量", l + 296, t + 68, DIM);
+
+        // 温度可视化条：分段填充 + 熔点刻度标记
+        int barX = l + 92, barY = t + 79, barW = 86, barH = 4;
+        drawRect(barX, barY, barX + barW, barY + barH, 0xFF0A1116);
+        if (hasData) {
+            int fw = (int) (barW * heat);
+            for (int px = 0; px < fw; px++) {
+                drawRect(barX + px, barY, barX + px + 1, barY + barH,
+                        mix(CYAN, RED, (float) px / barW));
+            }
+        }
+        drawRect(barX + barW - 1, barY - 1, barX + barW, barY + barH + 1, 0xFFFF5A56);
 
         this.fontRenderer.drawStringWithShadow("页面", l + 12, t + 86, DIM);
         this.fontRenderer.drawStringWithShadow((te.getPage() + 1) + "/3", l + 48, t + 86, CYAN);
@@ -289,6 +317,17 @@ public final class GuiAegisTerminal extends GuiScreen {
         }
         this.killed = true;
         this.mc.displayGuiScreen(null);
+    }
+
+    /** Linear blend of two ARGB colours, t in 0..1. */
+    private static int mix(int a, int b, float t) {
+        t = Math.max(0.0F, Math.min(1.0F, t));
+        int ar = (a >>> 16) & 0xFF, ag = (a >>> 8) & 0xFF, ab = a & 0xFF;
+        int br = (b >>> 16) & 0xFF, bg = (b >>> 8) & 0xFF, bb = b & 0xFF;
+        int r = Math.round(ar + (br - ar) * t);
+        int g = Math.round(ag + (bg - ag) * t);
+        int bl = Math.round(ab + (bb - ab) * t);
+        return 0xFF000000 | (r << 16) | (g << 8) | bl;
     }
 
     private static String formatEnergy(double value) {

@@ -45,7 +45,14 @@ public final class AegisTexture {
     private ByteBuffer staging;
     /** Upper bound on the upload rate; the canvas repaints on every frame. */
     private static final long MIN_UPLOAD_INTERVAL_MS = 16L;
-    private long lastUploadMs = Long.MIN_VALUE;
+    /**
+     * Epoch of the last upload. MUST start at 0, never Long.MIN_VALUE:
+     * {@code now - Long.MIN_VALUE} overflows to a negative number, which makes
+     * the interval check read as "too soon" forever and leaves the screen
+     * permanently blank. 0 is safe because currentTimeMillis is positive.
+     */
+    private long lastUploadMs = 0L;
+    private boolean everUploaded;
 
     public int id() {
         return this.glId;
@@ -57,7 +64,7 @@ public final class AegisTexture {
 
     /** Forces a full re-upload on the next call to {@link #upload}. */
     public void invalidate() {
-        this.lastUploadMs = Long.MIN_VALUE;
+        this.everUploaded = false;
     }
 
     public void upload(BufferedImage image) {
@@ -69,11 +76,13 @@ public final class AegisTexture {
         // countdown blink), so the GPU copy has to follow at the same rate.
         // A tiny interval caps cost on high-refresh displays while keeping the
         // picture smooth; re-uploading also heals a texture after a GL context
-        // reset. The old 4-second gate froze every animation to a quarter FPS.
-        if (now - this.lastUploadMs < MIN_UPLOAD_INTERVAL_MS) {
+        // reset. The first upload (or one after invalidate) must never be
+        // throttled — gating it was the black-screen bug.
+        if (this.everUploaded && now - this.lastUploadMs < MIN_UPLOAD_INTERVAL_MS) {
             return;
         }
         this.lastUploadMs = now;
+        this.everUploaded = true;
 
         int w = image.getWidth();
         int h = image.getHeight();

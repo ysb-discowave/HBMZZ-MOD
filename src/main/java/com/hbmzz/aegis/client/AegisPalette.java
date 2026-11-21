@@ -31,6 +31,12 @@ public final class AegisPalette {
 
     public static final int CYAN = 0xFF39D6E8;
     public static final int CYAN_DARK = 0xFF12707E;
+    public static final int CYAN_GLOW = 0x8839D6E8;
+    public static final int HOLO = 0xFF6FF7FF;
+    public static final int MAGENTA = 0xFFFF5FD2;
+    public static final int SCAN = 0x1E39D6E8;
+    public static final int BG_TOP = 0xFF0A1620;
+    public static final int BG_BOTTOM = 0xFF04080D;
     public static final int GREEN = 0xFF5BE08A;
     public static final int AMBER = 0xFFF2B23C;
     public static final int RED = 0xFFFF5A56;

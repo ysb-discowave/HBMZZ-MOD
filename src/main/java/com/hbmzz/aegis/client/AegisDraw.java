@@ -16,13 +16,19 @@
 
 package com.hbmzz.aegis.client;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.GradientPaint;
 import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.RadialGradientPaint;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -189,5 +195,149 @@ final class AegisDraw {
         for (int y = 0; y < this.height; y += step) {
             line(0, y, this.width, y, argb, 1.0F);
         }
+    }
+
+    // ------------------------------------------------------------- fx primitives
+
+    /** Vertical linear gradient rectangle (top -> bottom). */
+    void gradient(int x, int y, int w, int h, int topArgb, int bottomArgb) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        Paint old = this.g.getPaint();
+        this.g.setPaint(new GradientPaint(x, y, new Color(topArgb, true),
+                x, y + h, new Color(bottomArgb, true)));
+        this.g.fillRect(x, y, w, h);
+        this.g.setPaint(old);
+    }
+
+    /** Soft radial halo centred on (cx,cy), fading to fully transparent at r. */
+    void radialGlow(int cx, int cy, float r, int coreArgb) {
+        if (r <= 0.0F) {
+            return;
+        }
+        Color core = new Color(coreArgb, true);
+        float a = core.getAlpha() / 255.0F;
+        if (a <= 0.0F) {
+            return;
+        }
+        Color edge = new Color(core.getRed(), core.getGreen(), core.getBlue(), 0);
+        Paint old = this.g.getPaint();
+        this.g.setPaint(new RadialGradientPaint(
+                new Point2D.Float(cx, cy), r,
+                new float[]{0.0F, 0.45F, 1.0F},
+                new Color[]{core, new Color(core.getRed(), core.getGreen(), core.getBlue(),
+                        (int) (a * 90.0F)), edge}));
+        this.g.fillOval((int) (cx - r), (int) (cy - r), (int) (r * 2.0F), (int) (r * 2.0F));
+        this.g.setPaint(old);
+    }
+
+    /**
+     * Text with an additive glow: the same glyphs are stamped a few times at
+     * low alpha around the core so bright text reads as an emissive display.
+     */
+    void glowText(String value, int x, int y, int size, int argb, boolean bold) {
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        Composite old = this.g.getComposite();
+        this.g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.16F));
+        int halo = (argb & 0xFFFFFF) | 0x66000000;
+        text(value, x - 1, y, size, halo, bold);
+        text(value, x + 1, y, size, halo, bold);
+        text(value, x, y - 1, size, halo, bold);
+        text(value, x, y + 1, size, halo, bold);
+        this.g.setComposite(old);
+        text(value, x, y, size, argb, bold);
+    }
+
+    /** Filled area under a sparkline, drawn beneath the polyline itself. */
+    void areaSpark(float[] values, int count, int x, int y, int w, int h,
+                   int lineColour, int fillTop, int fillBottom) {
+        if (count < 2) {
+            return;
+        }
+        int stride = Math.max(1, count / Math.max(1, w));
+        List<int[]> pts = new ArrayList<int[]>();
+        for (int i = 0; i < count; i += stride) {
+            int px = x + (int) Math.round((double) i / (count - 1) * w);
+            float v = Math.max(0.0F, Math.min(1.0F, values[i]));
+            int py = y + h - (int) Math.round(v * h);
+            pts.add(new int[]{px, py});
+        }
+        if (pts.isEmpty()) {
+            return;
+        }
+        Paint old = this.g.getPaint();
+        int[] xs = new int[pts.size() + 2];
+        int[] ys = new int[pts.size() + 2];
+        xs[0] = x; ys[0] = y + h;
+        for (int i = 0; i < pts.size(); i++) {
+            xs[i + 1] = pts.get(i)[0];
+            ys[i + 1] = pts.get(i)[1];
+        }
+        xs[xs.length - 1] = x + w; ys[ys.length - 1] = y + h;
+        this.g.setPaint(new GradientPaint(0, y, new Color(fillTop, true),
+                0, y + h, new Color(fillBottom, true)));
+        this.g.fillPolygon(xs, ys, xs.length);
+        this.g.setPaint(old);
+        for (int i = 1; i < pts.size(); i++) {
+            int[] a = pts.get(i - 1);
+            int[] b = pts.get(i);
+            line(a[0], a[1], b[0], b[1], lineColour, 1.6F);
+        }
+    }
+
+    /** Dashed line, handy for scan guides and grid rulers. */
+    void dashedLine(int x1, int y1, int x2, int y2, int argb,
+                    float thickness, float dash, float gap) {
+        this.g.setColor(new Color(argb, true));
+        Stroke old = this.g.getStroke();
+        this.g.setStroke(new BasicStroke(thickness, BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_MITER, 10.0F, new float[]{dash, gap}, 0.0F));
+        this.g.drawLine(x1, y1, x2, y2);
+        this.g.setStroke(old);
+    }
+
+    /** Four HUD corner brackets around a rectangle. */
+    void corners(int x, int y, int w, int h, int len, int argb, float thickness) {
+        line(x, y, x + len, y, argb, thickness);
+        line(x, y, x, y + len, argb, thickness);
+        line(x + w - len, y, x + w, y, argb, thickness);
+        line(x + w, y, x + w, y + len, argb, thickness);
+        line(x, y + h - len, x, y + h, argb, thickness);
+        line(x, y + h, x + len, y + h, argb, thickness);
+        line(x + w - len, y + h, x + w, y + h, argb, thickness);
+        line(x + w, y + h - len, x + w, y + h, argb, thickness);
+    }
+
+    /** Perspective-ish background grid; offset scrolls it for motion. */
+    void grid(int x, int y, int w, int h, int step, int offset, int argb) {
+        if (step <= 0) {
+            return;
+        }
+        int startX = x + (offset % step);
+        for (int gx = startX; gx < x + w; gx += step) {
+            line(gx, y, gx, y + h, argb, 1.0F);
+        }
+        for (int gy = y; gy < y + h; gy += step) {
+            line(x, gy, x + w, gy, argb, 1.0F);
+        }
+    }
+
+    /** Ring arc from startDeg to endDeg (degrees, 0 = up, clockwise). */
+    void arc(int cx, int cy, int radius, double startDeg, double endDeg,
+             int argb, float thickness) {
+        if (radius <= 0 || endDeg <= startDeg) {
+            return;
+        }
+        this.g.setColor(new Color(argb, true));
+        Stroke old = this.g.getStroke();
+        this.g.setStroke(new BasicStroke(thickness, BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND));
+        int d = (int) (radius * 2.0F);
+        this.g.drawArc(cx - (int) radius, cy - (int) radius, d, d,
+                (int) startDeg - 90, (int) (endDeg - startDeg));
+        this.g.setStroke(old);
     }
 }

@@ -93,6 +93,15 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
             GlStateManager.translate(0.0D, 0.0D, PLANE);
 
             bezel();
+            // Additive rim light: cyan normally, amber when hot, red on a
+            // collapse/tamper alarm. Makes the panel readable as "alive" from
+            // across the room without touching the screen texture itself.
+            boolean danger = frame.collapsing || frame.forecastKind == 1 || frame.tamperState >= 2;
+            int glow = danger ? 0xFFFF5A56
+                    : (frame.heatFraction() >= com.hbmzz.aegis.AegisConfig.dangerHeat ? 0xFFFFB23C
+                    : (frame.heatFraction() >= com.hbmzz.aegis.AegisConfig.warnHeat ? 0xFFFFB23C
+                    : 0xFF39D6E8));
+            glowRim(glow);
             if (texture.ready()) {
                 screen(texture.id());
             }
@@ -125,6 +134,39 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         quad(buf, l + edge, b, r - edge, b + edge, z);
         quad(buf, l + edge, t - edge, r - edge, t, z);
         tess.draw();
+        GlStateManager.enableTexture2D();
+    }
+
+    /** Additive rim light just outside the bezel, tinted by alarm state. */
+    private static void glowRim(int argb) {
+        float a = ((argb >>> 24) & 0xFF) / 255.0F;
+        float r = ((argb >>> 16) & 0xFF) / 255.0F;
+        float g = ((argb >>> 8) & 0xFF) / 255.0F;
+        float b = (argb & 0xFF) / 255.0F;
+        float l = -HALF_W - 0.055F;
+        float rr = HALF_W + 0.055F;
+        float bot = -HALF_H - 0.055F;
+        float top = HALF_H + 0.055F;
+        float edge = 0.012F;
+        float z = -0.004F;
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE,
+                GL11.GL_ONE, GL11.GL_ZERO);
+        GlStateManager.color(r, g, b, a * 0.55F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        quad(buf, l, bot, rr, bot + edge, z);
+        quad(buf, l, top - edge, rr, top, z);
+        quad(buf, l, bot, l + edge, top, z);
+        quad(buf, rr - edge, bot, rr, top, z);
+        tess.draw();
+        // Restore the conventional blend func used by the screen quad.
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA,
+                GL11.GL_ONE, GL11.GL_ZERO);
         GlStateManager.enableTexture2D();
     }
 

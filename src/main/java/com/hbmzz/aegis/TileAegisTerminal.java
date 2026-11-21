@@ -177,6 +177,21 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
         sync();
     }
 
+    /**
+     * Client-side optimistic preview. Sets the three geometry fields immediately
+     * so the renderer and the settings window update on the very next frame,
+     * without waiting for the server's authoritative sync to make a round trip.
+     * No NBT / no network side effects: the accompanying SetupPacket still
+     * writes the authoritative value to the server tile and broadcasts it; when
+     * that sync arrives it overwrites these fields with the same clamped value,
+     * so there is no flicker. Uses the exact same clamp as {@link #setGeometry}.
+     */
+    public void setGeometryPreview(float newTilt, float newWidth, float newHeight) {
+        this.tilt = clamp(newTilt, TILT_MIN, TILT_MAX);
+        this.panelWidth = clamp(newWidth, WIDTH_MIN, WIDTH_MAX);
+        this.panelHeight = clamp(newHeight, HEIGHT_MIN, HEIGHT_MAX);
+    }
+
     private static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
     }

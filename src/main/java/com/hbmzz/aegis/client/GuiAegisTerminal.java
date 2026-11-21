@@ -332,28 +332,51 @@ public final class GuiAegisTerminal extends GuiScreen {
         }
     }
 
+    /**
+     * Live geometry nudge: update the client tile first so the 3D panel and the
+     * on-screen readout change on the very next frame, then send the same value
+     * to the server for authoritative clamping, NBT persistence and broadcast.
+     * Using the identical clamp in {@link TileAegisTerminal#setGeometryPreview}
+     * and on the server means the returning sync writes back the same number —
+     * the screen never jumps back or waits for the menu to close.
+     */
     private void sendTilt(float degrees) {
         int v = Math.round(degrees * 10.0F);
         v = Math.max(Math.round(TileAegisTerminal.TILT_MIN * 10.0F),
                 Math.min(Math.round(TileAegisTerminal.TILT_MAX * 10.0F), v));
+        float value = v / 10.0F;
+        TileAegisTerminal local = tile();
+        if (local != null) {
+            local.setGeometryPreview(value, local.getPanelWidth(), local.getPanelHeight());
+        }
         NetworkHandler.sendToServer(new AegisSetupPacket(this.pos, AegisSetupPacket.TILT, v));
-        flash("倾斜角 → " + String.format(Locale.ROOT, "%+.0f°", v / 10.0F));
+        flash("倾斜角 → " + String.format(Locale.ROOT, "%+.0f°", value));
     }
 
     private void sendWidth(float blocks) {
         int v = Math.round(blocks * 100.0F);
         v = Math.max(Math.round(TileAegisTerminal.WIDTH_MIN * 100.0F),
                 Math.min(Math.round(TileAegisTerminal.WIDTH_MAX * 100.0F), v));
+        float value = v / 100.0F;
+        TileAegisTerminal local = tile();
+        if (local != null) {
+            local.setGeometryPreview(local.getTilt(), value, local.getPanelHeight());
+        }
         NetworkHandler.sendToServer(new AegisSetupPacket(this.pos, AegisSetupPacket.WIDTH, v));
-        flash("屏幕宽 → " + String.format(Locale.ROOT, "%.2f 格", v / 100.0F));
+        flash("屏幕宽 → " + String.format(Locale.ROOT, "%.2f 格", value));
     }
 
     private void sendHeight(float blocks) {
         int v = Math.round(blocks * 100.0F);
         v = Math.max(Math.round(TileAegisTerminal.HEIGHT_MIN * 100.0F),
                 Math.min(Math.round(TileAegisTerminal.HEIGHT_MAX * 100.0F), v));
+        float value = v / 100.0F;
+        TileAegisTerminal local = tile();
+        if (local != null) {
+            local.setGeometryPreview(local.getTilt(), local.getPanelWidth(), value);
+        }
         NetworkHandler.sendToServer(new AegisSetupPacket(this.pos, AegisSetupPacket.HEIGHT, v));
-        flash("屏幕高 → " + String.format(Locale.ROOT, "%.2f 格", v / 100.0F));
+        flash("屏幕高 → " + String.format(Locale.ROOT, "%.2f 格", value));
     }
 
     @Override

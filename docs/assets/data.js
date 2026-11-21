@@ -2,7 +2,7 @@
  * 改内容去 tools/site/content.json；改版本号去 build.gradle。
  */
 window.HBMZZ_DATA = {
-  "siteVersion": "3.8.0",
+  "siteVersion": "4.0.0",
   "site": {
     "name": "HBMZZ",
     "fullName": "HBMZZ — DFC 监控屏 / 机器控制面板 / 制式枪械",
@@ -680,7 +680,7 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "3.8.0",
+    "version": "4.0.0",
     "gradleVersion": "3.9.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",

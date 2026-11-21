@@ -25,7 +25,7 @@ public final class AegisConfig {
 
     public static int pollTicks = 10;
     public static int viewRange = 40;
-    public static int scanRadius = 16;
+    public static int scanRadius = 48;
     public static int gridCols = 2;
     public static int gridRows = 2;
     public static boolean glow = true;
@@ -50,8 +50,18 @@ public final class AegisConfig {
                     "Ticks between telemetry refreshes sent to nearby viewers.");
             viewRange = cfg.getInt("viewRange", "terminal", 40, 4, 128,
                     "Radius in blocks within which a placed terminal is fed telemetry.");
-            scanRadius = cfg.getInt("scanRadius", "terminal", 16, 4, 64,
-                    "Radius searched for a DFC core when none is explicitly bound.");
+            scanRadius = cfg.getInt("scanRadius", "terminal", 48, 4, 128,
+                    "Radius searched for a DFC core when none is explicitly bound. "
+                    + "Large bases can place the core tens of blocks from the terminal; "
+                    + "16 was too small and made distant cores look un-connectable.");
+            // One-time migration: existing worlds carried scanRadius=16 from the
+            // old default. Forge keeps the on-disk value, so without this a
+            // rebuilt jar would still only search 16 blocks. Bump any legacy
+            // narrow value up to the new 48-block minimum and persist it.
+            if (scanRadius < 48) {
+                scanRadius = 48;
+                cfg.get("terminal", "scanRadius", 48).set(48);
+            }
             gridCols = cfg.getInt("gridCols", "terminal", 2, 1, 6,
                     "Default wall width of a terminal, in blocks.");
             gridRows = cfg.getInt("gridRows", "terminal", 2, 1, 4,

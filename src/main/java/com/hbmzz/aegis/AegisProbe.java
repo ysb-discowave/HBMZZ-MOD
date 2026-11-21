@@ -81,6 +81,20 @@ public final class AegisProbe {
             if (CORE_TYPE.equals(c.getName())) {
                 return true;
             }
+            // CE addon marks every real fusion core with one of these marker
+            // interfaces. Checking them (by suffix, so a package move is fine)
+            // recognises forks that rename the concrete class entirely.
+            for (Class<?> iface : c.getInterfaces()) {
+                String name = iface.getName();
+                if (name.endsWith("IDFCBase") || name.endsWith("IMixinTileEntityCore")) {
+                    return true;
+                }
+            }
+        }
+        // Simple-name match covers forks that relocate TileEntityCore but keep
+        // its name (CE addon still uses this simple name under the hood).
+        if ("TileEntityCore".equals(te.getClass().getSimpleName())) {
+            return true;
         }
         if (hasMethod(te, "getDFCTemperature") || hasMethod(te, "isDFCHasCore")) {
             return true;

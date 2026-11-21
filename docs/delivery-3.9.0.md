@@ -72,11 +72,45 @@
 - JDK 8 `gradle build` **BUILD SUCCESSFUL**。
 - `tools/regcheck/check.py`：**all 150 checks passed**；网络包 ID 33 无冲突。
 - 站点一致性 `sync_site.py --check`：全部一致（仅一条 tag/构建版本不一致的预期 WARN）。
-- 新 jar 已部署进游戏 `mods`：`hbmzz-3.9.0.jar`，MD5 `5357752f6c8d2cca24001c6e3941bcde`。
-- 上一版 `hbmzz-3.9.0.jar` 已备份为 `mods/backup-mods/hbmzz-3.9.0.jar.pre-scram`。
+- 新 jar 已部署进游戏 `mods`：`hbmzz-3.9.0.jar`，MD5 `8cd33925913d52400932c43017325a88`。
+- 上一版 `hbmzz-3.9.0.jar` 已备份为 `mods/backup-mods/hbmzz-3.9.0.jar.pre-wallmount`。
 
 ## 八、说明
 
 - 温度失效的修复基于"核心没被识别"这一日志证据；若现场仍异常，请附 `logs/latest.log` 里的 `Aegis sample` 行（现在无论是否找到核心都会记）。
 - 自动停堆是应急刹车，直接写核心温度字段，不替代反应堆自身的控制棒/停堆逻辑。
 - 未推 GitHub、未打新 tag、未动远端 Release：遵守约定，除非用户本人发出代理名 `XingZuo-Cloud Bot`。
+
+---
+
+## 九、追加修复：贴墙 + 侧视实体 + 远距离核心连接（同版本内）
+
+本轮针对三条现场反馈，功能代码仍在 `3.9.0` 版本号下。
+
+### 9.1 屏幕不贴墙、侧着看像滚木
+
+**现象**：终端看着悬在墙前；侧视时是一段突出墙面的深盒子和交叉支架，像一卷滚木而非贴墙显示器。
+
+**根因**：渲染器 `AegisRenderer` 上一版把外壳深度做到约 0.18 格，还画了一个从墙面伸出 0.1 格的交叉支架 `wallBracket()`；倾斜的旋转枢轴放在墙前 0.45 格处。三件事叠加，导致屏幕中心浮在墙外、侧面看到深盒+支架的柱状轮廓。
+
+**修复**（`AegisRenderer.java`）：
+- 倾斜枢轴移到**墙面本身**（局部 +Z = 0.5），外壳背面在任意倾角都贴着墙，只有正面往外仰。
+- 删掉突出的交叉支架；外壳改为**贴墙扁盒**（`BOX_DEPTH = 0.14` 格），背面 z=0 贴墙、正面是画面。
+- 四个侧壁按顶亮/底暗/两侧中色分别上色，正面一圈青色窄边，侧视是平整、有明确厚度的显示器。
+- 修掉原 `drawEdgeStrip()` 的顶点 bug（vertical 分支把四个顶点压在同一 y 平面）。
+
+### 9.2 有些核心连得上、有些连不上
+
+**铁证**：现场 `logs/latest.log` 里 `Aegis sample @(606,26,-1008) NO CORE scanRadius=16`，而手动绑定的核心在 `(643,30,-1012)`，相距约 37 格——自动扫描半径 16 根本够不着。近的核心能连、远的连不上，与反馈完全吻合。
+
+**修复**：
+- `AegisConfig.scanRadius` 默认值 16 → **48**，配置上限 64 → 128。
+- 加**一次性迁移**：旧存档里的值是 16（Forge 不覆盖已存在配置），加载时若小于 48 自动提升并写回，用户无需手动删配置。
+- 现场 `config/hbmzz-aegis.cfg` 的 `scanRadius` 已同步改为 48，立即生效。
+- 两处 `isCore()`（`AegisProbe` / `DFCReader`）增加 CE addon 标记接口 `IDFCBase` / `IMixinTileEntityCore` 的识别，加上简单类名回退，核心类被改名/换包也能认出。
+
+### 9.3 验证
+
+- 人工排查两遍 + javap 核对 Forge API（`Configuration.get(String,String,int)`、`Property.set(int)` 均存在）；`AegisRenderer` 大括号配平。
+- JDK 8 `gradle build` **BUILD SUCCESSFUL**；regcheck **all 150 checks passed**；站点一致性通过。
+- 产物 MD5 `8cd33925913d52400932c43017325a88`，已部署；上一版备份 `.pre-wallmount`。

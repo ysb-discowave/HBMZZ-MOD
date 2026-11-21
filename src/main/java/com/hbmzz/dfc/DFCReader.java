@@ -147,6 +147,15 @@ public final class DFCReader {
             if (CORE_CLASS.equals(type.getName())) {
                 return true;
             }
+            for (Class<?> iface : type.getInterfaces()) {
+                String name = iface.getName();
+                if (name.endsWith("IDFCBase") || name.endsWith("IMixinTileEntityCore")) {
+                    return true;
+                }
+            }
+        }
+        if ("TileEntityCore".equals(te.getClass().getSimpleName())) {
+            return true;
         }
         // CE / Cursed forks reshuffle core subclasses; accept the DFC feature
         // signature as a fallback so a rename does not silently break the

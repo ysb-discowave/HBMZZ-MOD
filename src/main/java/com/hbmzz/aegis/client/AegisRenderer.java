@@ -53,6 +53,8 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
 
     /** The wall face the panel mounts to, in local block coordinates. */
     private static final float PLANE = 0.5F;
+    /** Depth of the wall-mounted enclosure, from the wall face to the picture. */
+    private static final float BOX_DEPTH = 0.14F;
 
     @Override
     public void render(TileAegisTerminal te, double x, double y, double z,
@@ -90,19 +92,19 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
 
             GlStateManager.translate(x + 0.5D, y + 0.5D, z + 0.5D);
             GlStateManager.rotate(yaw(facing), 0.0F, 1.0F, 0.0F);
-            // The screen is drawn on local +Z. Pivot around the wall surface so
-            // the panel leans against the wall like a real wall-mounted monitor
-            // instead of hovering at the block's centre. The small standoff
-            // gives a tilted panel clearance and leaves room for the bracket.
-            GlStateManager.translate(0.0D, 0.0D, PLANE - 0.05D);
+            // Pivot the tilt on the WALL SURFACE (local +Z = 0.5), not on a
+            // point floating in front of it. The enclosure's back face then
+            // stays flush against the wall at every tilt angle; only the front
+            // leans out. This is what makes it read as a wall-mounted panel
+            // instead of a screen hovering in mid-air.
+            GlStateManager.translate(0.0D, 0.0D, PLANE);
             GlStateManager.rotate(te.getTilt(), 1.0F, 0.0F, 0.0F);
-            GlStateManager.translate(0.0D, 0.0D, 0.07D);
 
-            // Solid enclosure first: a dark metal box plus a bracket into the
-            // wall. This is what turns the emissive quad from a floating image
-            // into a physical screen bolted to the surface.
-            wallBracket();
+            // A flat enclosure whose back sits on the wall (z = 0) and whose
+            // picture face is BOX_DEPTH in front. No protruding bracket: side
+            // views now show a clean, flat-sided box with real thickness.
             backing(halfW, halfH);
+            GlStateManager.translate(0.0D, 0.0D, BOX_DEPTH);
             bezel(halfW, halfH);
             // Additive rim light: cyan normally, amber when hot, red on a
             // collapse/tamper alarm. Makes the panel readable as "alive" from
@@ -125,64 +127,33 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
     }
 
     /**
-     * Dark bracket reaching from the panel back toward the wall. It is what
-     * visually anchors the screen to the surface rather than letting it read
-     * as a decal hovering in mid-air.
-     */
-    private static void wallBracket() {
-        float z0 = -0.16F;
-        float z1 = -0.055F;
-        float w = 0.075F;
-        Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buf = tess.getBuffer();
-        GlStateManager.disableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.enableBlend();
-        GlStateManager.color(0.08F, 0.10F, 0.12F, 1.0F);
-        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-        // two crossed plates make the arm look solid from any angle
-        buf.pos(-w, -w, z0).endVertex(); buf.pos(w, -w, z0).endVertex();
-        buf.pos(w, w, z0).endVertex();   buf.pos(-w, w, z0).endVertex();
-        buf.pos(-w, -w, z1).endVertex(); buf.pos(w, -w, z1).endVertex();
-        buf.pos(w, -w, z0).endVertex();  buf.pos(-w, -w, z0).endVertex();
-        buf.pos(-w, w, z0).endVertex();  buf.pos(w, w, z0).endVertex();
-        buf.pos(w, w, z1).endVertex();   buf.pos(-w, w, z1).endVertex();
-        buf.pos(-w, -w, z1).endVertex(); buf.pos(-w, w, z1).endVertex();
-        buf.pos(-w, w, z0).endVertex();  buf.pos(-w, -w, z0).endVertex();
-        buf.pos(w, -w, z0).endVertex();  buf.pos(w, w, z0).endVertex();
-        buf.pos(w, w, z1).endVertex();   buf.pos(w, -w, z1).endVertex();
-        tess.draw();
-        GlStateManager.enableTexture2D();
-    }
-
-    /**
-     * Solid metal enclosure behind the picture. A back plate plus four thick
-     * side walls give the panel real depth so width/height/tilt read as a
-     * physical object from the front, the side and at an angle — the old
-     * enclosure was only ~0.06 blocks deep and almost black, so looking at the
-     * terminal edge-on showed nothing and the screen read as a floating decal.
-     * The four walls are shaded differently (top bright, bottom dark, sides in
-     * between) so the box has readable volume even without dynamic lighting.
+     * Flat metal enclosure whose back face lies exactly on the wall (local
+     * z = 0) and whose picture face is {@link #BOX_DEPTH} in front. It is a
+     * shallow, solid box — top/bottom/left/right walls plus a back plate — with
+     * no arm jutting out of the wall. From the side you see a thin, straight
+     * slab with readable thickness; the old version had a deep 0.18-block shell
+     * and a crossed bracket sticking out, which at oblique angles read as a
+     * rolled log rather than a wall monitor.
      */
     private static void backing(float halfW, float halfH) {
-        float pad = 0.045F;
+        float pad = 0.035F;
         float l = -halfW - pad, r = halfW + pad;
         float b = -halfH - pad, t = halfH + pad;
-        float front = 0.012F;   // slightly proud of the wall plane
-        float back = -0.17F;    // deep enough to read as a box from the side
+        float front = BOX_DEPTH;
+        float back = 0.0F;    // flush with the wall surface
         Tessellator tess = Tessellator.getInstance();
         BufferBuilder buf = tess.getBuffer();
         GlStateManager.disableTexture2D();
         GlStateManager.disableLighting();
         GlStateManager.enableBlend();
 
-        // Back plate: dark brushed metal, visible when the screen is tilted.
+        // Back plate (also the visible rim when the panel is tilted).
         GlStateManager.color(0.13F, 0.16F, 0.19F, 1.0F);
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
         quad(buf, l, b, r, t, back);
         tess.draw();
 
-        // Side walls, one shade per face so the depth is legible edge-on.
+        // Four side walls, one shade per face so the depth reads edge-on.
         // top (brightest)
         GlStateManager.color(0.30F, 0.36F, 0.42F, 1.0F);
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
@@ -204,37 +175,25 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         buf.pos(r, t, front).endVertex(); buf.pos(r, t, back).endVertex();
         tess.draw();
 
-        // A thin cyan-lit rim on the four front edges makes the thickness pop
-        // from any oblique angle instead of dissolving into a dark silhouette.
+        // A slim cyan strip along the front edge gives the flat box a crisp,
+        // manufactured outline without turning it into a rounded object.
         GlStateManager.color(0.16F, 0.55F, 0.60F, 1.0F);
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-        drawEdgeStrip(buf, l, b, l, t, front, back, true);   // left depth edge
-        tess.draw();
-        GlStateManager.color(0.16F, 0.55F, 0.60F, 1.0F);
-        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-        drawEdgeStrip(buf, r, b, r, t, front, back, true);   // right depth edge
-        tess.draw();
-        GlStateManager.color(0.22F, 0.62F, 0.66F, 1.0F);
-        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-        drawEdgeStrip(buf, l, t, r, t, front, back, false);  // top depth edge
+        float e = 0.010F;
+        // top front edge
+        buf.pos(l, t - e, front).endVertex(); buf.pos(r, t - e, front).endVertex();
+        buf.pos(r, t, front).endVertex();     buf.pos(l, t, front).endVertex();
+        // bottom front edge
+        buf.pos(l, b, front).endVertex();     buf.pos(r, b, front).endVertex();
+        buf.pos(r, b + e, front).endVertex(); buf.pos(l, b + e, front).endVertex();
+        // left front edge
+        buf.pos(l, b, front).endVertex();     buf.pos(l + e, b, front).endVertex();
+        buf.pos(l + e, t, front).endVertex(); buf.pos(l, t, front).endVertex();
+        // right front edge
+        buf.pos(r - e, b, front).endVertex(); buf.pos(r, b, front).endVertex();
+        buf.pos(r, t, front).endVertex();     buf.pos(r - e, t, front).endVertex();
         tess.draw();
         GlStateManager.enableTexture2D();
-    }
-
-    /** One quad running from the front to the back of the enclosure along an edge. */
-    private static void drawEdgeStrip(BufferBuilder buf, float x0, float y0,
-                                      float x1, float y1, float front, float back,
-                                      boolean vertical) {
-        float e = 0.012F;
-        if (vertical) {
-            // a thin strip on the side face spanning the depth
-            float xi = x0 < 0.0F ? x0 : x0 - e;
-            buf.pos(xi, y0, front).endVertex();  buf.pos(xi + e, y0, front).endVertex();
-            buf.pos(xi + e, y0, back).endVertex();   buf.pos(xi, y0, back).endVertex();
-        } else {
-            buf.pos(x0, y0, front).endVertex();  buf.pos(x1, y0, front).endVertex();
-            buf.pos(x1, y0, back).endVertex();   buf.pos(x0, y0, back).endVertex();
-        }
     }
 
     /** Local-space bezel around the picture; drawn as four dark bars. */

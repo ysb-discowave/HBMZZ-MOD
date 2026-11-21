@@ -16,6 +16,7 @@
 
 package com.hbmzz.aegis;
 
+import com.hbmzz.HBMZZ;
 import com.hbmzz.hack.HackRegistry;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -51,6 +52,9 @@ public final class AegisProbe {
     private static final String CORE_TYPE = "com.hbm.tileentity.machine.TileEntityCore";
     /** Marker substring in the class name of a compatible power meter. */
     private static final String METER_MARK = "CableGauge";
+    /** One-line diagnostic of real core readings for the first few samples. */
+    private static final int DIAGNOSTIC_SAMPLES = 8;
+    private static int diagnosticCount;
 
     private AegisProbe() {
     }
@@ -123,16 +127,40 @@ public final class AegisProbe {
         }
 
         frame.linked = true;
-        frame.loaded = boolOf(call(core, "isDFCHasCore"), true);
-        frame.heatC = doubleOf(call(core, "getDFCTemperature"), field(core, "heat"), 0.0D);
-        frame.meltC = positive(doubleOf(call(core, "getDFCMeltingPoint"), null, 2250.0D), 2250.0D);
+        // NTM-CE 2.5.0 + Cursed addon: the addon's mixin adds getDFC* accessors
+        // to TileEntityCore. Those are preferred, but a core that has just been
+        // placed (or a fork without the mixin) leaves the addon fields at 0, so
+        // fall back to the base mod's real fields:
+        //   int heat        - this tick's heat (0..100 scale)
+        //   int field       - collapse countdown / threshold
+        //   boolean meltdownTick
+        //   boolean hasCore()
+        frame.loaded = boolOf(call(core, "isDFCHasCore"),
+                boolOf(call(core, "hasCore"), field(core, "heat") instanceof Number
+                        && ((Number) field(core, "heat")).intValue() > 0));
+        frame.heatC = temperature(core);
+        frame.meltC = meltingPoint(core);
         frame.stability = (float) Math.max(0.0D, Math.min(1.0D,
                 doubleOf(call(core, "getDFCStabilization"), null, 0.0D)));
         frame.coreEnergy = doubleOf(call(core, "getDFCContainedEnergy"), null, 0.0D);
         frame.exhaustEnergy = doubleOf(call(core, "getDFCExpellingEnergy"), null, 0.0D);
         frame.gainEnergy = doubleOf(call(core, "getDFCPotentialGain"), null, 0.0D);
-        frame.collapsing = doubleOf(call(core, "getDFCCollapsing"), null, 0.0D) > 0.0D;
-        frame.detonationSeconds = doubleOf(call(core, "getDFCExplosionIn"), null, -1.0D);
+        frame.collapsing = collapsing(core);
+        frame.detonationSeconds = explosionIn(core);
+
+        if (diagnosticCount < DIAGNOSTIC_SAMPLES) {
+            diagnosticCount++;
+            HBMZZ.logger.info("Aegis sample @" + core.getPos()
+                    + " class=" + core.getClass().getName()
+                    + " linked=true loaded=" + frame.loaded
+                    + " temp=" + frame.heatC + " melt=" + frame.meltC
+                    + " stab=" + frame.stability
+                    + " collapsing=" + frame.collapsing
+                    + " explosionIn=" + frame.detonationSeconds
+                    + " heatF=" + field(core, "heat")
+                    + " fieldF=" + field(core, "field")
+                    + " meltdownTick=" + field(core, "meltdownTick"));
+        }
 
         readTanks(core, frame);
         readCoreTag(core, frame);
@@ -286,6 +314,73 @@ public final class AegisProbe {
     private static void readTamper(World world, BlockPos corePos, AegisTelemetry frame) {
         frame.tamperState = HackRegistry.stateFor(world, corePos);
         frame.tamperTicks = HackRegistry.ticksLeft(world, corePos);
+    }
+
+    // --------------------------------------------------- core reading with fallbacks
+    // The Cursed addon mixin adds getDFC* accessors on top of the base mod's
+    // TileEntityCore. On a freshly placed core (or without the mixin) the addon
+    // fields stay at 0, so each reading prefers the accessor but falls back to
+    // the base fields the accessor itself derives from.
+
+    /** Core temperature, in the same scale as {@link #meltingPoint}. */
+    private static double temperature(TileEntity core) {
+        Object addon = call(core, "getDFCTemperature");
+        if (addon instanceof Number && ((Number) addon).doubleValue() > 0.0D) {
+            return ((Number) addon).doubleValue();
+        }
+        // Base mod: int heat is this tick's temperature. When the addon field
+        // is still 0 the core is cold OR the mixin is absent; using heat keeps a
+        // reading alive, paired with the `field` threshold in meltingPoint().
+        Object heat = field(core, "heat");
+        return heat instanceof Number ? ((Number) heat).doubleValue() : 0.0D;
+    }
+
+    /** Melt threshold paired with whatever {@link #temperature} returned. */
+    private static double meltingPoint(TileEntity core) {
+        Object addon = call(core, "getDFCMeltingPoint");
+        if (addon instanceof Number && ((Number) addon).doubleValue() > 0.0D) {
+            return ((Number) addon).doubleValue();
+        }
+        Object fieldValue = field(core, "field");
+        if (fieldValue instanceof Number && ((Number) fieldValue).doubleValue() > 0.0D) {
+            return ((Number) fieldValue).doubleValue();
+        }
+        return 2250.0D;
+    }
+
+    /** True only while the core is actually in terminal collapse. */
+    private static boolean collapsing(TileEntity core) {
+        Object addon = call(core, "getDFCCollapsing");
+        if (addon instanceof Number) {
+            return ((Number) addon).doubleValue() > 0.0D;
+        }
+        if (boolField(core, "meltdownTick", false)) {
+            return true;
+        }
+        Object heat = field(core, "heat");
+        Object fieldValue = field(core, "field");
+        return heat instanceof Number && fieldValue instanceof Number
+                && ((Number) heat).doubleValue() > 0.0D
+                && ((Number) heat).doubleValue() >= ((Number) fieldValue).doubleValue();
+    }
+
+    /** Seconds until detonation, or -1 when no countdown is running. */
+    private static double explosionIn(TileEntity core) {
+        Object addon = call(core, "getDFCExplosionIn");
+        if (addon instanceof Number) {
+            double value = ((Number) addon).doubleValue();
+            return value >= 0.0D ? value : -1.0D;
+        }
+        Object fieldValue = field(core, "field");
+        if (fieldValue instanceof Number && ((Number) fieldValue).doubleValue() > 0.0D) {
+            return ((Number) fieldValue).doubleValue();
+        }
+        return -1.0D;
+    }
+
+    private static boolean boolField(Object target, String name, boolean fallback) {
+        Object value = field(target, name);
+        return value instanceof Boolean ? (Boolean) value : fallback;
     }
 
     // -------------------------------------------------------------- reflection

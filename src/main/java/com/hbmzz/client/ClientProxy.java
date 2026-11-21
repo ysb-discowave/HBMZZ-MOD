@@ -277,6 +277,11 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
+    public void openAegis(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new com.hbmzz.aegis.client.GuiAegisTerminal(pos));
+    }
+
+    @Override
     public void openControlPanel(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiCtrlPanel(pos));
     }

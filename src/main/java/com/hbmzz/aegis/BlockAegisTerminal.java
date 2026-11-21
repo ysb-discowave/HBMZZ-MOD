@@ -125,18 +125,19 @@ public final class BlockAegisTerminal extends BlockHorizontal implements ITileEn
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player,
                                     EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ) {
-        if (world.isRemote) {
+        // 普通右键打开配置窗口（绑定核心 / 翻页 / 电源都在这里）。
+        // 潜行右键保留为快速翻页，方便站在屏前连续切换而不必开关窗口。
+        if (player.isSneaking()) {
+            if (!world.isRemote) {
+                TileEntity te = world.getTileEntity(pos);
+                if (te instanceof TileAegisTerminal) {
+                    ((TileAegisTerminal) te).cyclePage();
+                }
+            }
             return true;
         }
-        TileEntity te = world.getTileEntity(pos);
-        if (!(te instanceof TileAegisTerminal)) {
-            return false;
-        }
-        TileAegisTerminal terminal = (TileAegisTerminal) te;
-        if (player.isSneaking()) {
-            terminal.clearBinding();
-        } else {
-            terminal.cyclePage();
+        if (world.isRemote) {
+            HBMZZ.proxy.openAegis(pos);
         }
         return true;
     }

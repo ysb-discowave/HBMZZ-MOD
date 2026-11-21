@@ -136,5 +136,5 @@ hbmzz.reactor_core.tip3=正面：功率输出。可由机器控制台驱动。
 # Aegis 遥测终端
 tile.hbmzz.aegis_terminal.name=神盾 DFC 终端
 tile.hbmzz.aegis_cell.name=神盾终端边框
-aegis.help.page=右键:切换页面
-aegis.help.unbind=潜行+右键:重置核心链接
+aegis.help.page=右键:打开设置窗口(绑定核心/翻页/电源); 潜行+右键:快速翻页
+aegis.help.unbind=设置窗口内点「解除绑定」恢复自动扫描

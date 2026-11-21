@@ -33,6 +33,10 @@ public class CommonProxy {
     public void openMonitor(BlockPos pos) {
     }
 
+    /** Opens the Aegis terminal's configuration window (client only). */
+    public void openAegis(BlockPos pos) {
+    }
+
     /**
      * Opens the machine control panel window. Server side this is a no-op: the
      * panel is operated through its own packets, so a dedicated server never

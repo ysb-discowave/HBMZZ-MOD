@@ -111,3 +111,12 @@ Aegis 新代码（4 组）：
 - **根因**：`AegisRenderer` 把屏幕四边形画在局部 **+Z** 面，却沿用了旧版「把局部 -Z 对齐 FACING」的角度映射（`yawOf`）。结果画面朝向反了 180°，埋进墙体背面，正面什么都看不见。
 - **修复**：`yaw()` 改为 +Z 面映射——南 0° / 东 90° / 北 180° / 西 270°（+Z 绕 Y 轴旋转到对应朝向）。
 - **验证**：`gradle build` 再次 BUILD SUCCESSFUL，新 jar 已重新部署进游戏 `mods`，MD5 `852b0040…cea2` 一致；部署前旧包备份为 `backup-mods/hbmzz-4.0.0.jar.pre-yawfix`。
+
+## 七、热修：全中文界面 + 右键配置菜单 + 手动绑定（同日追加）
+
+- **界面汉化**：`AegisCanvas` 全部屏显文案改为中文（三页总览/部件/诊断、堆芯温度、熔点、稳定度、组件计数、流体罐、催化剂磨损、功率、信号完整性、倒计时、开机/待机/无信号态）；`AegisProbe` 回传的 `EMPTY/UNKNOWN/NONE/GLITCH` 也改中文。字体 `AegisFont` 内置 CJK 探测（微软雅黑/黑体/Noto），中文正常显示。
+- **右键配置菜单**：新增 `GuiAegisTerminal`，普通右键终端打开；提供「绑定最近核心 / 解除绑定 / 切换页面 / 电源开关 / 完成」五个按钮，窗口内实时显示连接状态、核心坐标、堆芯温度与当前页面。潜行右键保留为快速翻页。
+- **手动绑定核心**：新增 `AegisSetupPacket`（网络 ID 32，C→S），四个动作（绑定最近/解绑/翻页/电源）全走服务端校验与决策；`AegisProbe.nearestCore` 在配置半径内找最近 `TileEntityCore` 并绑定。此前只能靠 16 格自动扫描，现在可手动指定。
+- **proxy/方块接线**：`CommonProxy.openAegis` + `ClientProxy` 实现开窗；`BlockAegisTerminal.onBlockActivated` 改为普通右键开窗、潜行右键翻页；中英文 lang 的操作提示同步更新。
+- **温度计量**：堆芯温度单位为摄氏度（°C），读自核心 `getDFCTemperature`，熔点默认 2250 °C；颜色按「当前温度/熔点」比例判定（见 `hbmzz-aegis.cfg` 的 `warnHeat`/`dangerHeat`）。
+- **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL，regcheck PASS，jar 已部署游戏 `mods`，MD5 `5de26701…d54d` 一致；旧包备份 `backup-mods/hbmzz-4.0.0.jar.pre-cn-gui`。

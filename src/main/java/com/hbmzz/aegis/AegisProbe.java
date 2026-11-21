@@ -165,28 +165,28 @@ public final class AegisProbe {
     private static String fluidLabel(Object tank) {
         Object kind = call(tank, "getTankType");
         if (kind == null) {
-            return "EMPTY";
+            return "空";
         }
         Object label = call(kind, "getName");
         if (label == null) {
             label = call(kind, "getLocalizedName");
         }
         if (label == null) {
-            return "EMPTY";
+            return "空";
         }
         String text = String.valueOf(label).trim();
-        return text.isEmpty() || "null".equals(text) ? "EMPTY" : text;
+        return text.isEmpty() || "null".equals(text) ? "空" : text;
     }
 
     private static void readCoreTag(TileEntity core, AegisTelemetry frame) {
         ItemStack coreItem = stackAt(core, 1);
         if (coreItem == null || coreItem.isEmpty() || coreItem.getItem().getRegistryName() == null) {
-            frame.coreTag = frame.loaded ? "UNKNOWN" : "NONE";
+            frame.coreTag = frame.loaded ? "未知" : "无";
             return;
         }
         String path = coreItem.getItem().getRegistryName().getResourcePath();
         if ("glitch".equals(path)) {
-            frame.coreTag = "GLITCH";
+            frame.coreTag = "故障核心";
             return;
         }
         frame.coreTag = path.replace("ams_core_", "").replace('_', ' ').toUpperCase(Locale.ROOT);

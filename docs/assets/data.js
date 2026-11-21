@@ -684,12 +684,12 @@ window.HBMZZ_DATA = {
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 615,
-      "javaLines": 142645,
+      "javaFiles": 617,
+      "javaLines": 142955,
       "resourceFiles": 660,
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-20"
+    "generatedAt": "2026-11-21"
   }
 };

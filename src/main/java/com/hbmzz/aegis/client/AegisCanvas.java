@@ -122,10 +122,10 @@ public final class AegisCanvas {
 
     private void drawHeader(AegisTelemetry frame, AegisDraw d, long nowMs) {
         d.rect(0, 0, 6, 30, AegisPalette.CYAN_DARK);
-        d.text("AEGIS", 14, 21, 17, AegisPalette.CYAN, true);
-        d.text("// DFC TELEMETRY", 74, 21, 10, AegisPalette.TEXT_DIM, false);
+        d.text("神盾", 14, 21, 17, AegisPalette.CYAN, true);
+        d.text("// 聚变遥测", 74, 21, 10, AegisPalette.TEXT_DIM, false);
 
-        String tag = com.hbmzz.aegis.AegisConfig.showDiagnostics ? "MON" : "LITE";
+        String tag = com.hbmzz.aegis.AegisConfig.showDiagnostics ? "监控" : "精简";
         d.textRight(tag, LOGICAL_W - 12, 21, 9, AegisPalette.TEXT_FAINT, false);
 
         int dot = AegisPalette.GREEN;
@@ -135,14 +135,14 @@ public final class AegisCanvas {
             dot = AegisPalette.AMBER;
         }
         d.circle(LOGICAL_W - 92, 15, 3, dot, true);
-        d.textRight("T" + frame.worldTick, LOGICAL_W - 104, 20, 9, AegisPalette.TEXT_DIM, false);
+        d.textRight("刻" + frame.worldTick, LOGICAL_W - 104, 20, 9, AegisPalette.TEXT_DIM, false);
     }
 
     private void drawPageRail(AegisTelemetry frame, AegisDraw d, long nowMs) {
         int y = LOGICAL_H - 20;
         d.rect(0, y - 4, LOGICAL_W, 24, AegisPalette.CANVAS_ALT);
         d.line(0, y - 4, LOGICAL_W, y - 4, AegisPalette.FRAME, 1.0F);
-        String[] labels = {"01 OVERVIEW", "02 COMPONENTS", "03 DIAGNOSTICS"};
+        String[] labels = {"01 总览", "02 部件", "03 诊断"};
         int x = 12;
         for (int i = 0; i < PAGE_COUNT; i++) {
             if (i == 2 && !com.hbmzz.aegis.AegisConfig.showDiagnostics) {
@@ -157,7 +157,7 @@ public final class AegisCanvas {
         }
         if (frame.collapsing || frame.forecastKind == 1) {
             int blink = (int) (nowMs / 300L) % 2 == 0 ? AegisPalette.RED : AegisPalette.TEXT_FAINT;
-            d.textRight("!! SCRAM", LOGICAL_W - 12, y + 12, 10, blink, true);
+            d.textRight("!! 紧急停堆", LOGICAL_W - 12, y + 12, 10, blink, true);
         }
     }
 
@@ -165,7 +165,7 @@ public final class AegisCanvas {
 
     private void drawOverview(AegisTelemetry f, AegisDraw d, long nowMs) {
         // Big heat readout on the left.
-        d.text("CORE TEMPERATURE", 14, 52, 10, AegisPalette.TEXT_DIM, false);
+        d.text("堆芯温度", 14, 52, 10, AegisPalette.TEXT_DIM, false);
         double fraction = f.heatFraction();
         int heatColour = AegisPalette.heat(fraction);
         String degrees = String.format(Locale.ROOT, "%,.0f", f.heatC);
@@ -176,19 +176,19 @@ public final class AegisCanvas {
         float slope = f.heatSlope;
         String trend = slope > 0.05F ? "\u25b2 " + String.format(Locale.ROOT, "%.2f", slope)
                 : slope < -0.05F ? "\u25bc " + String.format(Locale.ROOT, "%.2f", Math.abs(slope))
-                : "\u25ac stable";
+                : "\u25ac 稳定";
         int trendColour = slope > 0.05F ? AegisPalette.RED : slope < -0.05F ? AegisPalette.GREEN : AegisPalette.TEXT_DIM;
         d.text(trend, 16, 126, 11, trendColour, false);
-        d.text("MELT " + String.format(Locale.ROOT, "%,.0f", f.meltC) + " \u00b0C",
+        d.text("熔点 " + String.format(Locale.ROOT, "%,.0f", f.meltC) + " \u00b0C",
                 14, 144, 9, AegisPalette.TEXT_FAINT, false);
 
         // Heat bar with melt marker.
-        d.text("HEAT / LIMIT", 14, 166, 9, AegisPalette.TEXT_DIM, false);
+        d.text("温度 / 上限", 14, 166, 9, AegisPalette.TEXT_DIM, false);
         d.bar(14, 172, 176, 12, fraction, heatColour, 1.0D, AegisPalette.RED);
         d.ticks(14, 186, 176, 8, AegisPalette.TEXT_FAINT);
 
         // Stability.
-        d.text("STABILITY", 14, 206, 9, AegisPalette.TEXT_DIM, false);
+        d.text("稳定度", 14, 206, 9, AegisPalette.TEXT_DIM, false);
         d.text(String.format(Locale.ROOT, "%.0f%%", f.stability * 100.0F), 190, 207, 11,
                 stabilityColour(f.stability), true);
         d.bar(14, 212, 176, 10, f.stability, stabilityColour(f.stability), -1.0D, 0);
@@ -196,18 +196,18 @@ public final class AegisCanvas {
         // Right column: core identity + energy + sparkline.
         int rx = 208;
         d.frame(rx, 44, 162, 62, AegisPalette.FRAME_SOFT, 1.0F);
-        d.text("CORE", rx + 10, 60, 9, AegisPalette.TEXT_FAINT, false);
+        d.text("堆芯", rx + 10, 60, 9, AegisPalette.TEXT_FAINT, false);
         d.text(d.fit(f.coreTag, 16, true, 142), rx + 10, 82, 16, AegisPalette.TEXT, true);
-        d.text(f.loaded ? "LOADED" : (f.linked ? "NO CORE" : "NO LINK"), rx + 10, 99, 9,
+        d.text(f.loaded ? "已装料" : (f.linked ? "无堆芯" : "未连接"), rx + 10, 99, 9,
                 f.loaded ? AegisPalette.GREEN : AegisPalette.AMBER, false);
 
-        d.text("ENERGY", rx, 124, 9, AegisPalette.TEXT_DIM, false);
+        d.text("能量", rx, 124, 9, AegisPalette.TEXT_DIM, false);
         d.text(formatEnergy(f.coreEnergy), rx, 142, 13, AegisPalette.CYAN, true);
-        d.text("OUT " + formatEnergy(f.exhaustEnergy), rx, 158, 9, AegisPalette.TEXT_DIM, false);
-        d.text("GAIN " + formatEnergy(f.gainEnergy), rx + 84, 158, 9,
+        d.text("输出 " + formatEnergy(f.exhaustEnergy), rx, 158, 9, AegisPalette.TEXT_DIM, false);
+        d.text("增益 " + formatEnergy(f.gainEnergy), rx + 84, 158, 9,
                 f.gainEnergy >= 0.0D ? AegisPalette.GREEN : AegisPalette.RED, false);
 
-        d.text("HEAT TREND", rx, 180, 9, AegisPalette.TEXT_DIM, false);
+        d.text("温度曲线", rx, 180, 9, AegisPalette.TEXT_DIM, false);
         d.frame(rx, 186, 162, 34, AegisPalette.FRAME_SOFT, 1.0F);
         float[] normalised = new float[f.trendHeat.length];
         double span = Math.max(1.0D, f.meltC);
@@ -222,15 +222,15 @@ public final class AegisCanvas {
     }
 
     private void drawComponents(AegisTelemetry f, AegisDraw d) {
-        d.text("ASSEMBLY", 14, 52, 11, AegisPalette.TEXT_DIM, true);
+        d.text("组件装配", 14, 52, 11, AegisPalette.TEXT_DIM, true);
         String[][] cells = {
-                {"STABILISER", String.valueOf(f.nStabiliser)},
-                {"ABSORBER", String.valueOf(f.nAbsorber)},
-                {"PULSAR", String.valueOf(f.nPulsar)},
-                {"EMITTER", String.valueOf(f.nEmitter)},
-                {"INJECTOR", String.valueOf(f.nInjector)},
-                {"EXCHANGER", String.valueOf(f.nExchanger)},
-                {"C-EMITTER", String.valueOf(f.nCEmitter)},
+                {"稳定器", String.valueOf(f.nStabiliser)},
+                {"吸收器", String.valueOf(f.nAbsorber)},
+                {"脉冲器", String.valueOf(f.nPulsar)},
+                {"发射器", String.valueOf(f.nEmitter)},
+                {"注入器", String.valueOf(f.nInjector)},
+                {"交换器", String.valueOf(f.nExchanger)},
+                {"控制极", String.valueOf(f.nCEmitter)},
         };
         int cols = 4;
         int cw = 88;
@@ -249,48 +249,48 @@ public final class AegisCanvas {
         }
 
         int by = 164;
-        d.text("FLUID TANKS", 14, by, 10, AegisPalette.TEXT_DIM, true);
-        drawTank(d, 14, by + 8, 176, "COOLANT", f.coolantTag, f.coolantFill, f.coolantCap, AegisPalette.CYAN);
-        drawTank(d, 14, by + 52, 176, "MODERATOR", f.moderatorTag, f.moderatorFill, f.moderatorCap, AegisPalette.VIOLET);
+        d.text("流体罐", 14, by, 10, AegisPalette.TEXT_DIM, true);
+        drawTank(d, 14, by + 8, 176, "冷却剂", f.coolantTag, f.coolantFill, f.coolantCap, AegisPalette.CYAN);
+        drawTank(d, 14, by + 52, 176, "慢化剂", f.moderatorTag, f.moderatorFill, f.moderatorCap, AegisPalette.VIOLET);
     }
 
     private void drawDiagnostics(AegisTelemetry f, AegisDraw d, long nowMs) {
-        d.text("CATALYST WEAR", 14, 52, 11, AegisPalette.TEXT_DIM, true);
+        d.text("催化剂磨损", 14, 52, 11, AegisPalette.TEXT_DIM, true);
         double wear = f.worstWear();
         int wearColour = wear > 85.0D ? AegisPalette.RED : wear > 60.0D ? AegisPalette.AMBER : AegisPalette.GREEN;
-        drawWear(d, 14, 62, 176, "SLOT A", f.wearSlotA);
-        drawWear(d, 14, 96, 176, "SLOT B", f.wearSlotB);
+        drawWear(d, 14, 62, 176, "槽 A", f.wearSlotA);
+        drawWear(d, 14, 96, 176, "槽 B", f.wearSlotB);
 
         int rx = 208;
-        d.text("POWER METER", rx, 52, 11, AegisPalette.TEXT_DIM, true);
+        d.text("功率计", rx, 52, 11, AegisPalette.TEXT_DIM, true);
         d.rect(rx, 60, 162, 80, AegisPalette.CANVAS_ALT);
         d.frame(rx, 60, 162, 80, AegisPalette.FRAME_SOFT, 1.0F);
         if (f.metered) {
-            d.text("DELTA / TICK", rx + 10, 78, 9, AegisPalette.TEXT_FAINT, false);
+            d.text("每刻增量", rx + 10, 78, 9, AegisPalette.TEXT_FAINT, false);
             d.text(formatPower(f.powerPerTick), rx + 10, 98, 16, AegisPalette.CYAN, true);
-            d.text("LAST SECOND", rx + 10, 118, 9, AegisPalette.TEXT_FAINT, false);
+            d.text("上一秒", rx + 10, 118, 9, AegisPalette.TEXT_FAINT, false);
             d.text(formatPower(f.powerPerSecond), rx + 10, 134, 13, AegisPalette.TEXT, true);
         } else {
-            d.textCenter("NO METER", rx + 81, 104, 12, AegisPalette.TEXT_FAINT, true);
+            d.textCenter("无电表", rx + 81, 104, 12, AegisPalette.TEXT_FAINT, true);
         }
 
-        d.text("SIGNAL INTEGRITY", 14, 156, 11, AegisPalette.TEXT_DIM, true);
-        String[] states = {"NOMINAL", "LINK LOST", "DEGRADED", "SIGNAL CUT"};
+        d.text("信号完整性", 14, 156, 11, AegisPalette.TEXT_DIM, true);
+        String[] states = {"正常", "链路中断", "降级", "信号切断"};
         int state = Math.max(0, Math.min(3, f.tamperState));
         int stateColour = state == 0 ? AegisPalette.GREEN : state == 1 ? AegisPalette.AMBER : AegisPalette.RED;
         d.rect(14, 166, 356, 34, AegisPalette.CANVAS_ALT);
         d.frame(14, 166, 356, 34, stateColour, 1.0F);
         d.text(states[state], 24, 188, 16, stateColour, true);
         if (f.tamperTicks > 0) {
-            d.textRight("T-" + f.tamperTicks + "t", 360, 187, 11, AegisPalette.TEXT_DIM, false);
+            d.textRight("T-" + f.tamperTicks + "刻", 360, 187, 11, AegisPalette.TEXT_DIM, false);
         }
 
-        d.text("FORECAST", rx, 156, 11, AegisPalette.TEXT_DIM, true);
+        d.text("预测", rx, 156, 11, AegisPalette.TEXT_DIM, true);
         String forecast = f.forecastSeconds >= 0
                 ? String.format(Locale.ROOT, "T-%02d:%02d", f.forecastSeconds / 60, f.forecastSeconds % 60)
-                : "STABLE";
+                : "稳定";
         d.text(forecast, rx, 178, 14, f.forecastKind > 0 ? AegisPalette.RED : AegisPalette.GREEN, true);
-        d.text(wear > 85.0D ? "CATALYST CRITICAL" : "WITHIN LIMITS", rx, 196, 9, wearColour, false);
+        d.text(wear > 85.0D ? "催化剂临界" : "正常范围", rx, 196, 9, wearColour, false);
     }
 
     // --------------------------------------------------------------- widgets
@@ -317,8 +317,8 @@ public final class AegisCanvas {
         boolean bright = (nowMs / 250L) % 2L == 0L;
         d.rect(8, y, LOGICAL_W - 16, 26, bright ? 0xFF5A1414 : 0xFF3A0E0E);
         d.frame(8, y, LOGICAL_W - 16, 26, AegisPalette.RED, 1.5F);
-        String text = f.collapsing ? "CORE COLLAPSE  /  EVACUATE"
-                : String.format(Locale.ROOT, "DETONATION IN %02d:%02d",
+        String text = f.collapsing ? "堆芯坍缩 / 立即撤离"
+                : String.format(Locale.ROOT, "爆炸倒计时 %02d:%02d",
                         Math.max(0, f.forecastSeconds / 60), Math.max(0, f.forecastSeconds % 60));
         d.textCenter(text, LOGICAL_W / 2, y + 18, 13, AegisPalette.RED, true);
     }
@@ -326,24 +326,24 @@ public final class AegisCanvas {
     // --------------------------------------------------------------- states
 
     private void drawStandby(AegisDraw d) {
-        d.textCenter("STANDBY", LOGICAL_W / 2, LOGICAL_H / 2, 26, AegisPalette.TEXT_FAINT, true);
-        d.textCenter("AEGIS TERMINAL OFFLINE", LOGICAL_W / 2, LOGICAL_H / 2 + 20, 10,
+        d.textCenter("待机", LOGICAL_W / 2, LOGICAL_H / 2, 26, AegisPalette.TEXT_FAINT, true);
+        d.textCenter("神盾终端离线", LOGICAL_W / 2, LOGICAL_H / 2 + 20, 10,
                 AegisPalette.TEXT_FAINT, false);
     }
 
     private void drawBoot(AegisDraw d, long elapsed) {
-        d.textCenter("AEGIS", LOGICAL_W / 2, 96, 34, AegisPalette.CYAN, true);
-        d.textCenter("DFC TELEMETRY TERMINAL", LOGICAL_W / 2, 116, 11, AegisPalette.TEXT_DIM, false);
+        d.textCenter("神盾", LOGICAL_W / 2, 96, 34, AegisPalette.CYAN, true);
+        d.textCenter("聚变遥测终端", LOGICAL_W / 2, 116, 11, AegisPalette.TEXT_DIM, false);
         int barW = 220;
         int x = (LOGICAL_W - barW) / 2;
         double progress = Math.min(1.0D, elapsed / 1000.0D);
         d.bar(x, 140, barW, 10, progress, AegisPalette.CYAN, -1.0D, 0);
-        d.textCenter("INITIALISING", LOGICAL_W / 2, 170, 9, AegisPalette.TEXT_FAINT, false);
+        d.textCenter("初始化中", LOGICAL_W / 2, 170, 9, AegisPalette.TEXT_FAINT, false);
     }
 
     private void drawNoSignal(AegisDraw d, AegisTelemetry f, long nowMs) {
-        d.textCenter("NO SIGNAL", LOGICAL_W / 2, 112, 30, AegisPalette.AMBER, true);
-        d.textCenter("AWAITING TELEMETRY FEED", LOGICAL_W / 2, 136, 10, AegisPalette.TEXT_DIM, false);
+        d.textCenter("无信号", LOGICAL_W / 2, 112, 30, AegisPalette.AMBER, true);
+        d.textCenter("等待遥测数据", LOGICAL_W / 2, 136, 10, AegisPalette.TEXT_DIM, false);
         int sweep = (int) ((nowMs / 12L) % (LOGICAL_W + 40)) - 20;
         d.line(sweep, 150, sweep + 30, 150, AegisPalette.CYAN_DARK, 2.0F);
     }

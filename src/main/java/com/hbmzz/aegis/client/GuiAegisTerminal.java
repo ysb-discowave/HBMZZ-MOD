@@ -38,11 +38,14 @@ import java.util.Locale;
  * 「按了哪个按钮」发上去。状态每帧从客户端 tile 读，收到服务端推送后自动刷新；
  * 打开瞬间主动拉一帧，避免停在旧数据。按钮自绘，配色与屏幕一致，并带快捷键
  * 与一次性的操作回执提示。</p>
+ *
+ * <p>4.1.0 起本窗口还负责墙面安装的几何参数：倾斜角、宽、高。三项都通过
+ * SetupPacket 交给服务端 clamp 后写 NBT 并同步，存档里保存，重启不丢。</p>
  */
 public final class GuiAegisTerminal extends GuiScreen {
 
     private static final int W = 372;
-    private static final int H = 214;
+    private static final int H = 302;
 
     private static final int CYAN = 0xFF43E0D8;
     private static final int AMBER = 0xFFF5A524;
@@ -99,11 +102,22 @@ public final class GuiAegisTerminal extends GuiScreen {
         int colW = (W - 32 - 8) / 2;
         int x0 = this.left + 12;
         int x1 = this.left + 12 + colW + 8;
-        int y0 = this.top + 110;
+        int y0 = this.top + 206;
         int y1 = y0 + 26;
         int y2 = y1 + 26;
 
         this.buttons.clear();
+        // geometry: +/- pairs for tilt, width, height
+        int gy0 = this.top + 124;
+        int step = 22;
+        this.buttons.add(new Btn(5, "-", this.left + 196, gy0, 22, 18));
+        this.buttons.add(new Btn(6, "+", this.left + 222, gy0, 22, 18));
+        this.buttons.add(new Btn(7, "-", this.left + 196, gy0 + step, 22, 18));
+        this.buttons.add(new Btn(8, "+", this.left + 222, gy0 + step, 22, 18));
+        this.buttons.add(new Btn(9, "-", this.left + 196, gy0 + step * 2, 22, 18));
+        this.buttons.add(new Btn(10, "+", this.left + 222, gy0 + step * 2, 22, 18));
+
+        // core actions
         this.buttons.add(new Btn(0, "绑定最近核心", x0, y0, colW, 22));
         this.buttons.add(new Btn(1, "解除绑定", x1, y0, colW, 22));
         this.buttons.add(new Btn(2, "切换页面", x0, y1, colW, 22));
@@ -153,7 +167,6 @@ public final class GuiAegisTerminal extends GuiScreen {
         int lamp = mix(0xFF1A3A44, CYAN, pulse);
         drawRect(l + 12, t + 7, l + 15, t + 18, lamp);
         this.fontRenderer.drawStringWithShadow("神盾 DFC 遥测终端 · 设置", l + 22, t + 8, CYAN);
-        // 标题栏右侧流动的高光条
         int hl = l + W - 16 - (int) ((nowMs / 18L) % 90L);
         drawRect(Math.max(l + W - 106, hl), t + 11, Math.min(l + W - 16, hl + 26), t + 13,
                 0x4443E0D8);
@@ -195,7 +208,6 @@ public final class GuiAegisTerminal extends GuiScreen {
         this.fontRenderer.drawStringWithShadow(stab, l + 240, t + 68, CYAN);
         this.fontRenderer.drawStringWithShadow("能量", l + 296, t + 68, DIM);
 
-        // 温度可视化条：分段填充 + 熔点刻度标记
         int barX = l + 92, barY = t + 79, barW = 86, barH = 4;
         drawRect(barX, barY, barX + barW, barY + barH, 0xFF0A1116);
         if (hasData) {
@@ -207,28 +219,40 @@ public final class GuiAegisTerminal extends GuiScreen {
         }
         drawRect(barX + barW - 1, barY - 1, barX + barW, barY + barH + 1, 0xFFFF5A56);
 
-        this.fontRenderer.drawStringWithShadow("页面", l + 12, t + 86, DIM);
-        this.fontRenderer.drawStringWithShadow((te.getPage() + 1) + "/3", l + 48, t + 86, CYAN);
-        this.fontRenderer.drawStringWithShadow("电源", l + 92, t + 86, DIM);
+        this.fontRenderer.drawStringWithShadow("页面", l + 12, t + 88, DIM);
+        this.fontRenderer.drawStringWithShadow((te.getPage() + 1) + "/3", l + 48, t + 88, CYAN);
+        this.fontRenderer.drawStringWithShadow("电源", l + 92, t + 88, DIM);
         this.fontRenderer.drawStringWithShadow(te.isPowered() ? "开" : "关",
-                l + 128, t + 86, te.isPowered() ? GREEN : RED);
-        this.fontRenderer.drawStringWithShadow("能量 " + energy, l + 200, t + 86, FAINT);
+                l + 128, t + 88, te.isPowered() ? GREEN : RED);
+        this.fontRenderer.drawStringWithShadow("能量 " + energy, l + 200, t + 88, FAINT);
 
-        // 按键提示
-        this.fontRenderer.drawStringWithShadow("快捷键 1-4 动作 · Q/E 翻页 · P 电源 · Esc 关闭",
-                l + 12, t + 98, FAINT);
+        // ---- 墙面安装几何 ----
+        drawRect(l + 12, t + 106, l + W - 12, t + 107, LINE);
+        this.fontRenderer.drawStringWithShadow("墙面安装 · 点击 - / + 调节，实时生效并存档",
+                l + 12, t + 110, CYAN);
+        int gy0 = t + 124;
+        int step = 22;
+        drawGeoRow(l + 12, gy0, "倾斜角", String.format(Locale.ROOT, "%+.0f°", te.getTilt()));
+        drawGeoRow(l + 12, gy0 + step, "屏幕宽", String.format(Locale.ROOT, "%.2f 格", te.getPanelWidth()));
+        drawGeoRow(l + 12, gy0 + step * 2, "屏幕高", String.format(Locale.ROOT, "%.2f 格", te.getPanelHeight()));
+        this.fontRenderer.drawStringWithShadow("倾斜 -45°~+45° · 宽/高 0.5~2.0 格",
+                l + 12, gy0 + step * 3 + 2, FAINT);
 
         drawButtons(mouseX, mouseY);
 
-        // 一次性操作回执
         if (!this.feedback.isEmpty() && System.currentTimeMillis() - this.feedbackAt < 2600L) {
             this.fontRenderer.drawStringWithShadow(this.feedback, l + 12, t + H - 14, GREEN);
         }
 
-        // 窗口开着时每 4 秒补拉一帧，保证长时间停留数据不陈旧
         if (System.currentTimeMillis() - this.lastPull > 4000L) {
             pull();
         }
+    }
+
+    private void drawGeoRow(int x, int y, String label, String value) {
+        this.fontRenderer.drawStringWithShadow(label, x, y + 4, DIM);
+        int tw = this.fontRenderer.getStringWidth(value);
+        this.fontRenderer.drawStringWithShadow(value, x + 172 - tw / 2, y + 4, CYAN);
     }
 
     private void drawButtons(int mouseX, int mouseY) {
@@ -284,9 +308,52 @@ public final class GuiAegisTerminal extends GuiScreen {
             case 4:
                 close();
                 break;
+            // geometry adjustments: read current value, nudge, send fixed-point
+            case 5:
+                if (te != null) sendTilt(te.getTilt() - 5.0F);
+                break;
+            case 6:
+                if (te != null) sendTilt(te.getTilt() + 5.0F);
+                break;
+            case 7:
+                if (te != null) sendWidth(te.getPanelWidth() - 0.08F);
+                break;
+            case 8:
+                if (te != null) sendWidth(te.getPanelWidth() + 0.08F);
+                break;
+            case 9:
+                if (te != null) sendHeight(te.getPanelHeight() - 0.08F);
+                break;
+            case 10:
+                if (te != null) sendHeight(te.getPanelHeight() + 0.08F);
+                break;
             default:
                 break;
         }
+    }
+
+    private void sendTilt(float degrees) {
+        int v = Math.round(degrees * 10.0F);
+        v = Math.max(Math.round(TileAegisTerminal.TILT_MIN * 10.0F),
+                Math.min(Math.round(TileAegisTerminal.TILT_MAX * 10.0F), v));
+        NetworkHandler.sendToServer(new AegisSetupPacket(this.pos, AegisSetupPacket.TILT, v));
+        flash("倾斜角 → " + String.format(Locale.ROOT, "%+.0f°", v / 10.0F));
+    }
+
+    private void sendWidth(float blocks) {
+        int v = Math.round(blocks * 100.0F);
+        v = Math.max(Math.round(TileAegisTerminal.WIDTH_MIN * 100.0F),
+                Math.min(Math.round(TileAegisTerminal.WIDTH_MAX * 100.0F), v));
+        NetworkHandler.sendToServer(new AegisSetupPacket(this.pos, AegisSetupPacket.WIDTH, v));
+        flash("屏幕宽 → " + String.format(Locale.ROOT, "%.2f 格", v / 100.0F));
+    }
+
+    private void sendHeight(float blocks) {
+        int v = Math.round(blocks * 100.0F);
+        v = Math.max(Math.round(TileAegisTerminal.HEIGHT_MIN * 100.0F),
+                Math.min(Math.round(TileAegisTerminal.HEIGHT_MAX * 100.0F), v));
+        NetworkHandler.sendToServer(new AegisSetupPacket(this.pos, AegisSetupPacket.HEIGHT, v));
+        flash("屏幕高 → " + String.format(Locale.ROOT, "%.2f 格", v / 100.0F));
     }
 
     @Override
@@ -306,6 +373,18 @@ public final class GuiAegisTerminal extends GuiScreen {
             act(2);
         } else if (typedChar == 'p' || typedChar == 'P') {
             act(3);
+        } else if (typedChar == 'z' || typedChar == 'Z') {
+            if (te != null) sendTilt(te.getTilt() - 5.0F);
+        } else if (typedChar == 'x' || typedChar == 'X') {
+            if (te != null) sendTilt(te.getTilt() + 5.0F);
+        } else if (typedChar == '[') {
+            if (te != null) sendWidth(te.getPanelWidth() - 0.08F);
+        } else if (typedChar == ']') {
+            if (te != null) sendWidth(te.getPanelWidth() + 0.08F);
+        } else if (typedChar == '-') {
+            if (te != null) sendHeight(te.getPanelHeight() - 0.08F);
+        } else if (typedChar == '=') {
+            if (te != null) sendHeight(te.getPanelHeight() + 0.08F);
         } else {
             super.keyTyped(typedChar, keyCode);
         }

@@ -179,6 +179,7 @@ public class ClientProxy extends CommonProxy {
         // Aegis telemetry terminal and its frame cell.
         list.add(loc("aegis_terminal"));
         list.add(loc("aegis_cell"));
+        list.add(loc("aegis_linker"));
         return list;
     }
 
@@ -224,6 +225,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_ALARM_BEACON);
         list.add(ModContent.ITEM_BLOCK_AEGIS_TERMINAL);
         list.add(ModContent.ITEM_BLOCK_AEGIS_CELL);
+        list.add(ModContent.ITEM_AEGIS_LINKER);
         return list;
     }
 
@@ -254,8 +256,8 @@ public class ClientProxy extends CommonProxy {
             0, 0, 0, 0, 0,
             //  status_lamp  alarm_beacon
             0, 0,
-            //  aegis_terminal  aegis_cell
-            0, 0
+            //  aegis_terminal  aegis_cell  aegis_linker
+            0, 0, 0
     };
 
     public static List<Integer> metas() {

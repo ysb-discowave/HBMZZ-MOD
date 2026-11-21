@@ -51,9 +51,8 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
     private static final WeakHashMap<TileAegisTerminal, AegisTexture> TEXTURES =
             new WeakHashMap<TileAegisTerminal, AegisTexture>();
 
-    private static final float PLANE = 0.505F;   // just proud of the block face
-    private static final float HALF_W = 0.46F;
-    private static final float HALF_H = 0.46F;
+    /** The wall face the panel mounts to, in local block coordinates. */
+    private static final float PLANE = 0.5F;
 
     @Override
     public void render(TileAegisTerminal te, double x, double y, double z,
@@ -86,13 +85,25 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
             canvas.render(frame, te.getPage(), now, te.getBootAt(), powered);
             texture.upload(canvas.image());
 
+            float halfW = Math.max(0.05F, te.getPanelWidth() * 0.5F);
+            float halfH = Math.max(0.05F, te.getPanelHeight() * 0.5F);
+
             GlStateManager.translate(x + 0.5D, y + 0.5D, z + 0.5D);
             GlStateManager.rotate(yaw(facing), 0.0F, 1.0F, 0.0F);
-            // Local +Z now points out of the block's front face; push the panel
-            // a fraction past the block surface so it is not z-fighting.
-            GlStateManager.translate(0.0D, 0.0D, PLANE);
+            // The screen is drawn on local +Z. Pivot around the wall surface so
+            // the panel leans against the wall like a real wall-mounted monitor
+            // instead of hovering at the block's centre. The small standoff
+            // gives a tilted panel clearance and leaves room for the bracket.
+            GlStateManager.translate(0.0D, 0.0D, PLANE - 0.05D);
+            GlStateManager.rotate(te.getTilt(), 1.0F, 0.0F, 0.0F);
+            GlStateManager.translate(0.0D, 0.0D, 0.07D);
 
-            bezel();
+            // Solid enclosure first: a dark metal box plus a bracket into the
+            // wall. This is what turns the emissive quad from a floating image
+            // into a physical screen bolted to the surface.
+            wallBracket();
+            backing(halfW, halfH);
+            bezel(halfW, halfH);
             // Additive rim light: cyan normally, amber when hot, red on a
             // collapse/tamper alarm. Makes the panel readable as "alive" from
             // across the room without touching the screen texture itself.
@@ -101,9 +112,9 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
                     : (frame.heatFraction() >= com.hbmzz.aegis.AegisConfig.dangerHeat ? 0xFFFFB23C
                     : (frame.heatFraction() >= com.hbmzz.aegis.AegisConfig.warnHeat ? 0xFFFFB23C
                     : 0xFF39D6E8));
-            glowRim(glow);
+            glowRim(glow, halfW, halfH);
             if (texture.ready()) {
-                screen(texture.id());
+                screen(texture.id(), halfW, halfH);
             }
         } catch (Throwable failure) {
             HBMZZ.logger.error("Aegis terminal at " + (te == null ? "?" : te.getPos()) + " failed to render", failure);
@@ -113,12 +124,81 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         }
     }
 
+    /**
+     * Dark bracket reaching from the panel back toward the wall. It is what
+     * visually anchors the screen to the surface rather than letting it read
+     * as a decal hovering in mid-air.
+     */
+    private static void wallBracket() {
+        float z0 = -0.16F;
+        float z1 = -0.055F;
+        float w = 0.075F;
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.enableBlend();
+        GlStateManager.color(0.08F, 0.10F, 0.12F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        // two crossed plates make the arm look solid from any angle
+        buf.pos(-w, -w, z0).endVertex(); buf.pos(w, -w, z0).endVertex();
+        buf.pos(w, w, z0).endVertex();   buf.pos(-w, w, z0).endVertex();
+        buf.pos(-w, -w, z1).endVertex(); buf.pos(w, -w, z1).endVertex();
+        buf.pos(w, -w, z0).endVertex();  buf.pos(-w, -w, z0).endVertex();
+        buf.pos(-w, w, z0).endVertex();  buf.pos(w, w, z0).endVertex();
+        buf.pos(w, w, z1).endVertex();   buf.pos(-w, w, z1).endVertex();
+        buf.pos(-w, -w, z1).endVertex(); buf.pos(-w, w, z1).endVertex();
+        buf.pos(-w, w, z0).endVertex();  buf.pos(-w, -w, z0).endVertex();
+        buf.pos(w, -w, z0).endVertex();  buf.pos(w, w, z0).endVertex();
+        buf.pos(w, w, z1).endVertex();   buf.pos(w, -w, z1).endVertex();
+        tess.draw();
+        GlStateManager.enableTexture2D();
+    }
+
+    /**
+     * Solid metal enclosure behind the picture. A front plate plus four side
+     * walls give the panel real depth so width/height/tilt read as a physical
+     * object. Sits behind the screen plane (negative z).
+     */
+    private static void backing(float halfW, float halfH) {
+        float pad = 0.035F;
+        float l = -halfW - pad, r = halfW + pad;
+        float b = -halfH - pad, t = halfH + pad;
+        float front = -0.012F;
+        float back = -0.075F;
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.enableBlend();
+
+        GlStateManager.color(0.10F, 0.13F, 0.15F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        quad(buf, l, b, r, t, back);                 // back face
+        tess.draw();
+
+        GlStateManager.color(0.05F, 0.07F, 0.09F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        // top and bottom walls
+        buf.pos(l, t, front).endVertex(); buf.pos(r, t, front).endVertex();
+        buf.pos(r, t, back).endVertex();  buf.pos(l, t, back).endVertex();
+        buf.pos(l, b, back).endVertex();  buf.pos(r, b, back).endVertex();
+        buf.pos(r, b, front).endVertex(); buf.pos(l, b, front).endVertex();
+        // left and right walls
+        buf.pos(l, b, front).endVertex(); buf.pos(l, b, back).endVertex();
+        buf.pos(l, t, back).endVertex();  buf.pos(l, t, front).endVertex();
+        buf.pos(r, b, back).endVertex();  buf.pos(r, b, front).endVertex();
+        buf.pos(r, t, front).endVertex(); buf.pos(r, t, back).endVertex();
+        tess.draw();
+        GlStateManager.enableTexture2D();
+    }
+
     /** Local-space bezel around the picture; drawn as four dark bars. */
-    private static void bezel() {
-        float l = -HALF_W - 0.02F;
-        float r = HALF_W + 0.02F;
-        float b = -HALF_H - 0.02F;
-        float t = HALF_H + 0.02F;
+    private static void bezel(float halfW, float halfH) {
+        float l = -halfW - 0.02F;
+        float r = halfW + 0.02F;
+        float b = -halfH - 0.02F;
+        float t = halfH + 0.02F;
         float edge = 0.035F;
         float z = -0.002F;
         Tessellator tess = Tessellator.getInstance();
@@ -138,15 +218,15 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
     }
 
     /** Additive rim light just outside the bezel, tinted by alarm state. */
-    private static void glowRim(int argb) {
+    private static void glowRim(int argb, float halfW, float halfH) {
         float a = ((argb >>> 24) & 0xFF) / 255.0F;
         float r = ((argb >>> 16) & 0xFF) / 255.0F;
         float g = ((argb >>> 8) & 0xFF) / 255.0F;
         float b = (argb & 0xFF) / 255.0F;
-        float l = -HALF_W - 0.055F;
-        float rr = HALF_W + 0.055F;
-        float bot = -HALF_H - 0.055F;
-        float top = HALF_H + 0.055F;
+        float l = -halfW - 0.055F;
+        float rr = halfW + 0.055F;
+        float bot = -halfH - 0.055F;
+        float top = halfH + 0.055F;
         float edge = 0.012F;
         float z = -0.004F;
         Tessellator tess = Tessellator.getInstance();
@@ -171,7 +251,7 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
     }
 
     /** The emissive screen quad itself. */
-    private static void screen(int textureId) {
+    private static void screen(int textureId, float halfW, float halfH) {
         Tessellator tess = Tessellator.getInstance();
         BufferBuilder buf = tess.getBuffer();
 
@@ -189,10 +269,10 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         GlStateManager.bindTexture(textureId);
 
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-        buf.pos(-HALF_W, -HALF_H, 0.0D).tex(0.0F, 1.0F).endVertex();
-        buf.pos(HALF_W, -HALF_H, 0.0D).tex(1.0F, 1.0F).endVertex();
-        buf.pos(HALF_W, HALF_H, 0.0D).tex(1.0F, 0.0F).endVertex();
-        buf.pos(-HALF_W, HALF_H, 0.0D).tex(0.0F, 0.0F).endVertex();
+        buf.pos(-halfW, -halfH, 0.0D).tex(0.0F, 1.0F).endVertex();
+        buf.pos(halfW, -halfH, 0.0D).tex(1.0F, 1.0F).endVertex();
+        buf.pos(halfW, halfH, 0.0D).tex(1.0F, 0.0F).endVertex();
+        buf.pos(-halfW, halfH, 0.0D).tex(0.0F, 0.0F).endVertex();
         tess.draw();
 
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, lightX, lightY);

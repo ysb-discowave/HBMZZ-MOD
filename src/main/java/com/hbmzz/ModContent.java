@@ -52,6 +52,7 @@ public final class ModContent {
     public static final Block BLOCK_AEGIS_CELL = new com.hbmzz.aegis.BlockAegisCell();
     public static final Item ITEM_BLOCK_AEGIS_TERMINAL = new ItemBlock(BLOCK_AEGIS_TERMINAL);
     public static final Item ITEM_BLOCK_AEGIS_CELL = new ItemBlock(BLOCK_AEGIS_CELL);
+    public static final Item ITEM_AEGIS_LINKER = new com.hbmzz.item.ItemAegisLinker();
     /**
      * Filler cell of a wall screen. Registered as a block but deliberately not
      * as an item: it only ever exists as part of a placed panel. Registered
@@ -224,6 +225,7 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_AEGIS_TERMINAL);
         ITEM_BLOCK_AEGIS_CELL.setRegistryName(BLOCK_AEGIS_CELL.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_AEGIS_CELL);
+        event.getRegistry().register(ITEM_AEGIS_LINKER);
         ITEM_BLOCK_MONITOR_CAMERA.setRegistryName(BLOCK_MONITOR_CAMERA.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_MONITOR_CAMERA);
         ITEM_BLOCK_CTRL_PANEL.setRegistryName(BLOCK_CTRL_PANEL.getRegistryName());
@@ -321,6 +323,18 @@ public final class ModContent {
                 'I', Items.IRON_INGOT,
                 'G', Item.getItemFromBlock(Blocks.GLASS_PANE)
         ).setRegistryName(HBMZZ.MODID, "aegis_cell"));
+        // Aegis linker: a comparator on a redstone/iron handle. Cheap and
+        // reusable - it carries only a coordinate, not any scarce material.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "aegis_linker"),
+                new ItemStack(ITEM_AEGIS_LINKER),
+                " I ",
+                "IRI",
+                " C ",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "aegis_linker"));
 
         // Control panel: steel plate, a dial's worth of comparators and a bed
         // of redstone. Nothing rare - a control panel is something you build a

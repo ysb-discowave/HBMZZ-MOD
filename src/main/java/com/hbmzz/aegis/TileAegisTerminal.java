@@ -51,10 +51,27 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
 
     private static final int HISTORY = AegisTelemetry.TREND_CAPACITY;
 
+    // Geometry limits, in degrees / blocks. The panel stays within a wall tile
+    // plus a small margin so a tilted screen never clips through the floor.
+    public static final float TILT_MIN = -45.0F;
+    public static final float TILT_MAX = 45.0F;
+    public static final float WIDTH_MIN = 0.5F;
+    public static final float WIDTH_MAX = 2.0F;
+    public static final float HEIGHT_MIN = 0.5F;
+    public static final float HEIGHT_MAX = 2.0F;
+
     private BlockPos boundCore;
     private BlockPos boundMeter;
     private int page;
     private boolean powered = true;
+
+    // ---- wall-mount geometry (persistent, server-authoritative) ----
+    /** Panel tilt around the local X axis, in degrees. Negative leans the top back. */
+    private float tilt = 0.0F;
+    /** Full panel width in blocks (renderer half-width = width / 2). */
+    private float panelWidth = 0.92F;
+    /** Full panel height in blocks (renderer half-height = height / 2). */
+    private float panelHeight = 0.92F;
 
     private int pollTimer = AegisConfig.pollTicks;
     private boolean reportedFailure;
@@ -129,6 +146,39 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
         this.boundMeter = meter;
         markDirty();
         sync();
+    }
+
+    // ------------------------------------------------------- geometry accessors
+
+    public float getTilt() {
+        return this.tilt;
+    }
+
+    public float getPanelWidth() {
+        return this.panelWidth;
+    }
+
+    public float getPanelHeight() {
+        return this.panelHeight;
+    }
+
+    /** Applies a geometry change with clamping; no-op (and no sync) if unchanged. */
+    public void setGeometry(float newTilt, float newWidth, float newHeight) {
+        float t = clamp(newTilt, TILT_MIN, TILT_MAX);
+        float w = clamp(newWidth, WIDTH_MIN, WIDTH_MAX);
+        float h = clamp(newHeight, HEIGHT_MIN, HEIGHT_MAX);
+        if (t == this.tilt && w == this.panelWidth && h == this.panelHeight) {
+            return;
+        }
+        this.tilt = t;
+        this.panelWidth = w;
+        this.panelHeight = h;
+        markDirty();
+        sync();
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     // ------------------------------------------------------------------ tick
@@ -268,9 +318,11 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
 
     @Override
     public net.minecraft.util.math.AxisAlignedBB getRenderBoundingBox() {
-        int cols = Math.max(1, AegisConfig.clampCols(AegisConfig.gridCols));
-        int rows = Math.max(1, AegisConfig.clampRows(AegisConfig.gridRows));
-        return new AxisAlignedBB(getPos()).grow(cols + 1.0D, rows + 1.0D, cols + 1.0D);
+        // Grow enough for the largest allowed panel plus its tilt swing. A
+        // screen that is tuned wide must not vanish when the player walks past
+        // the block's own one-cube render bounds.
+        double pad = WIDTH_MAX + 1.0D;
+        return new AxisAlignedBB(getPos()).grow(pad, pad, pad);
     }
 
     // ------------------------------------------------------------------ nbt
@@ -286,6 +338,9 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
         }
         compound.setInteger("aegisPage", this.page);
         compound.setBoolean("aegisPowered", this.powered);
+        compound.setFloat("aegisTilt", this.tilt);
+        compound.setFloat("aegisWidth", this.panelWidth);
+        compound.setFloat("aegisHeight", this.panelHeight);
         return compound;
     }
 
@@ -296,6 +351,14 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
         this.boundMeter = compound.hasKey("aegisMeter") ? BlockPos.fromLong(compound.getLong("aegisMeter")) : null;
         this.page = Math.max(0, Math.min(AegisTelemetry.PAGE_COUNT - 1, compound.getInteger("aegisPage")));
         this.powered = !compound.hasKey("aegisPowered") || compound.getBoolean("aegisPowered");
+        // Old terminals built before wall-mount support have no geometry keys.
+        // Fall back to the defaults so a save upgrade keeps the original look.
+        this.tilt = compound.hasKey("aegisTilt")
+                ? clamp(compound.getFloat("aegisTilt"), TILT_MIN, TILT_MAX) : 0.0F;
+        this.panelWidth = compound.hasKey("aegisWidth")
+                ? clamp(compound.getFloat("aegisWidth"), WIDTH_MIN, WIDTH_MAX) : 0.92F;
+        this.panelHeight = compound.hasKey("aegisHeight")
+                ? clamp(compound.getFloat("aegisHeight"), HEIGHT_MIN, HEIGHT_MAX) : 0.92F;
         this.bootAt = System.currentTimeMillis();
     }
 

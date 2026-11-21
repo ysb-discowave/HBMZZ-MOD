@@ -41,6 +41,12 @@ public final class AegisSetupPacket implements IMessage {
     public static final int UNBIND = 1;
     public static final int PAGE = 2;
     public static final int POWER = 3;
+    /** value = tilt in tenths of a degree (e.g. -150 = -15.0 deg). */
+    public static final int TILT = 4;
+    /** value = panel width in hundredths of a block (e.g. 92 = 0.92). */
+    public static final int WIDTH = 5;
+    /** value = panel height in hundredths of a block (e.g. 92 = 0.92). */
+    public static final int HEIGHT = 6;
 
     private BlockPos pos;
     private int action;
@@ -105,6 +111,15 @@ public final class AegisSetupPacket implements IMessage {
                         break;
                     case POWER:
                         terminal.setPowered(value != 0);
+                        break;
+                    case TILT:
+                        terminal.setGeometry(value / 10.0F, terminal.getPanelWidth(), terminal.getPanelHeight());
+                        break;
+                    case WIDTH:
+                        terminal.setGeometry(terminal.getTilt(), value / 100.0F, terminal.getPanelHeight());
+                        break;
+                    case HEIGHT:
+                        terminal.setGeometry(terminal.getTilt(), terminal.getPanelWidth(), value / 100.0F);
                         break;
                     default:
                         break;

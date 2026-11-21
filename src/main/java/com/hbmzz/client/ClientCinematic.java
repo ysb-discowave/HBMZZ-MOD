@@ -54,8 +54,11 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
  *       loaded.</li>
  *   <li><b>height</b> - vertical offset above the target, blocks. Default 7,
  *       which puts a reactor lid at eye level instead of underfoot.</li>
- *   <li><b>speed</b> - degrees per tick. 1.0 is a full turn in 18 seconds; the
- *       DFC finale uses 2.0 because it only has five seconds to work with.</li>
+ *   <li><b>speed</b> - degrees per tick, signed. The magnitude is the travel
+ *       rate (a full turn in 360/|speed| ticks); the sign picks the direction.
+ *       The directors used to send a positive speed, which increased angle and
+ *       swept one way round; they now send negative, so angle decreases and the
+ *       camera orbits the core in the opposite direction.</li>
  *   <li><b>start angle</b> - taken from where the player is standing, so the
  *       shot begins from their side of the machine rather than snapping round
  *       to a fixed compass bearing.</li>
@@ -118,7 +121,11 @@ public final class ClientCinematic {
         targetZ = z;
         radius = MathHelper.clamp(r, (float) MIN_RADIUS, (float) MAX_RADIUS);
         height = MathHelper.clamp(h, -8.0F, 40.0F);
-        speed = MathHelper.clamp(s, 0.0F, 12.0F);
+        // Signed: magnitude is the travel rate, sign is the orbit direction.
+        // Negative decreases angle (the reversed orbit); positive is the old
+        // sweep. Clamp symmetrically, not to 0..12, or a negative speed would
+        // be flattened to zero and the shot would freeze in place.
+        speed = MathHelper.clamp(s, -12.0F, 12.0F);
         // Begin on the player's bearing, so the first frame is continuous with
         // what they were already looking at.
         if (fresh) {
@@ -147,8 +154,14 @@ public final class ClientCinematic {
             return;
         }
         angle += speed;
-        if (angle >= 360.0F) {
+        // Wrap both ways now that speed is signed: a negative sweep drives
+        // angle below zero just as a positive one drives it past 360, and an
+        // unbounded angle loses float precision over a long shot.
+        while (angle >= 360.0F) {
             angle -= 360.0F;
+        }
+        while (angle < 0.0F) {
+            angle += 360.0F;
         }
         place();
         // Re-assert once per tick: a dimension change or another mod's cinematic

@@ -128,9 +128,11 @@ public final class CinematicDirector {
         if (!enabled(world) || core == null) {
             return;
         }
+        // Negated to reverse the orbit direction; the sign travels to the
+        // client as the direction, the magnitude as the travel rate.
         DIRECTOR.aim(world, KIND_RBMK,
                 core.getX() + 0.5D, core.getY() + height + 0.5D, core.getZ() + 0.5D,
-                HBMZZConfig.cinematicSpeed);
+                -HBMZZConfig.cinematicSpeed);
     }
 
     /** The RBMK is now in pieces; give the camera back. */
@@ -224,7 +226,7 @@ public final class CinematicDirector {
         // at the one block the tile entity happens to occupy.
         aim(world, KIND_DFC,
                 pos.getX() + 0.5D, pos.getY() + 3.0D, pos.getZ() + 0.5D,
-                HBMZZConfig.cinematicDfcSpeed);
+                -HBMZZConfig.cinematicDfcSpeed);
     }
 
     private void aim(World world, int kind, double x, double y, double z, float speed) {

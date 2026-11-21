@@ -224,9 +224,10 @@ public final class DfcTstx {
         double y = pos.getY() + 3.0D;
         double z = pos.getZ() + 0.5D;
         try {
+            // Negative speed = reversed orbit direction; magnitude = travel rate.
             NetworkHandler.INSTANCE.sendToAllAround(
                     new CinematicMessage(CinematicMessage.START, x, y, z,
-                            HBMZZConfig.tstxRadius, HBMZZConfig.tstxHeight, HBMZZConfig.tstxSpeed),
+                            HBMZZConfig.tstxRadius, HBMZZConfig.tstxHeight, -HBMZZConfig.tstxSpeed),
                     new net.minecraftforge.fml.common.network.NetworkRegistry.TargetPoint(
                             world.provider.getDimension(), x, y, z, HBMZZConfig.tstxRange));
         } catch (Throwable broken) {

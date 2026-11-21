@@ -178,8 +178,8 @@ public final class HBMZZConfig {
      * which the shot is unwatchable rather than dramatic.
      */
     public static float cinematicSpeed = 0.72F;
-    /** Same for the DFC, whose final window is only five seconds and needs a faster orbit to read. */
-    public static float cinematicDfcSpeed = 2.0F;
+    /** Same for the DFC finale, slowed from 2.0 because the orbit read as too fast. */
+    public static float cinematicDfcSpeed = 1.0F;
     /** Distance from the target, in blocks. Small enough to still see the machine. */
     public static int cinematicRadius = 18;
     /** Height above the target's core. Positive looks down on it from above. */
@@ -188,10 +188,10 @@ public final class HBMZZConfig {
     // ---- DFC-TSTX (three-second orbit at the start of a collapse) ----
     /**
      * Degrees per tick for the three-second shot. A full lap is 90 ticks, so
-     * 4.0 sweeps two thirds of a circle in the three seconds the rule allows -
-     * enough to read as an orbit, short enough not to look like a stuck camera.
+     * 2.0 sweeps a third of a circle in the three seconds the rule allows -
+     * enough to read as an orbit, slow enough not to whip past the core.
      */
-    public static float tstxSpeed = 4.0F;
+    public static float tstxSpeed = 2.0F;
     /** Distance from the core for the three-second shot. */
     public static int tstxRadius = 16;
     /** Height above the core for the three-second shot. */
@@ -334,8 +334,8 @@ public final class HBMZZConfig {
                     "Radius of the effect cloud around the core, in blocks.");
             dfcShutdownWatchRange = cfg.getInt("watchRange", "dfcShutdown", 64, 16, 256,
                     "Players within this distance receive the effect packets, in blocks.");
-            tstxSpeed = (float) cfg.getFloat("speed", "dfcTstx", 4.0F, 0.0F, 12.0F,
-                    "Degrees per tick the camera orbits a DFC that has just entered collapse, while the DFC-TSTX gamerule is on. 4.0 sweeps about two thirds of a circle in the three seconds the shot lasts.");
+            tstxSpeed = (float) cfg.getFloat("speed", "dfcTstx", 2.0F, 0.0F, 12.0F,
+                    "Degrees per tick the camera orbits a DFC that has just entered collapse, while the DFC-TSTX gamerule is on. 2.0 sweeps about a third of a circle in the three seconds the shot lasts.");
             tstxRadius = cfg.getInt("radius", "dfcTstx", 16, 6, 40,
                     "Distance the three-second shot keeps from the core, in blocks.");
             tstxHeight = cfg.getInt("height", "dfcTstx", 6, -8, 40,
@@ -346,8 +346,8 @@ public final class HBMZZConfig {
                     "Players within this distance are put behind the camera, in blocks.");
             cinematicSpeed = (float) cfg.getFloat("rbmkSpeed", "cinematic", 0.72F, 0.0F, 12.0F,
                     "Degrees per tick the camera orbits an RBMK that has started jumping its rods. The gamerule zd_tx has to be on for this to happen at all. 0.72 is one lap in about 25 seconds; 0 leaves the camera alone.");
-            cinematicDfcSpeed = (float) cfg.getFloat("dfcSpeed", "cinematic", 2.0F, 0.0F, 12.0F,
-                    "Degrees per tick the camera orbits a DFC in the last five seconds before it goes. Faster than the RBMK default because that window is short.");
+            cinematicDfcSpeed = (float) cfg.getFloat("dfcSpeed", "cinematic", 1.0F, 0.0F, 12.0F,
+                    "Degrees per tick the camera orbits a DFC in the last five seconds before it goes. Still faster than the RBMK default, but slowed so the orbit reads.");
             cinematicRadius = cfg.getInt("radius", "cinematic", 18, 6, 40,
                     "Distance the camera keeps from the target, in blocks.");
             cinematicHeight = cfg.getInt("height", "cinematic", 7, -8, 40,

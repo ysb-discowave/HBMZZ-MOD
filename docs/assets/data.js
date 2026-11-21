@@ -703,7 +703,7 @@ window.HBMZZ_DATA = {
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 625,
-      "javaLines": 145883,
+      "javaLines": 145926,
       "resourceFiles": 662,
       "nodeTypes": 32,
       "controlTypes": 26

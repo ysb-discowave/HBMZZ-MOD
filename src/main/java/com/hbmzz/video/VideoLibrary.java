@@ -110,9 +110,7 @@ public final class VideoLibrary {
             return;
         }
         root = new File(new File(configDir, "hbmzz"), "videos");
-        if (!root.isDirectory() && !root.mkdirs()) {
-            org.apache.logging.log4j.LogManager.getLogger("hbmzz-video")
-                    .warn("could not create {}", root);
+        if (!ensureRoot()) {
             return;
         }
         File readme = new File(root, "README.txt");
@@ -124,7 +122,36 @@ public final class VideoLibrary {
         }
     }
 
+    /**
+     * Makes sure {@link #root} is a usable directory, creating it on demand.
+     *
+     * <p>preInit creates the folder, but a player can delete it while the game
+     * is running, and a mod loaded before us may ask for the shelf earlier than
+     * expected. Recreating here means every caller of {@link #root()} gets a
+     * real directory instead of a path that silently lists no clips.</p>
+     *
+     * @return true once the directory exists
+     */
+    private static boolean ensureRoot() {
+        if (root == null) {
+            return false;
+        }
+        if (root.isDirectory()) {
+            return true;
+        }
+        if (root.mkdirs() || root.isDirectory()) {
+            return true;
+        }
+        org.apache.logging.log4j.LogManager.getLogger("hbmzz-video")
+                .warn("could not create {}", root);
+        return false;
+    }
+
+    /** The shelf directory, created on demand so callers never see a missing folder. */
     public static File root() {
+        if (root != null) {
+            ensureRoot();
+        }
         return root;
     }
 

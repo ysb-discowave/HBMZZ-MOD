@@ -132,3 +132,10 @@ Aegis 新代码（4 组）：
 
 - **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL（`compileJava` / `jar` / `reobfJar` 全执行）；新 jar 已部署游戏 `mods`，MD5 `e233655b70d3d75e6a112d2380df5e01`，与构建产物一致；旧包备份 `hbmzz-4.0.0.jar.pre-bugfix`（MD5 `5de26701…d54d`）。
 - **未推 GitHub**：遵守约定，除非用户本人发出代理名 `XingZuo-Cloud Bot`，否则不推送。
+
+## 九、重做右键配置菜单（2026-11-21 追加）
+
+- **完整中文右键菜单**：`GuiAegisTerminal` 从五个灰按钮重写为自绘界面——青/琥珀配色与屏幕统一，标题栏、连接状态（绑定坐标 / 自动扫描半径）、实时堆芯温度（按熔点比例着色）、稳定度、能量、当前页面、电源状态一屏显示；五个动作按钮（绑定最近核心 / 解除绑定 / 切换页面 / 电源开关 / 完成）带悬停高亮。
+- **操作回执 + 快捷键**：每次动作在窗口底部显示一次性中文回执（如「已请求绑定最近核心」）；`1-4` 对应四个动作、`Q/E` 前后翻页、`P` 电源、`Esc` 关闭。
+- **数据不再陈旧**：打开瞬间发 `AegisRequestPacket` 拉一帧，窗口停留期间每 4 秒补拉；方块服务端 `onBlockActivated` 增加 `notifyBlockUpdate`，打开前把权威的页面 / 电源 / 绑定状态推给客户端。
+- **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL；jar 已部署游戏 `mods`，MD5 `57aace7b7cd53f43ebbcab1bf392f474`，`GuiAegisTerminal.class` 与内部类 `Btn` 均已确认编入；旧包备份 `hbmzz-4.0.0.jar.pre-menu`。

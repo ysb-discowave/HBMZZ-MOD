@@ -138,6 +138,14 @@ public final class BlockAegisTerminal extends BlockHorizontal implements ITileEn
         }
         if (world.isRemote) {
             HBMZZ.proxy.openAegis(pos);
+            return true;
+        }
+        // Push the authoritative page/power/binding down before the window is
+        // read: the client may have been out of range when those changed, and
+        // the menu must not open on yesterday's state.
+        TileEntity te = world.getTileEntity(pos);
+        if (te instanceof TileAegisTerminal) {
+            world.notifyBlockUpdate(pos, state, state, 3);
         }
         return true;
     }

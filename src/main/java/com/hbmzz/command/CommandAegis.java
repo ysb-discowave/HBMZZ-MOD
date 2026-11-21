@@ -1,5 +1,5 @@
 /*
- * HBMZZ - Aegis DFC telemetry terminal.
+ * HBMZZ - ADFC telemetry terminal.
  * Copyright (C) 2026 Yang Sibo (ysb-discowave)
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -16,9 +16,8 @@
 
 package com.hbmzz.command;
 
-import com.hbmzz.aegis.AegisScram;
-import com.hbmzz.aegis.AegisConfig;
-import com.hbmzz.dfc.DFCReader;
+import com.hbmzz.guard.CoreGuard;
+import com.hbmzz.guard.CoreThermal;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -34,12 +33,14 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * {@code /aegis scram [<off|status>]} — command entry point for the DFC
- * emergency shutdown. Arming targets the nearest DFC core within the Aegis
- * scan radius of the player; a player may also stand right next to a core to
- * be certain which one they are braking.
+ * {@code /aegis scram [<off|status|forecast>]} - compatibility alias for the
+ * standalone core thermal guard. Kept so the original command spelling keeps
+ * working; all behaviour now lives in {@link CoreGuard}, which writes the real
+ * CE temperature field instead of the vanilla heat field.
  */
 public final class CommandAegis extends CommandBase {
+
+    private static final int RADIUS = 64;
 
     @Override
     public String getName() {
@@ -48,12 +49,12 @@ public final class CommandAegis extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/aegis scram [off|status]";
+        return "/aegis scram [off|status|forecast]";
     }
 
     @Override
     public int getRequiredPermissionLevel() {
-        return 2; // operators only: this writes another mod's reactor fields
+        return 0;
     }
 
     @Override
@@ -63,7 +64,7 @@ public final class CommandAegis extends CommandBase {
             return Arrays.asList("scram");
         }
         if (args.length == 2 && "scram".equalsIgnoreCase(args[0])) {
-            return Arrays.asList("off", "status");
+            return Arrays.asList("off", "status", "forecast");
         }
         return super.getTabCompletions(server, sender, args, pos);
     }
@@ -72,34 +73,41 @@ public final class CommandAegis extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args)
             throws CommandException {
         if (args.length == 0 || !"scram".equalsIgnoreCase(args[0])) {
-            reply(sender, "用法: /aegis scram [off|status]");
+            reply(sender, "用法: /aegis scram [off|status|forecast]");
             return;
         }
 
         World world = sender.getEntityWorld();
         String sub = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "";
-
         if ("off".equals(sub)) {
-            reply(sender, AegisScram.disarm(world));
+            reply(sender, CoreGuard.disarm(world));
             return;
         }
         if ("status".equals(sub)) {
-            reply(sender, AegisScram.status(world));
+            reply(sender, CoreGuard.status(world));
             return;
         }
 
-        // Arm: find the core to brake. Prefer the core under the player's feet
-        // radius, else the nearest one in the Aegis scan radius.
         BlockPos anchor = sender.getPosition();
         if (sender instanceof EntityPlayer) {
             anchor = ((EntityPlayer) sender).getPosition();
         }
-        TileEntity core = DFCReader.findCore(world, anchor, AegisConfig.scanRadius);
-        if (core == null) {
-            reply(sender, "附近 " + AegisConfig.scanRadius + " 格内没有 DFC 核心，无法停堆。");
+        if ("forecast".equals(sub)) {
+            TileEntity core = CoreThermal.findCore(world, anchor, RADIUS);
+            if (core == null) {
+                reply(sender, "附近没有 DFC 核心。");
+                return;
+            }
+            reply(sender, CoreGuard.forecast(world, core.getPos()));
             return;
         }
-        reply(sender, AegisScram.arm(world, core.getPos()));
+
+        TileEntity core = CoreThermal.findCore(world, anchor, RADIUS);
+        if (core == null) {
+            reply(sender, "附近 " + RADIUS + " 格内没有 DFC 核心，无法停堆。");
+            return;
+        }
+        reply(sender, CoreGuard.arm(world, core.getPos()));
     }
 
     private static void reply(ICommandSender sender, String text) {

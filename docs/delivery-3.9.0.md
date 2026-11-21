@@ -114,3 +114,44 @@
 - 人工排查两遍 + javap 核对 Forge API（`Configuration.get(String,String,int)`、`Property.set(int)` 均存在）；`AegisRenderer` 大括号配平。
 - JDK 8 `gradle build` **BUILD SUCCESSFUL**；regcheck **all 150 checks passed**；站点一致性通过。
 - 产物 MD5 `8cd33925913d52400932c43017325a88`，已部署；上一版备份 `.pre-wallmount`。
+
+---
+
+## 十、贴墙修正 + 宽高一格步进 + 独立熔毁预测与停堆（同版本内）
+
+本轮根据现场反馈继续修正，版本号仍是 `3.9.0`。
+
+### 10.1 屏幕还是没贴墙、侧面像空气
+
+**根因**：上一版把面板几何放在方块**朝玩家**那一面（局部 +Z=0.5）再往外凸 0.14 格，等于整块屏浮在方块外面，和墙之间隔了接近一整格——这就是"半砖空档"，侧视只剩很薄一片、看着像空气。
+
+**修复**（`AegisRenderer.java`）：
+- 背板改到**贴墙面**（局部 -Z=-0.5），外壳从墙面向外延伸 `BOX_DEPTH=1.06` 格，几乎填满整格厚度、正面只露出 0.06 格唇边——屏幕真正贴墙，不再是悬空薄片。
+- 倾斜枢轴一起移到墙面，任意倾角背板都贴墙。
+- 渲染期间 `GlStateManager.disableCull()`（finally 里 `enableCull()`），侧视/斜视都能看到实体盒体，不会再被背面剔除成空气。
+
+### 10.2 宽/高每次加减一格、上限放大
+
+**修复**：
+- `GuiAegisTerminal` 宽/高按钮与快捷键（`[` `]` `-` `=`）步长 0.08 → **1.0 格**；倾斜角维持 5°/步。
+- `TileAegisTerminal` 宽高范围 0.5~2.0 → **1.0~32.0 格**，默认值 2.0；`renderBoundingBox` 按新上限扩张，大屏走到近处不会被裁剪。
+- 菜单提示文字同步为"宽/高 1~32 格，每次 +1/-1 格"。
+
+### 10.3 全新独立的核心熔毁预测与自动停堆
+
+**为什么要重写**：日志铁证——`getDFCTemperature()` 返回 708°C，但反射读 `heat` 字段是 0。反编译 CE addon 的 `MixinTileEntityCore` 确认：真实温度在 `double temperature` 字段，由 `getDFCTemperature()` / `setDFCTemperature(double)` 读写；原版 HBM 的 `int heat` 字段早就不承载 CE 的温度。旧停堆写 `heat`，根本打不中真实温度——这就是"自动停堆没用"的根因。
+
+**实现**（全新 `com.hbmzz.guard` 包，不引用任何 `aegis` / `dfc` 监控屏代码）：
+- `CoreThermal`：独立反射层，读温度优先 `getDFCTemperature()`、写温度优先 `setDFCTemperature(double)`，再回退真实 `temperature` 字段；熔点 `getDFCMeltingPoint()`。
+- `CoreGuard`：服务端每秒——
+  - **熔毁预测**：对观测核心采样算升温斜率，预测"多少秒后达到熔点"；温度未上升显示"暂无风险"。
+  - **自动停堆**：温度 >10000°C 每秒降 **5000°C**，>5000°C 每秒降 **2000°C**，到 0 后保持；按维度+坐标建会话，区块卸载暂停、核心消失/停服清除。
+- **指令**（权限 0，任何玩家可用）：`/coreguard <scram|forecast|status|off>`；旧 `/aegis scram` 作为兼容别名指向同一实现。
+  - `/coreguard forecast` 查熔毁预测时间；`/coreguard scram` 启动停堆；`/coreguard status` 查状态；`/coreguard off` 解除。
+- 旧 `AegisScram` 从事件总线摘除（它写的是错误的 heat 字段），旧的 `/aegis scram` 改委托到 `CoreGuard`。
+
+### 10.4 验证
+
+- 按用户要求人工排查两遍 + javap 核对 1.12.2 API；编译抓到并修复 3 处（GlStateManager 无 disableCullFace → disableCull、格式串缺 `%`、字体 U+00B1）。
+- JDK 8 `gradle build` **BUILD SUCCESSFUL**；regcheck **all 150 checks passed**；站点一致性通过。
+- 产物 MD5 `73115ed4b7b5a4f877315ffb54aa8568`，已部署到 `mods`；上一版备份 `.pre-guard`。

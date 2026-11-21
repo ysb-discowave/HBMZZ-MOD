@@ -51,14 +51,15 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
 
     private static final int HISTORY = AegisTelemetry.TREND_CAPACITY;
 
-    // Geometry limits, in degrees / blocks. The panel stays within a wall tile
-    // plus a small margin so a tilted screen never clips through the floor.
+    // Geometry limits, in degrees / blocks. Width and height are tuned a full
+    // block at a time (one click = one block), from a one-block wall tile up to
+    // a 32-block monitoring wall.
     public static final float TILT_MIN = -45.0F;
     public static final float TILT_MAX = 45.0F;
-    public static final float WIDTH_MIN = 0.5F;
-    public static final float WIDTH_MAX = 2.0F;
-    public static final float HEIGHT_MIN = 0.5F;
-    public static final float HEIGHT_MAX = 2.0F;
+    public static final float WIDTH_MIN = 1.0F;
+    public static final float WIDTH_MAX = 32.0F;
+    public static final float HEIGHT_MIN = 1.0F;
+    public static final float HEIGHT_MAX = 32.0F;
 
     private BlockPos boundCore;
     private BlockPos boundMeter;
@@ -69,9 +70,9 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
     /** Panel tilt around the local X axis, in degrees. Negative leans the top back. */
     private float tilt = 0.0F;
     /** Full panel width in blocks (renderer half-width = width / 2). */
-    private float panelWidth = 0.92F;
+    private float panelWidth = 2.0F;
     /** Full panel height in blocks (renderer half-height = height / 2). */
-    private float panelHeight = 0.92F;
+    private float panelHeight = 2.0F;
 
     private int pollTimer = AegisConfig.pollTicks;
     private boolean reportedFailure;
@@ -371,9 +372,9 @@ public final class TileAegisTerminal extends TileEntity implements ITickable {
         this.tilt = compound.hasKey("aegisTilt")
                 ? clamp(compound.getFloat("aegisTilt"), TILT_MIN, TILT_MAX) : 0.0F;
         this.panelWidth = compound.hasKey("aegisWidth")
-                ? clamp(compound.getFloat("aegisWidth"), WIDTH_MIN, WIDTH_MAX) : 0.92F;
+                ? clamp(compound.getFloat("aegisWidth"), WIDTH_MIN, WIDTH_MAX) : 2.0F;
         this.panelHeight = compound.hasKey("aegisHeight")
-                ? clamp(compound.getFloat("aegisHeight"), HEIGHT_MIN, HEIGHT_MAX) : 0.92F;
+                ? clamp(compound.getFloat("aegisHeight"), HEIGHT_MIN, HEIGHT_MAX) : 2.0F;
         this.bootAt = System.currentTimeMillis();
     }
 

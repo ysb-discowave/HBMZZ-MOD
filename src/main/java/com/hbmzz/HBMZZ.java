@@ -85,10 +85,14 @@ public class HBMZZ {
         // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
-        // Command-driven DFC emergency shutdown: drives the per-second cooldown
-        // on the server tick. Registered as an instance because its tick handler
-        // is an @SubscribeEvent method rather than a static listener.
-        MinecraftForge.EVENT_BUS.register(new com.hbmzz.aegis.AegisScram());
+        // Command-driven DFC emergency shutdown now lives in the independent
+        // CoreGuard module (registered below); the old AegisScram wrote the
+        // vanilla heat field and never touched the real CE temperature, so it
+        // is intentionally no longer registered.
+        // Independent core thermal guard: per-second forecast sampling and the
+        // temperature-banded forced cooldown. Kept in its own package and does
+        // not share any code with the Aegis telemetry terminal.
+        MinecraftForge.EVENT_BUS.register(new com.hbmzz.guard.CoreGuard());
         GameRegistry.registerTileEntity(TileEntityDFCMonitor.class, new ResourceLocation(MODID, "dfc_monitor"));
         GameRegistry.registerTileEntity(com.hbmzz.aegis.TileAegisTerminal.class,
                 new ResourceLocation(MODID, "aegis_terminal"));
@@ -189,10 +193,11 @@ public class HBMZZ {
         proxy.init(event);
     }
 
-    /** Registers the chat command for the DFC emergency shutdown. */
+    /** Registers the chat commands. */
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new com.hbmzz.command.CommandAegis());
+        event.registerServerCommand(new com.hbmzz.guard.CommandCoreGuard());
     }
 
     /**
@@ -215,6 +220,7 @@ public class HBMZZ {
         // exists.
         com.hbmzz.dfc.DfcAutoShutdown.clearAll();
         com.hbmzz.aegis.AegisScram.clearAll();
+        com.hbmzz.guard.CoreGuard.clearAll();
         // 爆炸记录表同样是内存里的、按维度存的：不清会串到下一个存档。
         // 它是普通方法不是 @SubscribeEvent —— FMLServerStoppedEvent 不是 Event 子类，
         // 挂事件总线会让 register 在 preInit 抛异常，整个模组起不来。

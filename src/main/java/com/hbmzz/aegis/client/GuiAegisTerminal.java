@@ -235,7 +235,7 @@ public final class GuiAegisTerminal extends GuiScreen {
         drawGeoRow(l + 12, gy0, "倾斜角", String.format(Locale.ROOT, "%+.0f°", te.getTilt()));
         drawGeoRow(l + 12, gy0 + step, "屏幕宽", String.format(Locale.ROOT, "%.2f 格", te.getPanelWidth()));
         drawGeoRow(l + 12, gy0 + step * 2, "屏幕高", String.format(Locale.ROOT, "%.2f 格", te.getPanelHeight()));
-        this.fontRenderer.drawStringWithShadow("倾斜 -45°~+45° · 宽/高 0.5~2.0 格",
+        this.fontRenderer.drawStringWithShadow("倾斜 -45~+45 度 · 宽/高 1~32 格，每次 +1/-1 格",
                 l + 12, gy0 + step * 3 + 2, FAINT);
 
         drawButtons(mouseX, mouseY);
@@ -316,16 +316,16 @@ public final class GuiAegisTerminal extends GuiScreen {
                 if (te != null) sendTilt(te.getTilt() + 5.0F);
                 break;
             case 7:
-                if (te != null) sendWidth(te.getPanelWidth() - 0.08F);
+                if (te != null) sendWidth(te.getPanelWidth() - 1.0F);
                 break;
             case 8:
-                if (te != null) sendWidth(te.getPanelWidth() + 0.08F);
+                if (te != null) sendWidth(te.getPanelWidth() + 1.0F);
                 break;
             case 9:
-                if (te != null) sendHeight(te.getPanelHeight() - 0.08F);
+                if (te != null) sendHeight(te.getPanelHeight() - 1.0F);
                 break;
             case 10:
-                if (te != null) sendHeight(te.getPanelHeight() + 0.08F);
+                if (te != null) sendHeight(te.getPanelHeight() + 1.0F);
                 break;
             default:
                 break;
@@ -401,13 +401,13 @@ public final class GuiAegisTerminal extends GuiScreen {
         } else if (typedChar == 'x' || typedChar == 'X') {
             if (te != null) sendTilt(te.getTilt() + 5.0F);
         } else if (typedChar == '[') {
-            if (te != null) sendWidth(te.getPanelWidth() - 0.08F);
+            if (te != null) sendWidth(te.getPanelWidth() - 1.0F);
         } else if (typedChar == ']') {
-            if (te != null) sendWidth(te.getPanelWidth() + 0.08F);
+            if (te != null) sendWidth(te.getPanelWidth() + 1.0F);
         } else if (typedChar == '-') {
-            if (te != null) sendHeight(te.getPanelHeight() - 0.08F);
+            if (te != null) sendHeight(te.getPanelHeight() - 1.0F);
         } else if (typedChar == '=') {
-            if (te != null) sendHeight(te.getPanelHeight() + 0.08F);
+            if (te != null) sendHeight(te.getPanelHeight() + 1.0F);
         } else {
             super.keyTyped(typedChar, keyCode);
         }

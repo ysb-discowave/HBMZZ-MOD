@@ -51,10 +51,16 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
     private static final WeakHashMap<TileAegisTerminal, AegisTexture> TEXTURES =
             new WeakHashMap<TileAegisTerminal, AegisTexture>();
 
-    /** The wall face the panel mounts to, in local block coordinates. */
-    private static final float PLANE = 0.5F;
-    /** Depth of the wall-mounted enclosure, from the wall face to the picture. */
-    private static final float BOX_DEPTH = 0.14F;
+    /** The wall face the panel mounts to, in local block coordinates.
+     *  FACING points out of the wall toward the viewer, so the wall itself is
+     *  on the local -Z side. Backing must sit here to actually touch the wall. */
+    private static final float PLANE = -0.5F;
+    /** Depth of the wall-mounted enclosure, from the wall face to the picture.
+     *  The wall face is local -0.5 (the block's north face in local space); the
+     *  viewer is on local +Z. Filling the whole block depth (1.0) plus a small
+     *  0.06 lip makes the panel sit flush on the wall instead of floating half
+     *  a block out in front of it. */
+    private static final float BOX_DEPTH = 1.06F;
 
     @Override
     public void render(TileAegisTerminal te, double x, double y, double z,
@@ -69,6 +75,11 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         GlStateManager.pushMatrix();
         GlStateManager.pushAttrib();
         try {
+            // The enclosure is a thin slab; with back-face culling on, an
+            // oblique view can cull the side walls and leave the block looking
+            // like air. Draw both faces of every quad so the panel reads as a
+            // solid wall-mounted box from any angle.
+            GlStateManager.disableCull();
             AegisCanvas canvas = canvasFor(te);
             AegisTexture texture = textureFor(te);
 
@@ -121,6 +132,7 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
         } catch (Throwable failure) {
             HBMZZ.logger.error("Aegis terminal at " + (te == null ? "?" : te.getPos()) + " failed to render", failure);
         } finally {
+            GlStateManager.enableCull();
             GlStateManager.popAttrib();
             GlStateManager.popMatrix();
         }

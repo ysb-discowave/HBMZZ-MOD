@@ -1,5 +1,6 @@
 {
-  "_comment": "官网手工维护的内容。自动数据（版本号、代码规模、文件数）不写在这里，由 sync_site.py 从 build.gradle 与源码扫描后合并生成 docs/assets/data.js。",
+  "_comment": "官网手工维护的内容。自动数据（版本号、代码规模、文件数）不写在这里，由 sync_site.py 从 build.gradle 与源码扫描后合并生成 docs/assets/data.js。siteVersion 覆盖站点顶部显示的版本号：留空则跟随最新 git tag，设置后一律以它为准（不影响 build.gradle / jar 命名）。",
+  "siteVersion": "3.8.0",
   "site": {
     "name": "HBMZZ",
     "fullName": "HBMZZ — DFC 监控屏 / 机器控制面板 / 制式枪械",

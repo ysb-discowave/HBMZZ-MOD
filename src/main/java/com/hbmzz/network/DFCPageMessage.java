@@ -39,6 +39,7 @@ public class DFCPageMessage implements IMessage {
 
     public static final int ACTION_PAGE = 0;
     public static final int ACTION_POWER = 1;
+    public static final int ACTION_ENHANCED_FX = 2;
 
     private BlockPos pos;
     private int action;
@@ -87,10 +88,16 @@ public class DFCPageMessage implements IMessage {
                     return;
                 }
                 TileEntityDFCMonitor monitor = (TileEntityDFCMonitor) te;
-                if (action == ACTION_POWER) {
-                    monitor.setPowered(value != 0);
-                } else {
-                    monitor.setPage(value);
+                switch (action) {
+                    case ACTION_POWER:
+                        monitor.setPowered(value != 0);
+                        break;
+                    case ACTION_ENHANCED_FX:
+                        monitor.setEnhancedFx(value != 0);
+                        break;
+                    default:
+                        monitor.setPage(value);
+                        break;
                 }
                 NetworkHandler.sendTo(player, new DFCDataMessage(pos, monitor.snapshot()));
             });

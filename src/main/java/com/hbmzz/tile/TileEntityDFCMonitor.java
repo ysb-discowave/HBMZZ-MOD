@@ -23,6 +23,7 @@ package com.hbmzz.tile;
 
 import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
+import com.hbmzz.blast.DfcBlastWatch;
 import com.hbmzz.dfc.ConsoleRig;
 import com.hbmzz.dfc.DfcAutoShutdown;
 import com.hbmzz.dfc.DFCReader;
@@ -102,6 +103,16 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     private boolean autoShutdown;
     /** Ticks the armed binding has pointed at nothing; used to drop the switch. */
     private int autoShutdownStale;
+    /**
+     * The enhanced-explosion-effects switch.
+     *
+     * <p>Purely cosmetic: it decides whether the collapse procedure streams the
+     * bigger particle shells and whether a real detonation raises the totem
+     * flourish instead of the quiet burst. Like the arm switch it belongs to
+     * the binding, so a rebind starts with the quiet effect, not a leftover
+     * spectacle the operator never asked for on this core.</p>
+     */
+    private boolean enhancedFx;
     private int panelW = HBMZZConfig.defaultWidth;
     private int panelH = HBMZZConfig.defaultHeight;
     /** Size of the wall panel drawn on the block faces, in blocks. */
@@ -186,6 +197,11 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             }
             this.autoShutdown = false;
             this.autoShutdownStale = 0;
+            this.enhancedFx = false;
+            if (this.world != null && !this.world.isRemote) {
+                DfcBlastWatch.unregisterEnhanced(this.world.provider.getDimension(),
+                        this.corePos);
+            }
         }
         this.corePos = corePos;
         markDirty();
@@ -214,6 +230,39 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     public boolean toggleAutoShutdown() {
         setAutoShutdown(!this.autoShutdown);
         return this.autoShutdown;
+    }
+
+    /** Whether the enhanced explosion effects are enabled for this binding. */
+    public boolean isEnhancedFx() {
+        return this.enhancedFx;
+    }
+
+    /**
+     * Server-authoritative. No running procedure to cancel: the flag only
+     * chooses which particle mode the next collapse streams and whether a
+     * detonation raises the totem flourish, so it is safe to flip mid-cool.
+     */
+    public void setEnhancedFx(boolean on) {
+        if (on == this.enhancedFx) {
+            return;
+        }
+        this.enhancedFx = on;
+        if (this.world != null && !this.world.isRemote && this.corePos != null) {
+            int dim = this.world.provider.getDimension();
+            if (on) {
+                DfcBlastWatch.registerEnhanced(dim, this.corePos);
+            } else {
+                DfcBlastWatch.unregisterEnhanced(dim, this.corePos);
+            }
+        }
+        markDirty();
+        sync();
+    }
+
+    /** Flips the switch. Returns the new state. */
+    public boolean toggleEnhancedFx() {
+        setEnhancedFx(!this.enhancedFx);
+        return this.enhancedFx;
     }
 
     public BlockPos getMeterPos() {
@@ -614,7 +663,7 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
             return;
         }
         this.autoShutdownStale = 0;
-        DfcAutoShutdown.tick(this.world, this.pos, this.corePos);
+        DfcAutoShutdown.tick(this.world, this.pos, this.corePos, this.enhancedFx);
     }
 
     /**
@@ -854,6 +903,10 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         // loaded halfway through a retraction must not resume a temperature
         // that nobody is writing any more.
         compound.setBoolean("autoShutdown", autoShutdown && corePos != null);
+        // The spectacle follows the binding: a monitor that points at nothing
+        // should not raise a totem the moment a random core blows, so the
+        // flag only survives a save when it has a core to act on.
+        compound.setBoolean("enhancedFx", enhancedFx && corePos != null);
         compound.setInteger("panelW", panelW);
         compound.setInteger("panelH", panelH);
         compound.setInteger("screenCols", screenCols);
@@ -885,6 +938,13 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
         cameraPos = compound.hasKey("cameraPos") ? BlockPos.fromLong(compound.getLong("cameraPos")) : null;
         cameraEnabled = compound.getBoolean("cameraEnabled");
         autoShutdown = compound.getBoolean("autoShutdown") && corePos != null;
+        enhancedFx = compound.getBoolean("enhancedFx") && corePos != null;
+        // 重新登记到爆炸监视：世界重载 / 区块重载后，服务端 TE 的 NBT 会把增强
+        // 开关读回来，但增强集合是独立内存表，得在此补一次。集合是 Set，重复
+        // 登记无害；客户端（sync 也会走这里）不登记。
+        if (this.world != null && !this.world.isRemote && enhancedFx && corePos != null) {
+            DfcBlastWatch.registerEnhanced(this.world.provider.getDimension(), corePos);
+        }
         panelW = HBMZZConfig.clampWidth(compound.getInteger("panelW") > 0
                 ? compound.getInteger("panelW") : HBMZZConfig.defaultWidth);
         panelH = HBMZZConfig.clampHeight(compound.getInteger("panelH") > 0
@@ -942,6 +1002,10 @@ public class TileEntityDFCMonitor extends TileEntity implements ITickable {
     public void invalidate() {
         if (this.world != null && !this.world.isRemote) {
             DfcAutoShutdown.release(this.world, this.corePos);
+            if (this.enhancedFx && this.corePos != null) {
+                DfcBlastWatch.unregisterEnhanced(this.world.provider.getDimension(),
+                        this.corePos);
+            }
         }
         super.invalidate();
     }

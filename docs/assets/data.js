@@ -685,9 +685,9 @@ window.HBMZZ_DATA = {
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 624,
-      "javaLines": 145153,
-      "resourceFiles": 661,
+      "javaFiles": 625,
+      "javaLines": 145883,
+      "resourceFiles": 662,
       "nodeTypes": 32,
       "controlTypes": 26
     },

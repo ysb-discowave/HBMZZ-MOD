@@ -435,6 +435,47 @@
     </div>
   </section>
 
+  <!-- ================= 多区块 DFC 反应堆 ================= -->
+  <section class="section" id="reactor">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 多区块 DFC 反应堆</div>
+        <h2>围绕一块堆芯搭一整套</h2>
+        <p>4.0.0 起，反应堆可以围绕一块堆芯用功能件扩展：发射器加燃料、吸收器加冷却、稳定器加温度反馈、控制棒由红石深度调节。正面功率输出，可由机器控制台驱动。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="card">
+          <h3>五个方块，各自只干一件事</h3>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>方块</th><th>它负责什么</th></tr></thead>
+              <tbody>
+                <tr><td><strong>堆芯（多区块）</strong></td><td>核心，做物理。正面功率输出，可被机器控制台驱动。</td></tr>
+                <tr><td><strong>发射器</strong></td><td>围绕堆芯放，增加燃料（更多裂变）。</td></tr>
+                <tr><td><strong>吸收器</strong></td><td>围绕堆芯放，增加冷却。</td></tr>
+                <tr><td><strong>稳定器</strong></td><td>增加温度系数，让温度更稳。</td></tr>
+                <tr><td><strong>控制棒</strong></td><td>由红石深度调节的节流棒。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:12px;color:var(--text-dim);font-size:14px">围绕堆芯按功能摆，摆得越满，裂变与冷却的平衡越可控。</p>
+        </div>
+
+        <div class="card">
+          <h3>怎么驱动</h3>
+          <p style="margin:0 0 10px">正面是功率输出。把堆芯绑进机器控制面板或机器控制台的槽位，就能像驱动 RBMK 一样读它、控它——发射器装了多少燃料、吸收器降了多少温、稳定器反馈了多少、控制棒插到多深，都走同一套 IControllable 协议。</p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">右键堆芯可直接读出通量、热量与当前输出功率；红石接控制棒可整组节流。</p>
+        </div>
+      </div>
+
+      <div class="panel panel--flat" style="margin-top:18px">
+        <h3 style="margin-bottom:8px">与单块堆芯的关系</h3>
+        <p style="color:var(--text-dim);font-size:14px;margin:0">单块的 <strong>HBMZZ 反应堆堆芯</strong>是一块式堆芯：背面控制棒（0 全抽 / 15 全插）、左侧冷却剂阀门、右侧脉冲启动 + 持续供电 = 紧急停堆（SCRAM）、正面功率输出，右键读通量 / 热量 / 输出功率。多区块版是把这台堆芯拆成五件，围绕核心摆放、由控制台统一驱动——同一套读法，更大的规模。</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 05 RBMK 过热 ================= -->
   <section class="section" id="rbmk-surge">
     <div class="wrap">
@@ -1053,6 +1094,99 @@
     </div>
   </section>
 
+  <!-- ================= 其他部件 ================= -->
+  <section class="section" id="more-parts">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">// 其他部件</div>
+        <h2>剩下这些方块怎么用</h2>
+        <p>前面没单独成节的部件，集中在这里：核事故配套的灯、传感器、红石逻辑门、自动停机，塔塔鲁斯大门，视频大屏，防爆窗帘，以及监控 HUD。</p>
+      </div>
+
+      <div class="grid g2" style="align-items:start">
+        <div class="card">
+          <div class="card-num">01</div>
+          <h3>核事故系统里另外两块</h3>
+          <p style="margin:0 0 8px">和核弹 / 控制器 / 监视屏 / 广播器 / 事故显示器配套，但只做一件事：</p>
+          <div class="table-wrap" style="margin-top:8px">
+            <table>
+              <thead><tr><th>方块</th><th>它干的事</th></tr></thead>
+              <tbody>
+                <tr><td><strong>状态提示灯</strong></td><td>把「当前设施代码」转成一盏灯，级别越高越亮，远程看"现在出事了没有"。</td></tr>
+                <tr><td><strong>代码旋转警报灯</strong></td><td>事故代码<strong>高于安全级别</strong>（默认 2 级 / 橙色）才点亮并旋转——红色或更糟才转。级别、唤醒阈值都在 <code>[alert]</code> 配。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-num">02</div>
+          <h3>DFC 爆炸传感器</h3>
+          <p style="margin:0 0 8px">检测到<strong>同维度</strong>某处 DFC 核反应堆炸了（爆炸发生在堆芯上方才算，避免基地里别的核弹误触发），就输出红石。右键读出：上次爆炸距此多少格、多少秒前、来源在哪。</p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">检测范围、满强度保持、衰减、峰值强度都在 <code>[dfcSensor]</code> 配；设 0 范围 = 不限距离。设 <code>anyBlast</code> 可把该维度所有核爆炸都当 DFC 爆炸。</p>
+        </div>
+
+        <div class="card">
+          <div class="card-num">03</div>
+          <h3>四种红石逻辑门</h3>
+          <p style="margin:0 0 8px">和原版红石门不一样：它们<strong>是实体方块、正面输出</strong>，能直接驱动红石粉 / 中继器 / 活板门 / 活塞。</p>
+          <div class="table-wrap" style="margin-top:8px">
+            <table>
+              <thead><tr><th>门</th><th>输入</th><th>输出</th></tr></thead>
+              <tbody>
+                <tr><td>与门 / 或门 / 异或门</td><td>左右两侧</td><td>正面（对称，左右无所谓）</td></tr>
+                <tr><td>非门</td><td>背面（一条线直接穿过去）</td><td>正面</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="color:var(--text-dim);font-size:14px;margin:10px 0 0">输出只朝正面：侧面若也出，接在侧面的粉会反喂给自己形成自锁。右键读出 A / B / 输出当前值。</p>
+        </div>
+
+        <div class="card">
+          <div class="card-num">04</div>
+          <h3>DFC 自动停机</h3>
+          <p style="margin:0 0 8px">挂在<strong>监控屏</strong>上：先绑定一台 DFC，再开自动停机。反应堆开始坍缩时自动降温、最后一分钟自动收回，减少爆炸。</p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">没绑定 DFC 或绑定位置没有堆芯时保持关闭。<code>[dfcShutdown]</code> 的 <code>enabled</code> 关掉即整条失效。这是给"反应堆要炸了"留的一道自动保险。</p>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px;align-items:start">
+        <div class="card">
+          <div class="card-num">05</div>
+          <h3>塔塔鲁斯大门</h3>
+          <p style="margin:0 0 8px">一座 <strong>26×26</strong> 的结构门，用<strong>塔塔鲁斯大门结构板</strong>搭框架。放下时那一格被占会拒放并说明是哪一格挡着。</p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">红石供电时锁定手动开关（"红石正在供电，手动开关被锁定"）——想用手动开关就先断电。</p>
+        </div>
+
+        <div class="card">
+          <div class="card-num">06</div>
+          <h3>视频大屏 + 遥控器</h3>
+          <p style="margin:0 0 8px">和"视频广播器"是另一条路：广播器是"劫持某个玩家屏幕播片"，大屏是"在墙上挂一台真电视"。</p>
+          <ul style="margin:0;padding-left:18px;color:var(--text-dim);font-size:14px;line-height:1.75">
+            <li>右键大屏：屏正中开一台电视（<code>F</code> 全屏 / 再按 <code>F</code> 回窗口）。</li>
+            <li>Shift + 右键：菜单（进度条 / ±5s / ±30s / 暂停 / 回开头 / 尺寸）。</li>
+            <li>接法：先<strong>遥控器右键播放器</strong>对准，再右键大屏接上；播放/停止由播放器上的红石拉杆控制。</li>
+            <li>画面读自每台客户端自己的 <code>config/hbmzz/videos/</code>。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-num">07</div>
+          <h3>防爆窗帘（+ 窗帘布）</h3>
+          <p style="margin:0 0 8px">来自 <code>rsaudio</code>。可收起 / 放下的防爆帘，比门更"软"的一道隔离。放下挡爆炸冲击波，收起平时不挡路。配防爆窗帘布做帘面。</p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0">和防核门（木斧右键开关）搭配：门是硬隔离、可锁死，窗帘是软隔离、可收放。</p>
+        </div>
+
+        <div class="card">
+          <div class="card-num">08</div>
+          <h3>监控 HUD</h3>
+          <p style="margin:0 0 8px">在屏幕上叠一层 DFC 读数：在 <code>display.hudRange</code> 格范围内对准堆芯就能看到关键读数，不用贴到监控屏前。</p>
+          <p style="color:var(--text-dim);font-size:14px;margin:0"><code>display.hudOverlay</code> 开关，默认开。跑 DFC 时不用总回头看墙上的屏，准星一瞄就是当前温度 / 稳定度 / 输出。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= 常见操作速查 ================= -->
   <section class="section" id="cheatsheet">
     <div class="wrap">
@@ -1131,7 +1265,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=c45195812f"></script>
+<script src="assets/data.js?v=1ac3df7d15"></script>
 <script src="assets/site.js?v=792c6c8990"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

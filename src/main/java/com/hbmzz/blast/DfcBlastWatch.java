@@ -21,6 +21,8 @@ package com.hbmzz.blast;
 import com.hbmzz.HBMZZ;
 import com.hbmzz.HBMZZConfig;
 import com.hbmzz.dfc.DFCReader;
+import com.hbmzz.network.DfcFxMessage;
+import com.hbmzz.network.NetworkHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
@@ -29,9 +31,12 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 服务端的 DFC 爆炸记录。
@@ -70,6 +75,29 @@ public final class DfcBlastWatch {
 
     /** 一个维度只留最近一次：信号是「刚炸了」，不是「炸过几次」。 */
     private static final Map<Integer, Blast> LAST = new HashMap<>();
+
+    /**
+     * 哪些核心此刻被开了「增强爆炸特效」的监视器盯着。
+     *
+     * <p>维度号 → 该维度下开了增强特效、且绑定到某核心的核心坐标集合。监视器在
+     * 打开增强特效时登记自己盯的核心，关掉/换绑/卸载时注销。爆炸时只要这一集合
+     * 里含有爆点的核心，就额外放一次不死图腾特效——否则就只保留原来的安静爆发。
+     * 纯服务端、内存态，随世界卸载与停机清空。</p>
+     */
+    private static final Map<Integer, Set<Long>> ENHANCED = new HashMap<>();
+
+    /**
+     * 图腾广播的去重窗口（tick）。
+     *
+     * <p>一次 DFC 熔毁里，「核爆实体入世」和「爆炸把核心列进破坏清单」两条检测
+     * 路径几乎总会在相邻 tick 先后命中同一个核心。不去重的话，同一颗核心的图腾
+     * 就被放两遍：金色漩涡叠两团、屏幕闪两次、音效叠两个音。6 tick（约 0.3 秒）
+     * 足以覆盖这两条相邻的事件，又短到不会吞掉真正分开的两次爆炸。</p>
+     */
+    private static final long TOTEM_GATE_TICKS = 6L;
+
+    /** 每个核心上一次真正放图腾的时刻：维度号 →（核心坐标 long → 该 tick）。 */
+    private static final Map<Integer, Map<Long, Long>> TOTEM_COOLDOWN = new HashMap<>();
 
     /**
      * 事件总线要的是一个实例。整张表是静态的，实例本身不带状态——挂在
@@ -173,7 +201,10 @@ public final class DfcBlastWatch {
     public void onWorldUnload(WorldEvent.Unload event) {
         World world = event.getWorld();
         if (world != null && !world.isRemote) {
-            LAST.remove(world.provider.getDimension());
+            int dim = world.provider.getDimension();
+            LAST.remove(dim);
+            ENHANCED.remove(dim);
+            TOTEM_COOLDOWN.remove(dim);
         }
     }
 
@@ -193,6 +224,8 @@ public final class DfcBlastWatch {
      */
     public void onServerStopped() {
         LAST.clear();
+        ENHANCED.clear();
+        TOTEM_COOLDOWN.clear();
     }
 
     // ---------------------------------------------------------------- lookup
@@ -266,6 +299,85 @@ public final class DfcBlastWatch {
         if (HBMZZ.logger != null) {
             HBMZZ.logger.debug("DFC blast recorded in dim {} at {} {} {} ({})", dim,
                     (int) x, (int) y, (int) z, source);
+        }
+        raiseTotem(world, dim, x, y, z);
+    }
+
+    /**
+     * 登记：一个监视器对它盯的核心开了增强爆炸特效。
+     *
+     * <p>只有服务端调用；客户端没有这张表。核心坐标存成 long，避免持有 {@code
+     * BlockPos} 引用——监视器换绑时旧坐标本就该被丢掉。</p>
+     */
+    public static void registerEnhanced(int dim, BlockPos core) {
+        if (core == null) {
+            return;
+        }
+        ENHANCED.computeIfAbsent(dim, d -> new HashSet<>()).add(core.toLong());
+    }
+
+    /** 注销：关掉增强特效、换绑或卸载时调用。幂等，集合空了就清掉整个条目。 */
+    public static void unregisterEnhanced(int dim, BlockPos core) {
+        if (core == null) {
+            return;
+        }
+        Set<Long> cores = ENHANCED.get(dim);
+        if (cores != null) {
+            cores.remove(core.toLong());
+            if (cores.isEmpty()) {
+                ENHANCED.remove(dim);
+            }
+        }
+    }
+
+    /** 该核心此刻是否被任一开了增强特效的监视器盯着。 */
+    static boolean enhancedCore(int dim, BlockPos core) {
+        if (core == null) {
+            return false;
+        }
+        Set<Long> cores = ENHANCED.get(dim);
+        return cores != null && cores.contains(core.toLong());
+    }
+
+    /**
+     * 爆炸点落在一个被增强特效盯着的核上时，向附近玩家广播一次不死图腾特效。
+     *
+     * <p>只有「开增强」的监视器才放图腾；没开的核心保持原来的安静爆发，不会被
+     * 这层额外的金色漩涡和全屏闪光打扰。半径用 DFC 特效范围，跟自动关停的特效
+     * 圈保持一致，这样站在能看见坍缩的同一圈内的人都能看见图腾。</p>
+     */
+    private static void raiseTotem(World world, int dim, double x, double y, double z) {
+        if (NetworkHandler.INSTANCE == null) {
+            return;
+        }
+        TileEntity core = DFCReader.findCore(world,
+                new BlockPos(x, y, z), HBMZZConfig.dfcSensorCoreRange);
+        if (core == null || !enhancedCore(dim, core.getPos())) {
+            return;
+        }
+        long now = world.getTotalWorldTime();
+        long coreKey = core.getPos().toLong();
+        Map<Long, Long> perCore = TOTEM_COOLDOWN.get(dim);
+        if (perCore != null) {
+            Long last = perCore.get(coreKey);
+            if (last != null && now - last < TOTEM_GATE_TICKS) {
+                // 同一颗核心刚放过图腾：这两条检测路径是同一次熔毁，跳过。
+                return;
+            }
+        }
+        try {
+            NetworkHandler.INSTANCE.sendToAllAround(
+                    new DfcFxMessage(DfcFxMessage.TOTEM_EXPLODE,
+                            x, y, z, HBMZZConfig.dfcShutdownFxRange, 0.0F),
+                    new NetworkRegistry.TargetPoint(dim, x, y, z,
+                            HBMZZConfig.dfcShutdownWatchRange));
+            if (perCore == null) {
+                perCore = new HashMap<>();
+                TOTEM_COOLDOWN.put(dim, perCore);
+            }
+            perCore.put(coreKey, now);
+        } catch (Throwable broken) {
+            // 一次没放出去的特效不值得把这一 tick 拖垮。
         }
     }
 

@@ -49,6 +49,10 @@ public class DfcFxMessage implements IMessage {
     public static final byte RING = 2;
     /** Everything at once, pulled into the core. Fired when the retraction starts. */
     public static final byte IMPLODE = 3;
+    /** Enhanced collapse: dense multi-colour storm. Only sent when the monitor's enhanced FX is on. */
+    public static final byte ENHANCED_COLLAPSE = 4;
+    /** Totem-of-undying style burst with the HBMZZ logo. Fired at the explosion moment. */
+    public static final byte TOTEM_EXPLODE = 5;
 
     private byte mode;
     private double x;

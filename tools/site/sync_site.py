@@ -145,6 +145,11 @@ def build_payload() -> dict:
         "stats": stats,
         "generatedAt": datetime.datetime.now().strftime("%Y-%m-%d"),
     }
+    # 站点顶部显示的版本可被 content.json 的 siteVersion 覆盖；它只管页面显示，
+    # 不动 build.gradle / jar 命名 / git tag。留空则维持原来的“跟随最新 tag”行为。
+    override = content.get("siteVersion")
+    if override:
+        payload["auto"]["version"] = override
     return payload
 
 
@@ -300,12 +305,14 @@ def main() -> int:
             elif m.group(1) != payload["auto"].get("gradleVersion", payload["auto"]["version"]):
                 problems.append(("FAIL", "mcmod.info 的 version 是 %s，build.gradle 是 %s"
                                  % (m.group(1), payload["auto"].get("gradleVersion"))))
-        # 站点版本来自 tag、构建版本来自 build.gradle，两者不一致本身不是错
-        # （发完版之后工作区会往前走），但值得说一声，免得以为是数据没更新。
+        # 站点版本与构建版本不一致本身不是错（发完版后工作区会往前走，
+        # 或 content.json 的 siteVersion 有意覆盖显示版本），说一声免得以为没更新。
         gv = payload["auto"].get("gradleVersion")
+        overridden = bool(json.loads(read(CONTENT_JSON)).get("siteVersion"))
         if gv and gv != payload["auto"]["version"]:
-            problems.append(("WARN", "站点版本 %s 取自 tag，build.gradle 是 %s"
-                             % (payload["auto"]["version"], gv)))
+            desc = "content.json 的 siteVersion 覆盖" if overridden else "tag"
+            problems.append(("WARN", "站点版本 %s（%s），build.gradle 是 %s"
+                             % (payload["auto"]["version"], desc, gv)))
 
         seen = set()
         for level, msg in problems:

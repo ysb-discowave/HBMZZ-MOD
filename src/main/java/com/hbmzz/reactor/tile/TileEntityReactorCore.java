@@ -191,7 +191,7 @@ public class TileEntityReactorCore extends TileEntity implements ITickable, ICon
                     if (dx == 0 && dy == 0 && dz == 0) {
                         continue;
                     }
-                    BlockPos p = this.pos.offset(dx, dy, dz);
+                    BlockPos p = this.pos.add(dx, dy, dz);
                     IBlockState s = this.world.getBlockState(p);
                     Block b = s.getBlock();
                     if (b == null) {
@@ -212,7 +212,7 @@ public class TileEntityReactorCore extends TileEntity implements ITickable, ICon
                             // The rod's insertion depth is the redstone power arriving
                             // at it from any side - the strongest neighbour drives it.
                             // A rod with nothing wired to it reads 0 (fully withdrawn).
-                            int depth = this.world.getRedstonePowerFromNeighbors(p);
+                            int depth = this.world.isBlockIndirectlyGettingPowered(p);
                             rods.add(depth);
                             break;
                         default:

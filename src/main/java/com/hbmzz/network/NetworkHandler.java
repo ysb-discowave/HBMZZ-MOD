@@ -104,6 +104,13 @@ public final class NetworkHandler {
         // colour, text) up only; the broadcast itself goes out on the alert feed.
         INSTANCE.registerMessage(CustomCodeConfigMessage.Handler.class, CustomCodeConfigMessage.class,
                 28, Side.SERVER);
+        // Aegis terminal: telemetry down, catch-up pull and page/power up.
+        INSTANCE.registerMessage(AegisDataPacket.Handler.class, AegisDataPacket.class, 29, Side.CLIENT);
+        INSTANCE.registerMessage(AegisRequestPacket.Handler.class, AegisRequestPacket.class, 30, Side.SERVER);
+        INSTANCE.registerMessage(AegisControlPacket.Handler.class, AegisControlPacket.class, 31, Side.SERVER);
+        INSTANCE.registerMessage(AegisSetupPacket.Handler.class, AegisSetupPacket.class, 32, Side.SERVER);
+        // Ask the client to open the Aegis settings window after a link-tool bind.
+        INSTANCE.registerMessage(AegisOpenGuiPacket.Handler.class, AegisOpenGuiPacket.class, 33, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

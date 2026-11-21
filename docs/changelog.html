@@ -97,7 +97,37 @@
             <span class="tl-ver">v4.0.0</span>
             <span class="tag tag--amber">最新</span>
           </div>
-          <h3>多区块 DFC 反应堆：五个方块拼一台堆，稳定器就是那个温度系数旋钮</h3>
+          <h3>全息视觉升级 + 黑屏致命 bug 修复</h3>
+          <ul>
+            <li><strong>修复永久黑屏回归：</strong>上次节流修复把纹理上传时间戳初始化为 <code>Long.MIN_VALUE</code>，<code>now - Long.MIN_VALUE</code> 溢出成负数，节流判断恒为「太快」，纹理永不上传——屏幕只剩边框、不显示任何内容。改用 0 + 首帧标记，保证首帧与 GL context 恢复后的上传不被拦截。</li>
+            <li><strong>全息化监控屏：</strong>深空渐变背景 + 漂移网格 + CRT 扫描光带；神盾标题辉光、呼吸状态灯；温度大字径向光晕、能量辉光、温度曲线改填充面积图；开机旋转双圆弧动画；危险时整框红色脉冲 + 四角角标。3D 屏幕外圈增加加色辉光边框，常态青 / 高温琥珀 / 报警红，远处一眼可辨状态。</li>
+            <li><strong>右键菜单视觉升级：</strong>标题流动高光条 + 呼吸灯、窗口四角 HUD 角标、连接状态呼吸灯、堆芯温度分段渐变可视化条（青→红 + 熔点刻度）。</li>
+            <li><strong>布局 bug 修复：</strong>报警横幅此前被页码栏盖住一半，已上移完整显示；部件页慢化剂罐进度条此前压到页码栏，已重排完整可见；「稳定」的方块字符改用「≈ 稳定」。</li>
+            <li><strong>验证：</strong>JDK 8 <code>gradle build</code> BUILD SUCCESSFUL；离屏渲染导出六张预览逐张目视核对，中文与全部特效正常；新 jar 已部署游戏 <code>mods</code>（MD5 <code>f693d6a6…3610</code>）。未推 GitHub。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v4.0.0</span>
+            <span class="tag">菜单 / 热修</span>
+          </div>
+          <h3>Aegis 右键菜单重做 + 自主排查热修</h3>
+          <ul>
+            <li><strong>右键配置菜单重做：</strong>从五个灰按钮改为自绘中文界面，青/琥珀配色与屏幕统一；一屏显示连接状态、绑定坐标、堆芯温度（按熔点着色）、稳定度、能量、页面与电源。五个按钮带悬停高亮，操作后底部显示一次性回执；快捷键 <code>1-4</code> 动作、<code>Q/E</code> 翻页、<code>P</code> 电源、<code>Esc</code> 关闭。打开时服务端推送权威状态，停留期间每 4 秒补拉一帧，不再停在旧数据。</li>
+            <li><strong>画面不再每 4 秒才刷一次：</strong>此前离屏画布每帧重绘开机动画 / 倒计时闪烁 / 扫描线 / 断流扫屏，但 GL 纹理上传被一个 4 秒节流卡住（<code>invalidate()</code> 无人调用），所有动画实际只有 1/4 FPS，温度数字也每 4 秒才跳。改为 16 ms 上传上限，动画恢复流畅。</li>
+            <li><strong>自动扫描模式下的篡改状态可见：</strong>篡改查询此前按「手动绑定坐标」取键，自动扫描时该键为 null，per-core 的链路中断 / 降级全被吞掉。改为按实际读到的核心坐标取键，与写入端登记键对齐。</li>
+            <li><strong>换存档不再泄漏 GL 纹理：</strong>世界卸载时补上 Aegis 渲染器缓存清理，反复切存档不会累积泄漏的纹理。</li>
+            <li><strong>验证：</strong>JDK 8 <code>gradle build</code> BUILD SUCCESSFUL，新 jar 已部署进游戏 <code>mods</code>（MD5 <code>57aace7b…f474</code>）。未推 GitHub。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v4.0.0</span>
+            <span class="tag tag--amber">首发</span>
+          </div>
+          <h3>多区块 DFC 反应堆 + Aegis 遥测终端：五个方块拼一台堆，监控屏从零重写</h3>
           <ul>
             <li><strong>一台堆不再是一块方块：</strong>新增 <code>reactor_core</code>（堆芯，权威格）加四类部件——<code>reactor_emitter</code>（燃料，越多额定功率与废热越大）、<code>reactor_absorber</code>（冷却，越多冷却回路越满）、<code>reactor_stabiliser</code>（稳定器，越多温度负反馈越强）、<code>reactor_control_rod</code>（控制棒，深度 = 它收到的红石强度）。堆芯每 tick 扫一圈 26 邻居，把「每种部件有几块、每根棒插多深」折进规格与输入——物理判定本身一个字没改，全部落在既有的 <code>ReactorMachine</code> / <code>ReactorRules</code> 上。</li>
             <li><strong>温度系数就是稳定器：</strong>堆温越高、链式反应越该自己顶回去，那条 <code>1 − heat × feedback</code> 的负反馈（多普勒式）一直活在 <code>ReactorRules.targetFlux</code> 里。现在 <code>ReactorCoreMath</code> 把稳定器数量乘进 <code>feedback</code>（每块 +25%）——堆芯周围多摆两块稳定器，热失控前那根自动踩下去的刹车就重一截。燃料与冷却同理：<code>heatPerFlux ×(1+0.25e)</code>、<code>ratedOutput ×(1+0.5e)</code>、<code>coolPerFlow ×(1+0.4a)</code>，全部钳在 0..16 块有效上限内，三百块稳定器也造不出无穷规格。</li>
@@ -108,6 +138,8 @@
             <li><strong>紫黑免疫：</strong>五个新方块没有一个带新贴图——堆芯直接借 <code>control_panel</code> 的模型，四个部件是 <code>cube_all</code> 指到既有合法纹理。没重建资源包的整合包里，它们不可能以缺失模型的样子出现。</li>
             <li><strong>验证：</strong>regcheck <b>150/150</b>（ClientProxy 三张模型表 36/36/36 对齐，五个方块、五个物品、五个配方全在册）；<code>ReactorCoreMath</code> 留在纯函数包 <code>com.hbmzz.reactor</code> 里，<code>tools/reactorcheck</code> 可以不放任何方块就证明「稳定器买到了足够负反馈，控棒失效仍能急停」这条安全性质。</li>
             <li><strong>版本号说明：</strong>这是一整台新机器加四个可放置方块加一套控制面板接口，量级够主版本号——从 3.8.0 直接跳 <b>4.0.0</b>。<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 三处同步。</li>
+            <li><strong>新增 Aegis 遥测终端（神盾）：</strong>DFC 监控屏<strong>从零重写</strong>，独立包 <code>com.hbmzz.aegis</code>，不复用旧 <code>dfc_monitor</code> 任何代码。新增 <code>aegis_terminal</code>（主屏）与 <code>aegis_cell</code>（填充边框）两个方块，右键切页、潜行右键重置绑定，核心半径内自动扫描。<strong>三页界面：</strong>概览（温度 / 稳定 / 能量 / 趋势曲线）、组件（部件计数 / 双燃料罐）、诊断（催化剂磨损 / 功率 / 信号完整性）；含开机扫描动画，断流 5 秒切「NO SIGNAL」不残留旧数值。配色与布局全新设计，独立配置 <code>config/hbmzz-aegis.cfg</code>，网络消息占 ID 29/30/31。</li>
+            <li><strong>首次真实编译通过：</strong>本版完成 <code>gradle build</code> 全量编译（Temurin JDK 8u512 + Gradle 4.10.3），<b>BUILD SUCCESSFUL</b>，Aegis 全部类已编入 jar；同时修复 4.0.0 原有代码里 4 处 1.12.2 不兼容的 API 用法（<code>Locale.ROOT</code> 静态导入、<code>BlockRotation</code>、<code>getDrops</code> 缺 import、控制棒红石读取 API）。jar 已部署进游戏 <code>mods</code>。 <strong>热修：</strong>修复遥测终端放置后「像空气」的问题——画面朝向映射反了 180°（屏幕画在局部 +Z 面却用了 -Z 的角度），已改正并重新出包部署。</li> <strong>同日再修：</strong>屏显全部改为中文；普通右键打开配置窗口，可手动绑定/解除最近 DFC 核心、翻页、开关电源（新增网络消息 ID 32），潜行右键仍快速翻页。温度按摄氏度显示、以熔点为上限判定颜色。
           </ul>
         </div>
 
@@ -705,8 +737,10 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=f9a8c3ee1c"></script>
-<script src="assets/site.js?v=3a90f5f5a2"></script>
+
+<script src="assets/data.js?v=79067285cd"></script>
+<script src="assets/site.js?v=792c6c8990"></script>
+
   <script src="assets/reveal.js?v=2"></script>
 </body>
 </html>

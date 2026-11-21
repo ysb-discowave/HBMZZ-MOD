@@ -22,7 +22,6 @@ import com.hbmzz.HBMZZ;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.util.BlockRotation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -107,12 +106,6 @@ public class BlockReactorComponent extends Block {
     public int getLightValue(net.minecraft.block.state.IBlockState state) {
         // Emitters glow faintly - they are the source. The rest stay dark.
         return this.type == ComponentType.EMITTER ? 7 : 0;
-    }
-
-    @Override
-    public Block rotate(net.minecraft.world.IBlockAccess world, BlockPos pos,
-                        net.minecraft.block.state.IBlockState state, BlockRotation rot) {
-        return state.getBlock();
     }
 
     @Override

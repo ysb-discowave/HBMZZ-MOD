@@ -22,10 +22,11 @@ import com.hbmzz.HBMZZ;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.renderer.vertex.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.SoundCategory;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -141,10 +142,12 @@ public final class ClientTotemFx {
     private static void playTotemSound(double x, double y, double z) {
         Minecraft mc = Minecraft.getMinecraft();
         try {
-            mc.getSoundHandler().playSound(SoundEvents.ENTITY_TOTEM_OF_UNDYING, x, y, z, 1.0F, 1.0F);
+            mc.world.playSound(mc.player, x, y, z, SoundEvents.ENTITY_FIREWORK_LARGE_BLAST,
+                    SoundCategory.MASTER, 1.0F, 1.0F);
         } catch (Throwable totemGone) {
             try {
-                mc.getSoundHandler().playSound(SoundEvents.ENTITY_GENERIC_EXPLODE, x, y, z, 0.8F, 0.5F);
+                mc.world.playSound(mc.player, x, y, z, SoundEvents.ENTITY_GENERIC_EXPLODE,
+                        SoundCategory.MASTER, 0.8F, 0.5F);
             } catch (Throwable ignored) {
             }
         }
@@ -233,7 +236,7 @@ public final class ClientTotemFx {
         float scale = flashRadius * 0.5F * (1.0F - lifeFrac * 0.2F);
         spinAngle += 0.06F;
 
-        Vec3d cam = mc.player.getPositionVec();
+        Vec3d cam = mc.player.getPositionEyes(1.0F);
         double dx = fx - cam.x;
         double dy = fy - cam.y;
         double dz = fz - cam.z;
@@ -250,7 +253,7 @@ public final class ClientTotemFx {
         float rx = upY * nz - upZ * ny;
         float ry = upZ * nx - upX * nz;
         float rz = upX * ny - upY * nx;
-        float rLen = Math.sqrt(rx * rx + ry * ry + rz * rz);
+        float rLen = (float) Math.sqrt(rx * rx + ry * ry + rz * rz);
         if (rLen < 0.001F) {
             rx = 1F; ry = 0F; rz = 0F;
         } else {
@@ -259,7 +262,7 @@ public final class ClientTotemFx {
         float tx = ry * nz - rz * ny;
         float ty = rz * nx - rx * nz;
         float tz = rx * ny - ry * nx;
-        float tLen = Math.sqrt(tx * tx + ty * ty + tz * tz);
+        float tLen = (float) Math.sqrt(tx * tx + ty * ty + tz * tz);
         if (tLen > 0.001F) {
             tx /= tLen; ty /= tLen; tz /= tLen;
         } else {
@@ -289,19 +292,19 @@ public final class ClientTotemFx {
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, logoTexId);
 
         Tessellator tess = Tessellator.getInstance();
-        VertexBuffer buf = tess.getBuffer();
+        BufferBuilder buf = tess.getBuffer();
         buf.begin(GL11.GL_QUAD_STRIP, DefaultVertexFormats.POSITION_TEX_COLOR);
         // White vertex colour so the emblem paints in its own gold; only the
         // alpha carries the fade. t2 is up, r2 is right on the screen.
         // top-right, top-left, bottom-left, bottom-right
-        buf.pos(cx + r2x * scale + t2x * scale, cy + r2y * scale + t2y * scale,
-                cz + r2z * scale + t2z * scale).tex(1.0F, 0.0F).color(255, 255, 255, ai).endVertex();
-        buf.pos(cx - r2x * scale + t2x * scale, cy - r2y * scale + t2y * scale,
-                cz - r2z * scale + t2z * scale).tex(0.0F, 0.0F).color(255, 255, 255, ai).endVertex();
-        buf.pos(cx - r2x * scale - t2x * scale, cy - r2y * scale - t2y * scale,
-                cz - r2z * scale - t2z * scale).tex(0.0F, 1.0F).color(255, 255, 255, ai).endVertex();
-        buf.pos(cx + r2x * scale - t2x * scale, cy + r2y * scale - t2y * scale,
-                cz + r2z * scale - t2z * scale).tex(1.0F, 1.0F).color(255, 255, 255, ai).endVertex();
+        buf.pos((float)(cx + r2x * scale + t2x * scale), (float)(cy + r2y * scale + t2y * scale),
+                (float)(cz + r2z * scale + t2z * scale)).tex(1.0F, 0.0F).color(255, 255, 255, ai).endVertex();
+        buf.pos((float)(cx - r2x * scale + t2x * scale), (float)(cy - r2y * scale + t2y * scale),
+                (float)(cz - r2z * scale + t2z * scale)).tex(0.0F, 0.0F).color(255, 255, 255, ai).endVertex();
+        buf.pos((float)(cx - r2x * scale - t2x * scale), (float)(cy - r2y * scale - t2y * scale),
+                (float)(cz - r2z * scale - t2z * scale)).tex(0.0F, 1.0F).color(255, 255, 255, ai).endVertex();
+        buf.pos((float)(cx + r2x * scale - t2x * scale), (float)(cy + r2y * scale - t2y * scale),
+                (float)(cz + r2z * scale - t2z * scale)).tex(1.0F, 1.0F).color(255, 255, 255, ai).endVertex();
         tess.draw();
 
         GL11.glColor4f(1F, 1F, 1F, 1F);
@@ -332,20 +335,20 @@ public final class ClientTotemFx {
         if (mc.getFramebuffer() == null) {
             return;
         }
-        int sw = mc.getFramebuffer().getFramebufferWidth();
-        int sh = mc.getFramebuffer().getFramebufferHeight();
+        int sw = mc.displayWidth;
+        int sh = mc.displayHeight;
 
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         Tessellator tess = Tessellator.getInstance();
-        VertexBuffer buf = tess.getBuffer();
+        BufferBuilder buf = tess.getBuffer();
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
-        buf.pos(0, 0, -0.5).color(255, 215, 0, a).endVertex();
-        buf.pos(sw, 0, -0.5).color(255, 215, 0, a).endVertex();
-        buf.pos(sw, sh, -0.5).color(255, 215, 0, a).endVertex();
-        buf.pos(0, sh, -0.5).color(255, 215, 0, a).endVertex();
+        buf.pos(0F, 0F, -0.5F).color(255, 215, 0, a).endVertex();
+        buf.pos((float)sw, 0F, -0.5F).color(255, 215, 0, a).endVertex();
+        buf.pos((float)sw, (float)sh, -0.5F).color(255, 215, 0, a).endVertex();
+        buf.pos(0F, (float)sh, -0.5F).color(255, 215, 0, a).endVertex();
         tess.draw();
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
@@ -368,7 +371,7 @@ public final class ClientTotemFx {
         try {
             Minecraft mc = Minecraft.getMinecraft();
             ResourceLocation rl = new ResourceLocation(HBMZZ.MODID, "textures/particles/hbmzz_logo.png");
-            InputStream is = mc.getResource().getResource(rl).getInputStream();
+            InputStream is = mc.getResourceManager().getResource(rl).getInputStream();
             java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(is);
             is.close();
 
@@ -396,7 +399,7 @@ public final class ClientTotemFx {
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
             GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, w, h, 0,
-                    GL11.GL_BGRA, GL11.GL_UNSIGNED_BYTE, buf);
+                    GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buf);
         } catch (Throwable e) {
             if (HBMZZ.logger != null) {
                 HBMZZ.logger.warn("DFC totem FX: could not load the HBMZZ logo texture: " + e.getMessage());

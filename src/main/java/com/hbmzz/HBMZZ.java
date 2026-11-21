@@ -30,6 +30,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import org.apache.logging.log4j.Logger;
 
@@ -62,6 +63,8 @@ public class HBMZZ {
             logger.info("HBMZZ {} loaded (source unavailable)", VERSION);
         }
         HBMZZConfig.load(event.getSuggestedConfigurationFile());
+        // Aegis terminal keeps its own config file next to the main one.
+        com.hbmzz.aegis.AegisConfig.load(event.getSuggestedConfigurationFile());
         // The video shelf lives under <config>/hbmzz/videos/ and is read by both
         // sides (the server validates names, the client opens the clip). Without
         // this call VideoLibrary.root stays null, so the broadcaster GUI lists no
@@ -82,7 +85,17 @@ public class HBMZZ {
         // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
+        // Command-driven DFC emergency shutdown now lives in the independent
+        // CoreGuard module (registered below); the old AegisScram wrote the
+        // vanilla heat field and never touched the real CE temperature, so it
+        // is intentionally no longer registered.
+        // Independent core thermal guard: per-second forecast sampling and the
+        // temperature-banded forced cooldown. Kept in its own package and does
+        // not share any code with the Aegis telemetry terminal.
+        MinecraftForge.EVENT_BUS.register(new com.hbmzz.guard.CoreGuard());
         GameRegistry.registerTileEntity(TileEntityDFCMonitor.class, new ResourceLocation(MODID, "dfc_monitor"));
+        GameRegistry.registerTileEntity(com.hbmzz.aegis.TileAegisTerminal.class,
+                new ResourceLocation(MODID, "aegis_terminal"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityCtrlPanel.class,
                 new ResourceLocation(MODID, "control_panel"));
         GameRegistry.registerTileEntity(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,
@@ -180,6 +193,13 @@ public class HBMZZ {
         proxy.init(event);
     }
 
+    /** Registers the chat commands. */
+    @Mod.EventHandler
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new com.hbmzz.command.CommandAegis());
+        event.registerServerCommand(new com.hbmzz.guard.CommandCoreGuard());
+    }
+
     /**
      * Drops the intrusion table when the world goes away.
      *
@@ -199,6 +219,8 @@ public class HBMZZ {
         // find a DFC that is still being "cooled" in a world that no longer
         // exists.
         com.hbmzz.dfc.DfcAutoShutdown.clearAll();
+        com.hbmzz.aegis.AegisScram.clearAll();
+        com.hbmzz.guard.CoreGuard.clearAll();
         // 爆炸记录表同样是内存里的、按维度存的：不清会串到下一个存档。
         // 它是普通方法不是 @SubscribeEvent —— FMLServerStoppedEvent 不是 Event 子类，
         // 挂事件总线会让 register 在 preInit 抛异常，整个模组起不来。

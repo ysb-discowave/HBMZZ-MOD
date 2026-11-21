@@ -46,6 +46,13 @@ import net.minecraftforge.oredict.ShapelessOreRecipe;
 public final class ModContent {
 
     public static final Block BLOCK_MONITOR = new BlockDFCMonitor();
+
+    // Aegis telemetry terminal (independent re-implementation).
+    public static final Block BLOCK_AEGIS_TERMINAL = new com.hbmzz.aegis.BlockAegisTerminal();
+    public static final Block BLOCK_AEGIS_CELL = new com.hbmzz.aegis.BlockAegisCell();
+    public static final Item ITEM_BLOCK_AEGIS_TERMINAL = new ItemBlock(BLOCK_AEGIS_TERMINAL);
+    public static final Item ITEM_BLOCK_AEGIS_CELL = new ItemBlock(BLOCK_AEGIS_CELL);
+    public static final Item ITEM_AEGIS_LINKER = new com.hbmzz.item.ItemAegisLinker();
     /**
      * Filler cell of a wall screen. Registered as a block but deliberately not
      * as an item: it only ever exists as part of a placed panel. Registered
@@ -180,6 +187,8 @@ public final class ModContent {
     @SubscribeEvent
     public static void registerBlocks(RegistryEvent.Register<Block> event) {
         event.getRegistry().register(BLOCK_MONITOR);
+        event.getRegistry().register(BLOCK_AEGIS_TERMINAL);
+        event.getRegistry().register(BLOCK_AEGIS_CELL);
         event.getRegistry().register(BLOCK_MONITOR_PART);
         event.getRegistry().register(BLOCK_MONITOR_CAMERA);
         event.getRegistry().register(BLOCK_CTRL_PANEL);
@@ -212,6 +221,11 @@ public final class ModContent {
     public static void registerItems(RegistryEvent.Register<Item> event) {
         ITEM_BLOCK_MONITOR.setRegistryName(BLOCK_MONITOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_MONITOR);
+        ITEM_BLOCK_AEGIS_TERMINAL.setRegistryName(BLOCK_AEGIS_TERMINAL.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_AEGIS_TERMINAL);
+        ITEM_BLOCK_AEGIS_CELL.setRegistryName(BLOCK_AEGIS_CELL.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_AEGIS_CELL);
+        event.getRegistry().register(ITEM_AEGIS_LINKER);
         ITEM_BLOCK_MONITOR_CAMERA.setRegistryName(BLOCK_MONITOR_CAMERA.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_MONITOR_CAMERA);
         ITEM_BLOCK_CTRL_PANEL.setRegistryName(BLOCK_CTRL_PANEL.getRegistryName());
@@ -286,6 +300,41 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'C', Items.COMPARATOR
         ).setRegistryName(HBMZZ.MODID, "dfc_monitor"));
+
+        // Aegis terminal: glass pane and redstone for the screen, a comparator
+        // for the reader, surrounded by iron. The frame cell is cheaper.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "aegis_terminal"),
+                new ItemStack(BLOCK_AEGIS_TERMINAL),
+                "III",
+                "GRG",
+                "ICI",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "aegis_terminal"));
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "aegis_cell"),
+                new ItemStack(BLOCK_AEGIS_CELL),
+                "III",
+                "IGI",
+                "III",
+                'I', Items.IRON_INGOT,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE)
+        ).setRegistryName(HBMZZ.MODID, "aegis_cell"));
+        // Aegis linker: a comparator on a redstone/iron handle. Cheap and
+        // reusable - it carries only a coordinate, not any scarce material.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "aegis_linker"),
+                new ItemStack(ITEM_AEGIS_LINKER),
+                " I ",
+                "IRI",
+                " C ",
+                'I', Items.IRON_INGOT,
+                'R', Items.REDSTONE,
+                'C', Items.COMPARATOR
+        ).setRegistryName(HBMZZ.MODID, "aegis_linker"));
 
         // Control panel: steel plate, a dial's worth of comparators and a bed
         // of redstone. Nothing rare - a control panel is something you build a

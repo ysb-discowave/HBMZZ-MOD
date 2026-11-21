@@ -70,6 +70,9 @@ public class ClientProxy extends CommonProxy {
         ClientTotemFx.init();
         ClientRegistry.registerKeyBinding(KEY_REFRESH_VIDEOS);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityDFCMonitor.class, new RenderDFCMonitor());
+        // Aegis telemetry terminal — its renderer owns its own canvas/texture.
+        ClientRegistry.bindTileEntitySpecialRenderer(com.hbmzz.aegis.TileAegisTerminal.class,
+                new com.hbmzz.aegis.client.AegisRenderer());
         // 视频大屏：世界里那块正在放片子的屏幕。走 TESR 而不是方块模型，因为
         // 画面每帧都在变，而方块模型是资源加载时烘焙一次的（理由见 RenderVideoScreen）。
         ClientRegistry.bindTileEntitySpecialRenderer(
@@ -177,6 +180,10 @@ public class ClientProxy extends CommonProxy {
         // name and goes purple-and-black the day someone renames the block.
         list.add(loc("status_lamp"));
         list.add(loc("alarm_beacon"));
+        // Aegis telemetry terminal and its frame cell.
+        list.add(loc("aegis_terminal"));
+        list.add(loc("aegis_cell"));
+        list.add(loc("aegis_linker"));
         return list;
     }
 
@@ -220,6 +227,9 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_REACTOR_CONTROL_ROD);
         list.add(ModContent.ITEM_BLOCK_STATUS_LAMP);
         list.add(ModContent.ITEM_BLOCK_ALARM_BEACON);
+        list.add(ModContent.ITEM_BLOCK_AEGIS_TERMINAL);
+        list.add(ModContent.ITEM_BLOCK_AEGIS_CELL);
+        list.add(ModContent.ITEM_AEGIS_LINKER);
         return list;
     }
 
@@ -249,7 +259,9 @@ public class ClientProxy extends CommonProxy {
             //  reactor_core  emitter  absorber  stabiliser  control_rod
             0, 0, 0, 0, 0,
             //  status_lamp  alarm_beacon
-            0, 0
+            0, 0,
+            //  aegis_terminal  aegis_cell  aegis_linker
+            0, 0, 0
     };
 
     public static List<Integer> metas() {
@@ -268,6 +280,11 @@ public class ClientProxy extends CommonProxy {
     public void openMonitor(BlockPos pos) {
         Minecraft.getMinecraft().displayGuiScreen(new GuiDFCMonitor(pos));
         NetworkHandler.sendToServer(new DFCRequestMessage(pos));
+    }
+
+    @Override
+    public void openAegis(BlockPos pos) {
+        Minecraft.getMinecraft().displayGuiScreen(new com.hbmzz.aegis.client.GuiAegisTerminal(pos));
     }
 
     @Override

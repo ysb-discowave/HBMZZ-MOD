@@ -1,5 +1,6 @@
 {
-  "_comment": "官网手工维护的内容。自动数据（版本号、代码规模、文件数）不写在这里，由 sync_site.py 从 build.gradle 与源码扫描后合并生成 docs/assets/data.js。",
+  "_comment": "官网手工维护的内容。自动数据（版本号、代码规模、文件数）不写在这里，由 sync_site.py 从 build.gradle 与源码扫描后合并生成 docs/assets/data.js。siteVersion 覆盖站点顶部显示的版本号：留空则跟随最新 git tag，设置后一律以它为准（不影响 build.gradle / jar 命名）。",
+  "siteVersion": "4.0.0",
   "site": {
     "name": "HBMZZ",
     "fullName": "HBMZZ — DFC 监控屏 / 机器控制面板 / 制式枪械",
@@ -274,7 +275,7 @@
   "timeline": [
     {
       "version": "4.0.0",
-      "title": "多区块 DFC 反应堆：五个方块拼一台堆，稳定器就是那个温度系数旋钮",
+      "title": "多区块 DFC 反应堆 + Aegis 遥测终端：五个方块拼一台堆，监控屏从零重写",
       "items": [
         "<strong>一台堆不再是一块方块：</strong>新增 <code>reactor_core</code>（堆芯，权威格）加四类部件——<code>reactor_emitter</code>（燃料，越多额定功率与废热越大）、<code>reactor_absorber</code>（冷却，越多冷却回路越满）、<code>reactor_stabiliser</code>（稳定器，越多温度负反馈越强）、<code>reactor_control_rod</code>（控制棒，深度 = 它收到的红石强度）。堆芯每 tick 扫一圈 26 邻居，把「每种部件有几块、每根棒插多深」折进规格与输入——物理判定本身一个字没改，全部落在既有的 <code>ReactorMachine</code> / <code>ReactorRules</code> 上。",
         "<strong>温度系数就是稳定器：</strong>堆温越高、链式反应越该自己顶回去，那条 <code>1 − heat × feedback</code> 的负反馈（多普勒式）一直活在 <code>ReactorRules.targetFlux</code> 里。现在 <code>ReactorCoreMath</code> 把稳定器数量乘进 <code>feedback</code>（每块 +25%）——堆芯周围多摆两块稳定器，热失控前那根自动踩下去的刹车就重一截。燃料与冷却同理：<code>heatPerFlux ×(1+0.25e)</code>、<code>ratedOutput ×(1+0.5e)</code>、<code>coolPerFlow ×(1+0.4a)</code>，全部钳在 0..16 块有效上限内，三百块稳定器也造不出无穷规格。",
@@ -284,7 +285,9 @@
         "<strong>红石口位分面：</strong>背面红石上升沿 = 启动，右侧持续 2 tick = 急停，正面弱充能 = 功率档位 0..15（按额定功率折算），侧面一律 0——和门那批的规矩一样，输出只走一面，侧面通电就是「输出喂输入」的自锁。",
         "<strong>紫黑免疫：</strong>五个新方块没有一个带新贴图——堆芯直接借 <code>control_panel</code> 的模型，四个部件是 <code>cube_all</code> 指到既有合法纹理。没重建资源包的整合包里，它们不可能以缺失模型的样子出现。",
         "<strong>验证：</strong>regcheck <b>150/150</b>（ClientProxy 三张模型表 36/36/36 对齐，五个方块、五个物品、五个配方全在册）；<code>ReactorCoreMath</code> 留在纯函数包 <code>com.hbmzz.reactor</code> 里，<code>tools/reactorcheck</code> 可以不放任何方块就证明「稳定器买到了足够负反馈，控棒失效仍能急停」这条安全性质。",
-        "<strong>版本号说明：</strong>这是一整台新机器加四个可放置方块加一套控制面板接口，量级够主版本号——从 3.8.0 直接跳 <b>4.0.0</b>。<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 三处同步。"
+        "<strong>版本号说明：</strong>这是一整台新机器加四个可放置方块加一套控制面板接口，量级够主版本号——从 3.8.0 直接跳 <b>4.0.0</b>。<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code> 三处同步。",
+        "<strong>新增 Aegis 遥测终端（神盾）：</strong>DFC 监控屏<strong>从零重写</strong>，独立包 <code>com.hbmzz.aegis</code>，不复用旧代码。三页界面（概览 / 组件 / 诊断）、开机动画与 NO SIGNAL 断流态，右键切页、潜行右键重置绑定，独立配置 <code>hbmzz-aegis.cfg</code>，网络消息 ID 29/30/31。",
+        "<strong>首次真实编译通过：</strong><code>gradle build</code> 全量编译 BUILD SUCCESSFUL（JDK 8u512 + Gradle 4.10.3），Aegis 全部类编入 jar；同时修复 4.0.0 原有代码 4 处 1.12.2 不兼容 API。jar 已部署进游戏 mods。"
       ]
     },
     {

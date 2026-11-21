@@ -131,7 +131,9 @@
     { id: "the-ending-of-melting", title: "The ending of melting", secs: 193.8,
       src: "assets/audio/the-ending-of-melting.mp3" },
     { id: "clsys", title: "clsys", secs: 245.8,
-      src: "assets/audio/clsys.mp3" }
+      src: "assets/audio/clsys.mp3" },
+    { id: "the-ending-of-melting-vocal", title: "The ending of melting（作者演唱版）", secs: 193.8,
+      src: "assets/audio/the-ending-of-melting-vocal.mp3" }
   ];
 
   var OST = {

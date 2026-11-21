@@ -30,8 +30,9 @@ package com.hbmzz.alert;
  *
  * <p>The power ladder deliberately top-ends at {@link #ANNIHILATION}, which
  * raises {@link AlertCode#DELTA} ("facility annihilation") instead of the
- * ordinary ALPHA a warhead gets. That is what "毁档" means here: not just a
- * bigger crater, but the facility code that says the site is gone.</p>
+ * ordinary ALPHA a warhead gets, and hands off to {@link NukeAnnihilation} to
+ * erase the loaded facility. That is what "毁档" means here: not a bigger crater,
+ * but the site being wiped out of the save entirely.</p>
  */
 public final class NukeTiers {
 
@@ -49,7 +50,10 @@ public final class NukeTiers {
         STRATEGIC(2, "战略档", "STRATEGIC", 100, 40.0F, AlertCode.ALPHA),
         HEAVY(3, "重型档", "HEAVY", 500, 64.0F, AlertCode.ALPHA),
         CORE_BREAKER(4, "破芯档", "CORE BREAKER", 2000, 90.0F, AlertCode.OMEGA),
-        /** The top tier: the whole site is written off. Drives the DELTA code. */
+        /**
+         * The top tier: the whole site is written off. Drives the DELTA code and
+         * starts a {@link NukeAnnihilation} wave that clears the loaded facility.
+         */
         ANNIHILATION(5, "毁档", "ANNIHILATION", 10000, 120.0F, AlertCode.DELTA);
 
         public final int id;

@@ -106,6 +106,14 @@ public final class HBMZZConfig {
      * crater. 120 is the practical limit before the crater check gets expensive.
      */
     public static double nukeBlastCap = 120.0D;
+    /** Whether the ANNIHILATION tier erases the loaded facility after the blast. */
+    public static boolean nukeAnnihilate = true;
+    /** Radius, in blocks, of the annihilation wave. Everything loaded within it is cleared. */
+    public static int nukeAnnihilateRadius = 512;
+    /** Block coordinates cleared per tick, so a big wave never stalls the server in one tick. */
+    public static int nukeAnnihilateBlocksPerTick = 65536;
+    /** Whether the wave also kills entities in the cleared chunks. */
+    public static boolean nukeAnnihilateEntities = true;
     /** Ticks between catch-up pushes from a display to the players near it. */
     public static int alertRefreshTicks = 20;
     /** Facility-wide klaxon on a code broadcast. Client-side sound, server-side trigger. */
@@ -311,6 +319,14 @@ public final class HBMZZConfig {
                     "Explosion power added per kiloton, for the legacy yield curve.");
             nukeBlastCap = cfg.getFloat("blastCap", "nuke", 120.0F, 4.0F, 200.0F,
                     "Hard ceiling on tier explosion power. 120 lets the ANNIHILATION tier land at full strength; lower it for a smaller crater.");
+            nukeAnnihilate = cfg.getBoolean("annihilate", "nuke", true,
+                    "When on, the ANNIHILATION tier clears every loaded chunk within range after the blast - the whole facility is erased from the save, not just cratered. Bedrock is kept.");
+            nukeAnnihilateRadius = cfg.getInt("annihilateRadius", "nuke", 512, 32, 4096,
+                    "Radius in blocks of the annihilation wave. Only loaded chunks inside it are cleared; unloaded chunks are never force-loaded.");
+            nukeAnnihilateBlocksPerTick = cfg.getInt("annihilateBlocksPerTick", "nuke", 65536, 1024, 262144,
+                    "Block coordinates the annihilation wave clears per tick. Lower it if a big wave causes tick lag; higher finishes the erasure faster.");
+            nukeAnnihilateEntities = cfg.getBoolean("annihilateEntities", "nuke", true,
+                    "Whether the annihilation wave also kills entities in the chunks it clears.");
             alertRefreshTicks = cfg.getInt("refreshTicks", "alert", 20, 5, 200,
                     "Ticks between catch-up pushes from an accident display to nearby players.");
             alertKlaxon = cfg.getBoolean("klaxon", "alert", true,

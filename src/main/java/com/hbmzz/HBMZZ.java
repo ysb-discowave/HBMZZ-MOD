@@ -85,6 +85,9 @@ public class HBMZZ {
         // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
+        // The annihilation wave is a server-side ticker; it must be on the bus
+        // to advance each tick, and it clears itself on unload/stop.
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.alert.NukeAnnihilation.INSTANCE);
         // Command-driven DFC emergency shutdown now lives in the independent
         // CoreGuard module (registered below); the old AegisScram wrote the
         // vanilla heat field and never touched the real CE temperature, so it
@@ -225,5 +228,7 @@ public class HBMZZ {
         // 它是普通方法不是 @SubscribeEvent —— FMLServerStoppedEvent 不是 Event 子类，
         // 挂事件总线会让 register 在 preInit 抛异常，整个模组起不来。
         com.hbmzz.blast.DfcBlastWatch.INSTANCE.onServerStopped();
+        // An in-flight annihilation wave must not survive into the next save.
+        com.hbmzz.alert.NukeAnnihilation.INSTANCE.onServerStopped();
     }
 }

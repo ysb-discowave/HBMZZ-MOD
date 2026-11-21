@@ -132,6 +132,13 @@ public final class NukeService {
         raise(world, tier.code, "核装置", "",
                 "核装置已引爆 " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
                         + "，" + tier.zh + "（" + tier.en + "）当量 " + yield + " kT");
+
+        // The top tier does not stop at a crater: erase the loaded facility.
+        // Started after the announcements so the DELTA code is already on every
+        // screen before the wave begins removing the blocks those screens sit on.
+        if (tier == NukeTiers.Power.ANNIHILATION) {
+            NukeAnnihilation.start(world, pos);
+        }
     }
 
     /**

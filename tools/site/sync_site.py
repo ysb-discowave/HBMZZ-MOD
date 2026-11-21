@@ -35,7 +35,7 @@ OUT_JS = os.path.join(ROOT, "docs", "assets", "data.js")
 # 「新的 HTML + 四小时前缓存的旧 JS」——按钮还在，点了什么也不发生。这不是脚本
 # 写错了，是两份文件不同龄。解法只有一个：让 URL 跟着内容走，内容一变 URL 就变。
 PAGES = ("index.html", "guide.html", "reference.html", "addon.html", "changelog.html",
-         "ost.html", "thanks.html", "license.html")
+         "ost.html", "tools.html", "thanks.html", "license.html")
 STAMPED = ("assets/site.css", "assets/site.js", "assets/data.js")
 
 # 这些不是可用的控件类型：注册表枚举、基类
@@ -189,7 +189,7 @@ def check_pages(payload: dict) -> list:
 
     # 3) 除更新日志外，页面里不该硬编码别的版本号当"当前版本"
     for name in ("index.html", "guide.html", "reference.html", "addon.html", "ost.html",
-                 "thanks.html", "license.html"):
+                 "tools.html", "thanks.html", "license.html"):
         path = os.path.join(docs, name)
         if not os.path.exists(path):
             problems.append(("FAIL", "docs/%s 不存在" % name))
@@ -202,7 +202,7 @@ def check_pages(payload: dict) -> list:
     # 4) 站内链接（相对路径 + #锚点）必须都能落地
     anchor_cache = {}
     for name in ("index.html", "guide.html", "reference.html", "addon.html", "changelog.html",
-                 "ost.html", "thanks.html", "license.html"):
+                 "ost.html", "tools.html", "thanks.html", "license.html"):
         path = os.path.join(docs, name)
         if not os.path.exists(path):
             continue

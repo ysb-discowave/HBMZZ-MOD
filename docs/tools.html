@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reasim 工作台 — HBMZZ 离线音频效果工具</title>
+<meta name="description" content="HBMZZ 音频播放器 reasim 信号链的离线工作台：把干净的音频变成「装在铁皮箱里的破喇叭」放出来的声音。拖文件进来、调参数、试听、批量导出 16-bit WAV。纯本地处理，不上传。">
+<meta name="theme-color" content="#0a0c0f">
+<link rel="icon" href="assets/brand/logo-mark.svg" type="image/svg+xml">
+<link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-180.png">
+<style>
+/* ==========================================================================
+   HBMZZ 官网 — 设计系统（内联，与 site.css 一致；本页做成单文件，
+   样式与脚本都写在这里，方便脱离整站单独打开）
+   ========================================================================== */
+:root{
+  --bg:#0a0c0f; --bg-deep:#070809; --panel:#0f1318; --panel-2:#141a20; --panel-3:#1a2129;
+  --line:#232a33; --line-soft:#1a2028;
+  --text:#d9e0e8; --text-dim:#93a0b0; --text-mute:#67737f;
+  --amber:#f5a524; --amber-hi:#ffc25c; --amber-dim:#8a5c14;
+  --mint:#43d9a3; --red:#e5484d; --yellow:#f2c744; --green:#46c26a;
+  --wrap:1180px; --radius:3px; --nav-h:58px;
+  --mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,"Liberation Mono","Courier New",monospace;
+  --sans:"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 18px)}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
+  radial-gradient(900px 520px at 18% -8%,rgba(245,165,36,.10),transparent 70%),
+  radial-gradient(760px 460px at 88% 4%,rgba(67,217,163,.055),transparent 70%),
+  linear-gradient(to bottom,transparent,var(--bg-deep))}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:linear-gradient(to right,rgba(255,255,255,.022) 1px,transparent 1px),
+  linear-gradient(to bottom,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:24px 24px;
+  mask-image:radial-gradient(1200px 700px at 50% 0%,#000 30%,transparent 85%);
+  -webkit-mask-image:radial-gradient(1200px 700px at 50% 0%,#000 30%,transparent 85%)}
+.wrap{position:relative;z-index:1;width:100%;max-width:var(--wrap);margin:0 auto;padding:0 24px}
+
+/* ---- 导航 ---- */
+.nav{position:sticky;top:0;z-index:50;height:var(--nav-h);background:rgba(10,12,15,.86);backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid var(--line-soft)}
+.nav-in{position:relative;height:100%;max-width:var(--wrap);margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);font:700 16px/1 var(--mono);letter-spacing:.14em;white-space:nowrap}
+.brand-mark{width:22px;height:22px;display:block;flex:0 0 auto;filter:drop-shadow(0 0 6px rgba(245,165,36,.22))}
+.ver{font:600 10px/1 var(--mono);letter-spacing:.1em;color:var(--amber);border:1px solid var(--amber-dim);background:rgba(245,165,36,.08);padding:4px 6px;border-radius:2px;white-space:nowrap}
+.nav-links{display:flex;align-items:center;gap:2px;margin-left:auto}
+.nav-links a{position:relative;padding:7px 12px;border-radius:2px;color:var(--text-dim);text-decoration:none;font:500 13px/1 var(--mono);letter-spacing:.04em;transition:color .15s,background .15s}
+.nav-links a:hover{color:var(--text);background:var(--panel-2)}
+.nav-links a[aria-current="page"]{color:var(--amber);background:rgba(245,165,36,.07)}
+.nav-links a[aria-current="page"]::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:1px;background:var(--amber)}
+.nav-gh{display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:7px 12px;border:1px solid var(--line);border-radius:2px;color:var(--text);text-decoration:none;font:500 12px/1 var(--mono);transition:border-color .15s,color .15s}
+.nav-gh:hover{border-color:var(--amber-dim);color:var(--amber-hi)}
+.nav-toggle{display:none}
+
+/* ---- 排版 ---- */
+h1,h2,h3,h4{line-height:1.25;margin:0}
+h1{font:700 clamp(32px,4.6vw,54px)/1.12 var(--mono);letter-spacing:-.015em}
+h2{font:700 clamp(22px,2.7vw,30px)/1.25 var(--mono);letter-spacing:-.01em}
+h3{font:600 17px/1.4 var(--sans)}
+h4{font:600 13px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+p{margin:0 0 14px}p:last-child{margin-bottom:0}
+a{color:var(--amber);text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
+strong{color:#fff;font-weight:600}em{color:var(--mint);font-style:normal}
+code,kbd{font-family:var(--mono);font-size:.92em}
+code{background:rgba(255,255,255,.05);border:1px solid var(--line-soft);border-radius:2px;padding:.1em .38em;color:var(--amber-hi)}
+
+.page-head{position:relative;z-index:1;padding:60px 0 40px;border-bottom:1px solid var(--line-soft)}
+.page-head .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:14px}
+.page-head h1 .hl{color:var(--amber)}
+.page-head p.lead{margin:18px 0 0;max-width:min(68ch,100%);color:var(--text-dim);font-size:16.5px}
+.section{padding:56px 0}
+.section + .section{border-top:1px solid var(--line-soft)}
+.section-head{margin-bottom:28px}
+.section-head p{margin:10px 0 0;color:var(--text-dim);max-width:min(72ch,100%)}
+
+/* ---- 页脚 ---- */
+.foot{position:relative;z-index:1;margin-top:70px;border-top:1px solid var(--line-soft);background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.55))}
+.foot-in{max-width:var(--wrap);margin:0 auto;padding:44px 24px 30px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px}
+.foot-in h4{margin-bottom:12px}
+.foot-in a{display:block;color:var(--text-dim);text-decoration:none;padding:3px 0;font-size:13.5px}
+.foot-in a:hover{color:var(--text)}
+.foot-bottom{max-width:var(--wrap);margin:0 auto;padding:0 24px 26px;display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--text-mute);font:500 11.5px/1.7 var(--mono);letter-spacing:.03em}
+.foot-bottom .spacer{flex:1}
+@media (max-width:760px){.foot-in{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---- 工作台 ---- */
+.studio{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+@media (max-width:980px){.studio{grid-template-columns:1fr}}
+.panel{position:relative;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 1px 0 rgba(0,0,0,.5)}
+.panel h3{font:600 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin:0 0 16px;display:flex;align-items:center;gap:8px}
+.panel h3::before{content:"";width:8px;height:8px;background:var(--amber);box-shadow:0 0 8px rgba(245,165,36,.5);border-radius:1px}
+.panel + .panel{margin-top:18px}
+
+.dropzone{border:1px dashed var(--line);border-radius:var(--radius);padding:30px 20px;text-align:center;color:var(--text-dim);cursor:pointer;transition:border-color .15s,color .15s}
+.dropzone:hover,.dropzone.over{border-color:var(--amber);color:var(--amber)}
+.dropzone .dz-main{font:600 14px/1.6 var(--mono);letter-spacing:.03em}
+.dropzone .dz-sub{font-size:12px;color:var(--text-mute);margin-top:6px}
+
+#fileList{list-style:none;margin:14px 0 0;padding:0;max-height:400px;overflow:auto}
+#fileList li{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line-soft);border-radius:var(--radius);margin-bottom:8px;background:var(--panel-2);cursor:pointer}
+#fileList li.sel{outline:2px solid var(--amber);outline-offset:-1px}
+#fileList li.busy{opacity:.6}
+#fileList .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 13px/1.4 var(--mono);color:var(--text)}
+#fileList .fmeta{color:var(--text-mute);font:500 11px/1.4 var(--mono);white-space:nowrap}
+
+.btn{background:var(--panel-3);color:var(--text);border:1px solid var(--line);border-radius:var(--radius);padding:8px 16px;cursor:pointer;font:600 13px/1 var(--mono);letter-spacing:.04em;transition:border-color .15s,color .15s,background .15s}
+.btn:hover{border-color:var(--amber-dim);color:var(--amber-hi)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:rgba(245,165,36,.14);border-color:var(--amber-dim);color:var(--amber-hi)}
+.btn.primary:hover{background:rgba(245,165,36,.24);border-color:var(--amber)}
+.rowbtn{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+.ctl{margin-bottom:16px}
+.ctl .lab{display:flex;justify-content:space-between;align-items:baseline;font:500 13px/1.5 var(--sans);margin-bottom:4px}
+.ctl .lab .val{color:var(--amber);font:600 12.5px/1 var(--mono);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;height:22px;background:transparent;-webkit-appearance:none;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--amber);margin-top:-5px;cursor:pointer;box-shadow:0 0 6px rgba(245,165,36,.45)}
+input[type=range]::-moz-range-track{height:3px;background:var(--line);border-radius:2px}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border:0;border-radius:50%;background:var(--amber);cursor:pointer}
+.switch{display:flex;align-items:center;gap:10px;margin-bottom:18px;cursor:pointer;user-select:none;font:500 13.5px/1.5 var(--sans)}
+.switch .box{width:36px;height:19px;background:var(--line);border-radius:10px;position:relative;transition:background .15s;flex:0 0 auto}
+.switch .box::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#9aa3b2;transition:left .15s,background .15s}
+.switch.on .box{background:var(--amber-dim)}
+.switch.on .box::after{left:19px;background:var(--amber-hi)}
+.switch.disabled{opacity:.4;pointer-events:none}
+.roombox{border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.015);padding:12px 14px;margin-bottom:16px}
+.roombox .switch{margin-bottom:8px}
+.room-hint{font:11.5px/1.5 var(--sans);color:var(--text-mute);margin-bottom:8px}
+.room-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-bottom:10px}
+.room-dir{display:grid;grid-template-columns:auto 1fr 24px;align-items:center;gap:8px;font:12px/1.4 var(--mono);color:var(--text-dim)}
+.room-dir input[type=range]{width:100%;margin:0;accent-color:var(--amber)}
+.room-dirval{color:var(--amber);text-align:right;font-variant-numeric:tabular-nums}
+.room-read{font:12px/1.5 var(--mono);color:var(--teal,#5fb3a8);margin-top:8px}
+#roomBox{transition:opacity .15s}
+
+.stats{font:500 13px/1.9 var(--mono);color:var(--text-dim)}
+.stats div{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dashed var(--line-soft)}
+.stats b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.stats .dim{color:var(--text-mute)}
+.msg{font:500 12px/1.6 var(--mono);margin-top:10px;min-height:18px;color:var(--green)}
+.msg.err{color:var(--red)}
+
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.preset{flex:1;min-width:88px;text-align:center;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;font:600 12px/1.3 var(--mono);color:var(--text-dim);transition:all .15s;background:var(--panel-2)}
+.preset:hover{border-color:var(--amber-dim);color:var(--amber-hi)}
+.preset.on{border-color:var(--amber);color:var(--amber-hi);background:rgba(245,165,36,.08)}
+
+.dl-links{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.dl-links a{color:var(--mint);font:500 12.5px/1.5 var(--mono);text-decoration:none;padding:5px 9px;border:1px solid var(--line-soft);border-radius:var(--radius);background:var(--panel-2);display:inline-block}
+.dl-links a:hover{border-color:var(--mint);text-decoration:none}
+.dl-hint{display:none;font-size:12px;color:var(--text-mute);margin-top:6px}
+
+.chain{font:500 12.5px/2 var(--mono);color:var(--text-dim);list-style:none;margin:0;padding:0}
+.chain li{border-left:2px solid var(--line);padding:2px 0 2px 12px;margin-left:4px}
+.chain b{color:var(--amber);font-weight:600;margin-right:8px}
+
+/* ---- 说明区 ---- */
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.note{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:20px}
+.note h3{font:600 13px/1.5 var(--mono);letter-spacing:.06em;color:var(--amber);margin-bottom:10px}
+.note p{font-size:13.5px;color:var(--text-dim);margin:0}
+kbd{background:var(--panel-3);border:1px solid var(--line);border-radius:3px;padding:1px 6px;font-size:11.5px;color:var(--text)}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/brand/logo-mark-compact.svg" alt="" width="22" height="22" decoding="async">HBMZZ</a>
+    <span class="ver" data-bind="auto.version|v">v—</span>
+    <nav class="nav-links">
+      <a href="index.html">首页</a>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="addon.html">附加包</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="ost.html">原声</a>
+      <a href="tools.html" aria-current="page">工具</a>
+      <a href="thanks.html">致谢</a>
+      <a href="license.html">许可</a>
+    </nav>
+    <a class="nav-gh" href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub ↗</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap page-head">
+    <div class="kicker">HBMZZ · 离线工具</div>
+    <h1>reasim <span class="hl">工作台</span></h1>
+    <p class="lead">模组里音频播放器那台「装在铁皮箱里的破喇叭」的信号链，搬到了网页上。拖文件进来、调五个参数、试听，然后批量导出 16-bit WAV。</p>
+    <p class="lead">算法逐行移植自 <code>com.rsaudio.audio.ReasimDsp</code>，系数与处理顺序和游戏内一致。所有处理都在你的浏览器里完成，<strong>文件不离开本机</strong>。</p>
+  </div>
+
+  <div class="wrap">
+    <section class="section">
+      <div class="studio">
+        <!-- 左：文件 + 报告 -->
+        <div>
+          <div class="panel">
+            <h3>音频文件（支持批量）</h3>
+            <div class="dropzone" id="drop" role="button" tabindex="0" aria-label="选择或拖入音频文件">
+              <div class="dz-main">拖文件到这里，或点击选择</div>
+              <div class="dz-sub">mp3 / ogg / wav / m4a / flac / aac … 浏览器能解码的就行</div>
+            </div>
+            <ul id="fileList"></ul>
+            <div class="rowbtn">
+              <button class="btn" id="btnClear" type="button">清空列表</button>
+              <button class="btn" id="btnExportOne" type="button">导出选中（WAV）</button>
+              <button class="btn primary" id="btnExportAll" type="button">批量导出全部（WAV）</button>
+            </div>
+            <div class="dl-links" id="dlLinks"></div>
+            <div class="dl-hint" id="dlHint">若点导出后没有自动下载，直接点上面绿色链接保存文件。</div>
+          </div>
+          <div class="panel">
+            <h3>处理报告（选中文件）</h3>
+            <div class="stats" id="stats"><div class="dim">—</div></div>
+            <div class="msg" id="msg"></div>
+          </div>
+        </div>
+
+        <!-- 右：参数 + 试听 -->
+        <div>
+          <div class="panel">
+            <h3>reasim 参数</h3>
+            <label class="switch on" id="swEnabled"><span class="box"></span>启用 reasim 效果</label>
+
+            <div class="ctl"><div class="lab"><span>音量（功放增益）</span><span class="val" id="vVolume">100%</span></div>
+              <input type="range" id="sVolume" min="0" max="2" step="0.01" value="1" aria-label="音量"></div>
+            <div class="ctl"><div class="lab"><span>回声（湿声 / 房间）</span><span class="val" id="vEcho">0.30</span></div>
+              <input type="range" id="sEcho" min="0" max="1" step="0.01" value="0.3" aria-label="回声"></div>
+
+            <div class="roombox">
+              <label class="switch" id="swAutoEcho"><span class="box"></span>按房间自动回声（移植 ReasimEnvironment）</label>
+              <div id="roomBox">
+                <div class="room-hint">六个方向各离墙多近（0 = 贴墙，16+ = 望不到头）</div>
+                <div id="roomSliders" class="room-grid"></div>
+                <div class="ctl"><div class="lab"><span>周围实心方块占比（半径 4 格）</span><span class="val" id="vSolid">0.40</span></div>
+                  <input type="range" id="sSolid" min="0" max="1" step="0.01" value="0.4" aria-label="实心占比"></div>
+                <label class="switch" id="swOpenSky"><span class="box"></span>头顶看得到天（混响 ×0.35）</label>
+              </div>
+              <div class="room-read" id="roomRead">回声量 0.30（手动） → 延迟 147ms · 反馈 0.34</div>
+            </div>
+
+            <div class="ctl"><div class="lab"><span>失真（过载 + 降位深）</span><span class="val" id="vDist">0.00</span></div>
+              <input type="range" id="sDist" min="0" max="1" step="0.01" value="0" aria-label="失真"></div>
+            <div class="ctl"><div class="lab"><span>电流声（50Hz 工频哼声）</span><span class="val" id="vHiss">0.18</span></div>
+              <input type="range" id="sHiss" min="0" max="1" step="0.01" value="0.18" aria-label="电流声"></div>
+            <div class="ctl"><div class="lab"><span>沙沙声（带限白噪 + 爆裂）</span><span class="val" id="vStatic">0.10</span></div>
+              <input type="range" id="sStatic" min="0" max="1" step="0.01" value="0.1" aria-label="沙沙声"></div>
+
+            <h3 style="margin-top:22px;">预设</h3>
+            <div class="preset-row">
+              <button class="preset on" data-preset="default" type="button">默认</button>
+              <button class="preset" data-preset="light" type="button">轻破音</button>
+              <button class="preset" data-preset="heavy" type="button">重破音</button>
+              <button class="preset" data-preset="radio" type="button">老收音机</button>
+            </div>
+
+            <h3 style="margin-top:22px;">试听</h3>
+            <div class="rowbtn" style="margin-top:0">
+              <button class="btn primary" id="btnPlay" type="button">▶ 播放选中（处理后）</button>
+              <button class="btn" id="btnStop" type="button">■ 停止</button>
+            </div>
+            <div class="msg" id="msgPlay" style="color:var(--text-mute)"></div>
+          </div>
+
+          <div class="panel">
+            <h3>信号链（固定顺序，与游戏内一致）</h3>
+            <ol class="chain">
+              <li><b>①</b>增益（0–200%）</li>
+              <li><b>②</b>失真：tanh 软削 + 位深 16→6 + 去直流</li>
+              <li><b>③</b>电流声：50Hz 基波 + 二、三次谐波（不随音量）</li>
+              <li><b>④</b>沙沙声：带限白噪 + 稀疏爆裂</li>
+              <li><b>⑤</b>回声：一阶低通反馈，延迟 90–280ms 随湿声</li>
+              <li><b>⑥</b>软限幅 ±0.95</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="section-head">
+        <h2>几点说明</h2>
+        <p>这个工作台是离线批处理工具，不是游戏内播放器。能做的、做不了的，先说清楚。</p>
+      </div>
+      <div class="doc-grid">
+        <div class="note">
+          <h3>关于回声（房间自动）</h3>
+          <p>游戏里的「回声自动」是客户端实时探测房间大小。工作台没有真实世界，所以搬了一个<b>手动版</b>：六个方向各给一个 0–16 格距离滑条（0 = 贴墙、16 = 望不到头）+ 周围实心方块占比 + 「头顶看得到天」开关。算法与 <code>ReasimEnvironment.java</code> 同构——<code>0.85 × 密闭度 + 0.35 × (实心占比 − 0.40)</code>，露天再乘 0.35，结果钳在 0–0.95。关掉自动开关就退回纯手动回声滑条，数值含义与游戏内手动模式一致，延迟 90ms（0.00）到 280ms（1.00）。</p>
+        </div>
+        <div class="note">
+          <h3>关于输出格式</h3>
+          <p>统一输出 16-bit PCM WAV，文件名加 <code>_reasim</code> 后缀。任何格式的源文件都可以进来（只要浏览器会解码），出来的永远是 WAV。</p>
+        </div>
+        <div class="note">
+          <h3>关于隐私与速度</h3>
+          <p>文件在你本机解码、处理、导出，全程没有上传。逐采样 + 大整数噪声源，一首 10 分钟的歌大约 20–60 秒；批量时一个一个来，不抢 UI 线程。</p>
+        </div>
+        <div class="note">
+          <h3>和游戏里的差异</h3>
+          <p>信号链逐采样一致：Padé 近似 tanh、一阶低通反馈、xorshift64* 噪声源、软限幅系数全部来自 <code>ReasimDsp.java</code>。房间回声公式照 <code>ReasimEnvironment.java</code> 移植，唯一差别是「六个方向射线」改成了六个滑条，由你自己填。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <div>
+      <h4>文档</h4>
+      <a href="guide.html">使用指南</a>
+      <a href="reference.html">参考手册</a>
+      <a href="changelog.html">更新日志</a>
+      <a href="addon.html">附加包</a>
+      <a href="reference.html#config">配置项</a>
+      <a href="ost.html">原声 · HBMZZ OST</a>
+    </div>
+    <div>
+      <h4>工具</h4>
+      <a href="tools.html">reasim 工作台</a>
+      <a href="tools.html#faq">使用说明</a>
+    </div>
+    <div>
+      <h4>项目</h4>
+      <a href="https://github.com/ysb-discowave/HBMZZ-MOD">GitHub 仓库</a>
+      <a href="https://github.com/ysb-discowave/HBMZZ-MOD/releases">Releases</a>
+      <a href="https://github.com/ysb-discowave/HBMZZ-MOD/issues">问题反馈</a>
+      <a href="reference.html#build">从源码构建</a>
+    </div>
+    <div>
+      <h4>许可与致谢</h4>
+      <a href="thanks.html">致谢</a>
+      <a href="license.html">GPL-3.0 全文</a>
+      <a href="license.html#notice">第三方来源</a>
+      <a href="license.html#credits">署名</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>GPL-3.0-only</span>
+    <span>MC 1.12.2 / Forge</span>
+    <span>© 2026 Yang Sibo</span>
+    <span class="spacer"></span>
+    <span>算法移植自 com.rsaudio.audio.ReasimDsp · 处理完全在本地完成</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ================= ReasimDsp 的 JavaScript 移植（逐行对照 Java 实现） ================= */
+var M64 = (1n << 64n) - 1n;
+function u64(v) { return typeof v === "bigint" ? (v & M64) : (BigInt.asUintN(64n, BigInt(v)) & M64); }
+
+class ReasimDsp {
+  constructor(sampleRate, channels) {
+    this.sampleRate = sampleRate > 0 ? sampleRate : 44100;
+    this.channels = channels > 0 ? channels : 2;
+    var maxFrames = this.sampleRate * 400 / 1000; // MAX_DELAY_MS = 400
+    this.delayBuffer = new Float32Array(maxFrames * this.channels);
+    this.lp = new Float32Array(this.channels);
+    this.dc = new Float32Array(this.channels);
+    this.st = new Float32Array(this.channels);
+    this.rng = 0x2545F4914F6CDD1Dn;
+    this.humPhase = 0;
+    this.active = false;
+    this.reset();
+  }
+  reset() {
+    this.delayBuffer.fill(0);
+    this.lp.fill(0); this.dc.fill(0); this.st.fill(0);
+    this.writeIndex = 0; this.humPhase = 0;
+    this.rng = 0x2545F4914F6CDD1Dn;
+  }
+  configure(params, resolvedEcho) {
+    if (!params.enabled) { this.active = false; return; }
+    this.active = true;
+    this.gain = params.volume;
+    var echo = clamp(resolvedEcho, 0, 1);
+    this.wet = echo;
+    this.feedback = echo <= 0.001 ? 0 : 0.20 + 0.45 * echo;
+    var delayMs = 90 + 190 * echo;
+    var frames = Math.round(delayMs * this.sampleRate / 1000);
+    var cap = this.delayBuffer.length / this.channels - 1;
+    this.delayFrames = Math.max(1, Math.min(frames, cap));
+    var d = clamp(params.distortion, 0, 1);
+    this.drive = 1 + 24 * d;
+    this.invShapeDrive = 1 / ReasimDsp.shape(this.drive);
+    this.quantLevels = d <= 0.001 ? 0 : Math.round(Math.pow(2, 16 - 10 * d)) / 2;
+    this.humLevel = clamp(params.hiss, 0, 1) * 0.06;
+    this.staticLevel = clamp(params.staticNoise, 0, 1);
+  }
+  process(channelsData) {
+    var ch = this.channels, sr = this.sampleRate;
+    var n = Math.min.apply(null, channelsData.map(function (c) { return c.length; }));
+    var out = channelsData.map(function (c) { return new Float32Array(n); });
+    if (!this.active) {
+      channelsData.forEach(function (c, i) { out[i].set(c.subarray(0, n)); });
+      return out;
+    }
+    var dbLen = this.delayBuffer.length / ch;
+    for (var f = 0; f < n; f++) {
+      var frame = new Array(ch);
+      for (var c = 0; c < ch; c++) frame[c] = channelsData[c][f];
+
+      if (this.gain !== 1) for (c = 0; c < ch; c++) frame[c] *= this.gain;
+
+      if (this.drive > 1.001) {
+        for (c = 0; c < ch; c++) {
+          var shaped = ReasimDsp.shape(frame[c] * this.drive) * this.invShapeDrive;
+          if (this.quantLevels > 0) shaped = Math.round(shaped * this.quantLevels) / this.quantLevels;
+          var hp = shaped - this.dc[c];
+          this.dc[c] = shaped - hp * 0.9995;
+          frame[c] = hp;
+        }
+      }
+
+      if (this.humLevel > 0) {
+        var t = this.humPhase;
+        var hum = 0.62 * Math.sin(t) + 0.26 * Math.sin(2 * t + 0.7) + 0.12 * Math.sin(3 * t + 1.9);
+        var v = hum * this.humLevel;
+        for (c = 0; c < ch; c++) frame[c] += v;
+        this.humPhase += 2 * Math.PI * 50 / sr;
+        if (this.humPhase > 2 * Math.PI) this.humPhase -= 2 * Math.PI;
+      }
+
+      if (this.staticLevel > 0.001) {
+        for (c = 0; c < ch; c++) {
+          var white = this.nextNoise();
+          this.st[c] += 0.35 * (white - this.st[c]);
+          var sv = this.st[c] * this.staticLevel * 0.05;
+          if ((this.nextBits(12) & 0xFFF) < (this.staticLevel * 5 | 0)) sv += this.nextNoise() * 0.5 * this.staticLevel;
+          frame[c] += sv;
+        }
+      }
+
+      if (this.wet > 0.001 && this.feedback > 0) {
+        var read = this.writeIndex - this.delayFrames;
+        if (read < 0) read += dbLen;
+        for (c = 0; c < ch; c++) {
+          var dry = frame[c];
+          var delayed = this.delayBuffer[read * ch + c];
+          this.lp[c] += 0.32 * (delayed - this.lp[c]);
+          this.delayBuffer[this.writeIndex * ch + c] = dry + this.lp[c] * this.feedback;
+          frame[c] = dry + delayed * this.wet;
+        }
+        this.writeIndex = (this.writeIndex + 1) % dbLen;
+      }
+
+      for (c = 0; c < ch; c++) out[c][f] = ReasimDsp.limit(frame[c]);
+    }
+    return out;
+  }
+  static shape(x) {
+    if (x > 3) return 1;
+    if (x < -3) return -1;
+    var x2 = x * x;
+    return x * (27 + x2) / (27 + 9 * x2);
+  }
+  static limit(x) {
+    if (x > 0.95) return 0.95 + 0.05 * ReasimDsp.shape((x - 0.95) / 0.05);
+    if (x < -0.95) return -0.95 - 0.05 * ReasimDsp.shape((-x - 0.95) / 0.05);
+    return x;
+  }
+  nextNoise() {
+    var x = this.rng;
+    x = u64(x ^ (x >> 12n));
+    x = u64(x ^ u64(x << 25n));
+    x = u64(x ^ (x >> 27n));
+    this.rng = x;
+    var v = u64(x * 0x2545F4914F6CDD1Dn);
+    return Number((v >> 40n) & 0xFFFFFFn) / 8388608 - 1;
+  }
+  nextBits(bits) {
+    var x = this.rng;
+    x = u64(x ^ (x >> 12n));
+    x = u64(x ^ u64(x << 25n));
+    x = u64(x ^ (x >> 27n));
+    this.rng = x;
+    return Number(x >> BigInt(64 - bits));
+  }
+}
+function clamp(v, a, b) { if (Number.isNaN(v)) return a; return v < a ? a : (v > b ? b : v); }
+
+/* ================= WAV 编码（16-bit PCM 小端） ================= */
+function encodeWav(floatChannels, sampleRate) {
+  var ch = floatChannels.length, n = floatChannels[0].length;
+  var dataLen = n * ch * 2;
+  var buf = new ArrayBuffer(44 + dataLen);
+  var v = new DataView(buf);
+  var ws = function (o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0, "RIFF"); v.setUint32(4, 36 + dataLen, true); ws(8, "WAVE");
+  ws(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, ch, true); v.setUint32(24, sampleRate, true);
+  v.setUint32(28, sampleRate * ch * 2, true); v.setUint16(32, ch * 2, true);
+  v.setUint16(34, 16, true); ws(36, "data"); v.setUint32(40, dataLen, true);
+  var o = 44;
+  for (var i = 0; i < n; i++) for (var c = 0; c < ch; c++) {
+    var s = Math.round(floatChannels[c][i] * 32767);
+    if (s > 32767) s = 32767; else if (s < -32768) s = -32768;
+    v.setInt16(o, s, true); o += 2;
+  }
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+/* ================= 工作台 ================= */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var files = [];
+  var selected = 0;
+  var playSrc = null;
+
+  var params = { enabled: true, volume: 1, echo: 0.30, distortion: 0, hiss: 0.18, staticNoise: 0.10 };
+
+  /* ---- 房间模型：移植 ReasimEnvironment.autoEcho ---- */
+  var ROOM_DIRS = [
+    { key: "left",  label: "← 左" },
+    { key: "right", label: "右 →" },
+    { key: "up",    label: "↑ 上" },
+    { key: "down",  label: "↓ 下" },
+    { key: "front", label: "前" },
+    { key: "back",  label: "后" }
+  ];
+  var room = {
+    auto: false, openSky: false, solid: 0.40,
+    dirs: { left: 8, right: 8, up: 8, down: 8, front: 8, back: 8 }
+  };
+  function autoEcho() {
+    var MAX_RAY = 16, ECHO_CAP = 0.95, OPEN_SKY_DAMP = 0.35;
+    var dists = ROOM_DIRS.map(function (d) { return room.dirs[d.key]; });
+    var total = dists.reduce(function (a, b) { return a + b; }, 0);
+    var average = total / dists.length;
+    var openness = Math.min(1, Math.max(0, average / MAX_RAY));
+    var enclosure = 1 - openness;
+    var echo = 0.85 * enclosure + 0.35 * (room.solid - 0.40);
+    if (room.openSky) echo *= OPEN_SKY_DAMP;
+    return Math.max(0, Math.min(ECHO_CAP, echo));
+  }
+  function echoReadout(e) {
+    var delayMs = 90 + 190 * e;
+    var feedback = e <= 0.001 ? 0 : 0.20 + 0.45 * e;
+    return { delayMs: delayMs, feedback: feedback };
+  }
+  function updateRoomUI() {
+    var e = room.auto ? autoEcho() : params.echo;
+    var r = echoReadout(e);
+    $("roomRead").textContent =
+      "回声量 " + e.toFixed(2) + (room.auto ? "（自动）" : "（手动）") +
+      " → 延迟 " + Math.round(r.delayMs) + "ms · 反馈 " + r.feedback.toFixed(2);
+    $("swAutoEcho").classList.toggle("on", room.auto);
+    $("swOpenSky").classList.toggle("on", room.openSky);
+    $("roomBox").style.opacity = room.auto ? "" : ".45";
+    if (room.auto) { $("sEcho").value = e; $("vEcho").textContent = e.toFixed(2); }
+  }
+  function initRoomUI() {
+    var box = $("roomSliders");
+    ROOM_DIRS.forEach(function (d) {
+      var lab = document.createElement("label");
+      lab.className = "room-dir";
+      lab.innerHTML =
+        '<span class="room-dirname">' + d.label + '</span>' +
+        '<input type="range" min="0" max="16" step="1" value="' + room.dirs[d.key] + '" data-dir="' + d.key + '" aria-label="' + d.label + ' 距离">' +
+        '<span class="room-dirval">' + room.dirs[d.key] + '</span>';
+      box.appendChild(lab);
+    });
+    box.addEventListener("input", function (e) {
+      var t = e.target;
+      if (!t.dataset || !t.dataset.dir) return;
+      room.dirs[t.dataset.dir] = parseInt(t.value, 10);
+      t.closest(".room-dir").querySelector(".room-dirval").textContent = t.value;
+      updateRoomUI();
+    });
+    $("sSolid").addEventListener("input", function (e) {
+      room.solid = parseFloat(e.target.value);
+      $("vSolid").textContent = room.solid.toFixed(2);
+      updateRoomUI();
+    });
+    $("swOpenSky").addEventListener("click", function () { room.openSky = !room.openSky; updateRoomUI(); });
+    $("swAutoEcho").addEventListener("click", function () { room.auto = !room.auto; updateRoomUI(); });
+    updateRoomUI();
+  }
+
+  var PRESETS = {
+    default: { enabled: true, volume: 1, echo: 0.30, distortion: 0, hiss: 0.18, staticNoise: 0.10 },
+    light:   { enabled: true, volume: 1.15, echo: 0.35, distortion: 0.18, hiss: 0.22, staticNoise: 0.12 },
+    heavy:   { enabled: true, volume: 1.6, echo: 0.55, distortion: 0.62, hiss: 0.35, staticNoise: 0.25 },
+    radio:   { enabled: true, volume: 0.95, echo: 0.75, distortion: 0.35, hiss: 0.5, staticNoise: 0.45 }
+  };
+
+  function bindSlider(id, valId, key, fmt) {
+    var el = $(id);
+    var update = function () {
+      params[key] = parseFloat(el.value);
+      $(valId).textContent = fmt(params[key]);
+    };
+    el.addEventListener("input", update);
+    update();
+  }
+  bindSlider("sVolume", "vVolume", "volume", function (v) { return Math.round(v * 100) + "%"; });
+  bindSlider("sEcho", "vEcho", "echo", function (v) { return v.toFixed(2); });
+  bindSlider("sDist", "vDist", "distortion", function (v) { return v.toFixed(2); });
+  bindSlider("sHiss", "vHiss", "hiss", function (v) { return v.toFixed(2); });
+  bindSlider("sStatic", "vStatic", "staticNoise", function (v) { return v.toFixed(2); });
+
+  function setEnabled(on) {
+    params.enabled = on;
+    $("swEnabled").classList.toggle("on", on);
+    document.querySelectorAll(".ctl").forEach(function (c) { c.classList.toggle("disabled", !on); });
+  }
+  $("swEnabled").addEventListener("click", function () { setEnabled(!params.enabled); });
+  initRoomUI();
+
+  var SLIDERS = { volume: "sVolume", echo: "sEcho", distortion: "sDist", hiss: "sHiss", staticNoise: "sStatic" };
+  function markPreset() {
+    document.querySelectorAll(".preset").forEach(function (b) { b.classList.remove("on"); });
+  }
+  document.querySelectorAll(".preset").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var p = PRESETS[b.getAttribute("data-preset")];
+      if (!p) return;
+      Object.assign(params, p);
+      for (var k in SLIDERS) { $(SLIDERS[k]).value = p[k]; $(SLIDERS[k]).dispatchEvent(new Event("input")); }
+      setEnabled(p.enabled);
+      markPreset();
+      b.classList.add("on");
+    });
+  });
+
+  /* ---- 文件拖入 / 选择 ---- */
+  var drop = $("drop");
+  function pickFiles() {
+    var inp = document.createElement("input");
+    inp.type = "file"; inp.multiple = true;
+    inp.accept = "audio/*,.mp3,.ogg,.oga,.opus,.flac,.aac,.m4a,.wav";
+    inp.addEventListener("change", function () { addFiles(Array.from(inp.files)); });
+    inp.click();
+  }
+  drop.addEventListener("click", pickFiles);
+  drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickFiles(); } });
+  document.addEventListener("dragover", function (e) { e.preventDefault(); drop.classList.add("over"); });
+  document.addEventListener("dragleave", function (e) { if (e.target === document.body) drop.classList.remove("over"); });
+  document.addEventListener("drop", function (e) {
+    e.preventDefault(); drop.classList.remove("over");
+    if (e.dataTransfer && e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  var actx = null;
+  function ctx() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    return actx;
+  }
+  function decodeBuffer(buf) {
+    return ctx().decodeAudioData(buf).then(function (audio) {
+      return {
+        channels: Array.from({ length: audio.numberOfChannels }, function (_, c) { return audio.getChannelData(c); }),
+        sampleRate: audio.sampleRate
+      };
+    });
+  }
+
+  async function addFiles(list) {
+    var audio = list.filter(function (f) {
+      return f.type.indexOf("audio/") === 0 || /\.(mp3|ogg|oga|opus|flac|aac|m4a|wav|webm)$/i.test(f.name);
+    });
+    if (!audio.length) { msg("没有可识别的音频文件", true); return; }
+    for (var i = 0; i < audio.length; i++) {
+      var f = audio[i];
+      var li = document.createElement("li");
+      li.innerHTML = '<span class="fname"></span><span class="fmeta"></span>';
+      li.querySelector(".fname").textContent = f.name;
+      $("fileList").appendChild(li);
+      var item = { name: f.name, li: li, decoded: null, stats: null };
+      files.push(item);
+      (function (it) {
+        it.li.addEventListener("click", function () { selected = files.indexOf(it); refreshSelection(); });
+      })(item);
+      try {
+        var buf = await f.arrayBuffer();
+        item.decoded = await decodeBuffer(buf);
+        li.querySelector(".fmeta").textContent =
+          (item.decoded.channels.length === 1 ? "单声道" : "立体声") + " · " +
+          item.decoded.sampleRate + "Hz · " + (item.decoded.channels[0].length / item.decoded.sampleRate).toFixed(1) + "s";
+      } catch (err) {
+        li.querySelector(".fmeta").textContent = "解码失败";
+        li.classList.add("busy");
+      }
+    }
+    selected = files.length - 1;
+    refreshSelection();
+  }
+
+  /* ---- 处理 ---- */
+  function processItem(item, forStats) {
+    var src = item.decoded;
+    if (!src) throw new Error("文件未解码");
+    var ch = src.channels.length;
+    var chans = ch === 1 ? [src.channels[0], src.channels[0]] : src.channels.slice(0, 2);
+    var p = {
+      enabled: params.enabled,
+      volume: clamp(params.volume, 0, 2),
+      echo: clamp(params.echo, 0, 1),
+      distortion: clamp(params.distortion, 0, 1),
+      hiss: clamp(params.hiss, 0, 1),
+      staticNoise: clamp(params.staticNoise, 0, 1)
+    };
+    var dsp = new ReasimDsp(src.sampleRate, 2);
+    p.echo = clamp(room.auto ? autoEcho() : p.echo, 0, 1);
+    dsp.configure(p, p.echo);
+    var t0 = performance.now();
+    var out = dsp.process(chans);
+    var ms = performance.now() - t0;
+    var prePeak = 0, postPeak = 0;
+    for (var c = 0; c < 2; c++) {
+      for (var i = 0; i < out[c].length; i++) {
+        var a = Math.abs(chans[c][i]); if (a > prePeak) prePeak = a;
+        var b = Math.abs(out[c][i]); if (b > postPeak) postPeak = b;
+      }
+    }
+    if (forStats) {
+      item.stats = { ms: ms, prePeak: prePeak, postPeak: postPeak, outBytes: out[0].length * 2 * 2, echo: p.echo };
+      renderStats(item);
+    }
+    return { channels: out, sampleRate: src.sampleRate };
+  }
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function renderStats(item) {
+    var s = item.stats;
+    $("stats").innerHTML =
+      '<div>文件<b>' + esc(item.name) + "</b></div>" +
+      '<div>处理耗时<b>' + s.ms.toFixed(0) + " ms</b></div>" +
+      '<div>原峰值<b>' + (s.prePeak * 100).toFixed(1) + "%</b></div>" +
+      '<div>结果峰值<b>' + (s.postPeak * 100).toFixed(1) + "%</b></div>" +
+      '<div>回声量（实际生效）<b>' + (s.echo != null ? s.echo.toFixed(2) : "—") + '</b></div>' +
+      '<div>输出大小<b>' + (s.outBytes / 1048576).toFixed(2) + " MB</b></div>";
+  }
+  function msg(t, isErr) { var el = $("msg"); el.textContent = t; el.className = isErr ? "msg err" : "msg"; }
+
+  function refreshSelection() {
+    files.forEach(function (it, i) { it.li.classList.toggle("sel", i === selected); });
+    if (files[selected] && files[selected].stats) renderStats(files[selected]);
+  }
+
+  $("btnClear").addEventListener("click", function () {
+    stop();
+    files.length = 0; selected = 0;
+    $("fileList").innerHTML = "";
+    $("stats").innerHTML = '<div class="dim">—</div>'; msg("");
+    $("dlLinks").innerHTML = ""; $("dlHint").style.display = "none";
+  });
+
+  function outName(name) { var base = name.replace(/\.[^.]+$/, ""); return base + "_reasim.wav"; }
+  function download(blob, name) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+    addDlLink(blob, name);
+  }
+  function addDlLink(blob, name) {
+    var box = $("dlLinks");
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name; a.textContent = "⬇ " + name;
+    box.appendChild(a);
+    while (box.children.length > 40) box.firstChild.remove();
+    $("dlHint").style.display = "";
+  }
+
+  $("btnExportOne").addEventListener("click", function () {
+    var it = files[selected];
+    if (!it || !it.decoded) { msg("请先加载一个音频文件", true); return; }
+    msg("处理中…");
+    try {
+      var res = processItem(it, true);
+      download(encodeWav(res.channels, res.sampleRate), outName(it.name));
+      msg("已导出 " + outName(it.name));
+    } catch (e) { msg("导出失败：" + e.message, true); }
+  });
+  $("btnExportAll").addEventListener("click", async function () {
+    var valid = files.filter(function (f) { return f.decoded; });
+    if (!valid.length) { msg("没有可导出的文件", true); return; }
+    for (var i = 0; i < valid.length; i++) {
+      var it = valid[i];
+      it.li.classList.add("busy");
+      it.li.querySelector(".fmeta").textContent = "处理中… (" + (i + 1) + "/" + valid.length + ")";
+      await new Promise(function (r) { setTimeout(r, 150); });
+      try {
+        var res = processItem(it, true);
+        download(encodeWav(res.channels, res.sampleRate), outName(it.name));
+        it.li.querySelector(".fmeta").textContent = "✓ 已导出";
+      } catch (e) {
+        it.li.querySelector(".fmeta").textContent = "失败：" + e.message;
+      }
+      it.li.classList.remove("busy");
+      if (i < valid.length - 1) await new Promise(function (r) { setTimeout(r, 300); });
+    }
+    msg("批量完成，共 " + valid.length + " 个文件");
+  });
+
+  /* ---- 试听（Web Audio 直接回放，不走 <audio> 媒体元素） ---- */
+  function stop() {
+    if (playSrc) { try { playSrc.stop(); } catch (e) {} playSrc.disconnect(); playSrc = null; }
+  }
+  $("btnPlay").addEventListener("click", async function () {
+    var it = files[selected];
+    if (!it || !it.decoded) { $("msgPlay").textContent = "请先加载一个音频文件"; return; }
+    stop();
+    $("msgPlay").textContent = "处理中…";
+    try {
+      var c = ctx();
+      await c.resume();
+      var t0 = performance.now();
+      var res = processItem(it, false);
+      var outCh = res.channels;
+      if (res.sampleRate !== c.sampleRate) {
+        var oc = new OfflineAudioContext(2, res.channels[0].length, res.sampleRate);
+        var ob = oc.createBuffer(2, res.channels[0].length, res.sampleRate);
+        for (var c0 = 0; c0 < 2; c0++) ob.getChannelData(c0).set(res.channels[c0]);
+        var nb = await oc.startRendering();
+        outCh = [nb.getChannelData(0), nb.getChannelData(1)];
+      }
+      var buf = c.createBuffer(2, outCh[0].length, c.sampleRate);
+      for (var c1 = 0; c1 < 2; c1++) buf.getChannelData(c1).set(outCh[c1]);
+      var src = c.createBufferSource();
+      src.buffer = buf;
+      src.connect(c.destination);
+      src.onended = function () { if (playSrc === src) { playSrc = null; $("msgPlay").textContent = ""; } };
+      src.start();
+      playSrc = src;
+      $("msgPlay").textContent = "播放中（处理后） · 耗时 " + (performance.now() - t0).toFixed(0) + " ms";
+    } catch (e) {
+      $("msgPlay").textContent = "播放失败：" + e.message;
+    }
+  });
+  $("btnStop").addEventListener("click", stop);
+  window.addEventListener("beforeunload", stop);
+})();
+
+/* 导航版本号：读 data.js 的 auto.version；拿不到就保持 "v—"，不猜版本。 */
+(function () {
+  function fill() {
+    var d = window.HBMZZ_DATA;
+    if (!d || !d.auto) return;
+    var nodes = document.querySelectorAll('[data-bind="auto.version|v"]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = "v" + d.auto.version;
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill);
+  else fill();
+})();
+</script>
+<script src="assets/data.js?v=f9a8c3ee1c"></script>
+</body>
+</html>

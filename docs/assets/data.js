@@ -59,6 +59,10 @@ window.HBMZZ_DATA = {
       "href": "ost.html"
     },
     {
+      "label": "工具",
+      "href": "tools.html"
+    },
+    {
       "label": "致谢",
       "href": "thanks.html"
     },
@@ -206,6 +210,19 @@ window.HBMZZ_DATA = {
         {
           "label": "配置项",
           "href": "reference.html#config"
+        }
+      ]
+    },
+    {
+      "title": "工具",
+      "links": [
+        {
+          "label": "reasim 工作台",
+          "href": "tools.html"
+        },
+        {
+          "label": "使用说明",
+          "href": "tools.html#faq"
         }
       ]
     },
@@ -688,6 +705,6 @@ window.HBMZZ_DATA = {
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-20"
+    "generatedAt": "2026-11-21"
   }
 };

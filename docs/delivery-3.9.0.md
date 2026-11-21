@@ -155,3 +155,18 @@
 - 按用户要求人工排查两遍 + javap 核对 1.12.2 API；编译抓到并修复 3 处（GlStateManager 无 disableCullFace → disableCull、格式串缺 `%`、字体 U+00B1）。
 - JDK 8 `gradle build` **BUILD SUCCESSFUL**；regcheck **all 150 checks passed**；站点一致性通过。
 - 产物 MD5 `73115ed4b7b5a4f877315ffb54aa8568`，已部署到 `mods`；上一版备份 `.pre-guard`。
+
+---
+
+## 十一、自动停堆时在温度上方显示标识（同版本内）
+
+**需求**：自动停堆运行中，监控屏温度读数上方要显示一个"自动停堆"标识，一眼可辨。
+
+**实现**（状态从服务端贯通到客户端画面）：
+- `CoreGuard.isArmed(world, pos)`：按"维度+坐标"查活跃停堆会话，供外部只读查询（不改停堆逻辑）。
+- `AegisTelemetry`：新增 `scramming` 布尔位，紧跟 `collapsing` 一起 encode/decode，随遥测帧下发。
+- `AegisProbe.sample()`：采样时按**实际读到的核心坐标**填入 `scramming`（自动扫描场景下与手动绑定坐标可能不同，故以实际核心为准）。
+- `AegisCanvas.drawOverview()`：温度大数字上方画一个闪烁的"自动停堆"徽章（红底、琥珀↔红呼吸边框），画在辉光之后保证清晰；停堆解除后自动消失。
+
+**验证**：人工排查两遍（序列化顺序一致、绘制 API 签名匹配、括号配平）；JDK 8 `gradle build` **BUILD SUCCESSFUL**；regcheck **all 150 checks passed**；站点一致。
+产物 MD5 `71d6194f1b5da7345bde87e3502723d0`，已部署到 `mods`；上一版备份 `.pre-scram-badge`。

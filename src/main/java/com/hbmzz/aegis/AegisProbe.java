@@ -180,6 +180,10 @@ public final class AegisProbe {
         }
 
         frame.linked = true;
+        // Reflect the live automatic-shutdown session onto the telemetry frame so
+        // the client can show an "自动停堆" badge above the temperature readout.
+        // Key on the core we actually read (auto-scan may differ from the binding).
+        frame.scramming = com.hbmzz.guard.CoreGuard.isArmed(world, core.getPos());
         // NTM-CE 2.5.0 + Cursed addon: the addon's mixin adds getDFC* accessors
         // to TileEntityCore. Those are preferred, but a core that has just been
         // placed (or a fork without the mixin) leaves the addon fields at 0, so

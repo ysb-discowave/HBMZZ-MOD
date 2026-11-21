@@ -47,6 +47,8 @@ public final class AegisTelemetry {
     public boolean metered;
     /** True while the core is in its terminal collapse sequence. */
     public boolean collapsing;
+    /** True while the CoreGuard automatic-shutdown session is cooling this core. */
+    public boolean scramming;
 
     /** Short machine designation, already upper-cased and trimmed by the reader. */
     public String coreTag = "NONE";
@@ -104,6 +106,7 @@ public final class AegisTelemetry {
         buf.writeBoolean(this.loaded);
         buf.writeBoolean(this.metered);
         buf.writeBoolean(this.collapsing);
+        buf.writeBoolean(this.scramming);
         ByteBufUtils.writeUTF8String(buf, this.coreTag);
         ByteBufUtils.writeUTF8String(buf, this.coolantTag);
         ByteBufUtils.writeUTF8String(buf, this.moderatorTag);
@@ -149,6 +152,7 @@ public final class AegisTelemetry {
         t.loaded = buf.readBoolean();
         t.metered = buf.readBoolean();
         t.collapsing = buf.readBoolean();
+        t.scramming = buf.readBoolean();
         t.coreTag = ByteBufUtils.readUTF8String(buf);
         t.coolantTag = ByteBufUtils.readUTF8String(buf);
         t.moderatorTag = ByteBufUtils.readUTF8String(buf);

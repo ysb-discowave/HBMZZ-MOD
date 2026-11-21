@@ -85,6 +85,17 @@ public final class CoreGuard {
                 + "°C 每秒降 " + COOL_HOT + "°C）· 直到 0";
     }
 
+    /** True when the given core has a live automatic-shutdown session. */
+    public static boolean isArmed(World world, BlockPos corePos) {
+        if (world == null || corePos == null) {
+            return false;
+        }
+        String k = key(world, corePos);
+        synchronized (SESSIONS) {
+            return SESSIONS.containsKey(k);
+        }
+    }
+
     /** Disarms every session in the given world. */
     public static String disarm(World world) {
         int removed = 0;

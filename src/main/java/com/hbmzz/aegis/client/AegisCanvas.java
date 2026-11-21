@@ -196,6 +196,20 @@ public final class AegisCanvas {
         int heatColour = AegisPalette.heat(fraction);
         String degrees = String.format(Locale.ROOT, "%,.0f", f.heatC);
         d.radialGlow(78, 88, 74, (heatColour & 0xFFFFFF) | 0x3C000000);
+        // While the independent CoreGuard session is cooling this core, show a
+        // blinking badge directly above the temperature readout. It is drawn
+        // after the glow so it stays legible, and only when the frame reports
+        // an active session (no false badge after '/coreguard off').
+        if (f.scramming) {
+            float pulse = 0.5F + 0.5F * (float) Math.sin(nowMs / 170.0D);
+            int badge = AegisPalette.mix(AegisPalette.AMBER, AegisPalette.RED, pulse);
+            String label = "自动停堆";
+            int bw = 88;
+            int bx = 72;
+            d.rect(bx, 42, bw, 15, 0xC0551414);
+            d.frame(bx, 42, bw, 15, badge, 1.0F);
+            d.text(label, bx + (bw - d.measure(label, 11, true)) / 2, 53, 11, badge, true);
+        }
         d.glowText(degrees, 14, 108, 46, heatColour, true);
         int degW = d.measure(degrees, 46, true);
         d.text("\u00b0C", 20 + degW, 94, 18, AegisPalette.HOLO, false);

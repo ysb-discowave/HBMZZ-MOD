@@ -73,12 +73,15 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
 
             AegisTelemetry frame = te.getLatest();
             boolean powered = te.isPowered();
-            boolean fresh = te.isSignalFresh();
             long now = System.currentTimeMillis();
 
-            // A quiet feed must not keep showing the last live numbers.
-            if (!fresh || frame == null) {
-                frame = frame == null ? new AegisTelemetry() : frame;
+            // No-signal detection lives in AegisCanvas: it timestamps changes
+            // in frame.worldTick and paints the "无信号" screen once the feed
+            // goes quiet for five seconds. Hand it the last frame (or a blank
+            // one) and let it decide — an earlier no-op branch here was dead
+            // code that claimed to blank stale numbers but never did.
+            if (frame == null) {
+                frame = new AegisTelemetry();
             }
             canvas.render(frame, te.getPage(), now, te.getBootAt(), powered);
             texture.upload(canvas.image());

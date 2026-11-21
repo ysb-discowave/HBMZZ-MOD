@@ -120,3 +120,15 @@ Aegis 新代码（4 组）：
 - **proxy/方块接线**：`CommonProxy.openAegis` + `ClientProxy` 实现开窗；`BlockAegisTerminal.onBlockActivated` 改为普通右键开窗、潜行右键翻页；中英文 lang 的操作提示同步更新。
 - **温度计量**：堆芯温度单位为摄氏度（°C），读自核心 `getDFCTemperature`，熔点默认 2250 °C；颜色按「当前温度/熔点」比例判定（见 `hbmzz-aegis.cfg` 的 `warnHeat`/`dangerHeat`）。
 - **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL，regcheck PASS，jar 已部署游戏 `mods`，MD5 `5de26701…d54d` 一致；旧包备份 `backup-mods/hbmzz-4.0.0.jar.pre-cn-gui`。
+
+## 八、热修：自主排查修复 4 处 bug（2026-11-21 追加）
+
+对整个 Aegis 包（17 类）逐文件复审，修复 4 处真实缺陷，均不影响 API / 存档格式 / 网络协议，纯行为修正：
+
+1. **画面刷新被 4 秒节流卡死（最严重，用户可感知）**：`AegisCanvas` 每帧重绘开机动画 / 倒计时闪烁 / 扫描线 / 断流扫屏，但 `AegisTexture.upload` 里 `needsUpload` 置 false 后只有 `now - lastForced > 4000L` 才会再上传，而 `invalidate()` 无任何调用方——结果画面实际每 4 秒才刷新一次，所有动画变成 1/4 FPS，温度数字也每 4 秒才跳一次。改为按 16 ms 上限节流（`MIN_UPLOAD_INTERVAL_MS`），`invalidate()` 重置时间戳；动画流畅，仍能自愈 GL context 丢失。
+2. **篡改状态在自动扫描模式下永远不显示**：`AegisProbe.sample` 把篡改查询的键传成 `boundCore`（手动绑定坐标），自动扫描时该值为 null，`stateFor(world, null)` 只返回全局 CUT， per-core 的 DISCONNECT/DEGRADED 全被吞掉。改为传实际读到的 `core.getPos()`，与 `HackService.touch(world, te.getPos())` 的登记键对齐。
+3. **换存档泄漏 GL 纹理**：`ClientEvents.onWorldUnload` 清理了其他全部渲染器缓存，唯独漏掉 Aegis；WeakHashMap 只回收 Java 对象，`glDeleteTextures` 不会自动触发。补入 `AegisClientBridge.clearTextures()`。
+4. **死代码 / 注释失真清理**：`AegisRenderer` 里 `fresh` 分支声称「清空旧数值」实为 no-op（无信号判定本就在 canvas 内按 worldTick 完成），删除该死分支；`AegisProbe` 类注释原称「成员查找按类缓存」，实现并无缓存，改为如实描述慢速轮询策略。
+
+- **验证**：JDK 8 `gradle build` BUILD SUCCESSFUL（`compileJava` / `jar` / `reobfJar` 全执行）；新 jar 已部署游戏 `mods`，MD5 `e233655b70d3d75e6a112d2380df5e01`，与构建产物一致；旧包备份 `hbmzz-4.0.0.jar.pre-bugfix`（MD5 `5de26701…d54d`）。
+- **未推 GitHub**：遵守约定，除非用户本人发出代理名 `XingZuo-Cloud Bot`，否则不推送。

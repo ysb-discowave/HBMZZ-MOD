@@ -94,6 +94,20 @@
         <div class="tl-item">
           <div class="tl-head">
             <span class="tl-ver">v4.0.0</span>
+            <span class="tag">修复</span>
+          </div>
+          <h3>Aegis 终端自主排查热修：画面刷新、篡改显示、纹理释放</h3>
+          <ul>
+            <li><strong>画面不再每 4 秒才刷一次：</strong>此前离屏画布每帧重绘开机动画 / 倒计时闪烁 / 扫描线 / 断流扫屏，但 GL 纹理上传被一个 4 秒节流卡住（<code>invalidate()</code> 无人调用），所有动画实际只有 1/4 FPS，温度数字也每 4 秒才跳。改为 16 ms 上传上限，动画恢复流畅。</li>
+            <li><strong>自动扫描模式下的篡改状态可见：</strong>篡改查询此前按「手动绑定坐标」取键，自动扫描时该键为 null，per-core 的链路中断 / 降级全被吞掉。改为按实际读到的核心坐标取键，与写入端登记键对齐。</li>
+            <li><strong>换存档不再泄漏 GL 纹理：</strong>世界卸载时补上 Aegis 渲染器缓存清理，反复切存档不会累积泄漏的纹理。</li>
+            <li><strong>验证：</strong>JDK 8 <code>gradle build</code> BUILD SUCCESSFUL，新 jar 已部署进游戏 <code>mods</code>（MD5 <code>e233655b…5e01</code>）。未推 GitHub。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v4.0.0</span>
             <span class="tag tag--amber">最新</span>
           </div>
           <h3>多区块 DFC 反应堆 + Aegis 遥测终端：五个方块拼一台堆，监控屏从零重写</h3>
@@ -701,7 +715,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js?v=742c1b547e"></script>
+<script src="assets/data.js?v=414cfe7005"></script>
 <script src="assets/site.js?v=3a90f5f5a2"></script>
   <script src="assets/reveal.js?v=2"></script>
 </body>

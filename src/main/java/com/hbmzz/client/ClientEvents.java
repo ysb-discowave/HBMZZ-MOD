@@ -102,6 +102,9 @@ public class ClientEvents {
             RenderFallenScreen.clearCaches();
             RenderNukeMonitor.clearCaches();
             RenderAlertDisplay.clearCaches();
+            // Aegis 终端每台一块 768x512 纹理；漏掉这一行会在反复换存档时
+            // 泄漏 GL 纹理（WeakHashMap 只回收 Java 对象，不会 delete GL id）。
+            com.hbmzz.aegis.client.AegisClientBridge.clearTextures();
             // The facility code belongs to the world that was just left. Keeping
             // it would make the first frame of the next world show the previous
             // facility's DELTA until a packet arrived.

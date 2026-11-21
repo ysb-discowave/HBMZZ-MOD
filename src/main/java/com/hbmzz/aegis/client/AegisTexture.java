@@ -43,8 +43,9 @@ public final class AegisTexture {
     private int allocatedH;
     private int[] pixels;
     private ByteBuffer staging;
-    private boolean needsUpload = true;
-    private long lastForced;
+    /** Upper bound on the upload rate; the canvas repaints on every frame. */
+    private static final long MIN_UPLOAD_INTERVAL_MS = 16L;
+    private long lastUploadMs = Long.MIN_VALUE;
 
     public int id() {
         return this.glId;
@@ -56,7 +57,7 @@ public final class AegisTexture {
 
     /** Forces a full re-upload on the next call to {@link #upload}. */
     public void invalidate() {
-        this.needsUpload = true;
+        this.lastUploadMs = Long.MIN_VALUE;
     }
 
     public void upload(BufferedImage image) {
@@ -64,14 +65,15 @@ public final class AegisTexture {
             return;
         }
         long now = System.currentTimeMillis();
-        // A periodic refresh repairs a texture lost to a GL context reset even
-        // when the panel content itself has not changed.
-        boolean forced = now - this.lastForced > 4000L;
-        if (!this.needsUpload && !forced) {
+        // The canvas repaints every frame (boot sweep, scan animation,
+        // countdown blink), so the GPU copy has to follow at the same rate.
+        // A tiny interval caps cost on high-refresh displays while keeping the
+        // picture smooth; re-uploading also heals a texture after a GL context
+        // reset. The old 4-second gate froze every animation to a quarter FPS.
+        if (now - this.lastUploadMs < MIN_UPLOAD_INTERVAL_MS) {
             return;
         }
-        this.needsUpload = false;
-        this.lastForced = now;
+        this.lastUploadMs = now;
 
         int w = image.getWidth();
         int h = image.getHeight();

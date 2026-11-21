@@ -39,9 +39,11 @@ import java.util.Locale;
  * resolution, fallbacks, caching of reflected members and the defensive
  * copying of foreign-owned collections — is implemented here from scratch.</p>
  *
- * <p>Member lookups are cached per concrete class in a small map. Reflection
- * on a hot tick is otherwise surprisingly expensive, and a monitor polling ten
- * times a second over dozens of core classes would notice.</p>
+ * <p>Every sample walks the live class reflectively. Polls run on a slow clock
+ * (default ten ticks) and only while a viewer is nearby, so a small method scan
+ * is cheaper than maintaining a cache that would go stale when a DFC update
+ * swaps in a new core subclass. All lookups are defensive: a missing method or
+ * field degrades to the documented fallback rather than throwing.</p>
  */
 public final class AegisProbe {
 
@@ -138,7 +140,11 @@ public final class AegisProbe {
         readWear(core, frame);
         readMeter(world, boundMeter, frame);
         readForecast(frame);
-        readTamper(world, boundCore, frame);
+        // Key tamper state on the core we actually read, not the optional
+        // explicit binding: in auto-scan mode boundCore is null, and keying on
+        // null would hide every per-core DISCONNECT/DEGRADED mark (only the
+        // world-wide CUT would still show). core is guaranteed non-null here.
+        readTamper(world, core.getPos(), frame);
         return frame;
     }
 

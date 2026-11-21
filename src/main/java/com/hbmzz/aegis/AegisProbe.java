@@ -55,17 +55,45 @@ public final class AegisProbe {
     /** One-line diagnostic of real core readings for the first few samples. */
     private static final int DIAGNOSTIC_SAMPLES = 8;
     private static int diagnosticCount;
+    /** Repeating "no core found" diagnostic, throttled to once every N samples. */
+    private static final int NO_CORE_LOG_EVERY = 200;
+    private static int noCoreSamples;
 
     private AegisProbe() {
     }
 
-    /** True when the tile entity is the DFC machine or a subclass of it. */
+    /**
+     * True when the tile entity is the DFC machine or a compatible fork.
+     *
+     * <p>The exact class name is tried first (cheap, no reflection). NTM:CE and
+     * the Cursed Addon reshuffle core subclasses, so the name alone is not
+     * enough: a core also carries the {@code getDFCTemperature} accessor (added
+     * by the addon mixin) or the base mod's {@code heat}/{@code field} pair.
+     * Falling back to those features keeps the monitor reading a real core
+     * after a fork rename — which, when it fails, looks exactly like "temperature
+     * stopped working" because sampling returns early with no diagnostic.</p>
+     */
     public static boolean isCore(TileEntity te) {
         if (te == null) {
             return false;
         }
         for (Class<?> c = te.getClass(); c != null; c = c.getSuperclass()) {
             if (CORE_TYPE.equals(c.getName())) {
+                return true;
+            }
+        }
+        if (hasMethod(te, "getDFCTemperature") || hasMethod(te, "isDFCHasCore")) {
+            return true;
+        }
+        return field(te, "heat") instanceof Number && field(te, "field") instanceof Number;
+    }
+
+    private static boolean hasMethod(Object target, String name) {
+        if (target == null) {
+            return false;
+        }
+        for (Method m : target.getClass().getMethods()) {
+            if (m.getName().equals(name)) {
                 return true;
             }
         }
@@ -119,10 +147,21 @@ public final class AegisProbe {
         frame.worldTick = world.getTotalWorldTime();
 
         TileEntity core = boundCore == null ? null : world.getTileEntity(boundCore);
-        if (!isCore(core)) {
+        boolean explicitBound = core != null && isCore(core);
+        if (!explicitBound) {
             core = nearestCore(world, anchor, radius);
         }
         if (core == null) {
+            // A terminal that cannot find a core used to fail in total silence,
+            // which is indistinguishable from a broken temperature reader. Log
+            // why: an out-of-range terminal, a stale binding or a core the
+            // feature check no longer recognises are three different problems.
+            if ((noCoreSamples++) % NO_CORE_LOG_EVERY == 0) {
+                HBMZZ.logger.info("Aegis sample @" + anchor + " NO CORE"
+                        + " bound=" + boundCore + " boundValid=" + explicitBound
+                        + " scanRadius=" + radius
+                        + " loadedTE=" + world.loadedTileEntityList.size());
+            }
             return frame;
         }
 

@@ -156,41 +156,85 @@ public final class AegisRenderer extends TileEntitySpecialRenderer<TileAegisTerm
     }
 
     /**
-     * Solid metal enclosure behind the picture. A front plate plus four side
-     * walls give the panel real depth so width/height/tilt read as a physical
-     * object. Sits behind the screen plane (negative z).
+     * Solid metal enclosure behind the picture. A back plate plus four thick
+     * side walls give the panel real depth so width/height/tilt read as a
+     * physical object from the front, the side and at an angle — the old
+     * enclosure was only ~0.06 blocks deep and almost black, so looking at the
+     * terminal edge-on showed nothing and the screen read as a floating decal.
+     * The four walls are shaded differently (top bright, bottom dark, sides in
+     * between) so the box has readable volume even without dynamic lighting.
      */
     private static void backing(float halfW, float halfH) {
-        float pad = 0.035F;
+        float pad = 0.045F;
         float l = -halfW - pad, r = halfW + pad;
         float b = -halfH - pad, t = halfH + pad;
-        float front = -0.012F;
-        float back = -0.075F;
+        float front = 0.012F;   // slightly proud of the wall plane
+        float back = -0.17F;    // deep enough to read as a box from the side
         Tessellator tess = Tessellator.getInstance();
         BufferBuilder buf = tess.getBuffer();
         GlStateManager.disableTexture2D();
         GlStateManager.disableLighting();
         GlStateManager.enableBlend();
 
-        GlStateManager.color(0.10F, 0.13F, 0.15F, 1.0F);
+        // Back plate: dark brushed metal, visible when the screen is tilted.
+        GlStateManager.color(0.13F, 0.16F, 0.19F, 1.0F);
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-        quad(buf, l, b, r, t, back);                 // back face
+        quad(buf, l, b, r, t, back);
         tess.draw();
 
-        GlStateManager.color(0.05F, 0.07F, 0.09F, 1.0F);
+        // Side walls, one shade per face so the depth is legible edge-on.
+        // top (brightest)
+        GlStateManager.color(0.30F, 0.36F, 0.42F, 1.0F);
         buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-        // top and bottom walls
         buf.pos(l, t, front).endVertex(); buf.pos(r, t, front).endVertex();
         buf.pos(r, t, back).endVertex();  buf.pos(l, t, back).endVertex();
+        tess.draw();
+        // bottom (darkest)
+        GlStateManager.color(0.08F, 0.10F, 0.13F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
         buf.pos(l, b, back).endVertex();  buf.pos(r, b, back).endVertex();
         buf.pos(r, b, front).endVertex(); buf.pos(l, b, front).endVertex();
-        // left and right walls
+        tess.draw();
+        // left / right cheeks (mid tone)
+        GlStateManager.color(0.18F, 0.22F, 0.27F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
         buf.pos(l, b, front).endVertex(); buf.pos(l, b, back).endVertex();
         buf.pos(l, t, back).endVertex();  buf.pos(l, t, front).endVertex();
         buf.pos(r, b, back).endVertex();  buf.pos(r, b, front).endVertex();
         buf.pos(r, t, front).endVertex(); buf.pos(r, t, back).endVertex();
         tess.draw();
+
+        // A thin cyan-lit rim on the four front edges makes the thickness pop
+        // from any oblique angle instead of dissolving into a dark silhouette.
+        GlStateManager.color(0.16F, 0.55F, 0.60F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        drawEdgeStrip(buf, l, b, l, t, front, back, true);   // left depth edge
+        tess.draw();
+        GlStateManager.color(0.16F, 0.55F, 0.60F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        drawEdgeStrip(buf, r, b, r, t, front, back, true);   // right depth edge
+        tess.draw();
+        GlStateManager.color(0.22F, 0.62F, 0.66F, 1.0F);
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+        drawEdgeStrip(buf, l, t, r, t, front, back, false);  // top depth edge
+        tess.draw();
         GlStateManager.enableTexture2D();
+    }
+
+    /** One quad running from the front to the back of the enclosure along an edge. */
+    private static void drawEdgeStrip(BufferBuilder buf, float x0, float y0,
+                                      float x1, float y1, float front, float back,
+                                      boolean vertical) {
+        float e = 0.012F;
+        if (vertical) {
+            // a thin strip on the side face spanning the depth
+            float xi = x0 < 0.0F ? x0 : x0 - e;
+            buf.pos(xi, y0, front).endVertex();  buf.pos(xi + e, y0, front).endVertex();
+            buf.pos(xi + e, y0, back).endVertex();   buf.pos(xi, y0, back).endVertex();
+        } else {
+            buf.pos(x0, y0, front).endVertex();  buf.pos(x1, y0, front).endVertex();
+            buf.pos(x1, y0, back).endVertex();   buf.pos(x0, y0, back).endVertex();
+        }
     }
 
     /** Local-space bezel around the picture; drawn as four dark bars. */

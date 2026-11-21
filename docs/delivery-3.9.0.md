@@ -3,47 +3,80 @@
 日期：2026-11-21
 基线：4.1.0（贴墙壁挂屏 + 可调几何 + 专用连接工具版）
 
-这一版只做一件事：**把项目版本号从 4.1.0 改回 3.9.0**。功能代码一行没动，4.1.0 的全部特性原样保留。
+这一版做了五件事：版本号改回 3.9.0、几何调节改为实时、屏幕侧视补实体感、修复温度失效的根因、连接工具绑定后自动打开菜单；并新增一条指令驱动的自动停堆功能。
 
 ## 一、版本号改为 3.9.0
 
-按需求回退版本标识，三处版本戳统一更新，保证构建产物、Mod 列表、配置文件里看到的是同一个号：
+三处版本戳统一回退，保证构建产物、Mod 列表、配置里看到的是同一个号：
 
 - `build.gradle`：`version = '3.9.0'`
 - `HBMZZ.java`：`VERSION = "3.9.0"`
 - `mcmod.info`：`"version": "3.9.0"`
 
-构建产物从 `hbmzz-4.1.0.jar` 变为 `hbmzz-3.9.0.jar`。站点数据 `docs/assets/data.js` 已重新同步，其中 `gradleVersion` 反映构建版本 3.9.0；站点对外显示的版本仍按既有设计取自最新发布 tag（v4.1.0），这次没有打新 tag、也没有推 GitHub，所以显示值不变——这是站点脚本的设计逻辑，不是版本戳漏改。
+产物 `hbmzz-3.9.0.jar`。站点数据 `docs/assets/data.js` 已同步；站点的"显示版本"按既有设计取自最新发布 tag（v4.1.0），本次未打新 tag、未推 GitHub，所以显示值不变——这是站点脚本逻辑，不是版本戳漏改。
 
-## 二、几何调节改为真正实时（本次修复）
+## 二、几何调节改为真正实时
 
-**问题**：4.1.0 起右键菜单能调倾斜角/宽/高，但原先点 `−`/`+` 只把请求发给服务端，客户端要等服务端处理完、把 TileEntity 同步回来才更新。这一来一回让人觉得"必须退出菜单再进才生效"，窗口里的数值和墙上的画面都不是立刻变。
+**问题**：调倾斜角/宽/高时，原先只把请求发给服务端，客户端要等同步回来才更新，感觉像"必须退出菜单才生效"。
 
 **改法**（`GuiAegisTerminal.java` + `TileAegisTerminal.java`）：
+- 新增 `setGeometryPreview()`：只改客户端三个几何字段，无 NBT、无发包，clamp 与服务端完全一致。
+- 三个调节方法改为：先本地预览（画面和读数下一帧就变），再发 `AegisSetupPacket` 让服务端权威 clamp、写 NBT、广播。回包数值相同，不跳变。
+- 鼠标按钮与 Z/X、[ / ]、- / = 快捷键走同一套方法。
 
-- 新增 `TileAegisTerminal.setGeometryPreview()`：只改客户端的三个几何字段，不写 NBT、不发网络包，用与服务端**完全相同**的 clamp。
-- 三个调节方法（`sendTilt` / `sendWidth` / `sendHeight`）改为：先 `setGeometryPreview()` 本地更新——画面和窗口读数**下一帧就变**；再照旧发 `AegisSetupPacket` 给服务端做权威 clamp、写入 NBT 存档并广播给附近玩家。
-- 服务端同步回来的值和本地预览是同一个 clamp 后的结果，所以回包覆盖时数值不跳、屏幕不闪、也不用退出菜单。
-- 鼠标按钮和快捷键（Z/X、[ / ]、- / =）走的是同一套方法，两种操作都实时。
+## 三、屏幕侧视补实体感
 
-## 三、功能内容（其余沿用 4.1.0，未改动）
+**问题**：原来的金属外壳背板到前面只有约 0.06 格厚、颜色近乎全黑，从侧面/斜角看屏幕像一张贴在空气上的画面。
 
-- **贴墙壁挂屏**：神盾（Aegis）终端带金属外壳和墙面支架，不再悬空（本次未改结构）。
-- **专用连接工具**：右键 DFC 核心记录坐标，右键终端绑定，潜行右键清除；16 格内自动扫描照旧。
-- **全息视觉**：面积图、渐变、辉光边框、扫描光带、中文字体。
-- **温度诊断**：温度 0 回退、`meltdownTick`/`field` 兜底、前 8 次采样诊断日志。
+**改法**（`AegisRenderer.backing()`）：
+- 外壳加厚到约 0.18 格，前面板略凸出墙面。
+- 顶/底/左右四个侧壁分别用不同明度（顶亮、底暗、两侧居中），无动态光照也能读出体积。
+- 四条深度棱加青色高光条，斜视时能看清厚度。侧看现在是一台有厚度的显示器，而不是空气。
 
-## 四、验证与部署
+## 四、修复温度失效（根因：核心没被识别）
 
-- JDK 8 `gradle build` **BUILD SUCCESSFUL**（仅有 deprecation / unchecked 提示，非错误）。
-- `tools/regcheck/check.py`：**all 150 checks passed**。
-- 站点一致性 `sync_site.py --check`：结构与链接全部一致；仅有一条预期 WARN（站点版本取自 tag 4.1.0、构建版本 3.9.0），不阻断。
-- 新 jar 已部署进游戏 `mods`：`hbmzz-3.9.0.jar`，MD5 `2c83523242439bc2a766a9fd83a05a34`。
-- 上一版 `hbmzz-3.9.0.jar` 已备份为 `mods/backup-mods/hbmzz-3.9.0.jar.pre-realtime`。
+**现象**：现场日志 `logs/latest.log` 里 `hbmzz 3.9.0` 已加载，但**一条 `Aegis sample` 都没有**——说明采样在找到核心之前就提前返回了，根本不是"读数算错"。
 
-## 五、说明
+**根因**：`AegisProbe.isCore()` 和 `DFCReader.isCore()` 只认死类名 `com.hbm.tileentity.machine.TileEntityCore`。NTM:CE + Cursed Addon 环境下核心子类被重排/改名，匹配失败 → 自动扫描找不到核心 → 温度永远不刷新。
 
-- 这是版本号回退 + 几何实时性修复，不是功能回退：4.1.0 的监控屏能力全部保留。
-- 几何实时性只改客户端预览与发包顺序，不改存档结构、网络协议或渲染的贴墙结构；老档兼容。
-- 温度读数异常的根因仍需现场日志确认（`logs/latest.log` 里的 `Aegis sample` 前 8 行），本版未改动那部分逻辑。
+**改法**：
+- 两处 `isCore()` 增加特征回退：先试精确类名，再试 `getDFCTemperature`/`isDFCHasCore` 访问器，最后试 `heat`+`field` 字段组合。任一命中即认作核心。
+- 之前"找不到核心"是**完全静默**的，现在每 200 次采样记一条 `Aegis sample … NO CORE` 日志，带绑定坐标、扫描半径、加载的 TE 数量。下次若还失效，现场日志能直接区分是"核心没识别 / 绑定过期 / 距离太远"哪一种。
+
+## 五、连接工具绑定后自动打开菜单
+
+**问题**：连接工具绑定核心后右键终端，只显示"已绑定成功"，设置窗口没稳定打开。
+
+**改法**：
+- 新增网络包 `AegisOpenGuiPacket`（ID 33，服务端→客户端），经 `AegisClientBridge.openAegisGui()` 在渲染线程打开菜单。
+- `ItemAegisLinker` 服务端绑定成功后主动发这个包，权威地打开菜单；客户端原有的本地 openAegis 保留。
+- 结果：绑定完直接进入几何设置窗口，可以立刻调倾斜/宽/高。
+
+## 六、新增指令：自动停堆 `/aegis scram`
+
+**用法**（操作员权限，输入 `off`/`status` 可选）：
+- `/aegis scram`：对玩家附近（神盾扫描半径内）最近的 DFC 核心启动自动停堆。
+- `/aegis scram status`：查看正在停堆的核心与当前温度。
+- `/aegis scram off`：解除本机世界所有停堆会话。
+
+**行为**：
+- 每服务器秒把核心温度写低 2000°C（`DFCReader.writeTemperature`，与黑客平板同一条写字段通道）。
+- 如果读到温度比上一次写入值还高（说明堆在失控升温、降温压不住），**瞬间写 0°C** 并记日志。
+- 每个核心一个会话，按 维度+坐标 索引；区块卸载时暂停、核心消失时移除、服务器停止时清空。写入全部在服务端 tick 线程。
+
+**新增文件**：`AegisScram.java`（会话 + tick）、`command/CommandAegis.java`（指令）。在 `HBMZZ.java` 里注册事件监听与 `FMLServerStartingEvent`。
+
+## 七、验证与部署
+
+- 人工排查两遍 + javap 核对 1.12.2 API：修掉 5 处会在旧写法下编译失败的 API 误用（`ServerTickEvent.server` 不存在、`getTabCompletions`/`getName`/`getUsage` 方法名、`sendTo` 参数类型、私有构造器）。
+- JDK 8 `gradle build` **BUILD SUCCESSFUL**。
+- `tools/regcheck/check.py`：**all 150 checks passed**；网络包 ID 33 无冲突。
+- 站点一致性 `sync_site.py --check`：全部一致（仅一条 tag/构建版本不一致的预期 WARN）。
+- 新 jar 已部署进游戏 `mods`：`hbmzz-3.9.0.jar`，MD5 `5357752f6c8d2cca24001c6e3941bcde`。
+- 上一版 `hbmzz-3.9.0.jar` 已备份为 `mods/backup-mods/hbmzz-3.9.0.jar.pre-scram`。
+
+## 八、说明
+
+- 温度失效的修复基于"核心没被识别"这一日志证据；若现场仍异常，请附 `logs/latest.log` 里的 `Aegis sample` 行（现在无论是否找到核心都会记）。
+- 自动停堆是应急刹车，直接写核心温度字段，不替代反应堆自身的控制棒/停堆逻辑。
 - 未推 GitHub、未打新 tag、未动远端 Release：遵守约定，除非用户本人发出代理名 `XingZuo-Cloud Bot`。

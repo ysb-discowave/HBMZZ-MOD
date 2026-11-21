@@ -47,6 +47,16 @@ public final class AegisClientBridge {
         });
     }
 
+    /** Opens the settings window on the render thread, requested by the server. */
+    public static void openAegisGui(BlockPos pos) {
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.addScheduledTask(() -> {
+            if (pos != null) {
+                mc.displayGuiScreen(new GuiAegisTerminal(pos));
+            }
+        });
+    }
+
     /** Called on a world unload to release per-terminal GL textures. */
     public static void clearTextures() {
         AegisRenderer.clearCaches();

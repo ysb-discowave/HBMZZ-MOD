@@ -89,6 +89,15 @@ public class ItemAegisLinker extends Item {
             terminal.setBinding(core, terminal.getBoundMeter());
             say(player, TextFormatting.GREEN + "已绑定核心 " + TextFormatting.WHITE + coord(core)
                     + TextFormatting.GREEN + " 到神盾终端");
+            // Go straight into the settings window after binding. The bind
+            // message alone used to leave the operator staring at chat with no
+            // menu; asking the client to open it here is authoritative and also
+            // works when the local right-click GUI open was missed.
+            if (player instanceof net.minecraft.entity.player.EntityPlayerMP) {
+                com.hbmzz.network.NetworkHandler.sendTo(
+                        (net.minecraft.entity.player.EntityPlayerMP) player,
+                        new com.hbmzz.network.AegisOpenGuiPacket(pos));
+            }
             return EnumActionResult.SUCCESS;
         }
 

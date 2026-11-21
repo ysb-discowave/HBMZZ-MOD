@@ -109,6 +109,8 @@ public final class NetworkHandler {
         INSTANCE.registerMessage(AegisRequestPacket.Handler.class, AegisRequestPacket.class, 30, Side.SERVER);
         INSTANCE.registerMessage(AegisControlPacket.Handler.class, AegisControlPacket.class, 31, Side.SERVER);
         INSTANCE.registerMessage(AegisSetupPacket.Handler.class, AegisSetupPacket.class, 32, Side.SERVER);
+        // Ask the client to open the Aegis settings window after a link-tool bind.
+        INSTANCE.registerMessage(AegisOpenGuiPacket.Handler.class, AegisOpenGuiPacket.class, 33, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

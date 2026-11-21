@@ -681,12 +681,12 @@ window.HBMZZ_DATA = {
   ],
   "auto": {
     "version": "4.0.0",
-    "gradleVersion": "3.9.0",
+    "gradleVersion": "4.0.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 624,
-      "javaLines": 145154,
+      "javaLines": 145153,
       "resourceFiles": 661,
       "nodeTypes": 32,
       "controlTypes": 26

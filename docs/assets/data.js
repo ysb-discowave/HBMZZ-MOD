@@ -702,12 +702,12 @@ window.HBMZZ_DATA = {
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
-      "javaFiles": 625,
-      "javaLines": 145926,
+      "javaFiles": 626,
+      "javaLines": 146227,
       "resourceFiles": 662,
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-21"
+    "generatedAt": "2026-11-22"
   }
 };

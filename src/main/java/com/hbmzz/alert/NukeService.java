@@ -115,7 +115,11 @@ public final class NukeService {
             registry.release();
         }
 
-        float power = blastPower(yield);
+        NukeTiers.Power tier = nuke.getPowerTier();
+        // Tier power is authoritative now; the config cap still lets an operator
+        // clamp the crater. The legacy yield curve stays in blastPower() for old
+        // callers and saves that never recorded a tier.
+        float power = Math.min(tier.power, (float) Math.max(4.0D, HBMZZConfig.nukeBlastCap));
         RbmkEffects.nuclear(world, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, power, true);
         RbmkEffects.dustRing(world, pos.getX() + 0.5D, pos.getY() + 0.1D, pos.getZ() + 0.5D, power * 1.6D);
 
@@ -123,9 +127,11 @@ public final class NukeService {
         if (state != null) {
             state.noteBlast(world, pos.getX(), pos.getY(), pos.getZ(), yield, dim);
         }
-        raise(world, AlertCode.ALPHA, "核装置", "",
+        // The top tier writes the facility off: DELTA instead of the ordinary
+        // warhead ALPHA. Everything below still reads as a nuclear event.
+        raise(world, tier.code, "核装置", "",
                 "核装置已引爆 " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
-                        + "，当量 " + yield + " kT");
+                        + "，" + tier.zh + "（" + tier.en + "）当量 " + yield + " kT");
     }
 
     /**

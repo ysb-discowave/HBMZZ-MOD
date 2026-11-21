@@ -81,20 +81,31 @@ public final class HBMZZConfig {
 
     // ---- nuclear accident system ----
     /**
-     * Yield, in kilotons, copied into a device when it is placed. The default is
-     * a strategic warhead rather than a tactical one: this is the block that
-     * exists to end a facility, and a small one would make the ALPHA code look
-     * like an overreaction.
+     * Legacy yield, in kilotons. Still written by older saves and still the
+     * fallback when a device has no tier recorded; a device placed now takes its
+     * yield from {@link #nukePowerTier} instead.
      */
     public static int nukeYieldKt = 100;
-    /** Fuse, in ticks. 100 = five seconds, which is long enough for the siren. */
+    /** Legacy fuse, in ticks. Fallback for saves with no fuse tier recorded. */
     public static int nukeFuseTicks = 100;
-    /** Vanilla explosion power for a zero-yield device; the curve starts here. */
+    /**
+     * Power tier a device is placed with, 0..5 (TEST..ANNIHILATION). Players can
+     * cycle it in-game with the axe; this is only the initial value. The top tier
+     * is the "毁档" facility-annihilation setting.
+     */
+    public static int nukePowerTier = 5;
+    /** Fuse tier a device is placed with, 0..5 (5 s .. 300 s). Default is 30 s. */
+    public static int nukeFuseTier = 2;
+    /** Vanilla explosion power for a zero-yield device; the legacy curve starts here. */
     public static double nukeBlastBase = 6.0D;
     /** Additional explosion power per kiloton. */
     public static double nukeBlastPerKt = 0.28D;
-    /** Hard ceiling: past ~50 one explosion re-checks the whole crater in one tick. */
-    public static double nukeBlastCap = 48.0D;
+    /**
+     * Hard ceiling on tier power. Raised from 48 so the top tier is a real
+     * facility-annihilation blast; an operator can still lower it for a smaller
+     * crater. 120 is the practical limit before the crater check gets expensive.
+     */
+    public static double nukeBlastCap = 120.0D;
     /** Ticks between catch-up pushes from a display to the players near it. */
     public static int alertRefreshTicks = 20;
     /** Facility-wide klaxon on a code broadcast. Client-side sound, server-side trigger. */
@@ -286,16 +297,20 @@ public final class HBMZZConfig {
                     "Explosion set off when the falling lid lands back on the core. This is the second bang, the one that throws the plate up again. Vanilla explosion scale: 30 makes a real crater.");
             rbmkShake = cfg.getBoolean("shake", "rbmk", true,
                     "Shake the camera and the hotbar, and draw the expanding ground ring. Client-side only; the server sends a position and a strength, the client animates it.");
+            nukePowerTier = cfg.getInt("powerTier", "nuke", 5, 0, 5,
+                    "Initial power tier of a placed device: 0 TEST, 1 TACTICAL, 2 STRATEGIC, 3 HEAVY, 4 CORE BREAKER, 5 ANNIHILATION (facility annihilation, raises DELTA). Cycle in-game with the axe.");
+            nukeFuseTier = cfg.getInt("fuseTier", "nuke", 2, 0, 5,
+                    "Initial fuse tier of a placed device: 0 5s, 1 15s, 2 30s, 3 60s, 4 120s, 5 300s. Cycle in-game by sneak-right-clicking the device empty-handed.");
             nukeYieldKt = cfg.getInt("yield", "nuke", 100, 1, 10000,
-                    "Yield in kilotons, copied into a device when it is placed. Blast power is derived from it.");
-            nukeFuseTicks = cfg.getInt("fuseTicks", "nuke", 100, 0, 1200,
-                    "Fuse in ticks between the signal and the bang. 100 = 5 s; 0 detonates on the signal.");
+                    "Legacy yield in kilotons. Only used for saves that predate power tiers.");
+            nukeFuseTicks = cfg.getInt("fuseTicks", "nuke", 100, 0, 12000,
+                    "Legacy fuse in ticks. Only used for saves that predate fuse tiers.");
             nukeBlastBase = cfg.getFloat("blastBase", "nuke", 6.0F, 1.0F, 60.0F,
-                    "Vanilla explosion power at zero yield. TNT is 4.");
+                    "Vanilla explosion power at zero yield, for the legacy yield curve. TNT is 4.");
             nukeBlastPerKt = cfg.getFloat("blastPerKt", "nuke", 0.28F, 0.0F, 4.0F,
-                    "Explosion power added per kiloton of yield.");
-            nukeBlastCap = cfg.getFloat("blastCap", "nuke", 48.0F, 4.0F, 120.0F,
-                    "Hard ceiling on explosion power. Above ~50 the crater is expensive to compute.");
+                    "Explosion power added per kiloton, for the legacy yield curve.");
+            nukeBlastCap = cfg.getFloat("blastCap", "nuke", 120.0F, 4.0F, 200.0F,
+                    "Hard ceiling on tier explosion power. 120 lets the ANNIHILATION tier land at full strength; lower it for a smaller crater.");
             alertRefreshTicks = cfg.getInt("refreshTicks", "alert", 20, 5, 200,
                     "Ticks between catch-up pushes from an accident display to nearby players.");
             alertKlaxon = cfg.getBoolean("klaxon", "alert", true,

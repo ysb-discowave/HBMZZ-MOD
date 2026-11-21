@@ -175,10 +175,11 @@ public class BlockNuke extends BlockHorizontal implements ITileEntityProvider {
         if (te instanceof TileEntityNuke) {
             TileEntityNuke nuke = (TileEntityNuke) te;
             // Copied at placement rather than read live: an operator lowering the
-            // yield in the config should not silently disarm the bomb that is
-            // already standing in the silo.
-            nuke.setYield(HBMZZConfig.nukeYieldKt);
-            nuke.setFuseTicks(HBMZZConfig.nukeFuseTicks);
+            // tier in the config should not silently disarm the bomb that is
+            // already standing in the silo. From here on the player cycles the
+            // tiers in-game and the device keeps them in its own NBT.
+            nuke.setPowerTier(HBMZZConfig.nukePowerTier);
+            nuke.setFuseTier(HBMZZConfig.nukeFuseTier);
         }
     }
 
@@ -220,7 +221,7 @@ public class BlockNuke extends BlockHorizontal implements ITileEntityProvider {
                 : "IDLE";
         player.sendMessage(new TextComponentTranslation("hbmzz.msg.nuke_status",
                 stateText, nuke.getYield(), String.format(java.util.Locale.ROOT, "%.1f", nuke.getFuseTicks() / 20.0D),
-                controller, code));
+                controller, code, nuke.getPowerTier().zh, nuke.getFuseTier().zh));
         return true;
     }
 }

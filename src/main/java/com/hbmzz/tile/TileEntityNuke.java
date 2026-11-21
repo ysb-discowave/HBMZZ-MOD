@@ -18,7 +18,9 @@
 
 package com.hbmzz.tile;
 
+import com.hbmzz.HBMZZConfig;
 import com.hbmzz.alert.NukeService;
+import com.hbmzz.alert.NukeTiers;
 import com.hbmzz.block.BlockNuke;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.SoundEvents;
@@ -59,10 +61,14 @@ public class TileEntityNuke extends TileEntity implements ITickable {
     /** Went off; the block is already air by the time this is set. */
     public static final int SPENT = 2;
 
-    /** Yield in kilotons. Copied from the config when the block is placed. */
+    /** Nominal yield in kilotons, derived from the power tier. */
     private int yieldKt = 100;
-    /** Fuse length in ticks. Also copied at placement. */
+    /** Fuse length in ticks, derived from the fuse tier. */
     private int fuseTicks = 100;
+    /** Selected power tier, 0..5. Authoritative; yieldKt mirrors it. */
+    private int powerTier = NukeTiers.Power.ANNIHILATION.id;
+    /** Selected fuse tier, 0..5. Authoritative; fuseTicks mirrors it. */
+    private int fuseTier = NukeTiers.Fuse.S30.id;
     private int state = IDLE;
     private int countdown;
 
@@ -76,18 +82,63 @@ public class TileEntityNuke extends TileEntity implements ITickable {
         return this.yieldKt;
     }
 
+    /**
+     * Sets the nominal yield directly. Kept for the placement path and old callers;
+     * it snaps the device to the nearest tier so the two fields can never disagree.
+     */
     public void setYield(int yieldKt) {
-        this.yieldKt = Math.max(1, Math.min(10000, yieldKt));
-        markDirty();
+        setPowerTier(NukeTiers.Power.nearestYield(Math.max(1, yieldKt)).id);
     }
 
     public int getFuseTicks() {
         return this.fuseTicks;
     }
 
+    /** Sets the fuse directly, snapping to the nearest tier. */
     public void setFuseTicks(int fuseTicks) {
-        this.fuseTicks = Math.max(0, Math.min(12000, fuseTicks));
+        setFuseTier(NukeTiers.Fuse.nearestTicks(Math.max(0, fuseTicks)).id);
+    }
+
+    public NukeTiers.Power getPowerTier() {
+        return NukeTiers.Power.byId(this.powerTier);
+    }
+
+    public NukeTiers.Fuse getFuseTier() {
+        return NukeTiers.Fuse.byId(this.fuseTier);
+    }
+
+    /** Applies a power tier, updating the mirrored yield. */
+    public void setPowerTier(int tierId) {
+        this.powerTier = NukeTiers.Power.byId(tierId).id;
+        this.yieldKt = getPowerTier().yieldKt;
         markDirty();
+        sync();
+    }
+
+    /** Applies a fuse tier, updating the mirrored fuse length. */
+    public void setFuseTier(int tierId) {
+        this.fuseTier = NukeTiers.Fuse.byId(tierId).id;
+        this.fuseTicks = getFuseTier().ticks;
+        markDirty();
+        sync();
+    }
+
+    /** Advances one power tier (wraps at the top). Refused mid-countdown. */
+    public NukeTiers.Power cyclePower() {
+        if (this.state == COUNTDOWN) {
+            return getPowerTier();
+        }
+        setPowerTier(getPowerTier().next().id);
+        return getPowerTier();
+    }
+
+    /** Advances one fuse tier (wraps at the top). Refused mid-countdown. */
+    public NukeTiers.Fuse cycleFuse() {
+        if (this.state == COUNTDOWN) {
+            return getFuseTier();
+        }
+        setFuseTier(getFuseTier().next().id);
+        return getFuseTier();
     }
 
     public int getState() {
@@ -240,6 +291,8 @@ public class TileEntityNuke extends TileEntity implements ITickable {
         super.writeToNBT(compound);
         compound.setInteger("yield", this.yieldKt);
         compound.setInteger("fuse", this.fuseTicks);
+        compound.setInteger("powerTier", this.powerTier);
+        compound.setInteger("fuseTier", this.fuseTier);
         compound.setByte("state", (byte) this.state);
         compound.setInteger("countdown", this.countdown);
         if (this.controllerPos != null) {
@@ -252,13 +305,26 @@ public class TileEntityNuke extends TileEntity implements ITickable {
     @Override
     public void readFromNBT(NBTTagCompound compound) {
         super.readFromNBT(compound);
-        // A save written before this block existed, or a block placed by a
-        // command, still has to produce a working bomb: the defaults are the
-        // configured ones rather than zero.
-        this.yieldKt = compound.hasKey("yield") ? compound.getInteger("yield")
-                : com.hbmzz.HBMZZConfig.nukeYieldKt;
-        this.fuseTicks = compound.hasKey("fuse") ? compound.getInteger("fuse")
-                : com.hbmzz.HBMZZConfig.nukeFuseTicks;
+        // Tier is authoritative when present. Old saves carry only yield/fuse,
+        // so snap those to the nearest tier and keep the numbers consistent.
+        if (compound.hasKey("powerTier")) {
+            this.powerTier = NukeTiers.Power.byId(compound.getInteger("powerTier")).id;
+            this.yieldKt = getPowerTier().yieldKt;
+        } else {
+            int legacyYield = compound.hasKey("yield") ? compound.getInteger("yield")
+                    : HBMZZConfig.nukeYieldKt;
+            this.powerTier = NukeTiers.Power.nearestYield(legacyYield).id;
+            this.yieldKt = compound.hasKey("yield") ? compound.getInteger("yield") : getPowerTier().yieldKt;
+        }
+        if (compound.hasKey("fuseTier")) {
+            this.fuseTier = NukeTiers.Fuse.byId(compound.getInteger("fuseTier")).id;
+            this.fuseTicks = getFuseTier().ticks;
+        } else {
+            int legacyFuse = compound.hasKey("fuse") ? compound.getInteger("fuse")
+                    : HBMZZConfig.nukeFuseTicks;
+            this.fuseTier = NukeTiers.Fuse.nearestTicks(legacyFuse).id;
+            this.fuseTicks = compound.hasKey("fuse") ? compound.getInteger("fuse") : getFuseTier().ticks;
+        }
         this.state = compound.getByte("state");
         this.countdown = compound.getInteger("countdown");
         this.controllerPos = compound.hasKey("ctrlPos") ? BlockPos.fromLong(compound.getLong("ctrlPos")) : null;

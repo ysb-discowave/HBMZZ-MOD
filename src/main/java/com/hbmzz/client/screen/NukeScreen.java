@@ -22,6 +22,7 @@
 package com.hbmzz.client.screen;
 
 import com.hbmzz.alert.AlertCode;
+import com.hbmzz.alert.NukeTiers;
 import com.hbmzz.client.MonitorPalette;
 
 import java.awt.Graphics2D;
@@ -114,12 +115,17 @@ public final class NukeScreen extends OffscreenPanel {
                 text(hint2.get(i), 12, cursor + i * 12, 9, MonitorPalette.MUTED, false);
             }
             cursor += 30;
-            text("斧子 = 记录 / 联动 / 中止倒计时", 12, cursor, 9, MonitorPalette.GREEN_DIM, false);
+            text("斧子右键 = 威力档（最高毁档）  斧子蹲右键 = 记录 / 联动 / 中止", 12, cursor, 9, MonitorPalette.GREEN_DIM, false);
             cursor += 14;
-            text("控制器收到红信号后全图广播并引爆。", 12, cursor, 9, MonitorPalette.GREEN_DIM, false);
+            text("空手蹲右键 = 引信档（5-300 秒）  控制器收到红信号后引爆。", 12, cursor, 9, MonitorPalette.GREEN_DIM, false);
         } else {
+            NukeTiers.Power powerTier = NukeTiers.Power.nearestYield(yield);
+            NukeTiers.Fuse fuseTier = NukeTiers.Fuse.nearestTicks(fuse);
+            int tierColor = powerTier == NukeTiers.Power.ANNIHILATION
+                    ? MonitorPalette.RED : MonitorPalette.AMBER;
+            cursor = row(cursor, "POWER", "威力档", powerTier.zh, tierColor);
             cursor = row(cursor, "YIELD", "当量", yield + " kT", MonitorPalette.AMBER);
-            cursor = row(cursor, "FUSE", "引信", seconds(fuse), MonitorPalette.AMBER);
+            cursor = row(cursor, "FUSE", "引信档", fuseTier.zh + " / " + seconds(fuse), MonitorPalette.AMBER);
             cursor = row(cursor, "POSITION", "坐标", x + " " + y + " " + z, MonitorPalette.TEXT);
             cursor = row(cursor, "DIMENSION", "维度", String.valueOf(dim), MonitorPalette.TEXT);
             String ctrl = hasController ? (cx + " " + cy + " " + cz + " / D" + cdim) : "未联动";

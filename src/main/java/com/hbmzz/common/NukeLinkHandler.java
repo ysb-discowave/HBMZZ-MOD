@@ -58,11 +58,16 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  *   <li><b>Sneak-right-click a controller or a monitor</b> binds it to the
  *       recorded device. On a monitor with nothing recorded it unbinds, which is
  *       the only way to stop watching without breaking the screen.</li>
+ *   <li><b>Right-click the bomb with an axe, not sneaking</b> cycles its power
+ *       tier, up to the "毁档" facility-annihilation top tier.</li>
+ *   <li><b>Sneak-right-click the bomb empty-handed</b> cycles its fuse tier, from
+ *       5 s up to 300 s. The empty hand is what tells it apart from the axe's
+ *       record/abort gesture.</li>
  * </ul>
  *
- * <p>Nothing is bound by right-clicking a device with no axe: that click is
- * reserved for the device's own readout, so a player who is not wiring anything
- * gets the numbers instead of a silent tool.</p>
+ * <p>An empty-handed, non-sneaking right-click still falls through to the
+ * device's own readout, so a player who is not adjusting anything gets the
+ * numbers rather than a surprise tier change.</p>
  */
 public class NukeLinkHandler {
 
@@ -73,11 +78,7 @@ public class NukeLinkHandler {
     @SubscribeEvent
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         EntityPlayer player = event.getEntityPlayer();
-        if (player == null || !player.isSneaking()) {
-            return;
-        }
-        ItemStack held = event.getItemStack();
-        if (held.isEmpty() || !(held.getItem() instanceof ItemAxe)) {
+        if (player == null) {
             return;
         }
         World world = event.getWorld();
@@ -99,10 +100,26 @@ public class NukeLinkHandler {
                 && !(block instanceof BlockNukeMonitor)) {
             return;
         }
-        // Cancelled on both sides. On the client this stops the axe's swing
-        // animation; on the server it stops the block's own onBlockActivated from
-        // also running, which would print the readout on top of the binding
-        // message.
+
+        ItemStack held = event.getItemStack();
+        boolean axe = !held.isEmpty() && held.getItem() instanceof ItemAxe;
+        boolean sneak = player.isSneaking();
+
+        // Gesture table. Only the combinations below are ours; everything else
+        // (notably an empty-handed, non-sneaking right-click) falls through to
+        // the block's own readout.
+        boolean record = block instanceof BlockNuke && axe && sneak;
+        boolean power = block instanceof BlockNuke && axe && !sneak;
+        boolean fuse = block instanceof BlockNuke && !axe && sneak;
+        boolean bind = (block instanceof BlockNukeController || block instanceof BlockNukeMonitor)
+                && axe && sneak;
+        if (!record && !power && !fuse && !bind) {
+            return;
+        }
+
+        // Cancelled on both sides. On the client this stops the swing animation;
+        // on the server it stops the block's own onBlockActivated from also
+        // running, which would print the readout on top of our message.
         event.setCanceled(true);
         event.setUseBlock(Event.Result.DENY);
         event.setUseItem(Event.Result.DENY);
@@ -110,13 +127,47 @@ public class NukeLinkHandler {
             return;
         }
 
-        if (block instanceof BlockNuke) {
+        if (record) {
             onNuke(world, pos, player, held);
+        } else if (power) {
+            onCyclePower(world, pos, player);
+        } else if (fuse) {
+            onCycleFuse(world, pos, player);
         } else if (block instanceof BlockNukeController) {
             onController(world, pos, player, held);
         } else {
             onMonitor(world, pos, player, held);
         }
+    }
+
+    private void onCyclePower(World world, BlockPos pos, EntityPlayer player) {
+        TileEntity te = world.getTileEntity(pos);
+        if (!(te instanceof TileEntityNuke)) {
+            return;
+        }
+        TileEntityNuke nuke = (TileEntityNuke) te;
+        if (nuke.isCountingDown()) {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.nuke_busy"));
+            return;
+        }
+        com.hbmzz.alert.NukeTiers.Power tier = nuke.cyclePower();
+        player.sendMessage(new TextComponentTranslation("hbmzz.msg.nuke_power_tier",
+                tier.zh, tier.en, tier.yieldKt));
+    }
+
+    private void onCycleFuse(World world, BlockPos pos, EntityPlayer player) {
+        TileEntity te = world.getTileEntity(pos);
+        if (!(te instanceof TileEntityNuke)) {
+            return;
+        }
+        TileEntityNuke nuke = (TileEntityNuke) te;
+        if (nuke.isCountingDown()) {
+            player.sendMessage(new TextComponentTranslation("hbmzz.msg.nuke_busy"));
+            return;
+        }
+        com.hbmzz.alert.NukeTiers.Fuse tier = nuke.cycleFuse();
+        player.sendMessage(new TextComponentTranslation("hbmzz.msg.nuke_fuse_tier",
+                tier.zh, tier.en));
     }
 
     private void onNuke(World world, BlockPos pos, EntityPlayer player, ItemStack axe) {

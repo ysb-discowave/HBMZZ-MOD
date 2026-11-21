@@ -30,7 +30,7 @@
 - JDK 8 `gradle build` **BUILD SUCCESSFUL**（仅有 deprecation / unchecked 提示，非错误）。
 - `tools/regcheck/check.py`：**all 150 checks passed**。
 - 站点一致性 `sync_site.py --check`：结构与链接全部一致；仅有一条预期 WARN（站点版本取自 tag 4.1.0、构建版本 3.9.0），不阻断。
-- 新 jar 已部署进游戏 `mods`：`hbmzz-3.9.0.jar`，MD5 `d0ba17b3ff5f20d6cecdb1eb0ba832df`。
+- 新 jar 已部署进游戏 `mods`：`hbmzz-3.9.0.jar`，MD5 `d45a92b63aee611252f6b7deca15735f`。
 - 旧版 `hbmzz-4.1.0.jar` 已移入 `mods/backup-mods/hbmzz-4.1.0.jar.pre-3.9.0`，避免两个版本同目录冲突导致重复注册崩溃。
 
 ## 四、说明

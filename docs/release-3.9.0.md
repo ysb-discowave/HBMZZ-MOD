@@ -41,7 +41,7 @@
 
 - JDK 8 全量编译 `gradle build` **BUILD SUCCESSFUL**。
 - `regcheck`：**150 / 150 通过**。
-- 已部署 `hbmzz-3.9.0.jar` 到游戏 `mods`，MD5 `d0ba17b3ff5f20d6cecdb1eb0ba832df`；旧 4.1.0 移入 `backup-mods/`。
+- 已部署 `hbmzz-3.9.0.jar` 到游戏 `mods`，MD5 `d45a92b63aee611252f6b7deca15735f`；旧 4.1.0 移入 `backup-mods/`。
 
 ## 已知问题
 

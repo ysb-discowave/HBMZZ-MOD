@@ -680,7 +680,7 @@ window.HBMZZ_DATA = {
   ],
   "auto": {
     "version": "4.1.0",
-    "gradleVersion": "4.1.0",
+    "gradleVersion": "3.9.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {

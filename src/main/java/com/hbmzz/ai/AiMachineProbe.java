@@ -76,9 +76,16 @@ public final class AiMachineProbe {
             snap.machineType = t.coreTag == null ? "DFC_CORE" : t.coreTag;
             snap.linked = t.linked;
             put(snap, "heatC", t.heatC);
+            put(snap, "temperatureC", t.heatC); // explicit alias for AI prompts
             put(snap, "meltC", t.meltC);
             put(snap, "heatFraction", t.heatFraction());
             put(snap, "stability", t.stability);
+            put(snap, "stabilityPct", t.stability <= 1.0F ? t.stability * 100.0F : t.stability);
+            // Component counts: the AI can decide to switch a stabiliser /
+            // receiver / emitter from the same snapshot it reasons over.
+            put(snap, "stabilisers", t.nStabiliser);
+            put(snap, "receivers", t.nAbsorber);
+            put(snap, "emitters", t.nEmitter);
             put(snap, "coreEnergy", t.coreEnergy);
             put(snap, "exhaustEnergy", t.exhaustEnergy);
             put(snap, "gainEnergy", t.gainEnergy);

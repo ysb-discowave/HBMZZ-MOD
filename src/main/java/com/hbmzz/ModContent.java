@@ -22,6 +22,7 @@ import com.hbmzz.block.BlockCtrlPanel;
 import com.hbmzz.block.BlockDFCMonitor;
 import com.hbmzz.block.BlockDFCMonitorPart;
 import com.hbmzz.block.BlockMonitorCamera;
+import com.hbmzz.item.ItemAITerminal;
 import com.hbmzz.item.ItemAmmo;
 import com.hbmzz.item.ItemBlockMonitor;
 import com.hbmzz.item.ItemCoil;
@@ -79,6 +80,8 @@ public final class ModContent {
     public static final Item ITEM_VIDEO_REMOTE = new ItemVideoRemote();
     /** The hacker tablet: opens a terminal that writes machine fields directly. */
     public static final Item ITEM_HACKER_TABLET = new ItemHackerTablet();
+    /** The AI terminal: natural-language commands to the AI, with local fallbacks. */
+    public static final Item ITEM_AI_TERMINAL = new ItemAITerminal();
     public static final Item ITEM_BLOCK_MONITOR = new ItemBlockMonitor(BLOCK_MONITOR);
     public static final Item ITEM_BLOCK_MONITOR_CAMERA = new ItemBlock(BLOCK_MONITOR_CAMERA);
     public static final Item ITEM_BLOCK_CTRL_PANEL = new ItemBlock(BLOCK_CTRL_PANEL);
@@ -283,6 +286,7 @@ public final class ModContent {
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_VIDEO_REMOTE);
         event.getRegistry().register(ITEM_HACKER_TABLET);
+        event.getRegistry().register(ITEM_AI_TERMINAL);
         event.getRegistry().register(ITEM_SPEED_COIL);
         event.getRegistry().register(ITEM_JUMP_COIL);
         event.getRegistry().register(ITEM_REGEN_COIL);
@@ -400,6 +404,22 @@ public final class ModContent {
                 'P', Items.ENDER_PEARL,
                 'C', Items.COMPARATOR
         ).setRegistryName(HBMZZ.MODID, "hacker_tablet"));
+
+        // AI terminal: the hacker tablet's glass + pearl uplink, but with a
+        // redstone block for the authority to write to machines and an emerald
+        // for the "thinking" logic. Distinct from every tablet/recipe above.
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "ai_terminal"),
+                new ItemStack(ITEM_AI_TERMINAL),
+                "GEG",
+                "IPI",
+                "IRI",
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'E', Items.EMERALD,
+                'I', Items.IRON_INGOT,
+                'P', Items.ENDER_PEARL,
+                'R', Item.getItemFromBlock(Blocks.REDSTONE_BLOCK)
+        ).setRegistryName(HBMZZ.MODID, "ai_terminal"));
 
         // Video broadcaster: a glass face to be the screen, an observer because
         // it is the block that watches for a signal, and redstone to carry it.

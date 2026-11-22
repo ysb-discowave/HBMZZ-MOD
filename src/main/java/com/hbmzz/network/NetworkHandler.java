@@ -114,6 +114,11 @@ public final class NetworkHandler {
         // AI anomaly: one packet to every client for the visual alarm; the voice
         // itself streams separately through the rsaudio TTS channel.
         INSTANCE.registerMessage(AiAlertMessage.Handler.class, AiAlertMessage.class, 34, Side.CLIENT);
+        // AI terminal: one typed line up, the printed lines back down. The
+        // terminal is an item (no tile entity); a dedicated server only carries
+        // these two packets and never opens the window.
+        INSTANCE.registerMessage(AiCommandMessage.Handler.class, AiCommandMessage.class, 35, Side.SERVER);
+        INSTANCE.registerMessage(AiReplyMessage.Handler.class, AiReplyMessage.class, 36, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {

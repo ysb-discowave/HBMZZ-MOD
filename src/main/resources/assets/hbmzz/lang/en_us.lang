@@ -145,3 +145,11 @@ item.hbmzz.aegis_linker.name=Aegis Linker
 
 # AI control node
 tile.hbmzz.ai_control_node.name=AI Control Node
+hbmzz.ai.help.display=Anomaly verdicts drive every code display in the world; /ai display on|off toggles it.
+hbmzz.ai.help.show=/ai show <code> [text] pushes a code to all displays; /ai clear restores GREEN.
+item.hbmzz.ai_terminal.name=AI Terminal
+hbmzz.ai.help.control=/ai control on|off gates DFC writes; /ai autopilot on|off is the same switch.
+hbmzz.ai.help.ask=Right-click the AI Terminal: status/start/scram/stabiliser on/temp N, or ask the AI in plain text.
+hbmzz.ai.help.prompt=/ai prompt <text> sets the global custom prompt; /ai prompt clear resets it (placeholders like {temperatureC} allowed).
+hbmzz.ai.help.preset=/ai preset <name> picks a behaviour preset; /ai presets lists them. In the terminal: prompt/preset/presets for your own.
+hbmzz.ai.help.autoscram=/ai autoscram on|off gates the local threshold SCRAM when the AI gives no action (off by default).

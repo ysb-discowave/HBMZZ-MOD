@@ -109,4 +109,18 @@ public final class ClientPacketBridge {
             }
         });
     }
+
+    /** Hands an AI terminal reply to its window, if that is what is open. */
+    public static void onAiReply(com.hbmzz.network.AiReplyMessage message) {
+        if (message == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.addScheduledTask(() -> {
+            GuiScreen screen = mc.currentScreen;
+            if (screen instanceof GuiAITerminal) {
+                ((GuiAITerminal) screen).accept(message);
+            }
+        });
+    }
 }

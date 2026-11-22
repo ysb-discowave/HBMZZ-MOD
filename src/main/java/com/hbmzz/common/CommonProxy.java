@@ -115,4 +115,9 @@ public class CommonProxy {
      */
     public void openHackerTablet() {
     }
+
+    /** Opens the AI terminal's command window. Client only; the server just
+     * carries the command and reply packets. */
+    public void openAITerminal() {
+    }
 }

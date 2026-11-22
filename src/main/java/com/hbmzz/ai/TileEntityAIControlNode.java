@@ -163,6 +163,7 @@ public class TileEntityAIControlNode extends TileEntity implements ITickable {
                         sync();
                         if (verdict.abnormal) {
                             AiBroadcast.announce(pos, verdict, reasim);
+                            AiAutopilot.onVerdict(world, pos, verdict);
                         }
                     }
 
@@ -210,6 +211,7 @@ public class TileEntityAIControlNode extends TileEntity implements ITickable {
                         sync();
                         if (verdict.abnormal) {
                             AiBroadcast.announce(pos, verdict, reasim);
+                            AiAutopilot.onVerdict(world, pos, verdict);
                         }
                     }
 

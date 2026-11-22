@@ -58,6 +58,29 @@ public final class AiBroadcast {
      */
     public static boolean announce(net.minecraft.util.math.BlockPos source,
                                    AiClient.Verdict verdict, boolean reasimOn) {
+        return announce(source, verdict, reasimOn, true);
+    }
+
+    /**
+     * @param driveDisplay whether to write the facility code displays; false for
+     *                     a voice-only self-check that must not raise a real alarm
+     */
+    private static boolean announce(net.minecraft.util.math.BlockPos source,
+                                    AiClient.Verdict verdict, boolean reasimOn,
+                                    boolean driveDisplay) {
+        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+
+        // 1) Operate the facility-wide code displays. This writes the single
+        //    FacilityState record, which AlertSync fans out to every screen in
+        //    every dimension - "the whole map shows it" by construction. It runs
+        //    before the voice cooldown and is idempotent, so a sustained anomaly
+        //    keeps its one history entry with a growing T+ timer instead of being
+        //    missed when two nodes fire within the same three-second window.
+        if (driveDisplay && AiConfig.autoDisplay) {
+            net.minecraft.world.World world = server == null ? null : server.getWorld(0);
+            AiDisplay.apply(world, source, verdict);
+        }
+
         long now = System.currentTimeMillis();
         if (now - lastAnnounceMs < COOLDOWN_MS) {
             return false;
@@ -71,7 +94,6 @@ public final class AiBroadcast {
         // TTS has a hard char cap; keep the spoken part short and let the chat line carry detail.
         final String spoken = message;
 
-        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         List<EntityPlayerMP> targets = new ArrayList<EntityPlayerMP>();
         if (server != null) {
             for (EntityPlayerMP p : server.getPlayerList().getPlayers()) {
@@ -81,7 +103,7 @@ public final class AiBroadcast {
             }
         }
 
-        // 1) Voice to every player. reasim routing is registered as a one-shot
+        // 2) Voice to every player. reasim routing is registered as a one-shot
         //    post-process on the TTS client player (see TtsClientPlayer).
         boolean queued = false;
         if (AiConfig.autoBroadcast && !targets.isEmpty()) {
@@ -89,7 +111,7 @@ public final class AiBroadcast {
             queued = TtsServer.speak(spoken, AiConfig.lengthScale, -1, targets);
         }
 
-        // 2) Visual pulse + chat to every client, independent of TTS availability.
+        // 3) Visual pulse + chat to every client, independent of TTS availability.
         String level = verdict.level == null ? "ALERT" : verdict.level;
         if (NetworkHandler.INSTANCE != null) {
             NetworkHandler.INSTANCE.sendToAll(
@@ -108,13 +130,13 @@ public final class AiBroadcast {
         return queued;
     }
 
-    /** Test hook: send a short spoken self-check to the full server. */
+    /** Test hook: send a short spoken self-check to the full server (no real alarm). */
     public static boolean selfTest(net.minecraft.util.math.BlockPos source) {
         AiClient.Verdict v = new AiClient.Verdict();
         v.abnormal = true;
         v.level = "TEST";
         v.message = "AI 控制节点自检，语音广播正常";
         lastAnnounceMs = 0L;
-        return announce(source, v, false);
+        return announce(source, v, false, false);
     }
 }

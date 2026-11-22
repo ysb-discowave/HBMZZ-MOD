@@ -146,3 +146,11 @@ item.hbmzz.aegis_linker.name=神盾连接工具
 
 # AI control node
 tile.hbmzz.ai_control_node.name=AI 控制节点
+hbmzz.ai.help.display=异常判定会驱动全图所有代码显示器；/ai display on|off 开关此功能。
+hbmzz.ai.help.show=/ai show <代码> [文字] 向全图显示器推送代码；/ai clear 恢复 GREEN。
+item.hbmzz.ai_terminal.name=AI 终端
+hbmzz.ai.help.control=/ai control on|off 控制是否允许写入 DFC；/ai autopilot on|off 为同一个开关。
+hbmzz.ai.help.ask=右键 AI 终端：status/start/scram/stabiliser on/temp N，或直接自然语言向 AI 下指令。
+hbmzz.ai.help.prompt=/ai prompt <文字> 设置全局自定义提示词；/ai prompt clear 清除（可用 {temperatureC} 等占位符）。
+hbmzz.ai.help.preset=/ai preset <名称> 切换行为预设；/ai presets 列出全部。终端内用 prompt/preset/presets 设置你自己的。
+hbmzz.ai.help.autoscram=/ai autoscram on|off 控制无动作时是否本地兜底停堆（默认关，AI 只报告等指令）。

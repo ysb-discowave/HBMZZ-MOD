@@ -154,6 +154,7 @@ public class ClientProxy extends CommonProxy {
         // models/item/<注册名>.json 找一份同名模型 —— 表里少一行不会当场炸，
         // 只会在有人给这个物品改名的那天安静地变成紫黑块。
         list.add(loc("hacker_tablet"));
+        list.add(loc("ai_terminal"));
         // 事故之后的第一块砖：DFC 一炸就输出红石。它自己也必须有模型位置，
         // 否则玩家放下之前根本认不出这是哪块砖。
         list.add(loc("dfc_blast_sensor"));
@@ -215,6 +216,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_CODE_BROADCASTER);
         list.add(ModContent.ITEM_BLOCK_ALERT_DISPLAY);
         list.add(ModContent.ITEM_HACKER_TABLET);
+        list.add(ModContent.ITEM_AI_TERMINAL);
         list.add(ModContent.ITEM_BLOCK_DFC_BLAST_SENSOR);
         list.add(ModContent.ITEM_BLOCK_AND_GATE);
         list.add(ModContent.ITEM_BLOCK_OR_GATE);
@@ -249,8 +251,8 @@ public class ClientProxy extends CommonProxy {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  ammo_9mm  556  12ga
             0, 1, 2,
-            //  control_panel  console  video  screen  remote  nuke  controller  nuke_monitor  code  alert  tablet
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            //  control_panel  console  video  screen  remote  nuke  controller  nuke_monitor  code  alert  tablet  ai_terminal
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             //  dfc_blast_sensor
             0,
             //  and_gate  or_gate  xor_gate  not_gate
@@ -410,5 +412,10 @@ public class ClientProxy extends CommonProxy {
         // No position argument: the tablet is not bound to a block. What it
         // writes to is decided by the "target" command, server side.
         Minecraft.getMinecraft().displayGuiScreen(new GuiHackerTablet());
+    }
+
+    @Override
+    public void openAITerminal() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiAITerminal());
     }
 }

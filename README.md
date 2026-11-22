@@ -139,6 +139,30 @@ HBMZZ 是一个 Minecraft **1.12.2** + **Forge** 模组，依附于 **HBM's Nucl
 - RBMK 堆芯过热会触发**盖体抛飞 → 落地二次爆炸**的事故链，伴随相机震动、热区地面扩散环。
 - 可配是否触发连锁、过热温度、二次爆炸威力、是否震屏。
 
+### AI 控制节点（AI Control Node）
+- 把节点用 `/ai bind` 绑定到任意机器（DFC 堆芯走专用遥测，其他方块读 NBT 数值）。节点定期把读数发给 AI 接口（`FAAS-REMIX`），由 AI 判断数值是否异常。
+- 异常时三件事一起发生：**TTS 全图语音广播**（reasim 可处理该音频）、**全图显示器同步告警**、**聊天与音频播放器脉冲**。
+- AI 可**直接操作全图代码显示器**：判定里带 `level`（`RED`/`DELTA`/0–7）即可让所有事故显示器/代码屏显示对应代码；还可带 `display` 对象自定义等级、标签、RGB 颜色与中英文标题/详情，未被覆盖的字段回退到标准代码。判定持久化的 `T+` 计时正常增长，同内容不会重复刷屏。
+- AI 判定里不写 `display` 也能工作：直接用 `level` 映射标准代码，缺省按 `RED`。
+- 手动覆盖（管理员）：`/ai display on|off` 开关 AI 自动显示器控制；`/ai show <代码> [文字]` 立即向全图显示器推送；`/ai clear` 恢复 GREEN。`/ai status` 显示当前开关。
+
+> AI 接口协议：请求 `{"model":"FAAS-REMIX","prompt":"...","machine":{...},"values":{...}}`，返回 `{"abnormal":true,"message":"...","reason":"...","level":"RED","display":{"level":3,"label":"AI 警报","rgb":16727770,"zhTitle":"...","enTitle":"...","zhDetail":"...","enDetail":"..."}}`（`display` 整段可选，颜色也接受 `0xRRGGBB`/`#RRGGBB`）。`prompt` 由行为预设 + 自定义提示词拼成，可含占位符（见下）。
+
+### 自定义 AI 提示词（不同效果）
+- 每条 AI 请求都带 `prompt` 字段，由三层拼成：固定的**回复格式契约** + **行为预设** + **自定义文字**。契约保证无论提示词怎么写，回复仍是 mod 能解析的 JSON。
+- **行为预设**（`/ai preset <名称>`）：`balanced` 均衡（默认）、`safety` 安全优先（早报警早停堆）、`power` 功率优先（容忍高温）、`diagnostic` 只诊断（绝不输出 `actions`）、`quiet` 静默（只报严重状态）、`verbose` 详细（中英文详情齐全）、`zh` 中文播报、`en` 英文播报。管理员用 `/ai presets` 查看全部。
+- **全局自定义**：`/ai prompt <文字>` 在预设后追加自定义指令，影响所有节点与玩家；`/ai prompt clear` 清除。
+- **默认提示词**：出厂即为「不要擅自停止反应堆，不要擅自止损，只做报告，等待指令」——AI 默认只报告异常、不主动停堆或止损，等玩家下指令再动作。想恢复通用默认值用 `/ai prompt clear`。
+- **玩家个人**：在 AI 终端里 `preset <名称>` / `prompt <文字>` 设置只作用于自己请求的行为与提示词，`prompt`（无参数）查看当前生效全文，`prompt clear` 清除。个人设置叠加在全局之上，优先级：个人预设 > 全局预设，个人文字接在全局文字之后。
+- **占位符**：提示词里写 `{temperatureC}`、`{stabilityPct}`、`{machine}`、`{dim}`、`{x|y|z}` 及采样里的任意数值键，发请求时按当前读数展开；还提供 `{temp}`/`{stability}`/`{heat}`/`{melt}`/`{power}` 简写。例：`温度超过 {temp}°C 就保守判断`。
+
+### AI 直接接管 DFC + AI 终端
+- 判定里可再带 `actions` 数组，AI 就能**直接控制机器**：`start`（启动核心）、`scram`（停堆强制冷却）、`part_on`/`part_off`（开关稳定器/接收器/发射器，`part` 取 `stabiliser`/`receiver`/`emitter`，也接受中文）、`temperature`（`value` 为摄氏度）。例如 `"actions":[{"op":"part_on","part":"stabiliser"},{"op":"start"}]`。
+- **自动接管**：节点绑定的机器是 DFC 核心且读数异常时，若 `autoControl` 开启，AI 若给了 `actions` 就照做。若 AI 没给动作，仅在 `autoscram` 开启时才会按 `autoScramTemp`/`autoMinStability` 阈值兜底 SCRAM——**默认关闭**，以符合"只报告、等指令"的默认提示词。写操作经反射作用于 NTM 核心，找不到可用钩子会如实回报，不假装成功。管理员可用 `/ai autoscram on` 打开这条兜底。
+- 采样随请求附上 `temperatureC`/`stabilityPct` 及 `stabilisers`/`receivers`/`emitters` 组件数，供 AI 判断。
+- **AI 终端**（物品）：右键打开命令行。`status`/`start`/`scram`/`stabiliser on|off`/`receiver`/`emitter`/`temp <度>`/`autopilot on|off` 是本地命令（无需 AI 服务）；其它文字连同核心读数发给 AI，由其返回 `actions` 执行，结果回显在窗口。
+- 命令：`/ai control on|off`（同 `/ai autopilot`，是否允许写 DFC）、`/ai act <op> [part] [value]` 立即执行一条动作、`/ai status` 显示接管开关。默认允许，管理员可关停。
+
 ---
 
 ## 五、堆反应堆：多区块 DFC 反应堆 + 单块堆芯
@@ -283,6 +307,18 @@ HBMZZ 自带 `rsaudio` 这个内嵌模组，下面这些部件都来自它，和
 | dfcSensor | decayTicks | 200 | 信号衰减时长 |
 | dfcSensor | strength | 15 | 峰值红石强度（15=满） |
 | dfcShutdown | enabled | true | 是否启用 DFC 自动停机 |
+| ai（hbmzz-ai.cfg） | enabled | true | AI 控制节点总开关 |
+| ai（hbmzz-ai.cfg） | autoBroadcast | true | 异常时是否 TTS 全图语音广播 |
+| ai（hbmzz-ai.cfg） | autoDisplay | true | 异常时是否自动驱动全图代码显示器 |
+| ai（hbmzz-ai.cfg） | autoControl | true | 是否允许 AI 写入 DFC（启动/停堆/组件开关） |
+| ai（hbmzz-ai.cfg） | autoScramTemp | 2800 | 自动接管温度阈值（°C） |
+| ai（hbmzz-ai.cfg） | autoMinStability | 35 | 自动接管稳定度下限（%） |
+| ai（hbmzz-ai.cfg） | endpoint / apiKey / model / ttsModel | — | AI 接口地址 / 密钥 / 模型 / TTS 模型 |
+| ai（hbmzz-ai.cfg） | promptPreset | balanced | AI 行为预设（balanced/safety/power/diagnostic/quiet/verbose/zh/en） |
+| ai（hbmzz-ai.cfg） | prompt | 不要擅自停止反应堆，不要擅自止损，只做报告，等待指令 | 全局自定义提示词（支持 {temperatureC} 等占位符，上限 2048 字） |
+| ai（hbmzz-ai.cfg） | autoScram | false | AI 未给动作时是否按温度/稳定度阈值兜底 SCRAM（默认关，只报告等指令） |
+| ai（hbmzz-ai.cfg） | pollSeconds / httpTimeoutMs | 5 / 8000 | 轮询间隔（秒）/ HTTP 超时（毫秒） |
+| ai（hbmzz-ai.cfg） | lengthScale | 1.0 | TTS 语速（0.6–1.8） |
 
 ---
 
@@ -297,6 +333,7 @@ HBMZZ 注册了全部合成配方（在 `ModContent.registerRecipes` 里，共 3
 | 机器控制台 | `I C I / R O R / I I I` |
 | 监控数据线 | `· R 金 / R E R / 金 R ·`（此行 `金`=金锭、`E`=末影珍珠） |
 | 黑客平板 | `G R G / I P I / I C I` |
+| AI 终端 | `G E G / I P I / I R I`（`E`=绿宝石、`P`=末影珍珠、`R`=红石块） |
 | 视频广播器 | `I G I / R O R / I I I` |
 | 视频大屏 | `G G G / I R I / I I I` |
 | 大屏遥控器 | `· R · / I G I / · I ·` |

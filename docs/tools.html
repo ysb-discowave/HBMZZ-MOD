@@ -190,7 +190,7 @@ kbd{background:var(--panel-3);border:1px solid var(--line);border-radius:3px;pad
   <div class="wrap page-head">
     <div class="kicker">HBMZZ · 离线工具</div>
     <h1>reasim <span class="hl">工作台</span></h1>
-    <p class="lead">模组里音频播放器那台「装在铁皮箱里的破喇叭」的信号链，搬到了网页上。拖文件进来、调五个参数、试听，然后批量导出 16-bit WAV。</p>
+    <p class="lead">模组里音频播放器那台「装在铁皮箱里的破喇叭」的信号链，搬到了网页上。拖文件进来、调参数、试听，然后批量导出 16-bit WAV；网页版还附加了一个可调混响声场。</p>
     <p class="lead">算法逐行移植自 <code>com.rsaudio.audio.ReasimDsp</code>，系数与处理顺序和游戏内一致。所有处理都在你的浏览器里完成，<strong>文件不离开本机</strong>。</p>
   </div>
 
@@ -244,6 +244,20 @@ kbd{background:var(--panel-3);border:1px solid var(--line);border-radius:3px;pad
               <div class="room-read" id="roomRead">回声量 0.30（手动） → 延迟 147ms · 反馈 0.34</div>
             </div>
 
+            <div class="roombox">
+              <label class="switch" id="swReverb"><span class="box"></span>混响声场（网页版附加，默认关）</label>
+              <div id="reverbBox">
+                <div class="ctl rctl"><div class="lab"><span>混响量（湿声占比，0 = 关）</span><span class="val" id="vRmix">0.00</span></div>
+                  <input type="range" id="sRmix" min="0" max="1" step="0.01" value="0" aria-label="混响量"></div>
+                <div class="ctl rctl"><div class="lab"><span>衰减时间（秒，RT60，越大越空旷）</span><span class="val" id="vRdecay">1.50s</span></div>
+                  <input type="range" id="sRdecay" min="0.01" max="10" step="0.01" value="1.5" aria-label="衰减时间"></div>
+                <div class="ctl rctl"><div class="lab"><span>混响音调（低暗 → 高亮）</span><span class="val" id="vRtone">0.70</span></div>
+                  <input type="range" id="sRtone" min="0" max="1" step="0.01" value="0.7" aria-label="混响音调"></div>
+                <div class="ctl rctl"><div class="lab"><span>预延迟</span><span class="val" id="vRpre">10ms</span></div>
+                  <input type="range" id="sRpre" min="0" max="40" step="1" value="10" aria-label="预延迟"></div>
+              </div>
+            </div>
+
             <div class="ctl"><div class="lab"><span>失真（过载 + 降位深）</span><span class="val" id="vDist">0.00</span></div>
               <input type="range" id="sDist" min="0" max="1" step="0.01" value="0" aria-label="失真"></div>
             <div class="ctl"><div class="lab"><span>电流声（50Hz 工频哼声）</span><span class="val" id="vHiss">0.18</span></div>
@@ -268,14 +282,15 @@ kbd{background:var(--panel-3);border:1px solid var(--line);border-radius:3px;pad
           </div>
 
           <div class="panel">
-            <h3>信号链（固定顺序，与游戏内一致）</h3>
+            <h3>信号链（①–⑤、⑦ 与游戏内一致，⑥ 为网页版附加）</h3>
             <ol class="chain">
               <li><b>①</b>增益（0–200%）</li>
               <li><b>②</b>失真：tanh 软削 + 位深 16→6 + 去直流</li>
               <li><b>③</b>电流声：50Hz 基波 + 二、三次谐波（不随音量）</li>
               <li><b>④</b>沙沙声：带限白噪 + 稀疏爆裂</li>
               <li><b>⑤</b>回声：一阶低通反馈，延迟 90–280ms 随湿声</li>
-              <li><b>⑥</b>软限幅 ±0.95</li>
+              <li><b>⑥</b>混响：8 梳线并联 + 5 级全通声场（独立开关，默认关）</li>
+              <li><b>⑦</b>软限幅 ±0.95</li>
             </ol>
           </div>
         </div>
@@ -301,8 +316,12 @@ kbd{background:var(--panel-3);border:1px solid var(--line);border-radius:3px;pad
           <p>文件在你本机解码、处理、导出，全程没有上传。逐采样 + 大整数噪声源，一首 10 分钟的歌大约 20–60 秒；批量时一个一个来，不抢 UI 线程。</p>
         </div>
         <div class="note">
+          <h3>关于混响（网页版附加声场）</h3>
+          <p>⑥ 混响是网页版独有的后级，游戏内 <code>ReasimDsp</code> 没有这项。8 条梳线并联（延迟 29–92ms，样本数互不可通约，不产生周期性重复）+ 5 级全通扩散 + 反馈阻尼，衰减时间滑条即真实 RT60（0.01–10s）。试听和导出均生效，输出仍过 ⑦ 软限幅防爆音。</p>
+        </div>
+        <div class="note">
           <h3>和游戏里的差异</h3>
-          <p>信号链逐采样一致：Padé 近似 tanh、一阶低通反馈、xorshift64* 噪声源、软限幅系数全部来自 <code>ReasimDsp.java</code>。房间回声公式照 <code>ReasimEnvironment.java</code> 移植，唯一差别是「六个方向射线」改成了六个滑条，由你自己填。</p>
+          <p>信号链逐采样一致：Padé 近似 tanh、一阶低通反馈、xorshift64* 噪声源、软限幅系数全部来自 <code>ReasimDsp.java</code>。房间回声公式照 <code>ReasimEnvironment.java</code> 移植，唯一差别是「六个方向射线」改成了六个滑条，由你自己填。额外多了 ⑥ 混响声场，这是网页版附加，游戏内没有。</p>
         </div>
       </div>
     </section>
@@ -485,6 +504,110 @@ class ReasimDsp {
 }
 function clamp(v, a, b) { if (Number.isNaN(v)) return a; return v < a ? a : (v > b ? b : v); }
 
+/* ================= SchroederReverb：多抽头声场混响（⑥ 网页版附加后级，非 Java 移植部分） ================= */
+class SchroederReverb {
+  constructor(sampleRate, channels) {
+    this.sr = sampleRate > 0 ? sampleRate : 44100;
+    this.channels = channels > 0 ? channels : 2;
+    // 8 条梳线，延迟铺开 30–95ms 且互不可通约（44.1k 下样本数 GCD=1），
+    // 避免少而近的梳线叠加成周期性「重复」而非连续涂抹
+    this.combMs = [29.3, 37.4, 47.7, 54.2, 63.9, 71.5, 81.1, 92.3];
+    this.apMs = [5.0, 1.7, 7.5, 2.9, 4.1];     // 5 级 allpass 增强扩散
+    this.mix = 0.2; this.decay = 1.5; this.tone = 0.7; this.preDelayMs = 10;
+    this.maxPreMs = 40; this.maxSpreadMs = 20;
+    this._alloc();
+    this.configure({ mix: this.mix, decay: this.decay, tone: this.tone, preDelayMs: this.preDelayMs });
+  }
+  _alloc() {
+    const maxLen = Math.round(this.sr * 0.100);                 // 100ms，覆盖最大 comb(92.3ms)
+    this.combBuf = this.combMs.map(() => new Float32Array(maxLen));
+    // 每条梳线各自的延迟样本数
+    this.combLen = this.combMs.map(ms => Math.max(1, Math.round(this.sr * ms / 1000)));
+    this.combIdx = new Int32Array(this.combMs.length);
+    this.combFb = new Float32Array(this.combMs.length);
+    this.preDelaySamples = 0;
+    this.preBuf = new Float32Array(Math.max(4, Math.round(this.sr * this.maxPreMs / 1000)));
+    this.preIdx = 0;
+    this.spreadBuf = new Float32Array(Math.max(4, Math.round(this.sr * this.maxSpreadMs / 1000)));
+    this.spreadIdx = 0;
+    this.ap = this.apMs.map(() => ({ o: 0, i: 0, g: 0.5 }));
+    this.lp = 0; this.lpCoef = 0.5;
+    this.damp = new Float32Array(this.combMs.length);   // 每条梳线的反馈阻尼状态
+    this.dampK = 0.5;
+  }
+  configure(p) {
+    this.mix = clamp(p.mix, 0, 1);
+    this.decay = clamp(p.decay, 0.01, 10);
+    this.tone = clamp(p.tone, 0, 1);
+    this.preDelayMs = clamp(p.preDelayMs, 0, this.maxPreMs);
+    this.preDelaySamples = Math.round(this.sr * this.preDelayMs / 1000);
+    // 反馈增益按「每周期」算：梳线每 combLen[i] 个样本才循环一次，
+    // 每周期振幅衰减 10^(-3·period/decay)，使最长梳线的尾音 RT60 = decay
+    const shape = [0.90, 0.88, 0.94, 0.92, 0.97, 0.95, 0.99, 1.00];
+    for (let i = 0; i < this.combFb.length; i++) {
+      const period = this.combLen[i] / this.sr;
+      const gp = Math.pow(10, -3.0 * period / this.decay);
+      this.combFb[i] = Math.min(0.9999, gp * (shape[i] || 0.9));
+    }
+    for (let i = 0; i < this.ap.length; i++) this.ap[i].g = 0.4 + 0.4 * (1 - this.tone);
+    this.lpCoef = 0.08 + 0.92 * this.tone;
+    // 反馈路径阻尼低通系数：tone 低 → 重阻尼（压金属腔共振），tone 高 → 接近不阻尼
+    this.dampK = 0.15 + 0.85 * this.tone;
+  }
+  reset() {
+    this.combBuf.forEach(b => b.fill(0)); this.combIdx.fill(0);
+    this.preBuf.fill(0); this.preIdx = 0;
+    this.spreadBuf.fill(0); this.spreadIdx = 0;
+    this.ap.forEach(a => { a.o = 0; a.i = 0; });
+    this.lp = 0; this.damp.fill(0);
+  }
+  process(data) {
+    const ch = data.length, n = data[0].length;
+    const preBuf = this.preBuf, preLen = preBuf.length, preD = this.preDelaySamples;
+    const combs = this.combBuf, cIdx = this.combIdx, cFb = this.combFb, nc = combs.length;
+    const combLen = this.combLen, damp = this.damp, dampK = this.dampK;
+    const spread = this.spreadBuf, spLen = spread.length;
+    let preIdx = this.preIdx, spIdx = this.spreadIdx, lp = this.lp;
+    const ap = this.ap, apN = ap.length, mix = this.mix;
+    for (let f = 0; f < n; f++) {
+      const mono = ch > 1 ? 0.5 * (data[0][f] + data[1][f]) : data[0][f];
+      let preOut;
+      if (preD <= 0) preOut = mono;
+      else { let r = preIdx - preD; if (r < 0) r += preLen; preOut = preBuf[r]; }
+      preBuf[preIdx] = mono; preIdx = (preIdx + 1) % preLen;
+      // 8-Comb 并联求和（输出 /8，增益可控、互不级联放大）
+      let sum = 0;
+      const maxLen = combs[0].length;
+      for (let i = 0; i < nc; i++) {
+        const buf = combs[i], len = maxLen, D = combLen[i];
+        const w = cIdx[i];
+        let r = w - D; if (r < 0) r += len;
+        const last = buf[r];
+        // 反馈路径低通（Freeverb 式阻尼）：持续音不会在梳线共振上越积越响
+        let d = damp[i]; d += dampK * (last - d); damp[i] = d;
+        const y = preOut + cFb[i] * d;
+        buf[w] = y; cIdx[i] = (w + 1) % len;
+        sum += y;
+      }
+      let wet = sum * 0.125;
+      for (let i = 0; i < apN; i++) {
+        const a = ap[i];
+        // 标准 Schroeder 一阶全通：y = x[n-1] + g·(y[n-1] - x[n])，|H|=1 只做相位扩散
+        const y = a.i + a.g * (a.o - wet);
+        a.i = wet; a.o = y; wet = y;
+      }
+      lp += this.lpCoef * (wet - lp);
+      data[0][f] += lp * mix;
+      if (ch > 1) {
+        data[1][f] += spread[spIdx] * mix;
+        spread[spIdx] = lp; spIdx = (spIdx + 1) % spLen;
+      }
+    }
+    this.preIdx = preIdx; this.spreadIdx = spIdx; this.lp = lp;
+    return data;
+  }
+}
+
 /* ================= WAV 编码（16-bit PCM 小端） ================= */
 function encodeWav(floatChannels, sampleRate) {
   var ch = floatChannels.length, n = floatChannels[0].length;
@@ -514,6 +637,28 @@ function encodeWav(floatChannels, sampleRate) {
   var playSrc = null;
 
   var params = { enabled: true, volume: 1, echo: 0.30, distortion: 0, hiss: 0.18, staticNoise: 0.10 };
+
+  /* ---- 混响（⑥ 网页版附加后级，独立开关，不写进 params/预设） ---- */
+  var reverb = { enabled: false, mix: 0, decay: 1.5, tone: 0.7, preDelayMs: 10 };
+  function bindReverbSlider(id, valId, key, fmt) {
+    var el = $(id);
+    var update = function () {
+      reverb[key] = parseFloat(el.value);
+      $(valId).textContent = fmt(reverb[key]);
+    };
+    el.addEventListener("input", update);
+    update();
+  }
+  function toggleReverbUI() {
+    $("swReverb").classList.toggle("on", reverb.enabled);
+    $("reverbBox").style.opacity = reverb.enabled ? "" : ".45";
+  }
+  bindReverbSlider("sRmix", "vRmix", "mix", function (v) { return v.toFixed(2); });
+  bindReverbSlider("sRdecay", "vRdecay", "decay", function (v) { return v.toFixed(2) + "s"; });
+  bindReverbSlider("sRtone", "vRtone", "tone", function (v) { return v.toFixed(2); });
+  bindReverbSlider("sRpre", "vRpre", "preDelayMs", function (v) { return Math.round(v) + "ms"; });
+  $("swReverb").addEventListener("click", function () { reverb.enabled = !reverb.enabled; toggleReverbUI(); });
+  toggleReverbUI();
 
   /* ---- 房间模型：移植 ReasimEnvironment.autoEcho ---- */
   var ROOM_DIRS = [
@@ -608,7 +753,8 @@ function encodeWav(floatChannels, sampleRate) {
   function setEnabled(on) {
     params.enabled = on;
     $("swEnabled").classList.toggle("on", on);
-    document.querySelectorAll(".ctl").forEach(function (c) { c.classList.toggle("disabled", !on); });
+    // 混响有独立开关，不随主开关一起禁用（.rctl 除外）
+    document.querySelectorAll(".ctl:not(.rctl)").forEach(function (c) { c.classList.toggle("disabled", !on); });
   }
   $("swEnabled").addEventListener("click", function () { setEnabled(!params.enabled); });
   initRoomUI();
@@ -711,6 +857,14 @@ function encodeWav(floatChannels, sampleRate) {
     dsp.configure(p, p.echo);
     var t0 = performance.now();
     var out = dsp.process(chans);
+    // ⑥ 混响后级（网页版附加）：独立开关，湿声叠加后再过一次软限幅防爆音
+    if (reverb.enabled && reverb.mix > 0.001) {
+      var rv = new SchroederReverb(src.sampleRate, 2);
+      rv.configure(reverb);
+      out = rv.process(out);
+      for (var cR = 0; cR < 2; cR++)
+        for (var iR = 0; iR < out[cR].length; iR++) out[cR][iR] = ReasimDsp.limit(out[cR][iR]);
+    }
     var ms = performance.now() - t0;
     var prePeak = 0, postPeak = 0;
     for (var c = 0; c < 2; c++) {
@@ -852,6 +1006,6 @@ function encodeWav(floatChannels, sampleRate) {
   else fill();
 })();
 </script>
-<script src="assets/data.js?v=5c81b794a8"></script>
+<script src="assets/data.js?v=ae126024d2"></script>
 </body>
 </html>

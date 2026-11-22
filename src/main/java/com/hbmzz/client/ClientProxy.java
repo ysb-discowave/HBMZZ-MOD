@@ -184,6 +184,8 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("aegis_terminal"));
         list.add(loc("aegis_cell"));
         list.add(loc("aegis_linker"));
+        // AI control node
+        list.add(loc("ai_control_node"));
         return list;
     }
 
@@ -230,6 +232,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_AEGIS_TERMINAL);
         list.add(ModContent.ITEM_BLOCK_AEGIS_CELL);
         list.add(ModContent.ITEM_AEGIS_LINKER);
+        list.add(ModContent.ITEM_BLOCK_AI_CONTROL_NODE);
         return list;
     }
 
@@ -261,7 +264,9 @@ public class ClientProxy extends CommonProxy {
             //  status_lamp  alarm_beacon
             0, 0,
             //  aegis_terminal  aegis_cell  aegis_linker
-            0, 0, 0
+            0, 0, 0,
+            //  ai_control_node
+            0
     };
 
     public static List<Integer> metas() {

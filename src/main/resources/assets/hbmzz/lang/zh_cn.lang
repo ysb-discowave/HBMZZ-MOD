@@ -143,3 +143,6 @@ aegis.help.page=右键:打开设置窗口(绑定核心/翻页/电源/倾斜角/�
 aegis.help.unbind=设置窗口内点「解除绑定」恢复自动扫描
 aegis.help.link=连接工具:先右键DFC核心记录, 再右键神盾终端绑定; 潜行右键终端清除绑定
 item.hbmzz.aegis_linker.name=神盾连接工具
+
+# AI control node
+tile.hbmzz.ai_control_node.name=AI 控制节点

@@ -18,14 +18,21 @@ public class PacketTtsBegin implements IMessage {
     private int streamId;
     private int totalBytes;
     private int chunkCount;
+    /** Whether this voice stream should be routed through the reasim DSP. */
+    private boolean reasim;
 
     public PacketTtsBegin() {
     }
 
     public PacketTtsBegin(int streamId, int totalBytes, int chunkCount) {
+        this(streamId, totalBytes, chunkCount, false);
+    }
+
+    public PacketTtsBegin(int streamId, int totalBytes, int chunkCount, boolean reasim) {
         this.streamId = streamId;
         this.totalBytes = totalBytes;
         this.chunkCount = chunkCount;
+        this.reasim = reasim;
     }
 
     @Override
@@ -33,6 +40,8 @@ public class PacketTtsBegin implements IMessage {
         this.streamId = buf.readInt();
         this.totalBytes = buf.readInt();
         this.chunkCount = buf.readInt();
+        // Older servers omit this byte; default false keeps them compatible.
+        this.reasim = buf.isReadable() && buf.readBoolean();
     }
 
     @Override
@@ -40,6 +49,7 @@ public class PacketTtsBegin implements IMessage {
         buf.writeInt(streamId);
         buf.writeInt(totalBytes);
         buf.writeInt(chunkCount);
+        buf.writeBoolean(reasim);
     }
 
     public static class Handler implements IMessageHandler<PacketTtsBegin, IMessage> {
@@ -50,7 +60,7 @@ public class PacketTtsBegin implements IMessage {
                 @Override
                 public void run() {
                     com.rsaudio.client.TtsClientPlayer.onBegin(
-                            message.streamId, message.totalBytes, message.chunkCount);
+                            message.streamId, message.totalBytes, message.chunkCount, message.reasim);
                 }
             });
             return null;

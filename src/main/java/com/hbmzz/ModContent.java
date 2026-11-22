@@ -166,6 +166,9 @@ public final class ModContent {
      * The Tartarus gate: the community edition's giant blast door, laid flat.
      * Two leaves in nine cells; only the corner cell carries the tile entity.
      */
+    /** AI control node: watches a bound machine and raises a TTS voice alarm. */
+    public static final Block BLOCK_AI_CONTROL_NODE = new com.hbmzz.ai.BlockAIControlNode();
+    public static final Item ITEM_BLOCK_AI_CONTROL_NODE = new ItemBlock(BLOCK_AI_CONTROL_NODE);
     public static final Block BLOCK_TARTARUS_GATE = new com.hbmzz.gate.BlockTartarusGate();
     public static final Block BLOCK_GATE_PART = new com.hbmzz.gate.BlockGatePart();
     public static final Item ITEM_BLOCK_TARTARUS_GATE =
@@ -213,6 +216,7 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_OR_GATE);
         event.getRegistry().register(BLOCK_XOR_GATE);
         event.getRegistry().register(BLOCK_NOT_GATE);
+        event.getRegistry().register(BLOCK_AI_CONTROL_NODE);
         event.getRegistry().register(BLOCK_TARTARUS_GATE);
         event.getRegistry().register(BLOCK_GATE_PART);
     }
@@ -272,6 +276,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_XOR_GATE);
         ITEM_BLOCK_NOT_GATE.setRegistryName(BLOCK_NOT_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_NOT_GATE);
+        ITEM_BLOCK_AI_CONTROL_NODE.setRegistryName(BLOCK_AI_CONTROL_NODE.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_AI_CONTROL_NODE);
         ITEM_BLOCK_TARTARUS_GATE.setRegistryName(BLOCK_TARTARUS_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_TARTARUS_GATE);
         event.getRegistry().register(ITEM_LINKER);
@@ -662,6 +668,21 @@ public final class ModContent {
                 'R', Items.REDSTONE,
                 'Q', Items.QUARTZ
         ).setRegistryName(HBMZZ.MODID, "not_gate"));
+
+        // AI 控制节点：比较器（读机器）+ 末影珍珠（联网）+ 红石块（广播），
+        // 玻璃面板当"屏幕"。第三行 IRIR 与所有已有配方都不同。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "ai_control_node"),
+                new ItemStack(BLOCK_AI_CONTROL_NODE),
+                "CGC",
+                "IEI",
+                "IRIR",
+                'C', Items.COMPARATOR,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'I', Items.IRON_INGOT,
+                'E', Items.ENDER_PEARL,
+                'R', Item.getItemFromBlock(Blocks.REDSTONE_BLOCK)
+        ).setRegistryName(HBMZZ.MODID, "ai_control_node"));
 
         // 塔塔鲁斯大门：九个铁块围一块黑曜石，再压一块红石块。
         // 第三行与任何已有配方都不同（regcheck 第 61 条）。

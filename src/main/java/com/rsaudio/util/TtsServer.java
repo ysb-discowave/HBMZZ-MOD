@@ -63,6 +63,14 @@ public final class TtsServer {
     private static boolean warnedNotReady;
     private static boolean warnedSynthFailed;
 
+    /**
+     * One-shot flag: the next {@link #speak} routes its voice through the reasim
+     * DSP on clients. Set by the AI anomaly broadcaster, consumed and reset by
+     * {@link #deliver}. Kept separate from the normal speak signature so the
+     * existing announcer/broadcaster callers are untouched.
+     */
+    private static boolean reasimNext;
+
     private TtsServer() {
     }
 
@@ -126,6 +134,17 @@ public final class TtsServer {
     // ------------------------------------------------------------------ 播报
 
     /**
+     * Ask that the next voice stream be processed through the reasim DSP on the
+     * client before it reaches the sound card. One-shot: consumed by the next
+     * {@link #speak} that actually delivers audio. Called by the AI anomaly
+     * broadcaster so TTS announcements sound like they come over a battered
+     * facility loudspeaker rather than a clean studio voice.
+     */
+    public static synchronized void setReasimNext(boolean value) {
+        reasimNext = value;
+    }
+
+    /**
      * 把一段文字合成成语音并发给指定玩家。
      * <p>
      * 文本为空、没有目标、引擎没装都直接返回 false，<b>不抛异常也不排队</b> ——
@@ -175,6 +194,14 @@ public final class TtsServer {
         }
         final String key = TtsCache.keyFor(clean, voiceTag);
 
+        // Snapshot + consume the one-shot reasim flag on the calling (server)
+        // thread, so concurrent speak() calls cannot steal each other's routing.
+        final boolean useReasim;
+        synchronized (TtsServer.class) {
+            useReasim = reasimNext;
+            reasimNext = false;
+        }
+
         final List<UUID> ids = new ArrayList<UUID>(targets.size());
         for (EntityPlayerMP p : targets) {
             if (p != null && p.getUniqueID() != null) {
@@ -193,7 +220,7 @@ public final class TtsServer {
                     if (wav == null) {
                         return;
                     }
-                    deliver(wav, ids);
+                    deliver(wav, ids, useReasim);
                 }
             });
         } catch (RejectedExecutionException ree) {
@@ -294,7 +321,7 @@ public final class TtsServer {
     }
 
     /** 回到服务端线程，按 16KB 一片发下去 */
-    private static void deliver(final byte[] wav, final List<UUID> ids) {
+    private static void deliver(final byte[] wav, final List<UUID> ids, final boolean reasim) {
         final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         if (server == null) {
             return;
@@ -333,7 +360,7 @@ public final class TtsServer {
                 for (EntityPlayerMP p : players) {
                     try {
                         PacketHandler.INSTANCE.sendTo(
-                                new PacketTtsBegin(streamId, totalBytes, chunks), p);
+                                new PacketTtsBegin(streamId, totalBytes, chunks, reasim), p);
                         for (int i = 0; i < chunks; i++) {
                             PacketHandler.INSTANCE.sendTo(
                                     new PacketTtsChunk(streamId, i, slices[i]), p);

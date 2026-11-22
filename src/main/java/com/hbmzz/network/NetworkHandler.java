@@ -111,6 +111,9 @@ public final class NetworkHandler {
         INSTANCE.registerMessage(AegisSetupPacket.Handler.class, AegisSetupPacket.class, 32, Side.SERVER);
         // Ask the client to open the Aegis settings window after a link-tool bind.
         INSTANCE.registerMessage(AegisOpenGuiPacket.Handler.class, AegisOpenGuiPacket.class, 33, Side.CLIENT);
+        // AI anomaly: one packet to every client for the visual alarm; the voice
+        // itself streams separately through the rsaudio TTS channel.
+        INSTANCE.registerMessage(AiAlertMessage.Handler.class, AiAlertMessage.class, 34, Side.CLIENT);
     }
 
     public static void sendTo(EntityPlayerMP player, IMessage message) {
@@ -122,6 +125,13 @@ public final class NetworkHandler {
     public static void sendToServer(IMessage message) {
         if (INSTANCE != null) {
             INSTANCE.sendToServer(message);
+        }
+    }
+
+    /** Broadcast a message to every connected client. */
+    public static void sendToAll(IMessage message) {
+        if (INSTANCE != null) {
+            INSTANCE.sendToAll(message);
         }
     }
 }

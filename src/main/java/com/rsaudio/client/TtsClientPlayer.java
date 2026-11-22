@@ -59,9 +59,21 @@ public final class TtsClientPlayer {
 
     // ------------------------------------------------------------------ 收包
 
-    public static void onBegin(int streamId, int totalBytes, int chunkCount) {
+    /**
+     * @param reasim true routes this stream through the reasim DSP on playback.
+     *               Keyed by streamId so an AI alert's routing can never leak
+     *               into a normal announcement that finishes later.
+     */
+    public static void onBegin(int streamId, int totalBytes, int chunkCount, boolean reasim) {
         REASSEMBLER.begin(streamId, totalBytes, chunkCount, System.currentTimeMillis());
+        synchronized (LOCK) {
+            REASIM_FLAGS.put(Integer.valueOf(streamId), Boolean.valueOf(reasim));
+        }
     }
+
+    /** streamId -> route this voice through reasim. Removed when the stream ends. */
+    private static final java.util.Map<Integer, Boolean> REASIM_FLAGS =
+            new java.util.HashMap<Integer, Boolean>();
 
     public static void onChunk(int streamId, int index, byte[] data) {
         REASSEMBLER.offer(streamId, index, data);
@@ -69,12 +81,13 @@ public final class TtsClientPlayer {
 
     public static void onEnd(int streamId) {
         byte[] wav = REASSEMBLER.take(streamId);
+        Boolean reasim = REASIM_FLAGS.remove(Integer.valueOf(streamId));
         if (wav == null) {
             // 没凑齐（丢包、被并发上限挤掉）就丢掉，不留着等到超时
             REASSEMBLER.abort(streamId);
             return;
         }
-        enqueue(wav);
+        enqueue(wav, reasim != null && reasim.booleanValue());
     }
 
     /** 每 tick 清扫超时的半截音频 */
@@ -164,12 +177,18 @@ public final class TtsClientPlayer {
         }
         synchronized (LOCK) {
             QUEUE.clear();
+            QUEUE_REASIM.clear();
+            REASIM_FLAGS.clear();
             LOCK.notifyAll();
         }
         REASSEMBLER.clear();
     }
 
     private static void enqueue(byte[] wav) {
+        enqueue(wav, false);
+    }
+
+    private static void enqueue(byte[] wav, boolean reasim) {
         if (wav == null || wav.length <= 44) {
             return;
         }
@@ -177,11 +196,16 @@ public final class TtsClientPlayer {
         synchronized (LOCK) {
             while (QUEUE.size() >= MAX_QUEUED) {
                 QUEUE.pollFirst();
+                QUEUE_REASIM.pollFirst();
             }
             QUEUE.addLast(wav);
+            QUEUE_REASIM.addLast(Boolean.valueOf(reasim));
             LOCK.notifyAll();
         }
     }
+
+    /** One reasim flag per queued WAV, in lockstep with {@link #QUEUE}. */
+    private static final ArrayDeque<Boolean> QUEUE_REASIM = new ArrayDeque<Boolean>();
 
     private static void ensurePlayThread() {
         if (playThread != null && playThread.isAlive()) {
@@ -200,6 +224,7 @@ public final class TtsClientPlayer {
     private static void playLoop() {
         while (true) {
             byte[] wav;
+            boolean reasim;
             synchronized (LOCK) {
                 while (QUEUE.isEmpty()) {
                     try {
@@ -210,12 +235,14 @@ public final class TtsClientPlayer {
                     }
                 }
                 wav = QUEUE.pollFirst();
+                Boolean flag = QUEUE_REASIM.pollFirst();
+                reasim = flag != null && flag.booleanValue();
             }
-            playOnce(wav);
+            playOnce(wav, reasim);
         }
     }
 
-    private static void playOnce(byte[] wav) {
+    private static void playOnce(byte[] wav, boolean reasim) {
         abort = false;
         AudioInputStream in = null;
         SourceDataLine line = null;
@@ -228,7 +255,7 @@ public final class TtsClientPlayer {
                 return;
             }
             line = (SourceDataLine) AudioSystem.getLine(info);
-            // 缓冲区取 1/4 秒：太小会爆音，太大按停止之后还会多念一段
+            // 缓冲区取 1/4 秒：太小会爆音、太大按停止之后还会多念一段
             int bufferBytes = Math.max(4096, (int) (format.getSampleRate() / 4.0D)
                     * Math.max(1, format.getFrameSize()));
             line.open(format, bufferBytes);
@@ -236,9 +263,28 @@ public final class TtsClientPlayer {
             applyMasterVolume(line);
             line.start();
 
+            // AI 告警走 reasim：在 PCM 进声卡之前过一遍扬声器模拟 DSP。
+            // 只用 16bit PCM 才处理；其它编码（TTS 正常就是 16bit）保持原样。
+            com.rsaudio.audio.ReasimDsp dsp = null;
+            if (reasim && format.getSampleSizeInBits() == 16) {
+                dsp = new com.rsaudio.audio.ReasimDsp(
+                        Math.round(format.getSampleRate()),
+                        Math.max(1, format.getChannels()));
+                dsp.configure(loudspeakerParams(), 0.45F);
+            }
+
             byte[] buffer = new byte[4096];
             int read;
             while (!abort && (read = in.read(buffer)) > 0) {
+                // 只把完整帧交给 DSP，尾巴的不完整字节原样写出（16bit 单声道 = 2 字节/帧）
+                int pcmBytes = read;
+                if (dsp != null) {
+                    int frame = format.getFrameSize();
+                    pcmBytes = read - (read % frame);
+                    if (pcmBytes > 0) {
+                        dsp.process(buffer, 0, pcmBytes);
+                    }
+                }
                 line.write(buffer, 0, read);
             }
             if (!abort) {
@@ -282,6 +328,23 @@ public final class TtsClientPlayer {
         } catch (Throwable ignored) {
             // 没有主增益控件就按设备默认音量放
         }
+    }
+
+    /**
+     * The voice of the facility loudspeaker: a little distortion, audible hiss
+     * and static, no manual echo (the resolved echo is passed to configure).
+     * Kept fixed so every AI announcement sounds like the same physical PA
+     * system rather than a different voice each time.
+     */
+    private static com.rsaudio.audio.ReasimParams loudspeakerParams() {
+        com.rsaudio.audio.ReasimParams p = new com.rsaudio.audio.ReasimParams();
+        p.enabled = true;
+        p.volume = 1.0F;
+        p.distortion = 0.35F;
+        p.hiss = 0.12F;
+        p.staticNoise = 0.18F;
+        p.echoAuto = false;
+        return p.clamp();
     }
 
     private static void closeQuietly(AutoCloseable closeable) {

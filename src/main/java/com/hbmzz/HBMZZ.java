@@ -65,6 +65,8 @@ public class HBMZZ {
         HBMZZConfig.load(event.getSuggestedConfigurationFile());
         // Aegis terminal keeps its own config file next to the main one.
         com.hbmzz.aegis.AegisConfig.load(event.getSuggestedConfigurationFile());
+        // AI control node keeps its endpoint / key / model in a dedicated file.
+        com.hbmzz.ai.AiConfig.load(event.getSuggestedConfigurationFile());
         // The video shelf lives under <config>/hbmzz/videos/ and is read by both
         // sides (the server validates names, the client opens the clip). Without
         // this call VideoLibrary.root stays null, so the broadcaster GUI lists no
@@ -146,6 +148,9 @@ public class HBMZZ {
         // game dies the instant the block is placed - not on save, on place.
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityMonitorCamera.class,
                 new ResourceLocation(MODID, "monitor_camera"));
+        // AI control node persists its binding / state through NBT.
+        GameRegistry.registerTileEntity(com.hbmzz.ai.TileEntityAIControlNode.class,
+                new ResourceLocation(MODID, "ai_control_node"));
         // The console opens its layout editor through FML's gui packet, so this
         // mod needs a gui handler even though the id is always 0.
         net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(
@@ -201,6 +206,7 @@ public class HBMZZ {
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new com.hbmzz.command.CommandAegis());
         event.registerServerCommand(new com.hbmzz.guard.CommandCoreGuard());
+        event.registerServerCommand(new com.hbmzz.ai.CommandAI());
     }
 
     /**
@@ -230,5 +236,8 @@ public class HBMZZ {
         com.hbmzz.blast.DfcBlastWatch.INSTANCE.onServerStopped();
         // An in-flight annihilation wave must not survive into the next save.
         com.hbmzz.alert.NukeAnnihilation.INSTANCE.onServerStopped();
+        // AI node HTTP worker: stop it so a pending request cannot call back
+        // into a world that has already been torn down.
+        com.hbmzz.ai.AiClient.shutdown();
     }
 }

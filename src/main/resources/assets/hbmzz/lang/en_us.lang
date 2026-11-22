@@ -142,3 +142,6 @@ aegis.help.page=Right-click: settings (bind/page/power/tilt/width/height); Sneak
 aegis.help.unbind=Use "Unbind" in the settings window to resume auto-scan
 aegis.help.link=Linker tool: right-click a DFC core, then right-click the Aegis terminal; sneak-click the terminal to clear
 item.hbmzz.aegis_linker.name=Aegis Linker
+
+# AI control node
+tile.hbmzz.ai_control_node.name=AI Control Node

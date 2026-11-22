@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "alert=false,facing=north": { "model": "hbmzz:ai_control_node" },
+    "alert=false,facing=south": { "model": "hbmzz:ai_control_node", "y": 180 },
+    "alert=false,facing=west":  { "model": "hbmzz:ai_control_node", "y": 270 },
+    "alert=false,facing=east":  { "model": "hbmzz:ai_control_node", "y": 90 },
+    "alert=true,facing=north":  { "model": "hbmzz:ai_control_node_alert" },
+    "alert=true,facing=south":  { "model": "hbmzz:ai_control_node_alert", "y": 180 },
+    "alert=true,facing=west":   { "model": "hbmzz:ai_control_node_alert", "y": 270 },
+    "alert=true,facing=east":   { "model": "hbmzz:ai_control_node_alert", "y": 90 }
+  }
+}

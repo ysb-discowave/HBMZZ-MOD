@@ -94,8 +94,39 @@
 
         <div class="tl-item">
           <div class="tl-head">
-            <span class="tl-ver">v4.0.0</span>
+            <span class="tl-ver">v5.0.0</span>
             <span class="tag tag--amber">最新</span>
+          </div>
+          <h3>AI 直接接管 DFC + AI 终端 + 核弹档位制：机器异常有人判、有嘴喊、有手拦</h3>
+          <ul>
+            <li><strong>AI 控制节点（新方块）：</strong><code>ai_control_node</code> 绑定机器后周期采样——DFC 核心走 AegisProbe 采温度/稳定/能量，通用方块实体走 NBT 数值——快照 POST 到可配置的 AI 接口。接口回「正常」就只把数据上监视屏；回「异常」就合成一次 TTS 语音流式下发全服，全图同时响，聊天栏同步告警。</li>
+            <li><strong>AI 不只报警，还能上手：</strong>反射控制 NTM 的 DFC——稳定器/接收器/发射器与核心的启停都经 <code>DfcControl</code> 调到位；判定失控时的兜底 SCRAM 受 <code>autoScram</code> 门控，<strong>默认关</strong>。默认提示词是「只报告，等待指令」：AI 先把情况说清，动手要人点头。</li>
+            <li><strong>AI 终端（新物品）：</strong>右键开 GUI 打自然语言指令，服务端把机器上下文拼进提示词再问 AI，回复回显在终端里；个人提示词按玩家存。网络消息 ID 35/36。</li>
+            <li><strong>提示词三层：</strong>预设 / 全局自定义（服务器级）/ 个人覆盖（按玩家），一层盖一层，改完下一句立即生效。</li>
+            <li><strong>核弹威力/引信档位制：</strong>威力 6 档（试验/战术/战略/重型/破芯/毁档）、引信 6 档（5~300 秒，默认 30）。斧子右键切威力、空手蹲右键切引信，倒计时中锁定；毁档（DELTA）爆炸力 120。</li>
+            <li><strong>毁档 = 湮灭波：</strong>服务端逐 tick 从爆点向外清除半径 512 内所有已加载区块的方块与实体，只留基岩/屏障，连地形一起抹掉；每 tick 限量不卡服，未加载区块不强制载入。按维度一实例，换存档不留波。</li>
+            <li><strong>reasim 工作台混响声场上官网：</strong>音频工作台（tools.html）与游戏内 TTS 音色链同规格——8 条互不可通约梳线 + 5 级全通，衰减/音调/预延迟可调，网页侧独立开关。</li>
+            <li><strong>验证：</strong>编译 JDK 8 / Gradle 4.10.3 全量 <code>gradle build</code> BUILD SUCCESSFUL，regcheck 150/150；三处版本戳统一 5.0.0，产物 <code>hbmzz-5.0.0.jar</code>。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v4.1.0</span>
+            <span class="tag">Aegis</span>
+          </div>
+          <h3>贴墙的神盾屏，和一根两下就连好的线</h3>
+          <ul>
+            <li><strong>贴墙壁挂屏：</strong>神盾终端不再是一块悬空的光板——背后补上深色金属外壳（背板 + 上下左右四壁）和墙面支架，发光屏、霓虹边框、状态辉光按当前宽高绘制，倾斜时整块屏连同外壳一起转。</li>
+            <li><strong>可调倾斜角 / 宽 / 高：</strong>设置窗口「墙面安装」分区——倾斜角 −45°~+45° 每次 5°、宽/高 0.5~2.0 格每次 0.08 格；快捷键 <code>Z</code>/<code>X</code>、<code>[</code>/<code>]</code>、<code>-</code>/<code>=</code>。服务端校验后写入存档，老存档保持原外观。</li>
+            <li><strong>神盾连接工具（新物品）：</strong>铁锭 + 红石 + 比较器合成。右键 DFC 核心记下坐标，再右键神盾终端完成绑定；潜行右键终端清除绑定回到 16 格自动扫描；空工具右键终端直接开设置窗口。绑定存在终端存档里，工具丢了不影响。</li>
+            <li><strong>验证：</strong>JDK 8 全量编译 BUILD SUCCESSFUL，regcheck 150/150；产物 <code>hbmzz-4.1.0.jar</code> 已部署游戏 <code>mods</code>（MD5 <code>5c5269af…</code>）。</li>
+          </ul>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-head">
+            <span class="tl-ver">v4.0.0</span>
           </div>
           <h3>全息视觉升级 + 黑屏致命 bug 修复</h3>
           <ul>
@@ -738,7 +769,7 @@
 </footer>
 
 
-<script src="assets/data.js?v=ae126024d2"></script>
+<script src="assets/data.js?v=e351556e72"></script>
 <script src="assets/site.js?v=792c6c8990"></script>
 
   <script src="assets/reveal.js?v=2"></script>

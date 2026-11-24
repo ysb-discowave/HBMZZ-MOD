@@ -2,7 +2,7 @@
  * 改内容去 tools/site/content.json；改版本号去 build.gradle。
  */
 window.HBMZZ_DATA = {
-  "siteVersion": "4.0.0",
+  "siteVersion": "5.0.0",
   "site": {
     "name": "HBMZZ",
     "fullName": "HBMZZ — DFC 监控屏 / 机器控制面板 / 制式枪械",
@@ -275,6 +275,30 @@ window.HBMZZ_DATA = {
     }
   ],
   "timeline": [
+    {
+      "version": "5.0.0",
+      "title": "AI 直接接管 DFC + AI 终端 + 核弹档位制：机器异常有人判、有嘴喊、有手拦",
+      "items": [
+        "<strong>AI 控制节点（新方块）：</strong><code>ai_control_node</code> 绑定机器后周期采样——DFC 核心走 AegisProbe 采温度/稳定/能量，通用方块实体走 NBT 数值——快照 POST 到可配置的 AI 接口。接口回一句「正常」就只把数据上监视屏；回「异常」就合成一次 TTS 语音流式下发全服，全图同时响，聊天栏同步告警。",
+        "<strong>AI 不只报警，还能上手：</strong>反射控制 NTM 的 DFC——稳定器/接收器/发射器与核心的启停都经 <code>DfcControl</code> 调到位；判定失控时的兜底 SCRAM 受 <code>autoScram</code> 门控，<strong>默认关</strong>。默认提示词是「只报告，等待指令」：AI 先把情况说清，动手要人点头。",
+        "<strong>AI 终端（新物品）：</strong>拿在手里右键开 GUI，打自然语言指令，服务端把机器上下文拼进提示词再问 AI，回复回显在终端里。个人提示词按玩家存，不用全员吃同一套话术。网络消息 ID 35/36。",
+        "<strong>提示词三层：</strong>预设（内置默认）/ 全局自定义（服务器级）/ 个人覆盖（按玩家），一层盖一层；改完下一句立即生效，不用重启。",
+        "<strong>核弹威力/引信档位制：</strong>威力 6 档（试验/战术/战略/重型/破芯/毁档），引信 6 档（5 秒~300 秒，默认 30）。斧子右键切威力、空手蹲右键切引信，倒计时中锁定。毁档（DELTA）爆炸力 120，并把上一版「大弹坑」改成真的——",
+        "<strong>毁档 = 湮灭波：</strong>服务端逐 tick 从爆点向外清除半径 512 内所有已加载区块的方块与实体，只留基岩/屏障，连地形一起抹掉；每 tick 限量不卡服，未加载区块不强制载入。按维度一实例，换存档不留波。",
+        "<strong>reasim 工作台上了官网：</strong>音频工作台（docs/tools.html）与本版混响声场同规格——8 条互不可通约梳线 + 5 级全通，衰减/音调/预延迟可调，网页侧独立开关，游戏内 TTS 音色不变。",
+        "<strong>验证：</strong>编译 JDK 8 / Gradle 4.10.3 全量 <code>gradle build</code> BUILD SUCCESSFUL，regcheck 150/150。三处版本戳（<code>build.gradle</code> / <code>mcmod.info</code> / <code>HBMZZ.VERSION</code>）统一 5.0.0，产物 <code>hbmzz-5.0.0.jar</code>。"
+      ]
+    },
+    {
+      "version": "4.1.0",
+      "title": "贴墙的神盾屏，和一根两下就连好的线",
+      "items": [
+        "<strong>贴墙壁挂屏：</strong>神盾终端不再是一块悬空的光板——背后补上深色金属外壳（背板 + 上下左右四壁，随屏幕尺寸变化、有真实厚度），一根支架把它锚在墙上；发光屏、霓虹边框、状态辉光都按当前宽高绘制，倾斜时整块屏连同外壳一起转。",
+        "<strong>可调倾斜角 / 宽 / 高：</strong>设置窗口「墙面安装」分区三行 −/+ 按钮——倾斜角 −45°~+45° 每次 5°、宽/高 0.5~2.0 格每次 0.08 格；<code>Z</code>/<code>X</code> 调倾斜、<code>[</code>/<code>]</code> 调宽、<code>-</code>/<code>=</code> 调高。服务端校验后写入存档，重启不丢；老存档没这些参数时保持原外观。",
+        "<strong>神盾连接工具（新物品）：</strong>铁锭 + 红石 + 比较器合成。右键 DFC 核心记下坐标，再右键神盾终端完成绑定；潜行右键终端清除绑定回到 16 格自动扫描；工具是空的时候右键终端直接开设置窗口，顺手当遥控器。绑定写在终端自己的存档里，工具丢了不影响。",
+        "<strong>验证：</strong>JDK 8 全量编译 BUILD SUCCESSFUL，regcheck 150/150；产物 <code>hbmzz-4.1.0.jar</code> 已部署游戏 <code>mods</code>（MD5 <code>5c5269af…</code>）。"
+      ]
+    },
     {
       "version": "4.0.0",
       "title": "多区块 DFC 反应堆 + Aegis 遥测终端：五个方块拼一台堆，监控屏从零重写",
@@ -697,17 +721,17 @@ window.HBMZZ_DATA = {
     }
   ],
   "auto": {
-    "version": "4.0.0",
-    "gradleVersion": "4.0.0",
+    "version": "5.0.0",
+    "gradleVersion": "5.0.0",
     "mcVersion": "1.12.2",
     "forgeVersion": "14.23.5.2847",
     "stats": {
       "javaFiles": 646,
-      "javaLines": 151005,
+      "javaLines": 151018,
       "resourceFiles": 668,
       "nodeTypes": 32,
       "controlTypes": 26
     },
-    "generatedAt": "2026-11-22"
+    "generatedAt": "2026-11-24"
   }
 };

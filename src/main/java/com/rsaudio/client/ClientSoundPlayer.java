@@ -5,6 +5,7 @@ import com.rsaudio.RsAudio;
 import com.rsaudio.audio.ReasimParams;
 import com.rsaudio.network.PacketHandler;
 import com.rsaudio.network.PacketSoundFinished;
+import com.rsaudio.netease.NeteaseMusic;
 import com.rsaudio.tile.TileAudioPlayer;
 import com.rsaudio.util.OggDuration;
 import net.minecraft.client.Minecraft;
@@ -113,6 +114,24 @@ public class ClientSoundPlayer {
      */
     public static void play(BlockPos pos, String soundName, boolean loop, ReasimParams params) {
         stop(pos);
+        // 网易云音源（nmc_<id>，mp3）：原版引擎读不了 mp3，只能走 reasim 推流路径。
+        // 这里强制把"效果开关"算进来——开就带失真噪声，关就纯解码直出（DSP 全旁路），
+        // 两种都复用同一条 ReasimSession 链路，保证和 ogg 走的是同一条"破喇叭"。
+        if (NeteaseMusic.isNetease(soundName)) {
+            ReasimParams effective = normalizeReasim(params);
+            if (ReasimBridge.available()) {
+                ReasimSession session = ReasimSession.start(pos, soundName, loop, effective);
+                if (session != null) {
+                    REASIM.put(pos.toImmutable(), new ReasimHandle(session));
+                    return;
+                }
+            }
+            if (!loop) {
+                // 拿不到本地文件 / 引擎不可用：直接回报"放完了"，别让方块卡在播放态
+                PacketHandler.INSTANCE.sendToServer(new PacketSoundFinished(pos));
+            }
+            return;
+        }
         // 直出路线：mp3 / flac 这类 vanilla 引擎根本读不了的格式，由 formats 包解码成 PCM
         // 直接推给声卡。它返回 false 只意味着"这个格式不归我管"，后面照原样走 vanilla。
         // reasim 开着时不让它插手：reasim 只认 ogg，两条路互斥（否则同一首歌会响两遍）。
@@ -325,6 +344,19 @@ public class ClientSoundPlayer {
     public static void preview(String soundName, ReasimParams params) {
         stopPreview();
         Minecraft mc = Minecraft.getMinecraft();
+        // 网易云试听（nmc_<id>）：原版引擎读不了 mp3，只能走 reasim 推流路径。
+        // 开效果就带 DSP，关效果就透传（DSP 旁路 = 干净 mp3），都复用同一条 ReasimSession。
+        if (NeteaseMusic.isNetease(soundName)
+                && mc.player != null && ReasimBridge.available()) {
+            ReasimParams effective = normalizeReasim(params);
+            ReasimSession session = ReasimSession.startPreview(mc.player.getPosition(), soundName, effective);
+            if (session != null) {
+                previewSession = session;
+                return;
+            }
+            // 拿不到本地文件（未缓存且下载失败）：安静返回，别让调用方以为在播
+            return;
+        }
         if (params != null && params.enabled && ReasimBridge.available()
                 && mc.player != null && soundName != null && !soundName.isEmpty()) {
             ReasimSession session = ReasimSession.startPreview(mc.player.getPosition(), soundName, params);
@@ -374,6 +406,18 @@ public class ClientSoundPlayer {
     }
 
     // ------------------------------------------------------------------ 工具
+
+    /**
+     * 网易云音源（mp3）无论 reasim 开关都必须走 ReasimSession（原版引擎读不了 mp3）。
+     * 这里把参数归一化：开了就原样传（DSP 生效），没开就传一个 enabled=false 的默认参数
+     * —— 此时 ReasimDsp 内部直接透传，等于"干净 mp3"，保证传给 start 的永远是非 null 参数。
+     */
+    private static ReasimParams normalizeReasim(ReasimParams params) {
+        if (params != null && params.enabled) {
+            return params.copy();
+        }
+        return new ReasimParams();
+    }
 
     private static ISound create(String soundName, BlockPos pos, boolean loop) {
         if (soundName == null || soundName.isEmpty()) {

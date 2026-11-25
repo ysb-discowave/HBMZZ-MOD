@@ -21,6 +21,8 @@ package com.rsaudio.client;
 import com.rsaudio.RsAudio;
 import com.rsaudio.audio.ReasimDsp;
 import com.rsaudio.audio.ReasimParams;
+import com.rsaudio.formats.format.PcmSource;
+import com.rsaudio.netease.NeteaseMusic;
 import net.minecraft.util.math.BlockPos;
 
 import javax.sound.sampled.AudioFormat;
@@ -29,7 +31,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 一路 reasim 播放会话：解码 ogg → 跑 DSP → 把 PCM 喂进 Minecraft 的声音引擎。
+ * 一路 reasim 播放会话：解码 → 跑 DSP → 把 PCM 喂进 Minecraft 的声音引擎。
+ * <p>
+ * 数据来源分两种，都最终变成 16-bit 小端 PCM 走同一条 DSP 链：
+ * <ul>
+ *   <li>本地 ogg：走原版引擎自带的 {@code CodecJOrbis} 解码器（经 {@link ReasimBridge} 反射）。</li>
+ *   <li>网易云 mp3（{@code nmc_<id>}）：文件从 {@code config/rsaudio/netease/} 拿，
+ *       走 formats 层的 {@link com.rsaudio.formats.format.Sources} 解码成 PCM。
+ *       原版引擎根本不认 mp3，所以这一类<b>只能</b>走 reasim，没有别的播放路。</li>
+ * </ul>
  * <p>
  * <b>为什么要自己推流，而不是像原来那样丢一个 {@code ISound} 进去：</b>
  * 原版那条路只给了"音量"和"音高"两个旋钮，音量是线性缩放、音高是重采样。
@@ -65,6 +75,8 @@ public final class ReasimSession {
     private final String sourceName;
     /** 界面里的试听：没有对应的方块，只挂在玩家自己身上，{@link #find} 不会命中它 */
     private final boolean preview;
+    /** 解码的数据源文件：本地 ogg（audio 目录）或网易云 mp3（netease 缓存） */
+    private final File sourceFile;
 
     private volatile ReasimParams params = new ReasimParams();
     private volatile float autoEcho = 0.30F;
@@ -74,6 +86,8 @@ public final class ReasimSession {
     // ---- 以下只在推流线程上读写 ----
     private Object system;
     private Object codec;
+    /** 网易云 mp3 走 formats 层解码；ogg 走 codec，两者只会活一个 */
+    private PcmSource pcmSource;
     private ReasimDsp dsp;
     private AudioFormat format;
     private boolean bigEndian;
@@ -86,11 +100,12 @@ public final class ReasimSession {
     private float appliedEcho = -1.0F;
     private byte[] silence;
 
-    private ReasimSession(BlockPos pos, String soundName, boolean loop, boolean preview) {
+    private ReasimSession(BlockPos pos, String soundName, boolean loop, boolean preview, File sourceFile) {
         this.pos = pos.toImmutable();
         this.soundName = soundName;
         this.loop = loop;
         this.preview = preview;
+        this.sourceFile = sourceFile;
         this.sourceName = "rsaudio_reasim_" + (preview ? "preview_" : "")
                 + pos.getX() + "_" + pos.getY() + "_" + pos.getZ();
     }
@@ -116,11 +131,16 @@ public final class ReasimSession {
         if (!ReasimBridge.available() || soundName == null || soundName.isEmpty() || pos == null) {
             return null;
         }
-        File file = AudioLibrary.fileOf(soundName);
+        File file = NeteaseMusic.isNetease(soundName)
+                ? NeteaseMusic.ensureLocal(NeteaseMusic.trackIdOf(soundName))
+                : AudioLibrary.fileOf(soundName);
         if (file == null || !file.isFile()) {
+            if (NeteaseMusic.isNetease(soundName)) {
+                RsAudio.warn("网易云音源 %s 拿不到本地文件（未缓存且下载失败），本首不播", soundName);
+            }
             return null;
         }
-        ReasimSession session = new ReasimSession(pos, soundName, loop, preview);
+        ReasimSession session = new ReasimSession(pos, soundName, loop, preview, file);
         session.params = params == null ? new ReasimParams() : params.copy();
         synchronized (SESSIONS) {
             SESSIONS.add(session);
@@ -274,11 +294,15 @@ public final class ReasimSession {
     }
 
     private boolean openSource() {
-        if (codec == null && !openCodec()) {
+        if (NeteaseMusic.isNetease(soundName)) {
+            if (pcmSource == null && !openPcm()) {
+                return false;
+            }
+        } else if (codec == null && !openCodec()) {
             return false;
         }
         if (format == null) {
-            format = ReasimBridge.codecFormat(codec);
+            format = NeteaseMusic.isNetease(soundName) ? pcmSource.format() : ReasimBridge.codecFormat(codec);
         }
         if (format == null) {
             return false;
@@ -351,19 +375,101 @@ public final class ReasimSession {
         }
 
         while (fedFrames < target) {
-            byte[] chunk = ReasimBridge.readChunk(codec);
-            if (chunk == null || chunk.length == 0) {
-                if (ReasimBridge.codecEnded(codec)) {
+            if (isNeteaseSource()) {
+                byte[] chunk = readPcmChunk();
+                if (chunk == null) {
                     eof = true;
                     eofNanos = now;
                     return;
                 }
-                // codec 偶尔会在非结尾处返回空块，直接重试下一次推流
-                return;
+                if (chunk.length == 0) {
+                    // 解码器偶尔会返回空块，直接重试下一次推流
+                    return;
+                }
+                if (!feedChunk(chunk, chunk.length, chunkFrames)) {
+                    return;
+                }
+            } else {
+                byte[] chunk = ReasimBridge.readChunk(codec);
+                if (chunk == null || chunk.length == 0) {
+                    if (ReasimBridge.codecEnded(codec)) {
+                        eof = true;
+                        eofNanos = now;
+                        return;
+                    }
+                    // codec 偶尔会在非结尾处返回空块，直接重试下一次推流
+                    return;
+                }
+                if (!feedChunk(chunk, chunk.length, chunkFrames)) {
+                    return;
+                }
             }
-            if (!feedChunk(chunk, chunk.length, chunkFrames)) {
-                return;
+        }
+    }
+
+    /** 这个会话是不是走 formats 层的 mp3 解码（网易云） */
+    private boolean isNeteaseSource() {
+        return NeteaseMusic.isNetease(soundName);
+    }
+
+    /** 从 PcmSource 读一块 PCM。返回 null 表示读完；0 长度表示这次没读到，重试。 */
+    private byte[] readPcmChunk() {
+        int rate = Math.round(format.getSampleRate());
+        int frames = Math.max(64, rate * CHUNK_MS / 1000);
+        int want = frames * format.getFrameSize();
+        if (want < 512) {
+            want = 512;
+        }
+        byte[] buf = new byte[want];
+        try {
+            int read = pcmSource.read(buf, 0, buf.length);
+            if (read < 0) {
+                return null;
             }
+            if (read == 0) {
+                return new byte[0];
+            }
+            if (read == buf.length) {
+                return buf;
+            }
+            byte[] exact = new byte[read];
+            System.arraycopy(buf, 0, exact, 0, read);
+            return exact;
+        } catch (Throwable t) {
+            RsAudio.warn("网易云解码读块失败: " + t);
+            return null;
+        }
+    }
+
+    /** 打开网易云 mp3 的 formats 解码器；失败返回 false */
+    private boolean openPcm() {
+        try {
+            pcmSource = com.rsaudio.formats.format.Sources.open(sourceFile);
+        } catch (Throwable t) {
+            RsAudio.warn("网易云 mp3 解码器起不来: " + t);
+            pcmSource = null;
+        }
+        if (pcmSource == null) {
+            return false;
+        }
+        AudioFormat af = pcmSource.format();
+        if (af == null) {
+            closePcm();
+            return false;
+        }
+        format = af;
+        // PcmSource 契约保证输出就是 16-bit 小端，bigEndian 必须为 false
+        bigEndian = false;
+        return true;
+    }
+
+    private void closePcm() {
+        if (pcmSource != null) {
+            try {
+                pcmSource.close();
+            } catch (Throwable ignored) {
+            }
+            pcmSource = null;
         }
     }
 
@@ -386,19 +492,34 @@ public final class ReasimSession {
     }
 
     private void restart() {
-        ReasimBridge.closeCodec(codec);
-        codec = null;
-        if (!openCodec()) {
-            abort("循环重开解码器失败");
-            return;
-        }
-        // 解码器换了，格式理论上一样；不一样就重建 DSP，避免采样率错配
-        AudioFormat reopened = ReasimBridge.codecFormat(codec);
-        if (reopened != null && (format.getSampleRate() != reopened.getSampleRate()
-                || format.getChannels() != reopened.getChannels())) {
-            format = reopened;
-            dsp = new ReasimDsp(Math.round(reopened.getSampleRate()), reopened.getChannels());
-            silence = null;
+        if (isNeteaseSource()) {
+            closePcm();
+            if (!openPcm()) {
+                abort("循环重开 mp3 解码器失败");
+                return;
+            }
+            AudioFormat reopened = pcmSource.format();
+            if (reopened != null && (format.getSampleRate() != reopened.getSampleRate()
+                    || format.getChannels() != reopened.getChannels())) {
+                format = reopened;
+                dsp = new ReasimDsp(Math.round(reopened.getSampleRate()), reopened.getChannels());
+                silence = null;
+            }
+        } else {
+            ReasimBridge.closeCodec(codec);
+            codec = null;
+            if (!openCodec()) {
+                abort("循环重开解码器失败");
+                return;
+            }
+            // 解码器换了，格式理论上一样；不一样就重建 DSP，避免采样率错配
+            AudioFormat reopened = ReasimBridge.codecFormat(codec);
+            if (reopened != null && (format.getSampleRate() != reopened.getSampleRate()
+                    || format.getChannels() != reopened.getChannels())) {
+                format = reopened;
+                dsp = new ReasimDsp(Math.round(reopened.getSampleRate()), reopened.getChannels());
+                silence = null;
+            }
         }
         startNanos = System.nanoTime();
         fedFrames = 0L;
@@ -407,8 +528,7 @@ public final class ReasimSession {
     }
 
     private boolean openCodec() {
-        File file = AudioLibrary.fileOf(soundName);
-        codec = ReasimBridge.openCodec(file);
+        codec = ReasimBridge.openCodec(sourceFile);
         if (codec == null) {
             return false;
         }
@@ -440,6 +560,7 @@ public final class ReasimSession {
             ReasimBridge.closeCodec(codec);
             codec = null;
         }
+        closePcm();
         dsp = null;
         synchronized (SESSIONS) {
             SESSIONS.remove(this);

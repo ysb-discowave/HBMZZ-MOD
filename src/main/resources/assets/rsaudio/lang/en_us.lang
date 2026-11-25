@@ -986,6 +986,17 @@ gui.rsaudio.reasim.done=Done
 gui.rsaudio.reasim.off_hint=With REASIM off this player sounds exactly like it did before
 gui.rsaudio.reasim.unavailable=This client cannot reach the sound engine; REASIM is unavailable (see the log)
 
+# ---- Netease online search (track/artist box + search button; results panel overlays the song list) ----
+gui.rsaudio.netease.label=Netease:
+gui.rsaudio.netease.search=Search
+gui.rsaudio.netease.hint=Type a track or artist to search online (not added to the local library)
+gui.rsaudio.netease.searching=Searching Netease…
+gui.rsaudio.netease.empty_query=Please type a search keyword
+gui.rsaudio.netease.no_result=Nothing found on Netease (try another keyword, or it needs VIP / no rights here)
+gui.rsaudio.netease.found=Found %s on Netease; click one in the list below to play it
+gui.rsaudio.netease.results=Netease · page %s/%s · %s total (scroll to page)
+gui.rsaudio.netease.selected=Selected (Netease online): %s
+
 tile.rsaudio.huang_poster.name=Memorial Poster
 tooltip.rsaudio.huang_poster.1=A framed picture for your wall. Right-click to flip through eleven of them.
 tooltip.rsaudio.huang_poster.2=Sneak and right-click to make it sing.

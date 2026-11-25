@@ -69,6 +69,24 @@ public class Config {
         return dir;
     }
 
+    /**
+     * 网易云音乐缓存目录：{@code config/rsaudio/netease}
+     * <p>
+     * 通过网易云接口在线选歌时，下载下来的 128kbps mp3 文件按 {@code <歌曲id>.mp3}
+     * 命名缓存在这里。目录不存在时（也就是玩家还没用过在线选歌）不会自动创建，
+     * 只有第一次真正下载某首歌时才会建 —— 避免给不用在线功能的玩家凭空多一个空文件夹。
+     *
+     * @param create 传 true 时若目录不存在会创建（下载前调用）；
+     *               传 false 仅取路径（比如界面提示文案）。
+     */
+    public static File getNeteaseDir(boolean create) {
+        File dir = new File(getConfigDir(), "netease");
+        if (create && !dir.exists() && !dir.mkdirs()) {
+            RsAudio.warn("无法创建网易云缓存目录: " + dir.getAbsolutePath());
+        }
+        return dir;
+    }
+
     private static void writeReadme() {
         File readme = new File(getConfigDir(), "如何添加音乐.txt");
         if (readme.exists()) {

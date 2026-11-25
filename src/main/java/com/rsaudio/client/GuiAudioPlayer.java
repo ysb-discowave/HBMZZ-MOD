@@ -5,6 +5,7 @@ import com.rsaudio.network.PacketHandler;
 import com.rsaudio.network.PacketSetBroadcast;
 import com.rsaudio.network.PacketSetMode;
 import com.rsaudio.network.PacketSetSound;
+import com.rsaudio.netease.NeteaseMusic;
 import com.rsaudio.tile.TileAudioPlayer;
 import com.rsaudio.util.Broadcaster;
 import net.minecraft.client.Minecraft;
@@ -54,6 +55,12 @@ public class GuiAudioPlayer extends GuiScreen {
     private static final int ID_BROADCAST_COLOR = 21;
     /** 打开 reasim 调参界面 */
     private static final int ID_REASIM = 22;
+    /** 网易云在线搜索按钮 */
+    private static final int ID_NETEASE_SEARCH = 23;
+    /** 网易云搜索框顶部距窗口底部的距离（在状态文字那一行之上） */
+    private static final int NETEASE_BOTTOM = 108;
+    private static final int NETEASE_FIELD_WIDTH = 150;
+    private static final int NETEASE_BUTTON_WIDTH = 64;
 
     /** 广播那一行距窗口底部的距离（这一行在按钮行之上） */
     private static final int BROADCAST_BOTTOM = 74;
@@ -79,6 +86,16 @@ public class GuiAudioPlayer extends GuiScreen {
     private GuiTextField broadcastInput;
     /** 过滤后的可见列表 */
     private List<AudioLibrary.Entry> view = new ArrayList<AudioLibrary.Entry>();
+
+    // ---- 网易云在线搜索：搜索结果不进 audio 库，单列一个面板，点中一首就 select("nmc_<id>") ----
+    private GuiTextField neteaseInput;
+    private List<NeteaseMusic.Track> neteaseResults;
+    private int neteasePage = 0;
+    /** 搜索在后台线程跑，结果回来前游戏线程只认这个标志，防止界面被卡住 */
+    private volatile boolean neteaseSearching;
+    private volatile int neteaseRequestId = 0;
+    /** 结果面板最多显示几行：再多就会压到下面的网易云搜索框/播报行 */
+    private int neteaseSearchCount = 8;
 
     public GuiAudioPlayer(BlockPos pos) {
         this.pos = pos;
@@ -143,6 +160,18 @@ public class GuiAudioPlayer extends GuiScreen {
         this.buttonList.add(new GuiButton(ID_PREV, cx - 160, bottom - 22, 100, 20, I18n.format("gui.rsaudio.prev")));
         this.buttonList.add(new GuiButton(ID_CLEAR_SEARCH, cx - 50, bottom - 22, 100, 20, I18n.format("gui.rsaudio.clear_search")));
         this.buttonList.add(new GuiButton(ID_NEXT, cx + 60, bottom - 22, 100, 20, I18n.format("gui.rsaudio.next")));
+
+        // 网易云在线搜索行：关键词输入框 + 「搜索」按钮，放在状态文字那一行的上方。
+        // 搜到的歌不进 audio 库，单独成一张结果面板叠在选歌区上。
+        int neTop = this.height - NETEASE_BOTTOM;
+        String previousNetease = this.neteaseInput == null ? "" : this.neteaseInput.getText();
+        this.neteaseInput = new GuiTextField(102, this.fontRenderer, left, neTop + 1, NETEASE_FIELD_WIDTH, 16);
+        this.neteaseInput.setMaxStringLength(48);
+        this.neteaseInput.setText(previousNetease);
+        this.neteaseInput.setFocused(false);
+        this.buttonList.add(new GuiButton(ID_NETEASE_SEARCH,
+                left + NETEASE_FIELD_WIDTH + 4, neTop, NETEASE_BUTTON_WIDTH, 18,
+                I18n.format("gui.rsaudio.netease.search")));
 
         // 搜索框右侧留出位置给页码，省下一行高度给播报行
         String previous = this.search == null ? "" : this.search.getText();
@@ -265,6 +294,9 @@ public class GuiAudioPlayer extends GuiScreen {
             case ID_REASIM:
                 this.mc.displayGuiScreen(new GuiReasim(this.pos, this));
                 break;
+            case ID_NETEASE_SEARCH:
+                startNeteaseSearch();
+                break;
             case ID_CLEAR:
                 select("");
                 break;
@@ -349,22 +381,117 @@ public class GuiAudioPlayer extends GuiScreen {
         }
     }
 
+    // ------------------------------------------------------------------ 网易云在线搜索
+
+    /**
+     * 发起一次在线搜索。搜索是真网络请求，绝不能在游戏线程上跑（会卡住整个画面），
+     * 所以另开一条线程，结果回来再用 requestId 校验"是不是最新那次搜索"，再回投到游戏线程。
+     */
+    private void startNeteaseSearch() {
+        String query = this.neteaseInput == null ? "" : this.neteaseInput.getText().trim();
+        if (query.isEmpty()) {
+            this.status = I18n.format("gui.rsaudio.netease.empty_query");
+            return;
+        }
+        if (this.neteaseSearching) {
+            return;
+        }
+        final int requestId = ++this.neteaseRequestId;
+        this.neteaseSearching = true;
+        this.status = I18n.format("gui.rsaudio.netease.searching");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<NeteaseMusic.Track> found = NeteaseMusic.search(query, NeteaseMusic.SEARCH_LIMIT);
+                // 回游戏线程前校验：如果玩家又搜了别的词，这次结果已经过期，直接丢掉
+                if (requestId == neteaseRequestId) {
+                    neteaseResults = found;
+                    neteasePage = 0;
+                    neteaseSearching = false;
+                    if (found.isEmpty()) {
+                        status = I18n.format("gui.rsaudio.netease.no_result");
+                    } else {
+                        status = I18n.format("gui.rsaudio.netease.found", found.size());
+                    }
+                }
+            }
+        }, "rsaudio-netease-search").start();
+    }
+
+    /** 网易云结果面板当前页要显示的行（最多 neteaseSearchCount 行） */
+    private int neteaseRowsVisible() {
+        return this.neteaseResults == null ? 0
+                : Math.min(this.neteaseSearchCount, this.neteaseResults.size() - this.neteasePage * this.neteaseSearchCount);
+    }
+
+    private int neteasePageCount() {
+        if (this.neteaseResults == null || this.neteaseResults.isEmpty()) {
+            return 1;
+        }
+        return (this.neteaseResults.size() + this.neteaseSearchCount - 1) / this.neteaseSearchCount;
+    }
+
+    /** 鼠标点中网易云结果面板的哪一行；没点中返回 -1 */
+    private int neteaseResultRowAt(int mouseX, int mouseY) {
+        if (this.neteaseResults == null || this.neteaseResults.isEmpty() || !neteasePanelActive()) {
+            return -1;
+        }
+        int left = listLeft();
+        int top = neteasePanelTop();
+        for (int row = 0; row < neteaseRowsVisible(); row++) {
+            int y = top + row * ROW_HEIGHT;
+            if (mouseX >= left && mouseX <= left + LIST_WIDTH && mouseY >= y && mouseY <= y + ROW_HEIGHT) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * 结果面板是否正显示。有结果、且网易云搜索框没拿到焦点时才画 ——
+     * 面板压在选歌区上（LIST_TOP 起），如果一直盖着搜索框，玩家就没法再输入新关键词了。
+     */
+    private boolean neteasePanelActive() {
+        if (this.neteaseResults == null || this.neteaseResults.isEmpty()) {
+            return false;
+        }
+        return !(this.neteaseInput != null && this.neteaseInput.isFocused());
+    }
+
+    /** 结果面板顶部：压在选歌区上方，从 LIST_TOP 开始往下排 */
+    private int neteasePanelTop() {
+        return LIST_TOP;
+    }
+
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
         boolean inSearch = this.search != null && this.search.mouseClicked(mouseX, mouseY, mouseButton);
         boolean inBroadcast = this.broadcastInput != null
                 && this.broadcastInput.mouseClicked(mouseX, mouseY, mouseButton);
-        if (inSearch || inBroadcast) {
-            // 两个输入框互斥：点了谁，另一个就失焦，免得键盘输入跑到别的框里
+        boolean inNetease = this.neteaseInput != null
+                && this.neteaseInput.mouseClicked(mouseX, mouseY, mouseButton);
+        if (inSearch || inBroadcast || inNetease) {
+            // 三个输入框互斥：点了谁，另两个就失焦，免得键盘输入跑到别的框里
             this.search.setFocused(inSearch);
             this.broadcastInput.setFocused(inBroadcast);
+            this.neteaseInput.setFocused(inNetease);
             return;
         }
         this.search.setFocused(false);
         this.broadcastInput.setFocused(false);
+        this.neteaseInput.setFocused(false);
         if (mouseButton != 0) {
             return;
+        }
+        // 网易云结果面板：点中一行就选中那首（nmc_<id>）
+        int neteaseRow = neteaseResultRowAt(mouseX, mouseY);
+        if (neteaseRow >= 0) {
+            int index = this.neteasePage * this.neteaseSearchCount + neteaseRow;
+            if (index < this.neteaseResults.size()) {
+                select(this.neteaseResults.get(index).soundName());
+                return;
+            }
         }
         int left = listLeft();
         for (int row = 0; row < this.rows; row++) {
@@ -389,15 +516,19 @@ public class GuiAudioPlayer extends GuiScreen {
         }
         boolean searchFocused = this.search != null && this.search.isFocused();
         boolean broadcastFocused = this.broadcastInput != null && this.broadcastInput.isFocused();
+        boolean neteaseFocused = this.neteaseInput != null && this.neteaseInput.isFocused();
 
-        // Tab 在两个输入框之间来回切
-        if (keyCode == Keyboard.KEY_TAB && (searchFocused || broadcastFocused)) {
+        // Tab 在三个输入框之间来回切
+        if (keyCode == Keyboard.KEY_TAB && (searchFocused || broadcastFocused || neteaseFocused)) {
             if (searchFocused) {
                 this.search.setFocused(false);
                 this.broadcastInput.setFocused(true);
-            } else {
+            } else if (broadcastFocused) {
                 sendBroadcast();
                 this.broadcastInput.setFocused(false);
+                this.neteaseInput.setFocused(true);
+            } else {
+                this.neteaseInput.setFocused(false);
                 this.search.setFocused(true);
             }
             return;
@@ -409,6 +540,11 @@ public class GuiAudioPlayer extends GuiScreen {
                     I18n.format(colorKey(this.broadcastColor)));
             return;
         }
+        // 网易云搜索框里回车 = 直接发起搜索
+        if (neteaseFocused && (keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER)) {
+            startNeteaseSearch();
+            return;
+        }
         // 只有输入框处于焦点时才会吃按键，否则 E 等还是原版行为
         if (searchFocused && this.search.textboxKeyTyped(typedChar, keyCode)) {
             applyFilter();
@@ -418,6 +554,9 @@ public class GuiAudioPlayer extends GuiScreen {
             this.broadcast = Broadcaster.sanitize(this.broadcastInput.getText());
             return;
         }
+        if (neteaseFocused && this.neteaseInput.textboxKeyTyped(typedChar, keyCode)) {
+            return;
+        }
         super.keyTyped(typedChar, keyCode);
     }
 
@@ -425,6 +564,15 @@ public class GuiAudioPlayer extends GuiScreen {
     public void handleMouseInput() throws IOException {
         super.handleMouseInput();
         int wheel = Mouse.getEventDWheel();
+        if (wheel != 0 && neteasePanelActive() && neteasePageCount() > 1) {
+            // 结果面板在显示时，滚轮优先翻网易云结果（它压在选歌区上面）
+            if (wheel > 0) {
+                this.neteasePage = Math.max(0, this.neteasePage - 1);
+            } else {
+                this.neteasePage = Math.min(neteasePageCount() - 1, this.neteasePage + 1);
+            }
+            return;
+        }
         if (wheel != 0 && pageCount() > 1) {
             if (wheel > 0) {
                 this.page = Math.max(0, this.page - 1);
@@ -444,13 +592,25 @@ public class GuiAudioPlayer extends GuiScreen {
         if (this.broadcastInput != null) {
             this.broadcastInput.updateCursorCounter();
         }
+        if (this.neteaseInput != null) {
+            this.neteaseInput.updateCursorCounter();
+        }
     }
 
     private void select(String soundName) {
         PacketHandler.INSTANCE.sendToServer(new PacketSetSound(pos, soundName));
         this.current = soundName;
-        this.status = soundName.isEmpty() ? I18n.format("gui.rsaudio.cleared_hint")
-                : I18n.format("gui.rsaudio.selected", soundName);
+        if (soundName.isEmpty()) {
+            this.status = I18n.format("gui.rsaudio.cleared_hint");
+            return;
+        }
+        if (NeteaseMusic.isNetease(soundName)) {
+            // 网易云歌不在 audio 库里，selected 文案直接用人看得懂的标题，而不是 nmc_<id>
+            this.status = I18n.format("gui.rsaudio.netease.selected",
+                    NeteaseMusic.displayNameOf(soundName));
+            return;
+        }
+        this.status = I18n.format("gui.rsaudio.selected", soundName);
     }
 
     private AudioLibrary.Entry findEntry(String soundName) {
@@ -543,6 +703,48 @@ public class GuiAudioPlayer extends GuiScreen {
                 }
                 String prefix = selected ? "▶ " : "   ";
                 this.fontRenderer.drawStringWithShadow(prefix + entry.displayName, left + 4, textY,
+                        selected ? 0x90FF90 : 0xFFFFFF);
+            }
+        }
+
+        // 网易云在线搜索行：标签 + 输入框 + 搜索按钮（按钮由 super 画）
+        int neTop = this.height - NETEASE_BOTTOM;
+        this.fontRenderer.drawStringWithShadow(I18n.format("gui.rsaudio.netease.label"),
+                left, neTop + 5, 0xE0E0E0);
+        this.neteaseInput.drawTextBox();
+        if (this.neteaseInput.getText().isEmpty() && !this.neteaseInput.isFocused() && !this.neteaseSearching) {
+            this.fontRenderer.drawString(I18n.format("gui.rsaudio.netease.hint"),
+                    left + 4, neTop + 5, 0x808080);
+        }
+
+        // 网易云结果面板：压在选歌区上面（LIST_TOP 起往下排），点中一首即可播放
+        if (neteasePanelActive()) {
+            int panelTop = neteasePanelTop();
+            int panelRows = neteaseRowsVisible();
+            int panelBottom = panelTop + panelRows * ROW_HEIGHT;
+            drawRect(left - 2, panelTop - 2, left + LIST_WIDTH + 2, panelBottom + 2, 0xC0000000);
+            String head = I18n.format("gui.rsaudio.netease.results", this.neteasePage + 1,
+                    neteasePageCount(), this.neteaseResults.size());
+            this.fontRenderer.drawStringWithShadow(head, left + 4, panelTop + 2, 0xFFD070);
+            int first = this.neteasePage * this.neteaseSearchCount;
+            for (int row = 0; row < panelRows; row++) {
+                int index = first + row;
+                if (index >= this.neteaseResults.size()) {
+                    break;
+                }
+                NeteaseMusic.Track track = this.neteaseResults.get(index);
+                int y = panelTop + 14 + row * ROW_HEIGHT;
+                boolean selected = track.soundName().equals(this.current);
+                int rowTop = y - 2;
+                boolean hovered = mouseX >= left && mouseX <= left + LIST_WIDTH
+                        && mouseY >= rowTop && mouseY <= rowTop + ROW_HEIGHT;
+                if (selected) {
+                    drawRect(left, rowTop, left + LIST_WIDTH, rowTop + ROW_HEIGHT, 0x6040A040);
+                } else if (hovered) {
+                    drawRect(left, rowTop, left + LIST_WIDTH, rowTop + ROW_HEIGHT, 0x40FFFFFF);
+                }
+                String prefix = selected ? "▶ " : "   ";
+                this.fontRenderer.drawStringWithShadow(prefix + track.label(), left + 4, y,
                         selected ? 0x90FF90 : 0xFFFFFF);
             }
         }

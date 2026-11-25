@@ -984,6 +984,17 @@ gui.rsaudio.reasim.done=完成
 gui.rsaudio.reasim.off_hint=REASIM 关闭时，这台播放器放出来的就是原样的声音
 gui.rsaudio.reasim.unavailable=这个客户端拿不到声音引擎，REASIM 不可用（详见日志）
 
+# ---- 网易云在线搜索（界面：歌名/歌手输入框 + 搜索按钮，结果面板压在选歌区上） ----
+gui.rsaudio.netease.label=网易云：
+gui.rsaudio.netease.search=搜索
+gui.rsaudio.netease.hint=输入歌名/歌手，在线搜歌（不进本地音频库）
+gui.rsaudio.netease.searching=正在搜索网易云…
+gui.rsaudio.netease.empty_query=请输入搜索关键词
+gui.rsaudio.netease.no_result=网易云没有搜到这首歌（换个关键词，或它需要 VIP/无版权）
+gui.rsaudio.netease.found=网易云搜到 %s 首，点下面列表里的一首即可播放
+gui.rsaudio.netease.results=网易云 · 第 %s/%s 页 · 共 %s 首（滚轮翻页）
+gui.rsaudio.netease.selected=已选择（网易云在线）：%s
+
 
 tile.rsaudio.huang_poster.name=纪念挂画
 tooltip.rsaudio.huang_poster.1=挂在墙上的一幅画，右键翻页，一共十一张。

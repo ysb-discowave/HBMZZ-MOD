@@ -92,7 +92,8 @@ public final class NeteaseMusic {
 
     /** 从 nmc_<id> 里取出歌曲 id；不是网易云音源名或格式坏时返回 0 */
     public static long trackIdOf(String soundName) {
-        if (!isNetease(soundName)) {
+        if (soundName == null || soundName.length() <= PREFIX.length()
+                || !soundName.startsWith(PREFIX)) {
             return 0L;
         }
         try {

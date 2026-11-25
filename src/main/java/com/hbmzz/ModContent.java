@@ -696,7 +696,7 @@ public final class ModContent {
                 new ItemStack(BLOCK_AI_CONTROL_NODE),
                 "CGC",
                 "IEI",
-                "IRIR",
+                "IRI",
                 'C', Items.COMPARATOR,
                 'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
                 'I', Items.IRON_INGOT,

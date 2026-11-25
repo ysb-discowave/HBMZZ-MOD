@@ -412,6 +412,18 @@ public class GuiAudioPlayer extends GuiScreen {
                         status = I18n.format("gui.rsaudio.netease.no_result");
                     } else {
                         status = I18n.format("gui.rsaudio.netease.found", found.size());
+                        // 有结果就释放搜索框焦点：否则 neteasePanelActive() 因"输入框还在聚焦"
+                        // 而不画结果面板，玩家搜完得先点别处才能看到歌——像是"选了没用"。
+                        // 焦点操作必须在渲染线程上做，调度过去。
+                        net.minecraft.client.Minecraft.getMinecraft().addScheduledTask(
+                                new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (GuiAudioPlayer.this.neteaseInput != null) {
+                                            GuiAudioPlayer.this.neteaseInput.setFocused(false);
+                                        }
+                                    }
+                                });
                     }
                 }
             }
@@ -438,9 +450,13 @@ public class GuiAudioPlayer extends GuiScreen {
         }
         int left = listLeft();
         int top = neteasePanelTop();
+        // 必须与绘制坐标（draw 里 rowTop = top + 14 + row*ROW_HEIGHT - 2）严格一致：
+        // 面板第一行是标题，正文从 top+14 起；漏掉这个 14px 偏移会让热区整体偏高，
+        // 点看到的歌名实际命中上一行/标题，造成"选不中、选了没用"。
         for (int row = 0; row < neteaseRowsVisible(); row++) {
-            int y = top + row * ROW_HEIGHT;
-            if (mouseX >= left && mouseX <= left + LIST_WIDTH && mouseY >= y && mouseY <= y + ROW_HEIGHT) {
+            int rowTop = top + 14 + row * ROW_HEIGHT - 2;
+            if (mouseX >= left && mouseX <= left + LIST_WIDTH
+                    && mouseY >= rowTop && mouseY <= rowTop + ROW_HEIGHT) {
                 return row;
             }
         }

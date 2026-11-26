@@ -278,6 +278,19 @@ public class GuiAudioPlayer extends GuiScreen {
     protected void actionPerformed(GuiButton button) throws IOException {
         switch (button.id) {
             case ID_PREVIEW: {
+                if (this.current.isEmpty()) {
+                    this.status = I18n.format("gui.rsaudio.no_selection");
+                    break;
+                }
+                if (NeteaseMusic.isNetease(this.current)) {
+                    // 网易云歌曲不在本地 audio 库里，直接用 nmc_<id> 和标题试听
+                    TileAudioPlayer tile = getTile();
+                    ClientSoundPlayer.preview(this.current,
+                            tile == null ? null : tile.getReasim());
+                    this.status = I18n.format("gui.rsaudio.playing",
+                            NeteaseMusic.displayNameOf(this.current));
+                    break;
+                }
                 AudioLibrary.Entry selected = findEntry(this.current);
                 if (selected != null) {
                     // 试听也走 reasim：不然调完参数在主界面点试听，听到的又是干净的声音，

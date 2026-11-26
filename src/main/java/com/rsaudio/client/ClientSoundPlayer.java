@@ -126,10 +126,9 @@ public class ClientSoundPlayer {
                     return;
                 }
             }
-            if (!loop) {
-                // 拿不到本地文件 / 引擎不可用：直接回报"放完了"，别让方块卡在播放态
-                PacketHandler.INSTANCE.sendToServer(new PacketSoundFinished(pos));
-            }
+            // 拿不到本地文件 / 引擎不可用：无论单次还是循环，都要回报"放完了"，
+            // 否则服务端 playing 永远卡在 true，之后所有红石上升沿都被忽略（方块"没反应"）。
+            PacketHandler.INSTANCE.sendToServer(new PacketSoundFinished(pos));
             return;
         }
         // 直出路线：mp3 / flac 这类 vanilla 引擎根本读不了的格式，由 formats 包解码成 PCM

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "*": {
+      "model": "hbmzz:block/vault_door"
+    }
+  }
+}

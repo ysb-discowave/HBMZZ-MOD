@@ -84,9 +84,20 @@ public class HBMZZ {
         // 潜行时只把点击给空手（或声明 doesSneakBypassUse 的堆），否则直接去用
         // 手里的物品 —— "设置窗口有时候点了没反应"就是这么来的。
         MinecraftForge.EVENT_BUS.register(new com.hbmzz.common.VideoClickHandler());
+        // 金库门不归红石管，只认设施状态；唯一的手动入口是手持木斧右键改「开门条件」，
+        // 所以这里挂一个专门吃木斧右键的事件处理器（WandHandler 对门一概不插手）。
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.vault.VaultAxeHandler.class);
         // DFC 爆炸的判定只做一次，写在服务端；各处的传感器读的是那条记录，
         // 不是各自"看见"的那一 tick —— 见 DfcBlastWatch 的类注释。
         MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcBlastWatch.INSTANCE);
+        // DFC 坍缩是持续状态、没有 Forge 事件，所以这里挂一个独立的服务端 ticker，
+        // 每隔几 tick 扫一遍已加载的 DFC 核心，把「正在坍缩」记进按维度的表里。
+        // 它不受 DFC-TSTX 那条 gamerule 门控，传感器无论规则开没开都在工作。
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.blast.DfcCollapseWatch.INSTANCE);
+        // RBMK 爆炸传感器：同一套「判定在服务端做一次、方块只读记录」。爆炸走
+        // ExplosionEvent.Detonate + 爆点附近查反应堆柱子；跳棒则由 RbmkSurge 在
+        // 状态转换的拐点上显式通知（它没有 Forge 事件）。
+        MinecraftForge.EVENT_BUS.register(com.hbmzz.rbmk.RbmkEventWatch.INSTANCE);
         // The annihilation wave is a server-side ticker; it must be on the bus
         // to advance each tick, and it clears itself on unload/stop.
         MinecraftForge.EVENT_BUS.register(com.hbmzz.alert.NukeAnnihilation.INSTANCE);
@@ -129,6 +140,12 @@ public class HBMZZ {
                 new ResourceLocation(MODID, "alarm_beacon"));
         GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcBlastSensor.class,
                 new ResourceLocation(MODID, "dfc_blast_sensor"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityDfcCollapseSensor.class,
+                new ResourceLocation(MODID, "dfc_collapse_sensor"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityRbmkBlastSensor.class,
+                new ResourceLocation(MODID, "rbmk_blast_sensor"));
+        GameRegistry.registerTileEntity(com.hbmzz.tile.TileEntityRbmkRodJumpSensor.class,
+                new ResourceLocation(MODID, "rbmk_rod_jump_sensor"));
         // HBMZZ reactor core: persists ReactorState through NBT, so it needs a
         // mapping before the block is ever placed or the game dies on place.
         GameRegistry.registerTileEntity(com.hbmzz.reactor.tile.TileEntityReactor.class,
@@ -142,6 +159,10 @@ public class HBMZZ {
         // filler, so the door has exactly one copy of "am I open".
         GameRegistry.registerTileEntity(com.hbmzz.gate.TileEntityTartarusGate.class,
                 new ResourceLocation(MODID, "tartarus_gate"));
+        // The bank vault door. Only the lower-left corner cell has one; the other
+        // twenty-nine are filler, so the door has exactly one copy of "am I open".
+        GameRegistry.registerTileEntity(com.hbmzz.vault.TileEntityVault.class,
+                new ResourceLocation(MODID, "vault_door"));
         // The camera syncs its name/channel/aim through SPacketUpdateTileEntity, so
         // the very first setName() in onBlockPlacedBy calls writeToNBT(). Without a
         // mapping that throws "TileEntityMonitorCamera is missing a mapping!" and the
@@ -234,6 +255,11 @@ public class HBMZZ {
         // 它是普通方法不是 @SubscribeEvent —— FMLServerStoppedEvent 不是 Event 子类，
         // 挂事件总线会让 register 在 preInit 抛异常，整个模组起不来。
         com.hbmzz.blast.DfcBlastWatch.INSTANCE.onServerStopped();
+        // DFC 坍缩记录表同样是内存态、按维度存的，不清会串到下一个存档。
+        // 同样是普通方法不是 @SubscribeEvent，原因见 DfcBlastWatch 那一条注释。
+        com.hbmzz.blast.DfcCollapseWatch.INSTANCE.onServerStopped();
+        // RBMK 爆炸/跳棒记录同样是内存态、按维度存的，不清会串到下一个存档。
+        com.hbmzz.rbmk.RbmkEventWatch.INSTANCE.onServerStopped();
         // An in-flight annihilation wave must not survive into the next save.
         com.hbmzz.alert.NukeAnnihilation.INSTANCE.onServerStopped();
         // AI node HTTP worker: stop it so a pending request cannot call back

@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "hbmzz:blocks/dfc_collapse_sensor_side",
+    "down": "hbmzz:blocks/dfc_collapse_sensor_side",
+    "up": "hbmzz:blocks/dfc_collapse_sensor_side",
+    "north": "hbmzz:blocks/dfc_collapse_sensor_side",
+    "south": "hbmzz:blocks/dfc_collapse_sensor_front",
+    "east": "hbmzz:blocks/dfc_collapse_sensor_side",
+    "west": "hbmzz:blocks/dfc_collapse_sensor_side"
+  }
+}

@@ -93,6 +93,10 @@ public class ClientProxy extends CommonProxy {
                 com.hbmzz.tile.TileEntityAlarmBeacon.class, new RenderAlarmBeacon());
         ClientRegistry.bindTileEntitySpecialRenderer(com.hbmzz.cecp.tile.TileEntityCtrlConsole.class,
                 new com.hbmzz.cecp.client.RenderCtrlConsole());
+        // 银行金库门：整扇门的钢框 / 门扇 / 旋钮 / 状态铭牌都由角落格子的 TESR
+        // 画出来（门扇要平滑摆动，方块模型做不到），填充格不画任何东西。
+        ClientRegistry.bindTileEntitySpecialRenderer(
+                com.hbmzz.vault.TileEntityVault.class, new com.hbmzz.vault.RenderVault());
         // The panel that was knocked off its mount: an entity, because blocks
         // are gone and a block cannot swing on a cable.
         net.minecraftforge.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
@@ -158,6 +162,13 @@ public class ClientProxy extends CommonProxy {
         // 事故之后的第一块砖：DFC 一炸就输出红石。它自己也必须有模型位置，
         // 否则玩家放下之前根本认不出这是哪块砖。
         list.add(loc("dfc_blast_sensor"));
+        // DFC 坍缩传感器：认的是「正在坍缩」这段持续状态，必须有模型位置，
+        // 否则物品栏里先是一排紫黑块。
+        list.add(loc("dfc_collapse_sensor"));
+        // RBMK 两个传感器：爆炸传感器和跳棒传感器。它们同样必须有模型位置，
+        // 否则物品栏里先是一排紫黑块。
+        list.add(loc("rbmk_blast_sensor"));
+        list.add(loc("rbmk_rod_jump_sensor"));
         // 四种红石门。它们同样必须在表里，否则物品栏里先是一排紫黑块。
         list.add(loc("and_gate"));
         list.add(loc("or_gate"));
@@ -187,6 +198,8 @@ public class ClientProxy extends CommonProxy {
         list.add(loc("aegis_linker"));
         // AI control node
         list.add(loc("ai_control_node"));
+        // 银行金库门：和塔塔鲁斯门一样必须有模型位置，否则物品栏里先是一排紫黑块。
+        list.add(loc("vault_door"));
         return list;
     }
 
@@ -218,6 +231,9 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_HACKER_TABLET);
         list.add(ModContent.ITEM_AI_TERMINAL);
         list.add(ModContent.ITEM_BLOCK_DFC_BLAST_SENSOR);
+        list.add(ModContent.ITEM_BLOCK_DFC_COLLAPSE_SENSOR);
+        list.add(ModContent.ITEM_BLOCK_RBMK_BLAST_SENSOR);
+        list.add(ModContent.ITEM_BLOCK_RBMK_ROD_JUMP_SENSOR);
         list.add(ModContent.ITEM_BLOCK_AND_GATE);
         list.add(ModContent.ITEM_BLOCK_OR_GATE);
         list.add(ModContent.ITEM_BLOCK_XOR_GATE);
@@ -235,6 +251,7 @@ public class ClientProxy extends CommonProxy {
         list.add(ModContent.ITEM_BLOCK_AEGIS_CELL);
         list.add(ModContent.ITEM_AEGIS_LINKER);
         list.add(ModContent.ITEM_BLOCK_AI_CONTROL_NODE);
+        list.add(ModContent.ITEM_BLOCK_VAULT_DOOR);
         return list;
     }
 
@@ -253,8 +270,8 @@ public class ClientProxy extends CommonProxy {
             0, 1, 2,
             //  control_panel  console  video  screen  remote  nuke  controller  nuke_monitor  code  alert  tablet  ai_terminal
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            //  dfc_blast_sensor
-            0,
+            //  dfc_blast_sensor  dfc_collapse_sensor  rbmk_blast_sensor  rbmk_rod_jump_sensor
+            0, 0, 0, 0,
             //  and_gate  or_gate  xor_gate  not_gate
             0, 0, 0, 0,
             //  tartarus_gate
@@ -268,6 +285,8 @@ public class ClientProxy extends CommonProxy {
             //  aegis_terminal  aegis_cell  aegis_linker
             0, 0, 0,
             //  ai_control_node
+            0,
+            //  vault_door
             0
     };
 

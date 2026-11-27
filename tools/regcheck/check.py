@@ -39,7 +39,7 @@ AUDITED = os.path.join(SRC, "com/hbmzz")
 # Blocks that deliberately never get an item: the wall screen's filler part is
 # placed by the monitor itself, and handing players one would only produce
 # orphan blocks that break on the first tick.
-ITEMLESS_BLOCKS = {"BLOCK_MONITOR_PART", "BLOCK_GATE_PART"}
+ITEMLESS_BLOCKS = {"BLOCK_MONITOR_PART", "BLOCK_GATE_PART", "BLOCK_VAULT_PART"}
 
 # Tile entities that legitimately live outside GameRegistry.
 TE_EXEMPT = set()

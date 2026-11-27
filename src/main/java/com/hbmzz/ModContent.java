@@ -99,6 +99,12 @@ public final class ModContent {
     public static final Block BLOCK_ALERT_DISPLAY = new com.hbmzz.block.BlockAlertDisplay();
     /** Redstone out while a DFC blast is running out of time. Detection lives in DfcBlastWatch. */
     public static final Block BLOCK_DFC_BLAST_SENSOR = new com.hbmzz.blast.BlockDfcBlastSensor();
+    /** Full power for as long as any DFC core is collapsing; drops out at the detonation. */
+    public static final Block BLOCK_DFC_COLLAPSE_SENSOR = new com.hbmzz.blast.BlockDfcCollapseSensor();
+    /** Redstone out on an RBMK nuclear blast. Detection lives in RbmkEventWatch. */
+    public static final Block BLOCK_RBMK_BLAST_SENSOR = new com.hbmzz.rbmk.BlockRbmkBlastSensor();
+    /** Full power for as long as an RBMK is jumping its rods; drops out at the meltdown. */
+    public static final Block BLOCK_RBMK_ROD_JUMP_SENSOR = new com.hbmzz.rbmk.BlockRbmkRodJumpSensor();
     /**
      * Self-contained HBMZZ reactor core. Uses the control-panel model and
      * textures - no new art, so it can never arrive purple-and-black.
@@ -124,6 +130,9 @@ public final class ModContent {
     public static final Item ITEM_BLOCK_CODE_BROADCASTER = new ItemBlock(BLOCK_CODE_BROADCASTER);
     public static final Item ITEM_BLOCK_ALERT_DISPLAY = new ItemBlock(BLOCK_ALERT_DISPLAY);
     public static final Item ITEM_BLOCK_DFC_BLAST_SENSOR = new ItemBlock(BLOCK_DFC_BLAST_SENSOR);
+    public static final Item ITEM_BLOCK_DFC_COLLAPSE_SENSOR = new ItemBlock(BLOCK_DFC_COLLAPSE_SENSOR);
+    public static final Item ITEM_BLOCK_RBMK_BLAST_SENSOR = new ItemBlock(BLOCK_RBMK_BLAST_SENSOR);
+    public static final Item ITEM_BLOCK_RBMK_ROD_JUMP_SENSOR = new ItemBlock(BLOCK_RBMK_ROD_JUMP_SENSOR);
     public static final Item ITEM_BLOCK_REACTOR = new ItemBlock(BLOCK_REACTOR);
     public static final Item ITEM_BLOCK_STATUS_LAMP = new ItemBlock(BLOCK_STATUS_LAMP);
     public static final Item ITEM_BLOCK_ALARM_BEACON = new ItemBlock(BLOCK_ALARM_BEACON);
@@ -176,6 +185,10 @@ public final class ModContent {
     public static final Block BLOCK_GATE_PART = new com.hbmzz.gate.BlockGatePart();
     public static final Item ITEM_BLOCK_TARTARUS_GATE =
             new com.hbmzz.item.ItemBlockTartarusGate(BLOCK_TARTARUS_GATE);
+    public static final Block BLOCK_VAULT_DOOR = new com.hbmzz.vault.BlockVault();
+    public static final Block BLOCK_VAULT_PART = new com.hbmzz.vault.BlockVaultPart();
+    public static final Item ITEM_BLOCK_VAULT_DOOR =
+            new com.hbmzz.vault.ItemBlockVault(BLOCK_VAULT_DOOR);
 
     public static final Item ITEM_SPEED_COIL = new ItemCoil(ItemCoil.CoilType.SPEED);
     public static final Item ITEM_JUMP_COIL = new ItemCoil(ItemCoil.CoilType.JUMP);
@@ -207,6 +220,9 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_CODE_BROADCASTER);
         event.getRegistry().register(BLOCK_ALERT_DISPLAY);
         event.getRegistry().register(BLOCK_DFC_BLAST_SENSOR);
+        event.getRegistry().register(BLOCK_DFC_COLLAPSE_SENSOR);
+        event.getRegistry().register(BLOCK_RBMK_BLAST_SENSOR);
+        event.getRegistry().register(BLOCK_RBMK_ROD_JUMP_SENSOR);
         event.getRegistry().register(BLOCK_REACTOR);
         event.getRegistry().register(BLOCK_STATUS_LAMP);
         event.getRegistry().register(BLOCK_ALARM_BEACON);
@@ -222,6 +238,8 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_AI_CONTROL_NODE);
         event.getRegistry().register(BLOCK_TARTARUS_GATE);
         event.getRegistry().register(BLOCK_GATE_PART);
+        event.getRegistry().register(BLOCK_VAULT_DOOR);
+        event.getRegistry().register(BLOCK_VAULT_PART);
     }
 
     @SubscribeEvent
@@ -255,6 +273,12 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_ALERT_DISPLAY);
         ITEM_BLOCK_DFC_BLAST_SENSOR.setRegistryName(BLOCK_DFC_BLAST_SENSOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_DFC_BLAST_SENSOR);
+        ITEM_BLOCK_DFC_COLLAPSE_SENSOR.setRegistryName(BLOCK_DFC_COLLAPSE_SENSOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_DFC_COLLAPSE_SENSOR);
+        ITEM_BLOCK_RBMK_BLAST_SENSOR.setRegistryName(BLOCK_RBMK_BLAST_SENSOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_RBMK_BLAST_SENSOR);
+        ITEM_BLOCK_RBMK_ROD_JUMP_SENSOR.setRegistryName(BLOCK_RBMK_ROD_JUMP_SENSOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_RBMK_ROD_JUMP_SENSOR);
         ITEM_BLOCK_REACTOR.setRegistryName(BLOCK_REACTOR.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_REACTOR);
         ITEM_BLOCK_STATUS_LAMP.setRegistryName(BLOCK_STATUS_LAMP.getRegistryName());
@@ -283,6 +307,8 @@ public final class ModContent {
         event.getRegistry().register(ITEM_BLOCK_AI_CONTROL_NODE);
         ITEM_BLOCK_TARTARUS_GATE.setRegistryName(BLOCK_TARTARUS_GATE.getRegistryName());
         event.getRegistry().register(ITEM_BLOCK_TARTARUS_GATE);
+        ITEM_BLOCK_VAULT_DOOR.setRegistryName(BLOCK_VAULT_DOOR.getRegistryName());
+        event.getRegistry().register(ITEM_BLOCK_VAULT_DOOR);
         event.getRegistry().register(ITEM_LINKER);
         event.getRegistry().register(ITEM_VIDEO_REMOTE);
         event.getRegistry().register(ITEM_HACKER_TABLET);
@@ -577,6 +603,47 @@ public final class ModContent {
                 'R', Items.REDSTONE
         ).setRegistryName(HBMZZ.MODID, "dfc_blast_sensor"));
 
+        // DFC 坍缩传感器：认的是「正在坍缩」这段持续状态，所以配方把玻璃镜头夹在
+        // 两列石英中间（「持续监视」的意象），红石只出现在正中央一格。网格与 DFC
+        // 爆炸传感器不同（顶/底用 Q 而非 I），避免撞上 regcheck 第 61 条。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "dfc_collapse_sensor"),
+                new ItemStack(BLOCK_DFC_COLLAPSE_SENSOR),
+                "QIQ",
+                "RIR",
+                "QIQ",
+                'I', Items.IRON_INGOT,
+                'Q', Items.QUARTZ,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "dfc_collapse_sensor"));
+
+        // RBMK 爆炸传感器：认的是反应堆柱子上的核爆，所以配方里用石英（稳定、瞬时
+        // 读数）+ 玻璃镜头 + 红石心。网格与 DFC 不同，避免撞上 regcheck 第 61 条。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "rbmk_blast_sensor"),
+                new ItemStack(BLOCK_RBMK_BLAST_SENSOR),
+                " R ",
+                "IQI",
+                "III",
+                'I', Items.IRON_INGOT,
+                'Q', Items.QUARTZ,
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "rbmk_blast_sensor"));
+
+        // RBMK 跳棒传感器：认的是控制棒反复跳的持续状态，配方用两根红石夹玻璃
+        // （「在跳」是持续的量），网格再错开一格。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "rbmk_rod_jump_sensor"),
+                new ItemStack(BLOCK_RBMK_ROD_JUMP_SENSOR),
+                "III",
+                "RGR",
+                " Q ",
+                'I', Items.IRON_INGOT,
+                'Q', Items.QUARTZ,
+                'G', Item.getItemFromBlock(Blocks.GLASS_PANE),
+                'R', Items.REDSTONE
+        ).setRegistryName(HBMZZ.MODID, "rbmk_rod_jump_sensor"));
+
         // 四个门：外壳一样（铁），区别只在运算符那一层用什么材料。
         // 四张字符画第三行各不相同，免得撞上 regcheck 第 61 条「有序配方不许重样」。
         event.getRegistry().register(new ShapedOreRecipe(
@@ -716,6 +783,20 @@ public final class ModContent {
                 'O', Blocks.OBSIDIAN,
                 'R', Blocks.REDSTONE_BLOCK
         ).setRegistryName(HBMZZ.MODID, "tartarus_gate"));
+
+        // 银行金库门：黑曜石门框、铁门板。它认设施代码而不是红石（见
+        // TileEntityVault），配方只是凑材料。第三行 ORO 与任何已有配方都不同
+        // （regcheck 第 61 条）。
+        event.getRegistry().register(new ShapedOreRecipe(
+                new ResourceLocation(HBMZZ.MODID, "vault_door"),
+                new ItemStack(BLOCK_VAULT_DOOR),
+                "OIO",
+                "IRI",
+                "ORO",
+                'I', Blocks.IRON_BLOCK,
+                'O', Blocks.OBSIDIAN,
+                'R', Blocks.REDSTONE_BLOCK
+        ).setRegistryName(HBMZZ.MODID, "vault_door"));
 
         event.getRegistry().register(new ShapedOreRecipe(
                 new ResourceLocation(HBMZZ.MODID, "monitor_camera"),

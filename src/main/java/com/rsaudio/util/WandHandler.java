@@ -143,6 +143,15 @@ public final class WandHandler {
         if (!isWand(player)) {
             return;
         }
+        // ★ 金库门（门 + 门板）不归魔杖管：左键木斧挖门是正常行为（它和塔塔鲁斯
+        //   门一样是铁做的，拿斧子就该能拆），所以这里不拦、不选角，交给原版去破坏。
+        if (event.getPos() != null && event.getWorld() != null) {
+            Block block = event.getWorld().getBlockState(event.getPos()).getBlock();
+            if (block instanceof com.hbmzz.vault.BlockVault
+                    || block instanceof com.hbmzz.vault.BlockVaultPart) {
+                return;
+            }
+        }
         // ★ 拦下这次左键，不然就是把方块挖掉了
         event.setUseBlock(Event.Result.DENY);
         event.setUseItem(Event.Result.DENY);
@@ -172,6 +181,14 @@ public final class WandHandler {
         }
         BlockPos pos = event.getPos();
         Block block = player.world.getBlockState(pos).getBlock();
+
+        // ★★★ 金库门（门 + 门板）不归魔杖管：它的木斧右键语义是"改开门条件"，
+        //   全在 {@code VaultAxeHandler} 里。这里早退（不 cancel、不 deny、不选角），
+        //   否则"选第二个角"会把那次右键吃掉，玩家拿斧子按门毫无反应。
+        if (block instanceof com.hbmzz.vault.BlockVault
+                || block instanceof com.hbmzz.vault.BlockVaultPart) {
+            return;
+        }
 
         // ★★★ 防核门（控制器 + 门板）的右键语义<b>全在方块里</b>（见 {@code BlockBlastDoor#onBlockActivated}）：
         //   不潜行 = 开 / 关门，潜行 = 设置界面。魔杖两样都不碰

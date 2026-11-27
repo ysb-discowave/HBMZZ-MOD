@@ -259,6 +259,9 @@ public final class RbmkSurge {
                         if (!this.columns.isEmpty()) {
                             com.hbmzz.cinematic.CinematicDirector.watchRbmk(
                                     world, this.columns.get(0), RbmkParts.columnHeight(world));
+                            // 跳棒传感器：从这一刻起该维度有反应堆在跳棒，开始输出
+                            // 满格红石，直到封顶。拐点只在这里报一次。
+                            RbmkEventWatch.onRodJumpStart(world, this.columns.get(0));
                         }
                     }
                     break;
@@ -271,6 +274,10 @@ public final class RbmkSurge {
                     }
                     if (RbmkTiming.launchDue(this.elapsed, HBMZZConfig.rbmkSurgeTicks)) {
                         this.phase = RbmkTiming.Phase.SPENT;
+                        // 跳棒传感器：反应堆封顶、控制棒停跳了，信号在这一 tick 归零。
+                        // 先于 launch 记录，这样跳棒「结束」和爆炸「发生」落在同一 tick，
+                        // 传感器在爆炸包络开始的同时停掉跳棒输出。
+                        RbmkEventWatch.onRodJumpEnd(world);
                         launch(world);
                         // Hand the camera back at the blast, so the player sees
                         // the explosion with their own eyes rather than through
@@ -448,6 +455,9 @@ public final class RbmkSurge {
                 double ey = any.getY() + height + 1.0D;
                 double ez = any.getZ() + 0.5D;
                 RbmkEffects.nuclear(world, ex, ey, ez, HBMZZConfig.rbmkSurgePower, true);
+                // 蒸汽爆炸传感器：没有顶盖可拆、直接炸核心，起爆点在这。显式上报，
+                // 不靠爆点找柱子的距离判定（顶盖起爆点在反应堆上方，离柱底常超 coreRange）。
+                RbmkEventWatch.onBlast(world, ex, ey, ez, "RBMK 蒸汽爆炸（无顶盖，直接起爆核心）");
                 RbmkEffects.dustRing(world, ex, ey, ez, HBMZZConfig.rbmkSurgePower * 1.6D);
                 shake(world, ex, ey, ez, 7.0F, 160.0F, 45, true);
                 report(world, "no removable lids on this reactor; blew the core instead (" + this.columns.size() + " columns)");
@@ -479,6 +489,9 @@ public final class RbmkSurge {
             PLATES.put(Integer.valueOf(plate.getEntityId()), this);
 
             RbmkEffects.nuclear(world, centreX, plateY, centreZ, HBMZZConfig.rbmkSurgePower, true);
+            // 蒸汽爆炸传感器：掀盖起爆的瞬间显式上报。起爆点在反应堆顶部 plateY，
+            // 离柱子的垂直距离常超 coreRange，靠「爆点找柱子」会漏判。
+            RbmkEventWatch.onBlast(world, centreX, plateY, centreZ, "RBMK 蒸汽爆炸（掀盖起爆）");
             RbmkEffects.dustRing(world, centreX, plateY, centreZ, HBMZZConfig.rbmkSurgePower * 1.8D);
             RbmkEffects.steam(world, centreX, plateY, centreZ, Math.max(2.0D, (maxX - minX + 1) * 0.5D), 40, 0.42D);
             world.playSound(null, new BlockPos(centreX, plateY, centreZ),

@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "active=false,facing=south": {
+      "model": "hbmzz:rbmk_rod_jump_sensor"
+    },
+    "active=false,facing=north": {
+      "model": "hbmzz:rbmk_rod_jump_sensor",
+      "y": 180
+    },
+    "active=false,facing=east": {
+      "model": "hbmzz:rbmk_rod_jump_sensor",
+      "y": 270
+    },
+    "active=false,facing=west": {
+      "model": "hbmzz:rbmk_rod_jump_sensor",
+      "y": 90
+    },
+    "active=true,facing=south": {
+      "model": "hbmzz:rbmk_rod_jump_sensor_on"
+    },
+    "active=true,facing=north": {
+      "model": "hbmzz:rbmk_rod_jump_sensor_on",
+      "y": 180
+    },
+    "active=true,facing=east": {
+      "model": "hbmzz:rbmk_rod_jump_sensor_on",
+      "y": 270
+    },
+    "active=true,facing=west": {
+      "model": "hbmzz:rbmk_rod_jump_sensor_on",
+      "y": 90
+    }
+  }
+}

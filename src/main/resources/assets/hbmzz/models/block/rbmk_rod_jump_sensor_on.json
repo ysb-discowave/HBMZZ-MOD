@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "hbmzz:blocks/rbmk_rod_jump_sensor_side",
+    "down": "hbmzz:blocks/rbmk_rod_jump_sensor_side",
+    "up": "hbmzz:blocks/rbmk_rod_jump_sensor_side",
+    "north": "hbmzz:blocks/rbmk_rod_jump_sensor_side",
+    "south": "hbmzz:blocks/rbmk_rod_jump_sensor_front_on",
+    "east": "hbmzz:blocks/rbmk_rod_jump_sensor_side",
+    "west": "hbmzz:blocks/rbmk_rod_jump_sensor_side"
+  }
+}

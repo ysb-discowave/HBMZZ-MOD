@@ -153,6 +153,42 @@ public final class HBMZZConfig {
     /** Peak redstone strength, 1..15. */
     public static int dfcSensorStrength = 15;
 
+    // ---- DFC collapse sensor ----
+    /**
+     * Master switch for the collapse sensor block. Off means it never scans for
+     * collapsing cores and never emits. Collapse is a continuing state, not a
+     * one-shot event, so this block stays at full power for the whole countdown.
+     */
+    public static boolean dfcCollapseSensorEnabled = true;
+    /**
+     * How far a sensor still answers a collapsing core, in blocks (same dimension).
+     * 0 = unlimited. There is no decay here: it is on while any core in range is
+     * collapsing, off the instant the last one detonates.
+     */
+    public static int dfcCollapseSensorRange = 512;
+    /** Peak redstone strength, 1..15. 15 is the requested "full redstone" signal. */
+    public static int dfcCollapseSensorStrength = 15;
+    /**
+     * Ticks between scans of the loaded tile entities for collapsing cores. A DFC
+     * meltdown takes tens of seconds to run out, so scanning every ten ticks is far
+     * more than enough to catch the start and the end without paying for it every tick.
+     */
+    public static int dfcCollapseSensorScanTicks = 10;
+
+    // ---- RBMK sensors (blast + rod jump) ----
+    /** Master switch shared by the RBMK blast and rod-jump sensor blocks. */
+    public static boolean rbmkSensorEnabled = true;
+    /** How far a sensor still answers an event, in blocks (same dimension). 0 = unlimited. */
+    public static int rbmkSensorRange = 512;
+    /** Radius searched for a reactor column to decide a blast is an RBMK blast. */
+    public static int rbmkSensorCoreRange = 12;
+    /** Ticks the signal stays at full strength before it starts stepping down. */
+    public static int rbmkSensorHoldTicks = 100;
+    /** Ticks the signal spends stepping from full down to 1, then it goes out. */
+    public static int rbmkSensorDecayTicks = 200;
+    /** Peak redstone strength, 1..15. */
+    public static int rbmkSensorStrength = 15;
+
     // ---- DFC auto shutdown ----
     /**
      * Master switch for the whole auto-shutdown procedure. Off leaves the
@@ -347,6 +383,26 @@ public final class HBMZZConfig {
                     "Ticks spent stepping the signal down from full to 1 before it goes out. 0 switches off the decay and drops it straight to zero after the hold.");
             dfcSensorStrength = cfg.getInt("strength", "dfcSensor", 15, 1, 15,
                     "Peak redstone strength. 15 is full power; anything lower makes the sensor unable to drive long wire runs directly.");
+            dfcCollapseSensorEnabled = cfg.getBoolean("enabled", "dfcCollapseSensor", true,
+                    "The DFC collapse sensor block. Unlike the blast sensor it tracks a continuing state: it stays at full power for the whole meltdown countdown and drops out the moment the core detonates.");
+            dfcCollapseSensorRange = cfg.getInt("range", "dfcCollapseSensor", 512, 0, 4096,
+                    "How far a sensor still answers a collapsing core, in blocks, within the same dimension. 0 = unlimited. The scan is done once on the server, so this only decides who is close enough to react.");
+            dfcCollapseSensorStrength = cfg.getInt("strength", "dfcCollapseSensor", 15, 1, 15,
+                    "Peak redstone strength while a core is collapsing. 15 is full power.");
+            dfcCollapseSensorScanTicks = cfg.getInt("scanTicks", "dfcCollapseSensor", 10, 1, 400,
+                    "Ticks between scans for collapsing cores. A DFC meltdown runs for tens of seconds, so ten is plenty to catch the start and the end.");
+            rbmkSensorEnabled = cfg.getBoolean("enabled", "rbmkSensor", true,
+                    "The RBMK blast and rod-jump sensor blocks. Off means they never see an event and never emit.");
+            rbmkSensorRange = cfg.getInt("range", "rbmkSensor", 512, 0, 4096,
+                    "How far a sensor still answers an RBMK event, in blocks, within the same dimension. 0 = unlimited. The event is recorded once on the server, so this only decides who is close enough to react.");
+            rbmkSensorCoreRange = cfg.getInt("coreRange", "rbmkSensor", 12, 1, 64,
+                    "Radius searched for a reactor column to decide that a blast is an RBMK blast. A blast only counts when it happened on top of a column.");
+            rbmkSensorHoldTicks = cfg.getInt("holdTicks", "rbmkSensor", 100, 0, 2400,
+                    "Ticks the signal stays at full strength. 100 = 5 s.");
+            rbmkSensorDecayTicks = cfg.getInt("decayTicks", "rbmkSensor", 200, 0, 2400,
+                    "Ticks spent stepping the signal down from full to 1 before it goes out. 0 drops it straight to zero after the hold.");
+            rbmkSensorStrength = cfg.getInt("strength", "rbmkSensor", 15, 1, 15,
+                    "Peak redstone strength. 15 is full power.");
             dfcShutdownEnabled = cfg.getBoolean("enabled", "dfcShutdown", true,
                     "The DFC auto-shutdown procedure. Off makes the monitor toggle inert: no effects, no cooling.");
             dfcShutdownRetractSeconds = cfg.getInt("retractSeconds", "dfcShutdown", 60, 5, 600,

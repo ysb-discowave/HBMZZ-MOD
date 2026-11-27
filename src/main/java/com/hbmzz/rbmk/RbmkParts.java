@@ -75,6 +75,13 @@ final class RbmkParts {
     private static Method methodColumnHeight;
     private static Method methodHasOwnLid;
 
+    /** Native debris entity, so the blast throws the mod's own fuel chunks. */
+    private static Class<?> debrisClass;
+    private static Class<?> debrisTypeClass;
+    private static Object debrisFuel;
+    private static Method methodSpawnDebris;
+    private static java.lang.reflect.Constructor<?> debrisCtor;
+
     private RbmkParts() {
     }
 
@@ -263,6 +270,73 @@ final class RbmkParts {
         invoke(methodMeltdown, column);
     }
 
+    /**
+     * True for any block in the base mod's RBMK block family.
+     *
+     * <p>Matched by package rather than by {@code RBMKBase.isInstance}: the
+     * boilers and heaters sit under {@code RBMKPipedBase}, a different branch
+     * of the same tree, so an instanceof check against the wrong branch would
+     * quietly skip half a reactor's body. The package name catches every one
+     * of them without caring how the hierarchy is arranged.</p>
+     */
+    static boolean isRbmkBlock(Block block) {
+        return block != null && block.getClass().getName().startsWith("com.hbm.blocks.machine.rbmk.");
+    }
+
+    /**
+     * Throws a handful of the base mod's own fuel chunks out of a live column.
+     *
+     * <p>Called while the column still has its tile entity, because the base
+     * mod's {@code spawnDebris} reads the column's own position - and that
+     * includes the velocity it already knows how to give a chunk.</p>
+     */
+    static void spawnReactorDebris(Object column, int count) {
+        resolve();
+        if (methodSpawnDebris == null || debrisFuel == null || column == null) {
+            return;
+        }
+        for (int i = 0; i < count; i++) {
+            try {
+                methodSpawnDebris.invoke(column, debrisFuel);
+            } catch (Throwable ignored) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * The same fuel chunks from a bare position.
+     *
+     * <p>The two landing blasts run after the columns are already rubble, so
+     * there is no tile entity left to ask for a spawn. This builds the base
+     * mod's debris entity directly and gives it a lob; if the class or the
+     * {@code FUEL} constant is missing it simply does nothing.</p>
+     */
+    static void spawnFuelAt(World world, double x, double y, double z, int count) {
+        resolve();
+        if (world == null || world.isRemote || debrisCtor == null || debrisFuel == null) {
+            return;
+        }
+        for (int i = 0; i < count; i++) {
+            try {
+                Object made = debrisCtor.newInstance(world,
+                        x + (world.rand.nextDouble() - 0.5D) * 4.0D,
+                        y + world.rand.nextDouble() * 2.0D,
+                        z + (world.rand.nextDouble() - 0.5D) * 4.0D,
+                        debrisFuel);
+                if (made instanceof net.minecraft.entity.Entity) {
+                    net.minecraft.entity.Entity entity = (net.minecraft.entity.Entity) made;
+                    entity.motionX = (world.rand.nextDouble() - 0.5D) * 1.8D;
+                    entity.motionY = 0.7D + world.rand.nextDouble() * 1.4D;
+                    entity.motionZ = (world.rand.nextDouble() - 0.5D) * 1.8D;
+                    world.spawnEntity(entity);
+                }
+            } catch (Throwable ignored) {
+                return;
+            }
+        }
+    }
+
     // ================================================================= reading
 
     private static void resolve() {
@@ -292,6 +366,31 @@ final class RbmkParts {
         }
         if (dialsClass != null) {
             methodColumnHeight = method(dialsClass, "getColumnHeight", World.class);
+        }
+        // Native debris. The spawnDebris method is protected on the base class,
+        // so it needs getDeclaredMethod + setAccessible rather than getMethod.
+        debrisClass = load("com.hbm.entity.projectile.EntityRBMKDebris");
+        debrisTypeClass = load("com.hbm.entity.projectile.EntityRBMKDebris$DebrisType");
+        if (baseClass != null && debrisTypeClass != null) {
+            try {
+                methodSpawnDebris = baseClass.getDeclaredMethod("spawnDebris", debrisTypeClass);
+                methodSpawnDebris.setAccessible(true);
+            } catch (Throwable ignored) {
+                methodSpawnDebris = null;
+            }
+        }
+        if (debrisClass != null && debrisTypeClass != null) {
+            try {
+                debrisFuel = debrisTypeClass.getField("FUEL").get(null);
+            } catch (Throwable ignored) {
+                debrisFuel = null;
+            }
+            try {
+                debrisCtor = debrisClass.getConstructor(
+                        World.class, double.class, double.class, double.class, debrisTypeClass);
+            } catch (Throwable ignored) {
+                debrisCtor = null;
+            }
         }
     }
 

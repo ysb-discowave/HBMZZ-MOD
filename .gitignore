@@ -18,6 +18,8 @@ tools/video/*/.build/
 
 # 本机部署目标（tools/deploy.py 读，别人的机器路径不同，不进仓库）
 deploy.local.json
+# 本地路径备忘（项目目录 / 游戏实例 / 编译 JDK），同样是机器相关的，不进仓库
+MEMORY.local.md
 
 # 检查脚本跑出来的字节码缓存（tools/*/__pycache__）
 __pycache__/

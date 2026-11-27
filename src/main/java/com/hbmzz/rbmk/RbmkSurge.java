@@ -454,6 +454,8 @@ public final class RbmkSurge {
                 double ex = any.getX() + 0.5D;
                 double ey = any.getY() + height + 1.0D;
                 double ez = any.getZ() + 0.5D;
+                // 本体先变残骸，再起爆：否则这一炸把本体轰成空气，事后什么也不剩。
+                wreckBody(world);
                 RbmkEffects.nuclear(world, ex, ey, ez, HBMZZConfig.rbmkSurgePower, true);
                 // 蒸汽爆炸传感器：没有顶盖可拆、直接炸核心，起爆点在这。显式上报，
                 // 不靠爆点找柱子的距离判定（顶盖起爆点在反应堆上方，离柱底常超 coreRange）。
@@ -479,6 +481,11 @@ public final class RbmkSurge {
                 clearLid(world, pos);
             }
 
+            // 掀盖的这一刻就把本体换成残骸：顶盖还在天上飞，底下已经是一堆
+            // 抗爆的废墟。这样第二次落地时顶盖砸的是残骸，而不是一个被核爆
+            // 轰空的坑；燃料碎块也在这里趁柱子还活着从柱子上甩出去。
+            wreckBody(world);
+
             String layout = RbmkLayout.encode(packed, textures);
             // +1.0: the plate is the top face of the column, and an entity's
             // origin is its feet, so spawning at the block's Y would bury the
@@ -498,6 +505,71 @@ public final class RbmkSurge {
                     SoundEvents.ENTITY_ENDERDRAGON_FIREBALL_EPLD, SoundCategory.BLOCKS, 6.0F, 0.6F);
             shake(world, centreX, plateY, centreZ, 9.0F, 220.0F, 60, true);
             report(world, "lid away: " + packed.size() + " of " + this.columns.size() + " columns");
+        }
+
+        /**
+         * 把这一整座反应堆的本体换成残骸方块，并趁柱子还活着甩出燃料碎块。
+         *
+         * <p>只换本体：每根柱子从核心往上 {@link RbmkParts#columnHeight} 格
+         * （含顶部那块盖板位），而且只换基础模组 RBMK 家族的方块——地板、
+         * 墙、拉进来的管线都原样留着。换出来的残骸是黑曜石级抗爆，会挡住
+         * 之后两次落地核爆，所以顶盖最终是压在残骸上的，而不是砸进一个被
+         * 轰空的坑。{@code rbmkSurgeMelt} 关掉时整段跳过，反应堆保持原样。</p>
+         */
+        private void wreckBody(World world) {
+            if (!HBMZZConfig.rbmkSurgeMelt) {
+                return;
+            }
+            int height = RbmkParts.columnHeight(world);
+            // 一根巨堆也不会到几百格，但留个上限防病态情形拖垮一 tick。
+            int cap = 800;
+            int converted = 0;
+            // 燃料碎块是一次性的视觉，给总量封顶，别让一座九格见方的巨堆
+            // 一口气甩出几百个实体。
+            int fuelBudget = 48;
+            for (BlockPos core : this.columns) {
+                if (converted >= cap) {
+                    break;
+                }
+                if (!world.isBlockLoaded(core)) {
+                    continue;
+                }
+                // 燃料碎块趁柱子还带方块实体时甩：基础模组的 spawnDebris 读的是
+                // 柱子自己的坐标，也会自己给碎块一个初速度。
+                TileEntity te = world.getTileEntity(core);
+                if (RbmkParts.isColumn(te) && fuelBudget > 0) {
+                    int n = Math.min(2, fuelBudget);
+                    RbmkParts.spawnReactorDebris(te, n);
+                    fuelBudget -= n;
+                }
+                for (int dy = 0; dy <= height && converted < cap; dy++) {
+                    BlockPos at = core.up(dy);
+                    if (!world.isBlockLoaded(at)) {
+                        continue;
+                    }
+                    IBlockState state = world.getBlockState(at);
+                    Block block = state.getBlock();
+                    if (block.isAir(state, world, at)) {
+                        continue;
+                    }
+                    if (block == com.hbmzz.ModContent.BLOCK_RBMK_WRECKAGE) {
+                        continue;
+                    }
+                    // 只换反应堆本体：基础模组的 RBMK 家族，或者还挂着反应堆
+                    // 方块实体的柱子格（顶部盖板位就属于这一类）。这样普通地板
+                    // 和墙不会被顺手改成残骸。
+                    if (!RbmkParts.isRbmkBlock(block) && !RbmkParts.isColumn(world.getTileEntity(at))) {
+                        continue;
+                    }
+                    // flag 2：只通知客户端、不唤醒相邻格。相邻的大多也是本体，
+                    // 没必要在一 tick 里让半座反应堆互相重算多结构。
+                    world.setBlockState(at, com.hbmzz.ModContent.BLOCK_RBMK_WRECKAGE.getDefaultState(), 2);
+                    converted++;
+                }
+            }
+            if (converted > 0) {
+                report(world, "reactor body became wreckage (" + converted + " blocks)");
+            }
         }
     }
 
@@ -568,11 +640,29 @@ public final class RbmkSurge {
     }
 
     /**
+     * 顶盖落地的那两次核爆额外甩出的燃料碎块。
+     *
+     * <p>实体层在 {@code com.hbmzz.entity}，够不到包私有的 {@link RbmkParts}，
+     * 所以这里开一个公开的薄入口转发一下。落地时本体早已是残骸、没有柱子
+     * 实体可取坐标，于是走 {@code spawnFuelAt} 的直接构造路径。</p>
+     */
+    public static void fuelChunks(World world, double x, double y, double z, int count) {
+        if (world == null || world.isRemote || !HBMZZConfig.rbmkSurgeMelt) {
+            return;
+        }
+        RbmkParts.spawnFuelAt(world, x, y, z, count);
+    }
+
+    /**
      * Called by the plate when it has finished falling for the last time.
      *
-     * <p>Destroys the reactor through the base mod's own meltdown, so the
-     * wreckage - corium, debris, the lot - is the one players already know how
-     * to read, rather than a second kind of crater this mod invented.</p>
+     * <p>By the time this runs the body is already wreckage - it was turned the
+     * moment the lid left, in {@code wreckBody}, so that the plate lands on
+     * rubble instead of on a crater. So this is a safety net, not the main
+     * destruction: it only fires the base mod's own meltdown on a column that
+     * somehow survived the sweep (a stray column outside the tracked footprint,
+     * a module the sweep did not recognise). On a normal reactor it finds no
+     * live column at all and does nothing.</p>
      */
     public static void onLidSettled(EntityRbmkLid plate) {
         if (plate == null || plate.world == null || plate.world.isRemote) {

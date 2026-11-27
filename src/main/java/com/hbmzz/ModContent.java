@@ -106,6 +106,11 @@ public final class ModContent {
     /** Full power for as long as an RBMK is jumping its rods; drops out at the meltdown. */
     public static final Block BLOCK_RBMK_ROD_JUMP_SENSOR = new com.hbmzz.rbmk.BlockRbmkRodJumpSensor();
     /**
+     * 蒸汽爆炸后留在原地的反应堆残骸。没有物品、不进创造栏：它是事故的
+     * 产物，不是建材。落地核爆砸不碎它（黑曜石级抗爆），所以顶盖落在它上面。
+     */
+    public static final Block BLOCK_RBMK_WRECKAGE = new com.hbmzz.rbmk.BlockRbmkWreckage();
+    /**
      * Self-contained HBMZZ reactor core. Uses the control-panel model and
      * textures - no new art, so it can never arrive purple-and-black.
      */
@@ -223,6 +228,7 @@ public final class ModContent {
         event.getRegistry().register(BLOCK_DFC_COLLAPSE_SENSOR);
         event.getRegistry().register(BLOCK_RBMK_BLAST_SENSOR);
         event.getRegistry().register(BLOCK_RBMK_ROD_JUMP_SENSOR);
+        event.getRegistry().register(BLOCK_RBMK_WRECKAGE);
         event.getRegistry().register(BLOCK_REACTOR);
         event.getRegistry().register(BLOCK_STATUS_LAMP);
         event.getRegistry().register(BLOCK_ALARM_BEACON);

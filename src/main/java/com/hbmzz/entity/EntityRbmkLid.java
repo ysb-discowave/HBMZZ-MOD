@@ -342,6 +342,10 @@ public class EntityRbmkLid extends Entity implements IEntityAdditionalSpawnData 
                 Math.min(6.0D, ringRadius * 0.35D), 40, 0.55D);
         com.hbmzz.rbmk.RbmkSurge.shake(this.world, this.posX, this.posY, this.posZ,
                 Math.min(24.0F, power), 48.0F + power * 2.0F, 30, true);
+        // 落地核爆再补一把燃料碎块：本体此刻已是残骸，没有柱子实体可取坐标，
+        // 走的是按坐标直接构造基础模组碎块的那条路径。
+        com.hbmzz.rbmk.RbmkSurge.fuelChunks(this.world, this.posX, this.posY, this.posZ,
+                3 + this.rand.nextInt(4));
     }
 
     private void blast(float power, int breaks) {

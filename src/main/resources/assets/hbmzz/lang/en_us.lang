@@ -168,3 +168,5 @@ hbmzz.ai.help.ask=Right-click the AI Terminal: status/start/scram/stabiliser on/
 hbmzz.ai.help.prompt=/ai prompt <text> sets the global custom prompt; /ai prompt clear resets it (placeholders like {temperatureC} allowed).
 hbmzz.ai.help.preset=/ai preset <name> picks a behaviour preset; /ai presets lists them. In the terminal: prompt/preset/presets for your own.
 hbmzz.ai.help.autoscram=/ai autoscram on|off gates the local threshold SCRAM when the AI gives no action (off by default).
+
+tile.hbmzz.rbmk_wreckage.name=Reactor Wreckage
